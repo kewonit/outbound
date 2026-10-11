@@ -1,5 +1,7 @@
 import AppKit
+import KeyboardShortcuts
 import OutboundCore
+import SwiftUI
 
 @main
 @MainActor
@@ -21,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var model: Model!
     private var panel: PanelController!
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if isAlreadyRunning {
@@ -43,6 +46,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         panel = PanelController(model: model)
+        panel.openSettings = { [weak self] in self?.openSettings() }
+        KeyboardShortcuts.onKeyDown(for: .togglePanel) { [weak self] in
+            guard let self else { return }
+            panel.toggle(below: statusItemFrame)
+        }
         if model.library.prompts.isEmpty { panel.show(below: statusItemFrame) }
     }
 
@@ -93,10 +101,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showStatusMenu() {
         let menu = NSMenu()
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    @objc private func openSettings() {
+        panel?.hide()
+        if settingsWindow == nil {
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(libraryURL: model.libraryURL)))
+            window.title = "Outbound Settings"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            settingsWindow = window
+        }
+        NSApp.activate()
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     private func present(_ problem: Model.Problem) {
@@ -133,8 +157,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
-    /// Accessory apps still need an Edit menu for text editing shortcuts to work.
+    /// Accessory apps still need menus for standard shortcuts to work in their windows.
     private func installMainMenu() {
+        let app = NSMenu()
+        app.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        app.addItem(.separator())
+        app.addItem(withTitle: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let appItem = NSMenuItem()
+        appItem.submenu = app
+
         let edit = NSMenu(title: "Edit")
         edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
         edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
@@ -145,9 +176,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         let editItem = NSMenuItem()
         editItem.submenu = edit
+        let window = NSMenu(title: "Window")
+        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let windowItem = NSMenuItem()
+        windowItem.submenu = window
         let main = NSMenu()
-        main.addItem(NSMenuItem())
+        main.addItem(appItem)
         main.addItem(editItem)
+        main.addItem(windowItem)
         NSApp.mainMenu = main
     }
 }
