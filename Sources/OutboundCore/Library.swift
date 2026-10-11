@@ -19,13 +19,13 @@ public struct Prompt: Identifiable, Hashable, Sendable {
     }
 
     /// The title, or the first line of the body when there is no title.
+    /// Reads only as far as that line, since it runs for every row and every search.
     public var displayTitle: String {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !title.isEmpty { return title }
-        let line = body.split(whereSeparator: \.isNewline)
-            .lazy.map { $0.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty }
-        return line.map { String($0.prefix(200)) } ?? ""
+        guard let start = body.firstIndex(where: { !$0.isWhitespace }) else { return "" }
+        let end = body[start...].firstIndex(where: \.isNewline) ?? body.endIndex
+        return String(body[start..<end].trimmingCharacters(in: .whitespaces).prefix(200))
     }
 
     public var isEmpty: Bool {
