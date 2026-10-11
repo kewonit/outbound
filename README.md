@@ -12,7 +12,10 @@ scripts/build-app.sh release
 open build/Outbound.app
 ```
 
-Move `build/Outbound.app` to Applications to keep it.
+Move `build/Outbound.app` to Applications to keep it. Release builds are
+universal and also zipped to `build/Outbound.zip`. To sign and notarize, set
+`SIGN_IDENTITY` to a Developer ID Application identity and `NOTARY_PROFILE` to a
+`notarytool` keychain profile before building.
 
 ## Use
 
