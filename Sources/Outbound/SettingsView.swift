@@ -17,7 +17,7 @@ struct SettingsView: View {
     var body: some View {
         Form {
             KeyboardShortcuts.Recorder("Open Outbound", name: .togglePanel)
-            Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: setOpensAtLogin))
+            Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             LabeledContent("Paste into apps") {
                 if canPaste {
                     Text("Allowed").foregroundStyle(.secondary)
