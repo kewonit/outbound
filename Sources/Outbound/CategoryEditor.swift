@@ -2,12 +2,13 @@ import SwiftUI
 import OutboundCore
 
 struct CategoryEditor: View {
+    /// Icons that fit a prompt library. Outline glyphs, like a Mac sidebar.
     static let symbols = [
-        "star.fill", "heart.fill", "bolt.fill", "flame.fill", "leaf.fill", "sparkles", "lightbulb.fill",
-        "bookmark.fill", "tag.fill", "flag.fill", "briefcase.fill", "folder.fill", "doc.text.fill", "pencil",
-        "paintbrush.fill", "hammer.fill", "terminal.fill", "chevron.left.forwardslash.chevron.right", "curlybraces",
-        "envelope.fill", "bubble.left.fill", "person.fill", "globe", "magnifyingglass", "book.fill",
-        "graduationcap.fill", "chart.bar.fill", "camera.fill", "music.note", "house.fill", "cart.fill"
+        "star", "text.alignleft", "pencil", "envelope", "bubble.left.and.bubble.right", "quote.bubble", "translate",
+        "chevron.left.forwardslash.chevron.right", "terminal", "ladybug", "doc.text", "checklist", "list.bullet",
+        "magnifyingglass", "book", "graduationcap", "lightbulb", "sparkles", "brain.head.profile", "chart.bar",
+        "tablecells", "paintbrush", "photo", "megaphone", "briefcase", "person", "calendar", "scroll", "hammer",
+        "gearshape", "bookmark"
     ]
 
     @Bindable var model: Model

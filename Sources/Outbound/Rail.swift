@@ -11,7 +11,7 @@ struct Rail: View {
                 RailButton(name: "All Prompts", selected: model.scope == nil) {
                     model.scope = nil
                 } icon: {
-                    Image(systemName: "tray.full")
+                    Image(systemName: "text.bubble")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
                 } drop: { items in
@@ -36,7 +36,7 @@ struct Rail: View {
                     }
                 }
                 RailButton(name: "New Category", selected: false, action: model.newCategory) {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus.circle.dashed")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.secondary)
                 } drop: { items in
