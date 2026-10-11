@@ -100,10 +100,8 @@ final class PanelController: NSObject, NSWindowDelegate {
             model.edit(prompt.id)
             return
         }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(prompt.body, forType: .string)
         hide()
+        if paste { Paster.paste(prompt.body) } else { Paster.copy(prompt.body) }
     }
 
     // MARK: Keyboard
