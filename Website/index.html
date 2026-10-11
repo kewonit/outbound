@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<!--
+  OUTBOUND URL CONFIG: the only place site URLs live.
+    download : latest GitHub release
+    github   : project repository
+  app.js applies these to every [data-url] link at load. No build step.
+  Once the site has its domain, point og:image and twitter:image at the
+  absolute URL of assets/og-image.png. Link previews need absolute URLs.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outbound · Prompts for Mac</title>
+<meta name="description" content="Outbound keeps your prompts in the Mac menu bar. Type a few letters, press Return, and it pastes where you type. Free and open source.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Outbound · Prompts for Mac">
+<meta property="og:description" content="Your prompts, one keystroke away. Free, open source, and made for the Mac menu bar.">
+<meta property="og:image" content="assets/og-image.png">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Outbound · Prompts for Mac">
+<meta name="twitter:description" content="Your prompts, one keystroke away. Free, open source, and made for the Mac menu bar.">
+<meta name="twitter:image" content="assets/og-image.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2">
+<link rel="stylesheet" href="styles.css">
+<script>
+window.OUTBOUND_URLS = {
+  download: "https://github.com/kewonit/outbound/releases/latest",
+  github: "https://github.com/kewonit/outbound"
+};
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1>Your prompts,<br>one keystroke away.</h1>
+      <p class="lede">Outbound keeps your prompts in the menu bar. Type a few letters. Press Return. It pastes where you type.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound" data-url="github">Star on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HERO VISUAL (full-bleed, no frame) ============ -->
+  <section class="visual-bleed" aria-label="Outbound screenshot">
+    <div class="wrap-wide">
+      <figure>
+        <img src="assets/screenshots/panel@2x.webp"
+             srcset="assets/screenshots/panel.webp 772w, assets/screenshots/panel@2x.webp 1544w"
+             sizes="(max-width: 1008px) calc(100vw - 3rem), 960px"
+             alt="Outbound open under the menu bar, showing the Writing prompts"
+             width="1544" height="720" fetchpriority="high" decoding="async" draggable="false">
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ FEATURE GRID ============ -->
+  <section class="section" id="features">
+    <div class="wrap-narrow">
+      <h2>Save a prompt once. Use it anywhere.</h2>
+      <p class="section-sub">Outbound is made for macOS 26. It is small and fast, and it stays out of the way.</p>
+      <div class="feature-grid">
+        <article class="feature">
+          <h3>Menu bar panel</h3>
+          <p>One click or one shortcut opens it. It drops right under the menu bar.</p>
+        </article>
+        <article class="feature">
+          <h3>Return to paste</h3>
+          <p>Pick a prompt and press Return. It lands in the app you were using.</p>
+        </article>
+        <article class="feature">
+          <h3>Search that forgives</h3>
+          <p>Type a few letters. cdrv finds Code review.</p>
+        </article>
+        <article class="feature">
+          <h3>Categories as dots</h3>
+          <p>Sort prompts into categories. Each one is a dot or an icon.</p>
+        </article>
+        <article class="feature">
+          <h3>Keyboard first</h3>
+          <p>Search, pick, edit, and switch categories. No mouse needed.</p>
+        </article>
+        <article class="feature">
+          <h3>Undo anything</h3>
+          <p>Delete without a warning. ⌘Z brings it back.</p>
+        </article>
+        <article class="feature">
+          <h3>Import a folder</h3>
+          <p>Bring in text files. Each subfolder becomes a category.</p>
+        </article>
+        <article class="feature">
+          <h3>One plain file</h3>
+          <p>Your library is one JSON file. Read it, back it up, or sync it.</p>
+        </article>
+        <article class="feature">
+          <h3>No tracking</h3>
+          <p>No account. No analytics. Nothing leaves your Mac.</p>
+        </article>
+        <article class="feature">
+          <h3>Open source</h3>
+          <p>Anyone can read the code. It is free to use and change.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEARCH DEMO ============ -->
+  <section class="section" id="search">
+    <div class="wrap-narrow">
+      <h2>Find any prompt in a few keys.</h2>
+      <p class="section-sub">Titles rank first, then text. The best match is already picked.</p>
+      <div class="demo-card">
+        <div class="demo-copy">
+          <p><span class="mark mark-sm" aria-hidden="true"></span></p>
+          <h3>Search</h3>
+          <p>Type part of a title, a word from the text, or just the first letters. Press Return to paste.</p>
+        </div>
+        <div class="demo-panel" aria-label="Example of Outbound search results">
+          <p class="demo-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.25" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>email</p>
+          <ul class="demo-rows">
+            <li><span class="demo-dot" style="background:#ff9f0a"></span><span class="demo-app">Polish <em>email</em></span><span class="demo-dest">Writing</span><span class="chip go">↩ Paste</span></li>
+            <li><span class="demo-dot" style="background:#ff9f0a"></span><span class="demo-app"><em>Email</em> reply</span><span class="demo-dest">Writing</span></li>
+            <li><span class="demo-dot" style="background:#0a84ff"></span><span class="demo-app">Cold <em>email</em></span><span class="demo-dest">Work</span></li>
+            <li><span class="demo-dot" style="background:#8e8e93"></span><span class="demo-app">Summarize thread</span><span class="demo-dest">No category</span><span class="chip local">In text</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR WAY ============ -->
+  <section class="section" id="use">
+    <div class="wrap-narrow">
+      <h2>Use Outbound your way.</h2>
+      <p class="section-sub">Click, shortcut, or keys. You choose.</p>
+      <div class="mini-grid">
+        <article class="mini">
+          <h3>Click</h3>
+          <p>Click the icon in the menu bar. The panel drops down.</p>
+        </article>
+        <article class="mini">
+          <h3>Shortcut</h3>
+          <p>Set your own shortcut. Open it from any app.</p>
+        </article>
+        <article class="mini">
+          <h3>Keys</h3>
+          <p>↩ pastes. ⌘↩ copies. ⌘E edits.</p>
+        </article>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound" data-url="github">Star on GitHub</a>
+      </div>
+      <figure class="app-frame inset">
+        <img src="assets/screenshots/editor@2x.webp"
+             srcset="assets/screenshots/editor.webp 772w, assets/screenshots/editor@2x.webp 1544w"
+             sizes="(max-width: 672px) calc(100vw - 2rem), 640px"
+             alt="Editing the Code review prompt in Outbound"
+             width="1544" height="760" loading="lazy" decoding="async" draggable="false">
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ DOWNLOAD ============ -->
+  <section class="section" id="download">
+    <div class="wrap-narrow">
+      <h2>Download</h2>
+      <p class="section-sub">Free and open source. Yours to keep.</p>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">Free<span class="per"> for Mac</span></p>
+          <p class="tier-desc">The app, ready to run.</p>
+          <ul>
+            <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 3 3c1.5-5.5 6-9 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Menu bar panel</span></li>
+            <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 3 3c1.5-5.5 6-9 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Search and paste</span></li>
+            <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 3 3c1.5-5.5 6-9 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Categories and icons</span></li>
+            <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 3 3c1.5-5.5 6-9 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Global shortcut</span></li>
+            <li><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 13 3 3c1.5-5.5 6-9 6-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Import a folder</span></li>
+          </ul>
+          <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+        </article>
+        <article class="tier tier-side">
+          <h3 class="tier-name">Open source</h3>
+          <p class="tier-price">MIT<span class="per"> licensed</span></p>
+          <p class="tier-desc">Read every line.</p>
+          <a class="btn btn-dark btn-sm btn-star" href="https://github.com/kewonit/outbound" data-url="github"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Star on GitHub</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">What do I need to run Outbound?</button>
+          <div class="faq-a"><p>You need a Mac with macOS 26 or a newer version. To build it yourself, you also need Xcode 26 or a newer version.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Why does Outbound ask for Accessibility?</button>
+          <div class="faq-a"><p>So it can paste for you. After you press Return, it sends one ⌘V to the app you were using. Without it, Outbound copies the prompt and you paste it yourself.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Where are my prompts kept?</button>
+          <div class="faq-a"><p>In one JSON file on your Mac, at <code>~/Library/Application Support/Outbound/Library.json</code>. You can read it, edit it, and back it up.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Can I sync my prompts?</button>
+          <div class="faq-a"><p>Yes. Move the file to a synced folder and leave a symlink in its place. Outbound keeps the link when it saves.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Does Outbound send any data?</button>
+          <div class="faq-a"><p>No. It has no account and no tracking, and it makes no network requests. Your prompts stay on your Mac.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Is Outbound free?</button>
+          <div class="faq-a"><p>Yes. It is free and open source under the MIT license.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2>Your prompts, one keystroke away.<span class="caret" aria-hidden="true"></span></h2>
+      <p class="section-sub">Free for Mac. Open source.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound" data-url="github">Star on GitHub</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="Footer">
+      <div>
+        <h3>Product</h3>
+        <a href="#features">Features</a>
+        <a href="#search">Search</a>
+        <a href="#download">Download</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div>
+        <h3>Source</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases">Releases</a>
+        <a href="https://github.com/kewonit/outbound/issues">Issues</a>
+      </div>
+      <div>
+        <h3>Legal</h3>
+        <a href="privacy.html">Privacy</a>
+        <a href="license.html">License</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span>Needs macOS 26 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

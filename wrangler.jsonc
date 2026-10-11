@@ -1,0 +1,9 @@
+{
+  // The website, served as static assets. Deploy with: npx wrangler deploy
+  "name": "outbound",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./Website",
+    "not_found_handling": "404-page"
+  }
+}

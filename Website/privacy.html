@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<!--
+  OUTBOUND URL CONFIG: same single edit point as index.html.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · Outbound</title>
+<meta name="description" content="Outbound has no servers and no account. Your prompts stay on your Mac.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Privacy · Outbound">
+<meta property="og:description" content="Outbound has no servers and no account. Your prompts stay on your Mac.">
+<meta property="og:image" content="assets/og-image.png">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy · Outbound">
+<meta name="twitter:description" content="Outbound has no servers and no account. Your prompts stay on your Mac.">
+<meta name="twitter:image" content="assets/og-image.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2">
+<link rel="stylesheet" href="styles.css">
+<script>
+window.OUTBOUND_URLS = {
+  download: "https://github.com/kewonit/outbound/releases/latest",
+  github: "https://github.com/kewonit/outbound"
+};
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="index.html#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1>Privacy.</h1>
+    <p class="lede">Outbound has no servers and no account. Your prompts stay on your Mac.</p>
+
+    <h2>In short</h2>
+    <ul>
+      <li>Outbound collects nothing about you.</li>
+      <li>It makes no network requests. It works offline.</li>
+      <li>No analytics, no ads, no crash reports, no built-in updater.</li>
+    </ul>
+
+    <h2>What Outbound stores</h2>
+    <ul>
+      <li>Your prompts and categories, in one file: <code>~/Library/Application Support/Outbound/Library.json</code>.</li>
+      <li>Each prompt keeps its title, text, category, and the dates it was made and last changed.</li>
+      <li>Your shortcut, in the app preferences.</li>
+      <li>Open at login is kept by macOS, and is off until you turn it on.</li>
+      <li>If the file cannot be read, it is moved aside and kept. It is never deleted.</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li>Accessibility lets Outbound paste for you. It sends one ⌘V to the app in front, only after you pick a prompt.</li>
+      <li>It does not watch your typing, read other apps, or see your screen.</li>
+      <li>Without Accessibility, Outbound copies the prompt and you paste it yourself.</li>
+      <li>Files are read only when you choose them to import.</li>
+    </ul>
+
+    <h2>The clipboard</h2>
+    <ul>
+      <li>Using a prompt puts its text on the clipboard, so you can paste it again.</li>
+      <li>Outbound reads the clipboard only when you paste into it.</li>
+      <li>Clipboard managers you run may save what Outbound copies.</li>
+    </ul>
+
+    <h2>Your control</h2>
+    <ul>
+      <li>Back up or move your prompts by copying the file.</li>
+      <li>A deleted prompt leaves the file on the next save. ⌘Z brings it back while Outbound is open.</li>
+      <li>To remove everything, quit Outbound, delete the app, and delete the Outbound folder in Application Support.</li>
+    </ul>
+
+    <h2>Changes</h2>
+    <ul>
+      <li>If this ever changes, this page will say so first.</li>
+      <li>Questions go to <a href="https://github.com/kewonit/outbound/issues">GitHub issues</a>.</li>
+      <li>Last updated October 12, 2026.</li>
+    </ul>
+
+    <div class="cta-row page-cta">
+      <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2>Your prompts, one keystroke away.<span class="caret" aria-hidden="true"></span></h2>
+      <p class="section-sub">Free for Mac. Open source.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="https://github.com/kewonit/outbound/releases/latest" data-url="download">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound" data-url="github">Star on GitHub</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="Footer">
+      <div>
+        <h3>Product</h3>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#search">Search</a>
+        <a href="index.html#download">Download</a>
+        <a href="index.html#faq">FAQ</a>
+      </div>
+      <div>
+        <h3>Source</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases">Releases</a>
+        <a href="https://github.com/kewonit/outbound/issues">Issues</a>
+      </div>
+      <div>
+        <h3>Legal</h3>
+        <a href="privacy.html">Privacy</a>
+        <a href="license.html">License</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span>Needs macOS 26 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
