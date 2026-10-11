@@ -5,6 +5,8 @@ let package = Package(
     name: "Outbound",
     platforms: [.macOS(.v26)],
     targets: [
-        .executableTarget(name: "Outbound")
+        .target(name: "OutboundCore"),
+        .executableTarget(name: "Outbound", dependencies: ["OutboundCore"]),
+        .testTarget(name: "OutboundCoreTests", dependencies: ["OutboundCore"])
     ]
 )
