@@ -16,8 +16,9 @@ struct PanelView: View {
                 case .prompt(let id):
                     PromptEditor(model: model, id: id, focus: $focus)
                         .id(id)
-                case .category:
-                    EmptyView()
+                case .category(let id):
+                    CategoryEditor(model: model, id: id, focus: $focus)
+                        .id(id)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

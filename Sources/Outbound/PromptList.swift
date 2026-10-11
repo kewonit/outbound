@@ -5,6 +5,7 @@ import OutboundCore
 struct PromptList: View {
     @Bindable var model: Model
     let actions: PanelActions
+    @State private var dropTarget: UUID?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -50,8 +51,23 @@ struct PromptList: View {
             .background {
                 if selected { RoundedRectangle(cornerRadius: 8).fill(Color.accentColor) }
             }
+            .overlay(alignment: .top) {
+                if dropTarget == prompt.id {
+                    Capsule().fill(Color.accentColor).frame(height: 2).offset(y: -2)
+                }
+            }
             .contentShape(Rectangle())
             .id(prompt.id)
+            .draggable(DragItem(kind: .prompt, id: prompt.id, text: prompt.body)) {
+                Text(title.isEmpty ? "Untitled" : title).padding(6)
+            }
+            .dropDestination(for: DragItem.self) { items, _ in
+                model.reorder(items.ids(.prompt), before: prompt.id)
+                return true
+            } isTargeted: { targeted in
+                if targeted, model.query.isEmpty { dropTarget = prompt.id }
+                else if dropTarget == prompt.id { dropTarget = nil }
+            }
             .onTapGesture {
                 model.selection = prompt.id
                 if NSApp.currentEvent?.clickCount == 2 { actions.use(prompt, true) }
@@ -63,6 +79,16 @@ struct PromptList: View {
                     .keyboardShortcut(.return, modifiers: .command)
                 Button("Edit") { model.edit(prompt.id) }
                     .keyboardShortcut("e", modifiers: .command)
+                if !model.library.categories.isEmpty {
+                    Menu("Move To") {
+                        Button("None") { model.move([prompt.id], to: nil) }
+                            .disabled(prompt.categoryID == nil)
+                        ForEach(model.library.categories) { category in
+                            Button(category.name) { model.move([prompt.id], to: category.id) }
+                                .disabled(prompt.categoryID == category.id)
+                        }
+                    }
+                }
                 Divider()
                 Button("Delete") { model.delete(prompt.id) }
                     .keyboardShortcut(.delete, modifiers: .command)

@@ -86,6 +86,7 @@ struct LibraryTests {
             {"body": "no id"},
             {"id": "\(id)", "title": "dangling", "category": "\(UUID())"},
             {"title": "kept", "category": "\(id)", "created": "not a date"},
+            {"title": " ", "body": ""},
             "junk"
           ]
         }
@@ -100,6 +101,12 @@ struct LibraryTests {
         #expect(library.prompts.map(\.title) == ["", "dangling", "kept"])
         #expect(library.prompts[1].categoryID == nil)
         #expect(library.prompts[2].categoryID == id)
+    }
+
+    @Test func neverStoresEmptyPrompts() throws {
+        let library = Library(prompts: [Prompt(), Prompt(title: "A")])
+        let decoded = try JSONDecoder().decode(Library.self, from: JSONEncoder().encode(library))
+        #expect(decoded.prompts.map(\.title) == ["A"])
     }
 
     @Test func rejectsNewerVersions() {

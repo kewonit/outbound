@@ -27,6 +27,7 @@ struct PromptEditor: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 17, weight: .semibold))
                     .focused(focus, equals: .title)
+                categoryMenu(prompt)
             }
             .padding(.horizontal, 14)
             .frame(height: 52)
@@ -34,6 +35,40 @@ struct PromptEditor: View {
             BodyEditor(text: Binding(get: { prompt.body }, set: { model.setBody($0, of: id) }),
                        focusCount: model.focusRequest.field == .body ? model.focusRequest.count : nil)
         }
+    }
+}
+
+extension PromptEditor {
+    private func categoryMenu(_ prompt: Prompt) -> some View {
+        Menu {
+            Picker("Category", selection: Binding(get: { prompt.categoryID },
+                                                  set: { model.setCategory($0, of: id) })) {
+                Text("None").tag(UUID?.none)
+                ForEach(model.library.categories) { category in
+                    Text(category.name).tag(UUID?.some(category.id))
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            Group {
+                if let category = model.library.category(prompt.categoryID) {
+                    CategoryIcon(category: category)
+                } else {
+                    Image(systemName: "circle.dashed")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 24, height: 24)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .focusable(false)
+        .help("Category")
     }
 }
 

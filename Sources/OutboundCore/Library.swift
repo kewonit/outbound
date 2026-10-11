@@ -178,14 +178,16 @@ extension Library: Codable {
         guard version <= Self.version else { throw LibraryError.newerVersion(version) }
         let categories = try container.decodeIfPresent([Lossy<PromptCategory>].self, forKey: .categories) ?? []
         let prompts = try container.decodeIfPresent([Lossy<Prompt>].self, forKey: .prompts) ?? []
-        self.init(categories: categories.compactMap(\.value), prompts: prompts.compactMap(\.value))
+        self.init(categories: categories.compactMap(\.value),
+                  prompts: prompts.compactMap(\.value).filter { !$0.isEmpty })
     }
 
+    /// Empty prompts only exist while being written, so they are never stored.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
         try container.encode(Self.version, forKey: .version)
         try container.encode(categories, forKey: .categories)
-        try container.encode(prompts, forKey: .prompts)
+        try container.encode(prompts.filter { !$0.isEmpty }, forKey: .prompts)
     }
 }
 

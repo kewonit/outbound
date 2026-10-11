@@ -177,6 +177,10 @@ final class Model {
         focus(.body)
     }
 
+    func setCategory(_ category: UUID?, of id: UUID) {
+        editPrompt(id) { $0.categoryID = category }
+    }
+
     func setTitle(_ title: String, of id: UUID) {
         editPrompt(id) { $0.title = title }
     }
@@ -192,19 +196,58 @@ final class Model {
         scheduleSave()
     }
 
-    /// Leaves an editor. A prompt left empty is discarded.
+    func newCategory() {
+        settle()
+        let category = PromptCategory(name: "", color: library.nextColor)
+        editBaseline = library
+        library.categories.append(category)
+        scope = category.id
+        mode = .category(category.id)
+        focus(.categoryName)
+    }
+
+    func editCategory(_ id: UUID) {
+        guard library.category(id) != nil else { return }
+        settle()
+        scope = id
+        mode = .category(id)
+        focus(.categoryName)
+    }
+
+    func updateCategory(_ id: UUID, _ change: (inout PromptCategory) -> Void) {
+        if editBaseline == nil { editBaseline = library }
+        library.updateCategory(id, change)
+        scheduleSave()
+    }
+
+    /// Leaves an editor. A new prompt or category left empty is discarded.
     func back() {
-        guard case .prompt(let id) = mode else { return }
-        if library.prompt(id)?.isEmpty == true {
-            if editBaseline == nil { editBaseline = library }
-            library.removePrompts([id])
+        switch mode {
+        case .browse:
+            return
+        case .prompt(let id):
+            if library.prompt(id)?.isEmpty == true {
+                if editBaseline == nil { editBaseline = library }
+                library.removePrompts([id])
+                scheduleSave()
+            }
+        case .category(let id):
+            let name = library.category(id)?.name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if name.isEmpty, let previous = editBaseline?.category(id) {
+                library.updateCategory(id) { $0.name = previous.name }
+            } else if name.isEmpty {
+                library.removeCategory(id)
+            } else {
+                library.updateCategory(id) { $0.name = name }
+            }
             scheduleSave()
         }
+        let edited = selection
         settle()
         mode = .browse
         onLeaveEditor()
         refresh()
-        if results.contains(where: { $0.id == id }) { selection = id }
+        if results.contains(where: { $0.id == edited }) { selection = edited }
         focus(.search)
     }
 
@@ -216,6 +259,24 @@ final class Model {
         if let index, !results.isEmpty {
             selection = results[min(index, results.count - 1)].id
         }
+    }
+
+    func move(_ ids: [UUID], to category: UUID?) {
+        change("Move") { $0.movePrompts(Set(ids), to: category) }
+    }
+
+    /// Drag to reorder. Only while not searching, since search order is not library order.
+    func reorder(_ ids: [UUID], before target: UUID?) {
+        guard query.isEmpty else { return }
+        change("Reorder") { $0.reorderPrompts(ids, before: target) }
+    }
+
+    func reorderCategories(_ ids: [UUID], before target: UUID?) {
+        change("Reorder Categories") { $0.reorderCategories(ids, before: target) }
+    }
+
+    func deleteCategory(_ id: UUID) {
+        change("Delete Category") { $0.removeCategory(id) }
     }
 
     func undo() {
