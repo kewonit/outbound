@@ -22,6 +22,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel = Panel(contentRect: NSRect(origin: .zero, size: Self.size),
                       styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         super.init()
+        model.onLeaveEditor = { [weak panel] in panel?.undoManager?.removeAllActions() }
 
         let glass = NSGlassEffectView()
         glass.cornerRadius = 20
@@ -95,7 +96,10 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func use(_ prompt: Prompt, paste: Bool) {
-        guard !prompt.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !prompt.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            model.edit(prompt.id)
+            return
+        }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(prompt.body, forType: .string)
@@ -113,7 +117,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if flags == .command, key == "w" { hide(); return true }
         if flags == .command, key == "," { openSettings(); return true }
-        guard model.mode == .browse else { return false }
+        if model.mode != .browse { return handleEditorKey(event, flags: flags) }
 
         switch (flags, event.keyCode) {
         case ([], KeyCode.escape):
@@ -131,9 +135,18 @@ final class PanelController: NSObject, NSWindowDelegate {
         case (.command, KeyCode.up):
             model.selectEdge(last: false)
         case ([], KeyCode.returnKey), ([], KeyCode.enter):
-            if !event.isARepeat, let prompt = model.selectedPrompt { use(prompt, paste: true) }
+            guard !event.isARepeat else { break }
+            if let prompt = model.selectedPrompt {
+                use(prompt, paste: true)
+            } else if model.results.isEmpty {
+                model.newPrompt()
+            }
         case (.command, KeyCode.returnKey), (.command, KeyCode.enter):
             if !event.isARepeat, let prompt = model.selectedPrompt { use(prompt, paste: false) }
+        case (.command, _) where key == "n":
+            model.newPrompt()
+        case (.command, _) where key == "e":
+            if let id = model.selection { model.edit(id) }
         case (.command, KeyCode.delete):
             if let id = model.selection { model.delete(id) }
         case (.command, _) where key == "z":
@@ -143,6 +156,19 @@ final class PanelController: NSObject, NSWindowDelegate {
         case (.command, _) where key.count == 1 && key.first!.isWholeNumber:
             model.selectScope(number: key.first!.wholeNumberValue!)
         default:
+            return false
+        }
+        return true
+    }
+
+    private func handleEditorKey(_ event: NSEvent, flags: NSEvent.ModifierFlags) -> Bool {
+        guard flags.isEmpty else { return false }
+        let inTitle = (panel.firstResponder as? NSTextView)?.isFieldEditor == true
+        if event.keyCode == KeyCode.escape {
+            model.back()
+        } else if inTitle, [KeyCode.returnKey, KeyCode.enter, KeyCode.tab].contains(event.keyCode) {
+            model.focus(.body)
+        } else {
             return false
         }
         return true

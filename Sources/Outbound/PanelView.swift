@@ -13,14 +13,18 @@ struct PanelView: View {
                 switch model.mode {
                 case .browse:
                     browser
-                case .prompt, .category:
+                case .prompt(let id):
+                    PromptEditor(model: model, id: id, focus: $focus)
+                        .id(id)
+                case .category:
                     EmptyView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onChange(of: model.focusRequest) { _, request in
-            Task { focus = request.field }
+            // The body is an AppKit text view that focuses itself.
+            if request.field != .body { Task { focus = request.field } }
         }
     }
 
@@ -34,6 +38,16 @@ struct PanelView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 17))
                     .focused($focus, equals: .search)
+                Button(action: model.newPrompt) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .foregroundStyle(.secondary)
+                .help("New Prompt")
             }
             .padding(.horizontal, 14)
             .frame(height: 52)

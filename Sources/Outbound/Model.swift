@@ -41,6 +41,8 @@ final class Model {
     }
 
     @ObservationIgnored var onProblem: (Problem) -> Void = { _ in }
+    /// Called when an editor closes, so its typing undo history can go with it.
+    @ObservationIgnored var onLeaveEditor: () -> Void = {}
     @ObservationIgnored let undoManager = UndoManager()
     @ObservationIgnored private let store: LibraryStore
     @ObservationIgnored private var search = Search()
@@ -150,6 +152,60 @@ final class Model {
         if selectFirst || !results.contains(where: { $0.id == selection }) {
             selection = results.first?.id
         }
+    }
+
+    // MARK: Editing
+
+    /// Starts a prompt in the current category. A search in progress becomes its title.
+    func newPrompt() {
+        settle()
+        let title = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = Prompt(title: title, categoryID: scope)
+        editBaseline = library
+        library.insert(prompt)
+        query = ""
+        selection = prompt.id
+        mode = .prompt(prompt.id)
+        focus(title.isEmpty ? .title : .body)
+    }
+
+    func edit(_ id: UUID) {
+        guard library.prompt(id) != nil else { return }
+        settle()
+        selection = id
+        mode = .prompt(id)
+        focus(.body)
+    }
+
+    func setTitle(_ title: String, of id: UUID) {
+        editPrompt(id) { $0.title = title }
+    }
+
+    func setBody(_ body: String, of id: UUID) {
+        editPrompt(id) { $0.body = body }
+    }
+
+    private func editPrompt(_ id: UUID, _ change: (inout Prompt) -> Void) {
+        if editBaseline == nil { editBaseline = library }
+        library.update(id, change)
+        refresh()
+        scheduleSave()
+    }
+
+    /// Leaves an editor. A prompt left empty is discarded.
+    func back() {
+        guard case .prompt(let id) = mode else { return }
+        if library.prompt(id)?.isEmpty == true {
+            if editBaseline == nil { editBaseline = library }
+            library.removePrompts([id])
+            scheduleSave()
+        }
+        settle()
+        mode = .browse
+        onLeaveEditor()
+        refresh()
+        if results.contains(where: { $0.id == id }) { selection = id }
+        focus(.search)
     }
 
     // MARK: Changes
