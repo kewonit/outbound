@@ -112,7 +112,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openSettings() {
         panel?.hide()
         if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(libraryURL: model.libraryURL)))
+            let settings = SettingsView(libraryURL: model.libraryURL,
+                                        importPrompts: { [weak self] in self?.model.importPrompts(from: $0) ?? 0 })
+            let controller = NSHostingController(rootView: settings)
+            controller.sizingOptions = .preferredContentSize
+            let window = NSWindow(contentViewController: controller)
             window.title = "Outbound Settings"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false

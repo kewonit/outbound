@@ -9,6 +9,8 @@ extension KeyboardShortcuts.Name {
 
 struct SettingsView: View {
     let libraryURL: URL
+    let importPrompts: ([URL]) -> Int
+    @State private var imported: Int?
     @State private var opensAtLogin = SMAppService.mainApp.status == .enabled
     @State private var canPaste = Paster.canPaste
 
@@ -24,7 +26,13 @@ struct SettingsView: View {
                 }
             }
             LabeledContent("Library") {
-                Button("Show in Finder", action: showLibrary)
+                HStack {
+                    if let imported {
+                        Text(imported == 1 ? "Added 1" : "Added \(imported)").foregroundStyle(.secondary)
+                    }
+                    Button("Import…", action: chooseImport)
+                    Button("Show in Finder", action: showLibrary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -45,6 +53,17 @@ struct SettingsView: View {
         try? on ? service.register() : service.unregister()
         if service.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
         opensAtLogin = service.status == .enabled
+    }
+
+    /// Text files become prompts. Each subfolder of a chosen folder becomes a category.
+    private func chooseImport() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = "Import"
+        guard panel.runModal() == .OK else { return }
+        imported = importPrompts(panel.urls)
     }
 
     private func showLibrary() {

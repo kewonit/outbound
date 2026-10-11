@@ -261,6 +261,19 @@ final class Model {
         }
     }
 
+    /// Imports text files and folders. Returns how many prompts were added.
+    func importPrompts(from urls: [URL]) -> Int {
+        let imported = PromptImport.read(urls)
+        var added = 0
+        change("Import") { added = $0.add(imported) }
+        if added > 0 {
+            scope = nil
+            query = ""
+            selection = library.prompts.first?.id
+        }
+        return added
+    }
+
     func move(_ ids: [UUID], to category: UUID?) {
         change("Move") { $0.movePrompts(Set(ids), to: category) }
     }
