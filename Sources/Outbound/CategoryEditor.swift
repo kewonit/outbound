@@ -11,6 +11,17 @@ struct CategoryEditor: View {
         "gearshape", "bookmark"
     ]
 
+    static let columns = 8
+    static let cell: CGFloat = 32
+    static let gap: CGFloat = 6
+    static let inset: CGFloat = 16
+
+    /// Header, colors, then the icon grid, with nothing to spare.
+    static var height: CGFloat {
+        let rows = CGFloat((symbols.count + 1 + columns - 1) / columns)
+        return Metrics.header + Metrics.line + inset * 2 + cell + 20 + rows * cell + (rows - 1) * gap
+    }
+
     @Bindable var model: Model
     let id: UUID
     var focus: FocusState<Model.Field?>.Binding
@@ -36,10 +47,10 @@ struct CategoryEditor: View {
                     .focused(focus, equals: .categoryName)
             }
             .padding(.horizontal, 14)
-            .frame(height: 52)
-            Divider()
+            .frame(height: Metrics.header)
+            Hairline()
             VStack(alignment: .leading, spacing: 20) {
-                HStack(spacing: 6) {
+                HStack(spacing: Self.gap) {
                     ForEach(CategoryColor.allCases, id: \.self) { color in
                         choice(selected: category.color == color, name: color.rawValue.capitalized) {
                             model.updateCategory(id) { $0.color = color }
@@ -48,7 +59,8 @@ struct CategoryEditor: View {
                         }
                     }
                 }
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(32), spacing: 6), count: 8), spacing: 6) {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(Self.cell), spacing: Self.gap), count: Self.columns),
+                          spacing: Self.gap) {
                     choice(selected: category.symbol == nil, name: "Dot") {
                         model.updateCategory(id) { $0.symbol = nil }
                     } label: {
@@ -66,7 +78,7 @@ struct CategoryEditor: View {
                 }
                 .fixedSize()
             }
-            .padding(16)
+            .padding(Self.inset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
@@ -75,7 +87,7 @@ struct CategoryEditor: View {
                                      @ViewBuilder label: () -> Label) -> some View {
         Button(action: action) {
             label()
-                .frame(width: 32, height: 32)
+                .frame(width: Self.cell, height: Self.cell)
                 .background(Circle().fill(.primary.opacity(selected ? 0.12 : 0)))
                 .contentShape(Circle())
         }

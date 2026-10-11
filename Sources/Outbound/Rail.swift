@@ -7,7 +7,7 @@ struct Rail: View {
 
     var body: some View {
         ScrollView(.vertical) {
-            VStack(spacing: 6) {
+            VStack(spacing: Metrics.railGap) {
                 RailButton(name: "All Prompts", selected: model.scope == nil) {
                     model.scope = nil
                 } icon: {
@@ -43,10 +43,10 @@ struct Rail: View {
                     model.reorderCategories(items.ids(.category), before: nil)
                 }
             }
-            .padding(.vertical, 11)
+            .padding(.vertical, Metrics.railInset)
         }
         .scrollIndicators(.never)
-        .frame(width: 50)
+        .frame(width: Metrics.railWidth)
     }
 }
 
@@ -62,7 +62,7 @@ struct RailButton<Icon: View>: View {
     // Not a Button, so categories can be dragged.
     var body: some View {
         icon
-            .frame(width: 30, height: 30)
+            .frame(width: Metrics.railItem, height: Metrics.railItem)
             .background(Circle().fill(.primary.opacity(selected || targeted ? 0.12 : hovering ? 0.06 : 0)))
             .contentShape(Circle())
             .onTapGesture(perform: action)

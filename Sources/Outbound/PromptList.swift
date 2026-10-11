@@ -10,13 +10,13 @@ struct PromptList: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 2) {
+                LazyVStack(spacing: Metrics.rowGap) {
                     if model.results.isEmpty { newPromptRow }
                     ForEach(model.results) { prompt in
                         row(prompt)
                     }
                 }
-                .padding(6)
+                .padding(Metrics.listInset)
             }
             .onChange(of: model.selection) { _, id in
                 if let id { proxy.scrollTo(id) }
@@ -32,7 +32,7 @@ struct PromptList: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 10)
-            .frame(height: 30)
+            .frame(height: Metrics.row)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor))
             .contentShape(Rectangle())
             .onTapGesture(perform: model.newPrompt)
@@ -47,7 +47,7 @@ struct PromptList: View {
             .foregroundStyle(selected ? AnyShapeStyle(.white) : title.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 10)
-            .frame(height: 30)
+            .frame(height: Metrics.row)
             .background {
                 if selected { RoundedRectangle(cornerRadius: 8).fill(Color.accentColor) }
             }
@@ -59,7 +59,7 @@ struct PromptList: View {
             .contentShape(Rectangle())
             .id(prompt.id)
             .draggable(DragItem(kind: .prompt, id: prompt.id, text: prompt.body)) {
-                Text(title.isEmpty ? "Untitled" : title).padding(6)
+                Text(title.isEmpty ? "Untitled" : title).padding(Metrics.listInset)
             }
             .dropDestination(for: DragItem.self) { items, _ in
                 model.reorder(items.ids(.prompt), before: prompt.id)

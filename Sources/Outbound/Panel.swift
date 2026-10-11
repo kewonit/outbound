@@ -10,8 +10,6 @@ final class Panel: NSPanel {
 /// Owns the drop down panel: where it appears, when it hides, and its keyboard.
 @MainActor
 final class PanelController: NSObject, NSWindowDelegate {
-    static let size = CGSize(width: 600, height: 420)
-
     let model: Model
     var openSettings: () -> Void = {}
     private let panel: Panel
@@ -19,15 +17,22 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     init(model: Model) {
         self.model = model
-        panel = Panel(contentRect: NSRect(origin: .zero, size: Self.size),
+        panel = Panel(contentRect: NSRect(x: 0, y: 0, width: Metrics.width, height: Metrics.maxHeight),
                       styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         super.init()
         model.onLeaveEditor = { [weak panel] in panel?.undoManager?.removeAllActions() }
 
-        let glass = NSGlassEffectView()
-        glass.cornerRadius = 20
-        glass.contentView = NSHostingView(rootView: PanelView(model: model, actions: actions))
-        panel.contentView = glass
+        // Frosted like a popover. Liquid Glass would add a bright rim around the edge.
+        let background = NSVisualEffectView()
+        background.material = .popover
+        background.blendingMode = .behindWindow
+        background.state = .active
+        background.maskImage = Self.roundedMask(radius: 18)
+        let content = NSHostingView(rootView: PanelView(model: model, actions: actions))
+        content.frame = background.bounds
+        content.autoresizingMask = [.width, .height]
+        background.addSubview(content)
+        panel.contentView = background
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -42,13 +47,26 @@ final class PanelController: NSObject, NSWindowDelegate {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             MainActor.assumeIsolated { self?.handle(event) ?? false } ? nil : event
         }
+        fitToContent()
     }
 
     var isVisible: Bool { panel.isVisible }
 
+    /// A stretchable rounded rectangle, so the blur keeps its corners at any panel height.
+    private static func roundedMask(radius: CGFloat) -> NSImage {
+        let edge = radius * 2 + 1
+        let image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        image.resizingMode = .stretch
+        return image
+    }
+
     private var actions: PanelActions {
-        PanelActions(use: { [weak self] prompt, paste in self?.use(prompt, paste: paste) },
-                     openSettings: { [weak self] in self?.openSettings() })
+        PanelActions(use: { [weak self] prompt, paste in self?.use(prompt, paste: paste) })
     }
 
     /// Toggles from the menu bar. A click that just closed the panel by taking focus away does not reopen it.
@@ -79,6 +97,62 @@ final class PanelController: NSObject, NSWindowDelegate {
         hide()
     }
 
+    // MARK: Size
+
+    /// Tall enough for what is showing and no taller, like Spotlight.
+    private var fittingHeight: CGFloat {
+        let items = CGFloat(model.library.categories.count + 2)
+        let rail = Metrics.railInset * 2 + items * Metrics.railItem + (items - 1) * Metrics.railGap
+        let content: CGFloat
+        switch model.mode {
+        case .browse:
+            let rows = CGFloat(max(model.results.count, 1))
+            content = Metrics.header + Metrics.line + Metrics.listInset * 2 + rows * Metrics.row + (rows - 1) * Metrics.rowGap
+        case .category:
+            content = CategoryEditor.height
+        case .prompt(let id):
+            content = Metrics.header + Metrics.line + editorHeight(for: model.library.prompt(id)?.body ?? "")
+        }
+        return min(max(content, rail), Metrics.maxHeight)
+    }
+
+    /// The body grows with its text, starting at a few lines, so short prompts stay compact.
+    private func editorHeight(for text: String) -> CGFloat {
+        // Long prompts always fill the panel, so skip measuring them on every keystroke.
+        guard text.utf16.count < 1500 else { return Metrics.maxHeight }
+        let font = BodyEditor.font
+        let width = Metrics.width - Metrics.railWidth - Metrics.line - BodyEditor.inset.width * 2 - 10
+        let text = text.isEmpty ? " " : text
+        let measured = text.boundingRect(with: NSSize(width: width, height: .greatestFiniteMagnitude),
+                                         options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                         attributes: [.font: font]).height
+        let line = font.ascender - font.descender + font.leading
+        return max(ceil(measured + line) + BodyEditor.inset.height * 2, 150)
+    }
+
+    /// Follows the content as it changes, keeping the top edge in place under the menu bar.
+    private func fitToContent() {
+        withObservationTracking {
+            _ = fittingHeight
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.resize()
+                self?.fitToContent()
+            }
+        }
+    }
+
+    private func resize() {
+        guard panel.isVisible, let screen = panel.screen else { return }
+        var frame = panel.frame
+        let height = min(fittingHeight, screen.visibleFrame.height - 16)
+        guard abs(frame.height - height) > 0.5 else { return }
+        frame.origin.y = frame.maxY - height
+        frame.size.height = height
+        panel.setFrame(frame, display: true)
+        panel.invalidateShadow()
+    }
+
     /// Centered under the menu bar icon, or at the top right of the screen with the pointer
     /// when the icon is hidden or on another display.
     private func frame(below anchor: NSRect?) -> NSRect {
@@ -87,8 +161,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         let screen = screens.first { $0.frame.contains(mouse) } ?? NSScreen.main ?? screens[0]
         let visible = screen.visibleFrame
         let anchor = anchor.flatMap { screen.frame.contains(NSPoint(x: $0.midX, y: $0.midY)) ? $0 : nil }
-        let size = CGSize(width: min(Self.size.width, visible.width - 16),
-                          height: min(Self.size.height, visible.height - 16))
+        let size = CGSize(width: min(Metrics.width, visible.width - 16),
+                          height: min(fittingHeight, visible.height - 16))
         let x = anchor.map { $0.midX - size.width / 2 } ?? visible.maxX - size.width
         return NSRect(x: min(max(x, visible.minX + 8), visible.maxX - size.width - 8),
                       y: visible.maxY - size.height - 6,
@@ -196,7 +270,6 @@ final class PanelController: NSObject, NSWindowDelegate {
 
 struct PanelActions {
     var use: (Prompt, _ paste: Bool) -> Void
-    var openSettings: () -> Void
 }
 
 enum KeyCode {

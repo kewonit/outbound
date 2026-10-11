@@ -30,8 +30,8 @@ struct PromptEditor: View {
                 categoryMenu(prompt)
             }
             .padding(.horizontal, 14)
-            .frame(height: 52)
-            Divider()
+            .frame(height: Metrics.header)
+            Hairline()
             BodyEditor(text: Binding(get: { prompt.body }, set: { model.setBody($0, of: id) }),
                        focusCount: model.focusRequest.field == .body ? model.focusRequest.count : nil)
         }
@@ -74,6 +74,9 @@ extension PromptEditor {
 
 /// A plain text view that leaves prompts exactly as typed: no smart quotes, dashes or corrections.
 struct BodyEditor: NSViewRepresentable {
+    static let font = NSFont.systemFont(ofSize: 14)
+    static let inset = NSSize(width: 12, height: 12)
+
     @Binding var text: String
     let focusCount: Int?
 
@@ -103,9 +106,9 @@ struct BodyEditor: NSViewRepresentable {
         textView.isAutomaticLinkDetectionEnabled = false
         textView.isAutomaticDataDetectionEnabled = false
         textView.isAutomaticTextCompletionEnabled = false
-        textView.font = .systemFont(ofSize: 14)
+        textView.font = Self.font
         textView.textColor = .labelColor
-        textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.textContainerInset = Self.inset
         textView.string = text
         return scrollView
     }
