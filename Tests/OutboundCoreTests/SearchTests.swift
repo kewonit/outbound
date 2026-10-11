@@ -40,6 +40,13 @@ struct SearchTests {
 
     @Test func matchesLooseAbbreviations() {
         #expect(titles("cdrv") == ["Code review"])
+        #expect(titles("rvw") == ["Code review"])
+    }
+
+    @Test func looseMatchesStartAtAWord() {
+        let prompts = [Prompt(title: "Write tests"), Prompt(title: "Find sources")]
+        var search = Search()
+        #expect(search.results(for: "re", in: prompts).isEmpty)
     }
 
     @Test func untitledPromptsMatchTheirFirstLine() {

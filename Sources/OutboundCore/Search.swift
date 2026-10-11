@@ -39,18 +39,20 @@ public struct Search {
         if entry.title.hasPrefix(token) { return 100 }
         if entry.words.contains(where: { $0.hasPrefix(token) }) { return 80 }
         if entry.title.contains(token) { return 60 }
-        if token.count > 1, isSubsequence(token, of: entry.title) { return 30 }
+        if token.count > 1, isLooseMatch(token, entry) { return 30 }
         if entry.body.contains(token) { return 10 }
         return nil
     }
 
-    private static func isSubsequence(_ needle: String, of haystack: String) -> Bool {
-        var remaining = needle[...]
-        for character in haystack where character == remaining.first {
+    /// Letters in order, starting at a word: "cdrv" finds "Code review", "re" does not find "Write".
+    private static func isLooseMatch(_ token: String, _ entry: Entry) -> Bool {
+        guard let start = entry.words.first(where: { $0.first == token.first })?.startIndex else { return false }
+        var remaining = token.dropFirst()
+        for character in entry.title[start...] where character == remaining.first {
             remaining = remaining.dropFirst()
             if remaining.isEmpty { return true }
         }
-        return false
+        return remaining.isEmpty
     }
 
     private mutating func entry(for prompt: Prompt) -> Entry {
