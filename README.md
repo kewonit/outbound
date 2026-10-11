@@ -16,7 +16,7 @@ Move `build/Outbound.app` to Applications to keep it.
 
 ## Use
 
-Click the paper plane in the menu bar, or set a shortcut in Settings. Type to
+Click ↩ in the menu bar, or set a shortcut in Settings. Type to
 search, then press Return.
 
 | Key | Action |
