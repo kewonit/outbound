@@ -54,6 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if model.library.prompts.isEmpty { panel.show(below: statusItemFrame) }
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        panel?.show(below: statusItemFrame)
+        return false
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         model?.save()
     }

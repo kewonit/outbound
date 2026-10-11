@@ -70,8 +70,11 @@ struct PromptList: View {
             }
             .onTapGesture {
                 model.selection = prompt.id
+                model.focus(.search)
                 if NSApp.currentEvent?.clickCount == 2 { actions.use(prompt, true) }
             }
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { actions.use(prompt, true) }
             .contextMenu {
                 Button("Paste") { actions.use(prompt, true) }
                     .keyboardShortcut(.return, modifiers: [])

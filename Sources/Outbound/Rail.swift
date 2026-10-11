@@ -59,23 +59,23 @@ struct RailButton<Icon: View>: View {
     @State private var hovering = false
     @State private var targeted = false
 
+    // Not a Button, so categories can be dragged.
     var body: some View {
-        Button(action: action) {
-            icon
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(.primary.opacity(selected || targeted ? 0.12 : hovering ? 0.06 : 0)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .focusable(false)
-        .onHover { hovering = $0 }
-        .dropDestination(for: DragItem.self) { items, _ in
-            drop(items)
-            return true
-        } isTargeted: { targeted = $0 }
-        .help(name)
-        .accessibilityLabel(name)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        icon
+            .frame(width: 30, height: 30)
+            .background(Circle().fill(.primary.opacity(selected || targeted ? 0.12 : hovering ? 0.06 : 0)))
+            .contentShape(Circle())
+            .onTapGesture(perform: action)
+            .onHover { hovering = $0 }
+            .dropDestination(for: DragItem.self) { items, _ in
+                drop(items)
+                return true
+            } isTargeted: { targeted = $0 }
+            .help(name)
+            .accessibilityElement()
+            .accessibilityLabel(name)
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { action() }
     }
 }
 

@@ -115,6 +115,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if flags == .command, key == "w" { hide(); return true }
         if flags == .command, key == "," { openSettings(); return true }
+        if handleTextCommand(key, flags: flags) { return true }
         if model.mode != .browse { return handleEditorKey(event, flags: flags) }
 
         switch (flags, event.keyCode) {
@@ -161,15 +162,35 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func handleEditorKey(_ event: NSEvent, flags: NSEvent.ModifierFlags) -> Bool {
         guard flags.isEmpty else { return false }
-        let inTitle = (panel.firstResponder as? NSTextView)?.isFieldEditor == true
+        let inField = (panel.firstResponder as? NSTextView)?.isFieldEditor == true
+        let next = [KeyCode.returnKey, KeyCode.enter, KeyCode.tab].contains(event.keyCode)
         if event.keyCode == KeyCode.escape {
             model.back()
-        } else if inTitle, [KeyCode.returnKey, KeyCode.enter, KeyCode.tab].contains(event.keyCode) {
+        } else if inField, next, case .prompt = model.mode {
             model.focus(.body)
+        } else if inField, next {
+            model.back()
         } else {
             return false
         }
         return true
+    }
+
+    /// Text editing shortcuts, sent straight to the focused text so they work
+    /// even though the panel never activates the app.
+    private func handleTextCommand(_ key: String, flags: NSEvent.ModifierFlags) -> Bool {
+        guard panel.firstResponder is NSTextView else { return false }
+        let action: Selector? = switch (flags, key) {
+        case (.command, "a"): #selector(NSText.selectAll(_:))
+        case (.command, "c"): #selector(NSText.copy(_:))
+        case (.command, "v"): #selector(NSText.paste(_:))
+        case (.command, "x"): #selector(NSText.cut(_:))
+        case (.command, "z") where model.mode != .browse: Selector(("undo:"))
+        case ([.command, .shift], "z") where model.mode != .browse: Selector(("redo:"))
+        default: nil
+        }
+        guard let action else { return false }
+        return NSApp.sendAction(action, to: nil, from: panel)
     }
 }
 

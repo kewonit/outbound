@@ -51,6 +51,10 @@ public final class LibraryStore {
         lastWrite = modificationDate
     }
 
+    public var fileExists: Bool {
+        FileManager.default.fileExists(atPath: target.path)
+    }
+
     /// True when something other than this store changed the file since it was last read or written.
     public var changedElsewhere: Bool {
         modificationDate != lastWrite

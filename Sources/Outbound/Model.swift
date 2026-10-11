@@ -71,6 +71,12 @@ final class Model {
     /// Picks up edits made to the file by something else, unless there is local work in flight.
     func reloadIfChangedElsewhere() throws {
         guard !unsaved, editBaseline == nil, store.changedElsewhere else { return }
+        guard store.fileExists else {
+            // Gone from disk, perhaps mid sync. Put it back rather than lose it.
+            unsaved = !library.prompts.isEmpty || !library.categories.isEmpty
+            save()
+            return
+        }
         let loaded = try store.load()
         if let aside = loaded.movedAside {
             unsaved = true
