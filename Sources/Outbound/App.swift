@@ -124,6 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let window = NSWindow(contentViewController: controller)
             window.title = "Outbound Settings"
             window.styleMask = [.titled, .closable]
+            // Only Close applies here; the other two would sit there as empty gray buttons.
+            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            window.standardWindowButton(.zoomButton)?.isHidden = true
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window
