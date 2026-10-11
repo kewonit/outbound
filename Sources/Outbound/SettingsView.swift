@@ -38,14 +38,16 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 420)
         .fixedSize()
-        .task {
-            // Both can change in System Settings while this window is open.
-            while !Task.isCancelled {
-                canPaste = Paster.canPaste
-                opensAtLogin = SMAppService.mainApp.status == .enabled
-                try? await Task.sleep(for: .seconds(1))
-            }
+        .onAppear(perform: refreshStatus)
+        // Both can change in System Settings, so check again when you come back.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshStatus()
         }
+    }
+
+    private func refreshStatus() {
+        canPaste = Paster.canPaste
+        opensAtLogin = SMAppService.mainApp.status == .enabled
     }
 
     private func setOpensAtLogin(_ on: Bool) {
