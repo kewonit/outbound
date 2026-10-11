@@ -55,8 +55,8 @@ are skipped.
 ## Website
 
 The site in `Website/` is plain HTML and CSS with no build step. Preview it with
-`python3 -m http.server -d Website`, and publish it to Cloudflare Workers with
-`npx wrangler deploy`.
+`npx wrangler dev`, and publish it to Cloudflare Workers with `npx wrangler deploy`.
+Pushes to `main` deploy it automatically.
 
 ## License
 
