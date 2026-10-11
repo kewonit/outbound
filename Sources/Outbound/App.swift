@@ -1,4 +1,5 @@
 import AppKit
+import OutboundCore
 
 @main
 @MainActor
@@ -18,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let showNotification = Notification.Name("app.outbound.Outbound.show")
 
     private var statusItem: NSStatusItem!
+    private var model: Model!
+    private var panel: PanelController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if isAlreadyRunning {
@@ -30,6 +33,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                             name: Self.showNotification, object: nil)
         installMainMenu()
         installStatusItem()
+
+        model = Model(store: LibraryStore(url: libraryURL))
+        model.onProblem = { [weak self] in self?.present($0) }
+        do {
+            try model.load()
+        } catch {
+            failToOpenLibrary(error)
+            return
+        }
+        panel = PanelController(model: model)
+        if model.library.prompts.isEmpty { panel.show(below: statusItemFrame) }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        model?.save()
+    }
+
+    private var libraryURL: URL {
+        #if DEBUG
+        if let path = ProcessInfo.processInfo.environment["OUTBOUND_LIBRARY"] { return URL(filePath: path) }
+        #endif
+        return LibraryStore.defaultURL
     }
 
     private var isAlreadyRunning: Bool {
@@ -39,7 +64,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .contains { $0.processIdentifier != me }
     }
 
-    @objc private func showFromOtherInstance() {}
+    @objc private func showFromOtherInstance() {
+        panel?.show(below: statusItemFrame)
+    }
+
+    private var statusItemFrame: NSRect? {
+        guard let button = statusItem.button, let window = button.window else { return nil }
+        return window.convertToScreen(button.convert(button.bounds, to: nil))
+    }
 
     private func installStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -54,6 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let event = NSApp.currentEvent
         if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
             showStatusMenu()
+        } else {
+            panel?.toggle(below: statusItemFrame)
         }
     }
 
@@ -63,6 +97,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
+    }
+
+    private func present(_ problem: Model.Problem) {
+        let alert = NSAlert()
+        switch problem {
+        case .movedAside(let url):
+            alert.messageText = "Your library couldn't be read"
+            alert.informativeText = "The file was moved aside so nothing is lost, and Outbound started a new library."
+            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "Show in Finder")
+            NSApp.activate()
+            if alert.runModal() == .alertSecondButtonReturn {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+        case .saveFailed(let error):
+            alert.messageText = "Outbound couldn't save your library"
+            alert.informativeText = "\(error.localizedDescription) Your changes are still here and will be saved with the next edit."
+            NSApp.activate()
+            alert.runModal()
+        }
+    }
+
+    private func failToOpenLibrary(_ error: Error) {
+        let alert = NSAlert()
+        if case LibraryError.newerVersion = error {
+            alert.messageText = "Your library is from a newer version of Outbound"
+            alert.informativeText = "Update Outbound to open it. The file has not been changed."
+        } else {
+            alert.messageText = "Outbound couldn't open your library"
+            alert.informativeText = error.localizedDescription
+        }
+        NSApp.activate()
+        alert.runModal()
+        NSApp.terminate(nil)
     }
 
     /// Accessory apps still need an Edit menu for text editing shortcuts to work.
