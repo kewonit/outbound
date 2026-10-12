@@ -20,6 +20,8 @@ open build/Outbound.app
 
 Move `build/Outbound.app` to Applications to keep it. Release builds are
 universal and also packaged as `build/Outbound.dmg` and `build/Outbound.zip`.
+Finder lays out the disk image window, so macOS may ask to let your terminal
+control Finder the first time.
 To sign and notarize, set `SIGN_IDENTITY` to a Developer ID Application identity
 and `NOTARY_PROFILE` to a `notarytool` keychain profile before building.
 
