@@ -243,6 +243,25 @@ figure { margin: 0; }
 .chip.go { background: rgba(61, 134, 255, 0.18); color: var(--accent-soft); }
 .chip.local { background: rgba(143, 143, 143, 0.15); color: #b5b5b5; }
 
+/* Shortcuts, as small keys in the Mac system font so ⌘ and ↩ match macOS. */
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0 0.35em;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  background: #161616;
+  color: var(--ink-soft);
+  font: 500 0.85em/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple Symbols",
+    "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+/* The menu bar icon and the Return key, drawn so they match macOS on every platform. */
+.menu-icon { width: 1em; height: 1em; vertical-align: -0.15em; }
+.key-return { width: 0.95em; height: 0.95em; vertical-align: -0.12em; }
+
 /* ---------- Mini grid ---------- */
 .mini-grid {
   display: grid;

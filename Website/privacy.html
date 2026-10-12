@@ -19,7 +19,7 @@
 <meta name="twitter:description" content="Outbound has no servers and no account. Your prompts stay on your Mac.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=3">
 <script>
 window.OUTBOUND_URLS = {
   download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
@@ -42,49 +42,49 @@ window.OUTBOUND_URLS = {
 <main class="page">
   <div class="wrap-narrow prose">
     <h1>Privacy.</h1>
-    <p class="lede">Outbound has no servers and no account. Your prompts stay on your Mac.</p>
+    <p class="lede">No servers, no account. Your prompts stay on your Mac.</p>
 
     <h2>In short</h2>
     <ul>
-      <li>Outbound collects nothing about you.</li>
-      <li>It makes no network requests. It works offline.</li>
-      <li>No analytics, no ads, no crash reports, no built-in updater.</li>
+      <li>Outbound collects nothing.</li>
+      <li>It makes no network requests and works offline.</li>
+      <li>No analytics, ads, crash reports, or updater.</li>
     </ul>
 
     <h2>What Outbound stores</h2>
     <ul>
-      <li>Your prompts and categories, in one file: <code>~/Library/Application Support/Outbound/Library.json</code>.</li>
-      <li>Each prompt keeps its title, text, category, and the dates it was made and last changed.</li>
+      <li>Your prompts and categories, in <code>~/Library/Application Support/Outbound/Library.json</code>.</li>
+      <li>For each prompt: its title, text, category, and when it was made and last changed.</li>
       <li>Your shortcut, in the app preferences.</li>
-      <li>Open at login is kept by macOS, and is off until you turn it on.</li>
-      <li>If the file cannot be read, it is moved aside and kept. It is never deleted.</li>
+      <li>Open at login is a macOS setting. Change it in Settings.</li>
+      <li>If the file cannot be read, it is moved aside, never deleted.</li>
     </ul>
 
     <h2>Permissions</h2>
     <ul>
-      <li>Accessibility lets Outbound paste for you. It sends one ⌘V to the app in front, only after you pick a prompt.</li>
+      <li>Accessibility lets Outbound paste. It sends one <kbd>⌘V</kbd> to the front app, only after you pick a prompt.</li>
       <li>It does not watch your typing, read other apps, or see your screen.</li>
-      <li>Without Accessibility, Outbound copies the prompt and you paste it yourself.</li>
-      <li>Files are read only when you choose them to import.</li>
+      <li>Without it, Outbound copies the prompt and you paste it.</li>
+      <li>Files are read only when you import them.</li>
     </ul>
 
     <h2>The clipboard</h2>
     <ul>
-      <li>Using a prompt puts its text on the clipboard, so you can paste it again.</li>
+      <li>Using a prompt puts it on the clipboard.</li>
       <li>Outbound reads the clipboard only when you paste into it.</li>
-      <li>Clipboard managers you run may save what Outbound copies.</li>
+      <li>Clipboard managers may save what Outbound copies.</li>
     </ul>
 
     <h2>Your control</h2>
     <ul>
-      <li>Back up or move your prompts by copying the file.</li>
-      <li>A deleted prompt leaves the file on the next save. ⌘Z brings it back while Outbound is open.</li>
-      <li>To remove everything, quit Outbound, delete the app, and delete the Outbound folder in Application Support.</li>
+      <li>Copy the file to back up or move your prompts.</li>
+      <li>Deleted prompts leave the file on the next save. <kbd>⌘Z</kbd> restores them while Outbound is open.</li>
+      <li>To remove everything, quit Outbound, then delete the app and the Outbound folder in Application Support.</li>
     </ul>
 
     <h2>Changes</h2>
     <ul>
-      <li>If this ever changes, this page will say so first.</li>
+      <li>Any change will be posted here first.</li>
       <li>Questions go to <a href="https://github.com/kewonit/outbound/issues">GitHub issues</a>.</li>
       <li>Last updated October 12, 2026.</li>
     </ul>
