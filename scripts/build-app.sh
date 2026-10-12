@@ -3,9 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Usage: scripts/build-app.sh [debug|release]
-# Release builds are universal and zipped for GitHub Releases. Set SIGN_IDENTITY to a
-# Developer ID Application identity to sign, and NOTARY_PROFILE to a notarytool
-# keychain profile to notarize. Without them the app is signed ad hoc.
+# Release builds are universal and packaged as a zip and a disk image. Set
+# SIGN_IDENTITY to a Developer ID Application identity to sign, and NOTARY_PROFILE
+# to a notarytool keychain profile to notarize. Without them the app is signed ad hoc.
 configuration="${1:-debug}"
 arch=()
 [[ "$configuration" == release ]] && arch=(--arch arm64 --arch x86_64)
@@ -40,5 +40,23 @@ if [[ "$configuration" == release ]]; then
         ditto -c -k --keepParent "$app" "$zip"
     fi
     echo "$zip"
+
+    # Disk image with an Applications shortcut, so installing is one drag.
+    dmg="build/Outbound.dmg"
+    staging="build/dmg"
+    rm -rf "$staging" "$dmg"
+    mkdir -p "$staging"
+    ditto "$app" "$staging/Outbound.app"
+    ln -s /Applications "$staging/Applications"
+    hdiutil create -quiet -volname Outbound -srcfolder "$staging" -format ULFO "$dmg"
+    rm -rf "$staging"
+    if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+        codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
+    fi
+    if [[ -n "${NOTARY_PROFILE:-}" ]]; then
+        xcrun notarytool submit "$dmg" --keychain-profile "$NOTARY_PROFILE" --wait
+        xcrun stapler staple "$dmg"
+    fi
+    echo "$dmg"
 fi
 echo "$app"
