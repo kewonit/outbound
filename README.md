@@ -3,6 +3,10 @@
 Your prompts, one keystroke away. Outbound lives in the menu bar, keeps a
 library of prompts, and pastes the one you pick into whatever you're typing in.
 
+Download it from [outbound.edbn.me](https://outbound.edbn.me) or the
+[latest release](https://github.com/kewonit/outbound/releases/latest). It is
+signed and notarized, and needs macOS 26 or newer.
+
 ## Build
 
 Requires macOS 26 and Xcode 26 or later.
