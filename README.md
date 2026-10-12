@@ -1,5 +1,7 @@
 # Outbound
 
+[![Outbound in the Mac menu bar, with a search field and a list of prompts](.github/outbound.webp)](https://outbound.edbn.me)
+
 Your prompts, one keystroke away. Outbound lives in the menu bar, keeps a
 library of prompts, and pastes the one you pick into whatever you're typing in.
 
