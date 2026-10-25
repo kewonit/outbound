@@ -10,6 +10,15 @@ final class DisplayManager {
     private var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
     private(set) var tier = PowerTier.choose(PowerState())
+    private var started = false
+    /// Wallpapers only exist while running; before Outbound is unlocked it is not.
+    var running = false {
+        didSet { if started && running != oldValue { sync() } }
+    }
+    /// A line shown under every caption.
+    var note: String? {
+        didSet { wallpapers.values.forEach { $0.note = note } }
+    }
 
     init(world: World, gpu: GPU, power: PowerMonitor) {
         self.world = world
@@ -18,6 +27,8 @@ final class DisplayManager {
     }
 
     func start() {
+        guard !started else { return }
+        started = true
         sync()
         let center = NotificationCenter.default
         center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -73,13 +84,14 @@ final class DisplayManager {
 
     private func sync() {
         var seen = Set<CGDirectDisplayID>()
-        for screen in NSScreen.screens {
+        for screen in NSScreen.screens where running {
             guard let id = screen.displayID else { continue }
             seen.insert(id)
             if let wallpaper = wallpapers[id] {
                 wallpaper.move(to: screen)
             } else {
                 let wallpaper = Wallpaper(screen: screen, displayID: id, world: world, gpu: gpu)
+                wallpaper.note = note
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpapers[id] = wallpaper
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")

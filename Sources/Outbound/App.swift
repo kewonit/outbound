@@ -23,6 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var displays: DisplayManager!
     private var stills: StillWriter!
     private let preferences = Preferences()
+    private let license = LicenseController()
+    private var activation: ActivationWindow?
+    private var gpu: GPU!
+    private var licenseTimer: Timer?
     private var settingsWindow: NSWindow?
     private var stillTimer: Timer?
     private var stillLeg = -1
@@ -36,7 +40,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
-        let gpu: GPU
         do {
             gpu = try GPU()
         } catch {
@@ -52,6 +55,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         stills = StillWriter(gpu: gpu)
         stillsWereOn = preferences.matchingStill
         applyPreferences()
+        if !LicenseController.isGated { displays.note = "Development build" }
+        displays.running = license.unlocks
         displays.start()
         installStatusItem()
         observePreferences()
@@ -61,12 +66,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             MainActor.assumeIsolated { self?.refreshStill(force: false) }
         }
         refreshStill(force: true)
+
+        license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }
+        if !license.unlocks { showActivation() }
+        Task { await license.refresh() }
+        licenseTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.license.refresh() }
+        }
+    }
+
+    private func licenseChanged(_ unlocked: Bool) {
+        displays.running = unlocked
+        if unlocked {
+            activation?.close()
+            activation = nil
+            refreshStill(force: true)
+        } else {
+            showActivation()
+        }
+    }
+
+    private func showActivation() {
+        if activation == nil { activation = ActivationWindow(license: license, world: world, gpu: gpu) }
+        activation?.show()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
-        if preferences.matchingStill { stills.capture(world: world) }
+        if preferences.matchingStill && license.unlocks { stills.capture(world: world) }
     }
 
     private var isAlreadyRunning: Bool {
@@ -106,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func refreshStill(force: Bool) {
-        guard preferences.matchingStill else { return }
+        guard preferences.matchingStill, license.unlocks else { return }
         let leg = world.journey.leg(at: world.camera.y).index
         guard force || leg != stillLeg || Date.now.timeIntervalSince(stillTaken) > 600 else { return }
         stillLeg = leg
@@ -126,6 +154,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        guard license.unlocks else {
+            let unlock = NSMenuItem(title: "Unlock Outbound…", action: #selector(openActivation), keyEquivalent: "")
+            unlock.target = self
+            menu.addItem(unlock)
+            menu.addItem(.separator())
+            menu.addItem(NSMenuItem(title: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+            return
+        }
         let leg = world.journey.leg(at: world.camera.y)
         let here = NSMenuItem(title: leg.place.name, action: nil, keyEquivalent: "")
         here.attributedTitle = NSAttributedString(string: leg.place.name,
@@ -190,6 +226,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preferences.light = light
     }
 
+    @objc private func openActivation() {
+        showActivation()
+    }
+
     @objc private func togglePause() {
         displays.isPaused.toggle()
         if displays.isPaused { refreshStill(force: true) }
@@ -197,7 +237,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let view = SettingsView(preferences: preferences, restoreWallpaper: { [weak self] in self?.restoreWallpaper() },
+            let view = SettingsView(preferences: preferences, license: license,
+                                    restoreWallpaper: { [weak self] in self?.restoreWallpaper() },
                                     canRestore: stills.hasOriginals)
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = "Outbound Settings"

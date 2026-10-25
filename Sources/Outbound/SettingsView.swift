@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Bindable var preferences: Preferences
+    let license: LicenseController
     let restoreWallpaper: () -> Void
     let canRestore: Bool
     @State private var opensAtLogin = SMAppService.mainApp.status == .enabled
@@ -37,6 +38,22 @@ struct SettingsView: View {
                         .disabled(!canRestore)
                 }
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
+            }
+            Section {
+                if !LicenseController.isGated {
+                    LabeledContent("License", value: "Development build")
+                } else if license.record != nil {
+                    LabeledContent("License") {
+                        HStack {
+                            Text("Active on \(license.macName)").foregroundStyle(.secondary)
+                            Button("Deactivate") { Task { await license.deactivate() } }
+                                .disabled(license.busy)
+                        }
+                    }
+                }
+                if let message = license.message {
+                    Text(message).font(.caption).foregroundStyle(.red)
+                }
             } footer: {
                 Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on.")
                     .font(.caption)
