@@ -5,7 +5,7 @@
   // The only place site URLs live. Emptying buy or download turns its buttons into
   // "Coming soon", or hides them.
   var URLS = {
-    download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
+    download: "/download",
     buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA",
     github: "https://github.com/kewonit/outbound"
   };

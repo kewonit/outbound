@@ -10,7 +10,7 @@
     "directory": "./Website",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/download"]
   },
   "vars": {
     "POLAR_API": "https://api.polar.sh",

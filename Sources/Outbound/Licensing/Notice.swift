@@ -30,6 +30,7 @@ private final class NoticePanel {
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.level = .floating
+        panel.showsOnlyCloseButton()
         let view = NoticeView(title: title, detail: detail, buttons: buttons) { [self] index in finish(index) }
         panel.contentViewController = NSHostingController(rootView: view)
     }
@@ -85,5 +86,14 @@ private struct NoticeView: View {
         }
         .padding(20)
         .frame(width: 360, alignment: .leading)
+    }
+}
+
+extension NSWindow {
+    /// Small fixed windows can't be minimised or made full screen, so they show only the close button rather than
+    /// two greyed-out ones.
+    func showsOnlyCloseButton() {
+        standardWindowButton(.miniaturizeButton)?.isHidden = true
+        standardWindowButton(.zoomButton)?.isHidden = true
     }
 }

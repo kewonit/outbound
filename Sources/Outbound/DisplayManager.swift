@@ -83,9 +83,9 @@ final class DisplayManager {
         !globalHolds.isDisjoint(with: [.asleep, .inactive])
     }
 
-    /// Nobody is watching: the screens are asleep, another user has the Mac, or it has been left alone.
+    /// Nobody is watching: the screens are asleep or locked, another user has the Mac, or it has been left alone.
     var isQuiet: Bool {
-        !globalHolds.isDisjoint(with: [.asleep, .inactive, .resting])
+        !globalHolds.isDisjoint(with: [.asleep, .locked, .inactive, .resting])
     }
 
     /// Called as a quiet moment begins, a good time to install an update.
@@ -100,7 +100,7 @@ final class DisplayManager {
         if on { globalHolds.insert(hold) } else { globalHolds.remove(hold) }
         wallpapers.values.forEach { $0.set(hold, on) }
         world.hold(!globalHolds.isEmpty)
-        if on, [.asleep, .inactive, .resting].contains(hold) { onQuiet() }
+        if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
     }
 
     func repaint() {

@@ -17,6 +17,7 @@ final class ActivationWindow {
         window = NSWindow(contentViewController: NSHostingController(rootView: view))
         window.title = "Unlock Outbound"
         window.styleMask = [.titled, .closable, .fullSizeContentView]
+        window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
         window.center()
@@ -79,7 +80,7 @@ private struct ActivationView: View {
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .disabled(license.busy)
-                        Text("Pay once. Use it on up to 3 Macs.")
+                        Text("$7 + tax, once. Up to 3 Macs.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

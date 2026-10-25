@@ -1,6 +1,7 @@
 // The site's small API. Everything outside /api/ is a static file from Website/, served before this
 // script ever runs.
 //
+//   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
 //   POST /api/checkout                 A new Polar checkout for Outbound: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
 //                                      { status: "ready", key, email } or { status: "pending" | "open" | ... }.
@@ -17,6 +18,7 @@ const POLAR_VERSION = "2026-10";
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === "/download") return download();
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
     try {
@@ -30,6 +32,31 @@ export default {
     }
   },
 };
+
+// The newest release's disk image, looked up once every ten minutes at most, or the releases page if GitHub
+// can't be reached.
+async function download() {
+  const cache = caches.default;
+  const key = new Request("https://outbound.edbn.me/download");
+  const cached = await cache.match(key);
+  if (cached) return cached;
+  let target = "https://github.com/kewonit/outbound/releases/latest";
+  try {
+    const response = await fetch("https://api.github.com/repos/kewonit/outbound/releases/latest", {
+      headers: { "User-Agent": "outbound.edbn.me", Accept: "application/vnd.github+json" },
+    });
+    if (response.ok) {
+      const release = await response.json();
+      const dmg = release.assets?.find((asset) => asset.name.endsWith(".dmg"));
+      if (dmg) target = dmg.browser_download_url;
+    }
+  } catch (error) {
+    console.error("GitHub release lookup failed");
+  }
+  const redirect = new Response(null, { status: 302, headers: { Location: target, "Cache-Control": "max-age=600" } });
+  await cache.put(key, redirect.clone());
+  return redirect;
+}
 
 async function checkout(request, env, origin) {
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";

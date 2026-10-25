@@ -35,6 +35,7 @@ struct SettingsView: View {
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             }
             Section {
+                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
                 if !LicenseController.isGated {
                     LabeledContent("License", value: "Development build")
                 } else if license.record != nil {

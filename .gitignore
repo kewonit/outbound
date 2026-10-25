@@ -7,3 +7,6 @@ xcuserdata/
 *.xcuserstate
 .wrangler/
 node_modules/
+
+# Tests stay on the maintainer's Mac.
+Tests/

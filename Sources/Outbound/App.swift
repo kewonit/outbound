@@ -325,6 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = "Outbound Settings"
             window.styleMask = [.titled, .closable]
+            window.showsOnlyCloseButton()
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window

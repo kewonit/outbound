@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 
 # Ships a new version to everyone:
 #
-#     scripts/release.sh 1.0.2 "What's new, in a sentence or two."
+#     scripts/release.sh 1.1 "What's new, in a sentence or two."
 #
 # It bumps the version, builds, signs and notarizes the app, publishes it as a GitHub release, and adds it to
 # the appcast on the website. Every copy checks that appcast once a day, downloads the update, checks its
@@ -34,24 +34,28 @@ git commit --quiet -am "Outbound $version"
 git push --quiet origin main
 
 SIGN_IDENTITY="$identity" NOTARY_PROFILE=outbound-notary scripts/build-app.sh release
+dmg="build/Outbound-v$version.dmg"
+zip="build/Outbound-v$version.zip"
+cp build/Outbound.dmg "$dmg"
+cp build/Outbound.zip "$zip"
 
 # Publish the disk image first, so the appcast never points at a file that isn't there yet.
-gh release create "v$version" build/Outbound.dmg build/Outbound.zip --target "$(git rev-parse HEAD)" \
-    --title "Outbound $version" --notes "$notes"
+gh release create "v$version" "$dmg" "$zip" --target "$(git rev-parse HEAD)" \
+    --title "Outbound v$version" --notes "$notes"
 
 # Then offer it to every copy: the newest item goes first in the appcast.
-signature=$("$sign_update" --account app.outbound.Outbound build/Outbound.dmg)
+signature=$("$sign_update" --account app.outbound.Outbound "$dmg")
 item="    <item>
-      <title>Outbound $version</title>
+      <title>Outbound v$version</title>
       <pubDate>$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")</pubDate>
       <description><![CDATA[<p>$notes</p>]]></description>
       <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-      <enclosure url=\"https://github.com/kewonit/outbound/releases/download/v$version/Outbound.dmg\" type=\"application/octet-stream\" $signature/>
+      <enclosure url=\"https://github.com/kewonit/outbound/releases/download/v$version/Outbound-v$version.dmg\" type=\"application/octet-stream\" $signature/>
     </item>"
 ITEM="$item" awk '{ print } /<language>/ && !done { print ENVIRON["ITEM"]; done = 1 }' "$appcast" > "$appcast.new"
 mv "$appcast.new" "$appcast"
-git commit --quiet -am "Offer Outbound $version as an update"
+git commit --quiet -am "Offer Outbound v$version as an update"
 git push --quiet origin main
-echo "Outbound $version is out. Copies will pick it up within a day."
+echo "Outbound v$version is out. Copies will pick it up within a day."

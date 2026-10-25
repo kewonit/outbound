@@ -2,14 +2,14 @@ import AppKit
 @preconcurrency import Sparkle
 
 /// Keeps Outbound up to date. Sparkle checks the site's appcast once a day, downloads a new version in the
-/// background, checks its signature, and holds it until nobody is looking, when the screens are asleep or the
-/// Mac has been left alone. Then it installs and Outbound relaunches. Development builds never update.
+/// background, checks its signature, and holds it until nobody is looking, when the screens are asleep or locked
+/// or the Mac has been left alone. Then it installs and Outbound relaunches. Development builds never update.
 @MainActor
 final class Updates: NSObject {
     private var controller: SPUStandardUpdaterController!
     /// An update downloaded and waiting for a quiet moment.
     private var install: (() -> Void)?
-    /// Whether nobody is watching: the screens are asleep or the Mac has been left alone.
+    /// Whether nobody is watching: the screens are asleep or locked, or the Mac has been left alone.
     var isQuiet: () -> Bool = { false }
 
     override init() {
