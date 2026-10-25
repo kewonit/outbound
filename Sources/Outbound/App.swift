@@ -1,5 +1,6 @@
 import AppKit
 import OutboundCore
+import SwiftUI
 
 @main
 @MainActor
@@ -20,6 +21,15 @@ enum OutboundApp {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var displays: DisplayManager!
+    private var stills: StillWriter!
+    private let preferences = Preferences()
+    private var settingsWindow: NSWindow?
+    private var stillTimer: Timer?
+    private var stillLeg = -1
+    private var stillTaken = Date.distantPast
+    private var stillsWereOn = false
+
+    private var world: World { displays.world }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if isAlreadyRunning {
@@ -36,10 +46,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
-        let world = World(place: Place.all[0], time: CACurrentMediaTime())
-        displays = DisplayManager(world: world, gpu: gpu)
+        let place = Place.named(preferences.lastPlace) ?? Place.all[0]
+        let world = World(place: place, time: CACurrentMediaTime(), light: preferences.light)
+        displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
+        stills = StillWriter(gpu: gpu)
+        stillsWereOn = preferences.matchingStill
+        applyPreferences()
         displays.start()
         installStatusItem()
+        observePreferences()
+
+        // Keep the real desktop picture close to what is on screen, checking twice a minute for a new place.
+        stillTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshStill(force: false) }
+        }
+        refreshStill(force: true)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        guard displays != nil else { return }
+        preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
+        if preferences.matchingStill { stills.capture(world: world) }
     }
 
     private var isAlreadyRunning: Bool {
@@ -48,6 +75,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return NSRunningApplication.runningApplications(withBundleIdentifier: id)
             .contains { $0.processIdentifier != me }
     }
+
+    // MARK: - Preferences
+
+    private func observePreferences() {
+        withObservationTracking {
+            _ = (preferences.light, preferences.followsCalendar, preferences.pace, preferences.stay,
+                 preferences.batteryMode, preferences.matchingStill)
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.applyPreferences()
+                self?.observePreferences()
+            }
+        }
+    }
+
+    private func applyPreferences() {
+        let journey = world.journey
+        if world.light != preferences.light { world.light = preferences.light }
+        if journey.followsCalendar != preferences.followsCalendar {
+            journey.followsCalendar = preferences.followsCalendar
+            journey.refreshSeasons()
+            world.repaint()
+        }
+        if journey.speed != preferences.pace.speed { journey.setSpeed(preferences.pace.speed, at: world.time) }
+        journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
+        displays.power.batteryMode = preferences.batteryMode
+        if preferences.matchingStill && !stillsWereOn && stills != nil { refreshStill(force: true) }
+        stillsWereOn = preferences.matchingStill
+    }
+
+    private func refreshStill(force: Bool) {
+        guard preferences.matchingStill else { return }
+        let leg = world.journey.leg(at: world.camera.y).index
+        guard force || leg != stillLeg || Date.now.timeIntervalSince(stillTaken) > 600 else { return }
+        stillLeg = leg
+        stillTaken = .now
+        stills.capture(world: world)
+    }
+
+    // MARK: - Menu
 
     private func installStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -59,9 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        let world = displays.world
         let leg = world.journey.leg(at: world.camera.y)
         let here = NSMenuItem(title: leg.place.name, action: nil, keyEquivalent: "")
+        here.attributedTitle = NSAttributedString(string: leg.place.name,
+                                                  attributes: [.font: NSFont.menuFont(ofSize: 0).bold])
         here.isEnabled = false
         menu.addItem(here)
         let season = NSMenuItem(title: leg.season.line, action: nil, keyEquivalent: "")
@@ -69,7 +137,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(season)
         menu.addItem(.separator())
 
-        let flyTo = NSMenuItem(title: "Fly To", action: nil, keyEquivalent: "")
         let places = NSMenu()
         for place in Place.all {
             let item = NSMenuItem(title: place.name, action: #selector(fly(_:)), keyEquivalent: "")
@@ -78,25 +145,79 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = place.id == leg.place.id ? .on : .off
             places.addItem(item)
         }
-        flyTo.submenu = places
-        menu.addItem(flyTo)
+        menu.addItem(submenu("Fly To", places))
+
+        let lights = NSMenu()
+        for light in World.Light.allCases {
+            let item = NSMenuItem(title: light.title, action: #selector(setLight(_:)), keyEquivalent: "")
+            item.representedObject = light.rawValue
+            item.target = self
+            item.state = light == preferences.light ? .on : .off
+            lights.addItem(item)
+        }
+        menu.addItem(submenu("Light", lights))
 
         let pause = NSMenuItem(title: displays.isPaused ? "Resume" : "Pause", action: #selector(togglePause),
                                keyEquivalent: "")
         pause.target = self
         menu.addItem(pause)
         menu.addItem(.separator())
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
         menu.addItem(NSMenuItem(title: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.submenu = submenu
+        return item
     }
 
     @objc private func fly(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, let place = Place.named(id) else { return }
-        let world = displays.world
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
         world.journey.fly(to: place, from: bottom, time: world.time)
+        preferences.lastPlace = place.id
+        // Let the repaint finish before painting the still.
+        DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
+            self?.refreshStill(force: true)
+        }
+    }
+
+    @objc private func setLight(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let light = World.Light(rawValue: raw) else { return }
+        preferences.light = light
     }
 
     @objc private func togglePause() {
         displays.isPaused.toggle()
+        if displays.isPaused { refreshStill(force: true) }
+    }
+
+    @objc private func openSettings() {
+        if settingsWindow == nil {
+            let view = SettingsView(preferences: preferences, restoreWallpaper: { [weak self] in self?.restoreWallpaper() },
+                                    canRestore: stills.hasOriginals)
+            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
+            window.title = "Outbound Settings"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            settingsWindow = window
+        }
+        NSApp.activate()
+        settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func restoreWallpaper() {
+        preferences.matchingStill = false
+        stills.restore()
+    }
+}
+
+private extension NSFont {
+    var bold: NSFont {
+        NSFontManager.shared.convert(self, toHaveTrait: .boldFontMask)
     }
 }

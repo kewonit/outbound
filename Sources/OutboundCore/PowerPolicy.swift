@@ -53,9 +53,10 @@ public struct PowerTier: Equatable, Sendable {
         if state.onBattery && state.batteryMode == .still {
             return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
         }
-        var fps: Double = state.onBattery ? 20 : 30
-        if state.birdEngaged && !state.onBattery { fps = 60 }
-        if state.thermal == .fair { fps = state.onBattery ? 15 : 24 }
+        // A slow pan moves about a pixel a frame at 24, which bilinear sampling keeps smooth.
+        var fps: Double = state.onBattery ? 15 : 24
+        if state.birdEngaged { fps = state.onBattery ? 30 : 60 }
+        if state.thermal == .fair { fps = state.onBattery ? 12 : 20 }
         return PowerTier(framesPerSecond: fps, frozen: false, halfRateClouds: state.onBattery)
     }
 }

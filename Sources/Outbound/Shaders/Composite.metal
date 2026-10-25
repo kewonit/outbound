@@ -100,12 +100,26 @@ inline float birdShape(float2 p, float spread, float bank) {
     return min(min(min(wing, body), head), tail);
 }
 
+// Paper grain and the dry-brush edge never move, so they are painted once per size at half resolution.
+fragment float4 paper(VertexOut in [[stage_in]], constant float4 &params [[buffer(0)]]) {
+    float2 size = params.xy;
+    float2 p = in.position.xy / params.z;
+    float grain = vnoise(p / 1.7, 170u) * 0.6 + vnoise(p / 0.9, 171u) * 0.4;
+    float fibres = vnoise(p * float2(1.0 / 9.0, 1.0 / 1.4), 172u);
+    float2 edgeDist = min(p, size - p);
+    float edge = min(edgeDist.x, edgeDist.y) / max(size.x, size.y);
+    float bristles = vnoise(p / float2(3.0, 40.0), 173u) * 0.5 + vnoise(p / float2(40.0, 3.0), 174u) * 0.5;
+    float vignette = 1.0 - smoothstep(0.0, 0.006 + 0.012 * bristles, edge);
+    return float4(saturate(0.5 + 0.05 * (grain - 0.5) + 0.03 * (fibres - 0.5)), vignette, 0.0, 1.0);
+}
+
 fragment float4 composite(VertexOut in [[stage_in]],
                           constant CompositeParams &params [[buffer(0)]],
                           constant Scene &scene [[buffer(1)]],
                           texture2d<float> groundColor [[texture(0)]],
                           texture2d<float> groundMask [[texture(1)]],
                           texture2d<float> cloudTexture [[texture(2)]],
+                          texture2d<float> paperTexture [[texture(3)]],
                           sampler wrap [[sampler(0)]],
                           sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -126,25 +140,31 @@ fragment float4 composite(VertexOut in [[stage_in]],
     float2 local = float2(world.x, world.y - leg.info.x);
 
     // Gusts roll across tall crops in long soft bands.
-    float2 gp = (params.world.zw + pixel * mpp) / float2(160.0, 55.0);
-    float gust = vnoiseP(gp, 1024, 150u);
-    c *= 1.0 + mask.y * 0.09 * (gust - 0.45);
+    if (mask.y > 0.01) {
+        float2 gp = (params.world.zw + pixel * mpp) / float2(160.0, 55.0);
+        c *= 1.0 + mask.y * 0.09 * (vnoiseP(gp, 1024, 150u) - 0.45);
+    }
+    if (mask.w > 0.5) c = animal(c, local, leg.biome, scene, mask, uint(leg.info.y), mpp);
+    if (mask.z > 0.02) c = cars(c, world, leg.biome, scene, mpp);
 
-    c = animal(c, local, leg.biome, scene, mask, uint(leg.info.y), mpp);
-    c = cars(c, world, leg.biome, scene, mpp);
-
-    float2 cloudUV = in.position.xy / size;
-    float4 cloud = cloudTexture.sample(clampSampler, cloudUV);
+    // Clouds were painted a while ago with a margin; slide them by how far they have drifted since.
+    float2 cloudTexSize = float2(cloudTexture.get_width(), cloudTexture.get_height());
+    float2 cloudPx = (params.clouds.xy + pixel * mpp) / params.clouds.z;
+    float4 cloud = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudTexSize.y - cloudPx.y) / cloudTexSize);
 
     // Water mirrors the sky: clouds overhead brighten it, and the sun glints off ripples.
     float water = mask.x;
-    c = mix(c, c + float3(0.16, 0.17, 0.2), water * cloud.x * 0.8);
-    float2 gcell = floor(world / 2.4);
-    float gh = hash21(int2(gcell), 160u);
-    float2 gpos = (gcell + 0.2 + 0.6 * hash22(int2(gcell), 161u)) * 2.4;
-    float sparkle = fill(length(world - gpos) - 0.22, mpp * 1.2);
-    float glint = pow(saturate(sin(t * (1.2 + gh * 1.8) + gh * 40.0)), 16.0) * step(0.9, gh) * sparkle;
-    c = mix(c, float3(1.0, 1.0, 0.97), glint * smoothstep(0.85, 1.0, water) * 0.8 * (1.0 - cloud.z));
+    if (water > 0.01) {
+        c = mix(c, c + float3(0.16, 0.17, 0.2), water * cloud.x * 0.8);
+        if (water > 0.85) {
+            float2 gcell = floor(world / 2.4);
+            float gh = hash21(int2(gcell), 160u);
+            float2 gpos = (gcell + 0.2 + 0.6 * hash22(int2(gcell), 161u)) * 2.4;
+            float sparkle = fill(length(world - gpos) - 0.22, mpp * 1.2);
+            float glint = pow(saturate(sin(t * (1.2 + gh * 1.8) + gh * 40.0)), 16.0) * step(0.9, gh) * sparkle;
+            c = mix(c, float3(1.0, 1.0, 0.97), glint * smoothstep(0.85, 1.0, water) * 0.8 * (1.0 - cloud.z));
+        }
+    }
 
     // Cloud shadow, then the bird's shadow, then clouds, then the bird above it all.
     c = shade(c, smoothstep(0.05, 0.8, cloud.z) * 0.62, scene);
@@ -154,9 +174,12 @@ fragment float4 composite(VertexOut in [[stage_in]],
     float scale = params.wings.z;
     if (birdVisible > 0.0) {
         float2 shadowPx = birdPx - scene.sun.xy * scene.sun.z * params.wings.y / mpp;
-        float2 q = rotate(pixel - shadowPx, -params.bird.z) / scale;
-        float sb = birdShape(q, params.wings.x, params.bird.w);
-        c = shade(c, fill(sb, 0.9 / scale) * 0.55 * birdVisible, scene);
+        float2 offset = pixel - shadowPx;
+        if (dot(offset, offset) < scale * scale * 1.6) {
+            float2 q = rotate(offset, -params.bird.z) / scale;
+            float sb = birdShape(q, params.wings.x, params.bird.w);
+            c = shade(c, fill(sb, 0.9 / scale) * 0.55 * birdVisible, scene);
+        }
     }
 
     float3 cloudColor = mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, cloud.y));
@@ -164,25 +187,23 @@ fragment float4 composite(VertexOut in [[stage_in]],
     c = mix(c, cloudColor, cloudAlpha);
 
     if (birdVisible > 0.0) {
-        float2 q = rotate(pixel - birdPx, -params.bird.z) / scale;
-        float sb = birdShape(q, params.wings.x, params.bird.w);
-        float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
-        float3 feathers = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
-        float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
-        // A faint darker rim keeps the white bird readable over pale ground and cloud.
-        c = mix(c, c * 0.72, fill(sb - 0.025, 0.9 / scale) * 0.45 * through);
-        c = mix(c, feathers, fill(sb, 0.8 / scale) * through);
+        float2 offset = pixel - birdPx;
+        if (dot(offset, offset) < scale * scale * 1.6) {
+            float2 q = rotate(offset, -params.bird.z) / scale;
+            float sb = birdShape(q, params.wings.x, params.bird.w);
+            float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
+            float3 feathers = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
+            float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
+            // A faint darker rim keeps the white bird readable over pale ground and cloud.
+            c = mix(c, c * 0.72, fill(sb - 0.025, 0.9 / scale) * 0.45 * through);
+            c = mix(c, feathers, fill(sb, 0.8 / scale) * through);
+        }
     }
 
-    // Paper: a fixed grain that does not scroll with the paint, and a soft dry-brush edge.
-    float grain = vnoise(in.position.xy / 1.7, 170u) * 0.6 + hash21(int2(in.position.xy), 171u) * 0.4;
-    float fibres = vnoise(in.position.xy * float2(1.0 / 9.0, 1.0 / 1.4), 172u);
-    c *= 1.0 + params.finish.x * (0.05 * (grain - 0.5) + 0.03 * (fibres - 0.5));
-    float2 edgeDist = min(in.position.xy, size - in.position.xy);
-    float edge = min(edgeDist.x, edgeDist.y) / max(size.x, size.y);
-    float bristles = vnoise(in.position.xy / float2(3.0, 40.0), 173u) * 0.5 + vnoise(in.position.xy / float2(40.0, 3.0), 174u) * 0.5;
-    float vignette = 1.0 - smoothstep(0.0, 0.006 + 0.012 * bristles, edge);
-    c = mix(c, float3(0.97, 0.95, 0.91), vignette * params.finish.y);
+    // Paper grain that does not scroll with the paint, and a soft dry-brush edge.
+    float2 paper = paperTexture.sample(clampSampler, in.position.xy / size).rg;
+    c *= 1.0 + params.finish.x * (paper.x - 0.5);
+    c = mix(c, float3(0.97, 0.95, 0.91), paper.y * params.finish.y);
 
     // Light for the time of day. At night colour drains towards a cool moonlit blue but the shapes
     // keep their values, so it still reads as the same painting.

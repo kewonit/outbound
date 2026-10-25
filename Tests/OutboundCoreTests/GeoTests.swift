@@ -42,11 +42,13 @@ struct FramePacingTests {
 
     @Test func tiersFollowPower() {
         var state = PowerState()
-        #expect(PowerTier.choose(state).framesPerSecond == 30)
+        #expect(PowerTier.choose(state).framesPerSecond == 24)
         state.birdEngaged = true
         #expect(PowerTier.choose(state).framesPerSecond == 60)
         state.onBattery = true
-        #expect(PowerTier.choose(state).framesPerSecond == 20)
+        #expect(PowerTier.choose(state).framesPerSecond == 30)
+        state.birdEngaged = false
+        #expect(PowerTier.choose(state).framesPerSecond == 15)
         #expect(PowerTier.choose(state).halfRateClouds)
         state.lowPower = true
         #expect(PowerTier.choose(state).frozen)

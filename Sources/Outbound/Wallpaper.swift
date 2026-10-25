@@ -1,7 +1,6 @@
 import AppKit
 import OutboundCore
 import QuartzCore
-import SwiftUI
 
 /// A borderless window that sits just below the desktop icons on every Space and lets every click
 /// through to Finder.
@@ -76,12 +75,13 @@ final class Wallpaper: NSObject {
     private let renderer: ViewRenderer
     private let world: World
     private let gpu: GPU
-    private let caption = Caption()
-    private let label: NSHostingView<CaptionView>
+    private let label = CaptionView(frame: .zero)
     private var captionUpdated = -TimeInterval.infinity
     private var link: CADisplayLink?
     private(set) var holds: Set<Hold> = []
     private var observers: [NSObjectProtocol] = []
+    /// A line under the caption, for development builds and licensing.
+    var note: String?
     var framesPerSecond: Float = 30 {
         didSet { applyFrameRate() }
     }
@@ -93,7 +93,6 @@ final class Wallpaper: NSObject {
         window = WallpaperWindow(screen: screen)
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
-        label = NSHostingView(rootView: CaptionView(caption: caption))
         super.init()
         let container = NSView()
         view.autoresizingMask = [.width, .height]
@@ -126,7 +125,7 @@ final class Wallpaper: NSObject {
     private func place(on screen: NSScreen) {
         let visible = screen.visibleFrame
         label.frame = CGRect(x: visible.minX - screen.frame.minX + 20, y: visible.minY - screen.frame.minY + 18,
-                             width: 420, height: 140)
+                             width: 1, height: 1)
     }
 
     private func updateCaption() {
@@ -134,10 +133,8 @@ final class Wallpaper: NSObject {
         let frame = window.frame
         let centre = world.camera + SIMD2(Double(frame.midX), Double(frame.midY)) * mpp
         let leg = world.journey.leg(at: centre.y)
-        if caption.place != leg.place.name { caption.place = leg.place.name }
-        if caption.season != leg.season.line { caption.season = leg.season.line }
-        let text = Geo.caption(world.journey.coordinate(x: centre.x, y: centre.y))
-        if caption.coordinates != text { caption.coordinates = text }
+        label.update(place: leg.place.name, season: leg.season.line,
+                     coordinates: Geo.caption(world.journey.coordinate(x: centre.x, y: centre.y)), note: note)
     }
 
     func close() {
@@ -161,6 +158,11 @@ final class Wallpaper: NSObject {
         renderer.invalidate()
     }
 
+    var halfRateClouds: Bool {
+        get { renderer.halfRateClouds }
+        set { renderer.halfRateClouds = newValue }
+    }
+
     private func occlusionChanged() {
         set(.occluded, !window.occlusionState.contains(.visible))
     }
@@ -172,7 +174,7 @@ final class Wallpaper: NSObject {
 
     @objc private func tick(_ link: CADisplayLink) {
         world.advance(to: link.targetTimestamp)
-        if link.targetTimestamp - captionUpdated > 0.25 {
+        if link.targetTimestamp - captionUpdated > 0.5 {
             captionUpdated = link.targetTimestamp
             updateCaption()
         }
@@ -180,6 +182,30 @@ final class Wallpaper: NSObject {
               let commands = gpu.queue.makeCommandBuffer() else { return }
         renderer.encode(world: world, into: drawable.texture, commandBuffer: commands)
         commands.present(drawable)
+        #if DEBUG
+        commands.addCompletedHandler { [weak self] buffer in
+            let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
+            DispatchQueue.main.async { self?.record(milliseconds) }
+        }
+        #endif
         commands.commit()
     }
+
+    #if DEBUG
+    private var statsStart = CACurrentMediaTime()
+    private var statsFrames = 0
+    private var statsGPU = 0.0
+
+    /// Logs frames per second and GPU time every ten seconds while developing.
+    private func record(_ milliseconds: Double) {
+        statsFrames += 1
+        statsGPU += milliseconds
+        let elapsed = CACurrentMediaTime() - statsStart
+        guard elapsed > 10 else { return }
+        Log.render.info("Display \(self.displayID): \(Double(self.statsFrames) / elapsed, format: .fixed(precision: 1)) fps, \(self.statsGPU / Double(self.statsFrames), format: .fixed(precision: 2)) ms GPU")
+        statsStart = CACurrentMediaTime()
+        statsFrames = 0
+        statsGPU = 0
+    }
+    #endif
 }

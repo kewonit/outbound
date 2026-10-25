@@ -9,11 +9,13 @@ final class ShaderLibrary {
         let ground: MTLRenderPipelineState
         let clouds: MTLRenderPipelineState
         let composite: MTLRenderPipelineState
+        let paper: MTLRenderPipelineState
     }
 
     static let files = ["Common.metal", "Ground.metal", "Clouds.metal", "Composite.metal"]
     static let cacheFormat = MTLPixelFormat.rgba8Unorm
     static let viewFormat = MTLPixelFormat.bgra8Unorm
+    static let paperFormat = MTLPixelFormat.rg8Unorm
 
     let device: MTLDevice
     private(set) var pipelines: Pipelines
@@ -56,7 +58,8 @@ final class ShaderLibrary {
         }
         return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, cacheFormat]),
                          clouds: try pipeline("clouds", formats: [cacheFormat]),
-                         composite: try pipeline("composite", formats: [viewFormat]))
+                         composite: try pipeline("composite", formats: [viewFormat]),
+                         paper: try pipeline("paper", formats: [paperFormat]))
     }
 
     private func watch() {

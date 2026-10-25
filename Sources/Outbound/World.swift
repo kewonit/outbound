@@ -32,14 +32,21 @@ final class World {
     private(set) var bird: Bird
     private(set) var sun = Sun.fair
     /// The bird follows the cursor for a while after it last moved.
-    private(set) var chasing = false
+    private(set) var chasing = false {
+        didSet { if chasing != oldValue { onChasingChange(chasing) } }
+    }
+    var onChasingChange: (Bool) -> Void = { _ in }
     var light = Light.yourTime {
-        didSet { updateSun(force: true) }
+        didSet { if light != oldValue { updateSun(force: true) } }
     }
     /// Where the cursor is, or nil when rendering without a screen.
     var pointer: () -> CGPoint? = { NSEvent.mouseLocation }
     /// The wall clock, for the sun.
     var now: () -> Date = { .now }
+    /// Whether a point is over the bare desktop rather than over some app's window.
+    var isDesktop: @MainActor (CGPoint) -> Bool = { World.desktopIsUnder($0) }
+    private var overDesktop = false
+    private var desktopChecked = -TimeInterval.infinity
     /// The display the bird circles when nobody is pointing.
     var home = CGRect(x: 0, y: 0, width: 1512, height: 982)
     private var lastPointer: CGPoint?
@@ -69,8 +76,15 @@ final class World {
         journey.extend(through: camera.y + Double(desktop.maxY) * Self.metresPerPoint + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500)
 
+        // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
-            if let last = lastPointer, abs(point.x - last.x) + abs(point.y - last.y) > 0.5 { pointerMoved = t }
+            if let last = lastPointer, abs(point.x - last.x) + abs(point.y - last.y) > 0.5 {
+                if t - desktopChecked > 0.25 {
+                    overDesktop = isDesktop(point)
+                    desktopChecked = t
+                }
+                if overDesktop { pointerMoved = t }
+            }
             lastPointer = point
         }
         chasing = t - pointerMoved < 6
@@ -110,6 +124,16 @@ final class World {
         revision += 1
     }
 
+    /// The window a click at the point would reach. Wallpaper windows ignore the mouse, so over the desktop
+    /// that is Finder's desktop, which sits below every normal window level.
+    static func desktopIsUnder(_ point: CGPoint) -> Bool {
+        let number = NSWindow.windowNumber(at: point, belowWindowWithWindowNumber: 0)
+        guard number > 0,
+              let info = CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(number)) as? [[String: Any]],
+              let layer = info.first?[kCGWindowLayer as String] as? Int else { return true }
+        return layer < 0
+    }
+
     var camera: SIMD2<Double> {
         SIMD2(journey.cameraX(at: time), journey.cameraY(at: time))
     }
@@ -128,8 +152,8 @@ final class World {
         var scene: SceneGPU
         /// World y the scene's positions are measured from, kept small enough for float precision.
         var reference: Double
-        /// A Fly To repaint is under way, so cached ground goes stale every frame.
-        var sweeping: Bool
+        /// A Fly To repaint is under way: the world y of its leading edge, where the land is changing.
+        var sweepFront: Double?
     }
 
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
@@ -145,14 +169,14 @@ final class World {
         var boundary = -1e9
         var length = Journey.morphLength
         var sweep = -1.0
-        var sweeping = false
+        var sweepFront: Double?
         if legA.index != legB.index {
             boundary = legB.start - reference
             if let start = legB.sweepStart {
                 let progress = (time - start) / Journey.sweepDuration
                 if progress < 1 {
                     sweep = max(progress, 0)
-                    sweeping = true
+                    sweepFront = legB.start + sweep * (top - legB.start + 400)
                 } else {
                     length = 0.001
                 }
@@ -179,7 +203,7 @@ final class World {
                         Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
             legA: Self.gpu(legA, reference: reference),
             legB: Self.gpu(legB, reference: reference))
-        return Frame(scene: scene, reference: reference, sweeping: sweeping)
+        return Frame(scene: scene, reference: reference, sweepFront: sweepFront)
     }
 
     private static func gpu(_ leg: Leg, reference: Double) -> LegGPU {

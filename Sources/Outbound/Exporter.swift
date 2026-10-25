@@ -70,6 +70,7 @@ enum Exporter {
         }
         let world = World(place: place, time: 0, date: date, light: .alwaysDay)
         world.pointer = { nil }
+        world.isDesktop = { _ in false }
         world.now = { clock }
         world.light = light
         world.home = frame
@@ -96,7 +97,7 @@ enum Exporter {
         print(String(format: "%@ · %@ · %.2f ms GPU", place.name, place.season(on: date).line, gpuTime))
     }
 
-    static func write(_ texture: MTLTexture, to url: URL) throws {
+    static func write(_ texture: MTLTexture, to url: URL, type: UTType = .png) throws {
         let width = texture.width, height = texture.height
         let rowBytes = width * 4
         var bytes = [UInt8](repeating: 0, count: rowBytes * height)
@@ -107,9 +108,9 @@ enum Exporter {
                                   bytesPerRow: rowBytes, space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                   bitmapInfo: info, provider: provider, decode: nil, shouldInterpolate: false,
                                   intent: .defaultIntent),
-              let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
+              let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)
         else { throw Failure(description: "Could not write \(url.path)") }
-        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw Failure(description: "Could not write \(url.path)") }
     }
 }

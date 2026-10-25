@@ -52,7 +52,15 @@ final class ViewRenderer {
     /// World texel index of the cache's first column and row, nil when nothing valid is cached.
     private var valid: (x: Int, y: Int)?
     private var revision = -1
-    private var wasSweeping = false
+    /// Leading edge of a Fly To repaint at the last frame, to repaint only the band it swept since.
+    private var lastSweepFront: Double?
+    /// Cloud-space position of the cloud texture's bottom-left corner when it was last painted.
+    private var cloudCorner: SIMD2<Double>?
+    private static let cloudMargin = 48
+    private var paper: MTLTexture?
+    private var paperDirty = true
+    /// Kept for the power policy; clouds are already only repainted every few seconds.
+    var halfRateClouds = false
     /// Paper grain and edge strength.
     var finish = SIMD4<Float>(1, 0.3, 0, 0)
 
@@ -71,16 +79,24 @@ final class ViewRenderer {
         mask = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground mask")
         let pixelWidth = Int((Double(frame.width) * scale).rounded())
         let pixelHeight = Int((Double(frame.height) * scale).rounded())
-        clouds = makeTexture(width: max(pixelWidth / 4, 1), height: max(pixelHeight / 4, 1), label: "Clouds")
+        clouds = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
+                             height: max(pixelHeight / 4, 1) + Self.cloudMargin * 2, label: "Clouds")
+        paper = makeTexture(width: max(pixelWidth / 2, 1), height: max(pixelHeight / 2, 1), label: "Paper",
+                            format: ShaderLibrary.paperFormat)
+        paperDirty = true
+        cloudCorner = nil
         valid = nil
     }
 
     func invalidate() {
         valid = nil
+        cloudCorner = nil
+        paperDirty = true
     }
 
-    private func makeTexture(width: Int, height: Int, label: String) -> MTLTexture? {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.cacheFormat,
+    private func makeTexture(width: Int, height: Int, label: String,
+                             format: MTLPixelFormat = ShaderLibrary.cacheFormat) -> MTLTexture? {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format,
                                                                   width: width, height: height, mipmapped: false)
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .private
@@ -102,7 +118,8 @@ final class ViewRenderer {
 
         // Work out which world texel rectangles need painting.
         let need = (x: Int((x0 / texel).rounded(.down)) - Self.pad, y: Int((y0 / texel).rounded(.down)) - Self.pad)
-        var full = valid == nil || worldFrame.sweeping || wasSweeping || revision != world.revision
+        // A finished Fly To repaints once more in full, so every row ends up in the new place.
+        var full = valid == nil || revision != world.revision || (lastSweepFront != nil && worldFrame.sweepFront == nil)
         var rects: [(x: Int, y: Int, w: Int, h: Int)] = []
         if !full, let v = valid {
             let dx = need.x - v.x, dy = need.y - v.y
@@ -116,10 +133,18 @@ final class ViewRenderer {
                 if dx < 0 { rects.append((need.x, keptY, -dx, keptH)) }
             }
         }
-        if full { rects = [(need.x, need.y, cacheWidth, cacheHeight)] }
+        if full {
+            rects = [(need.x, need.y, cacheWidth, cacheHeight)]
+        } else if let front = worldFrame.sweepFront {
+            // Only the band the wave crossed since the last frame changes; 400 m is its soft edge.
+            let from = min(lastSweepFront ?? front, front) - 420
+            let rowStart = max(Int((from / texel).rounded(.down)), need.y)
+            let rowEnd = min(Int(((front + 20) / texel).rounded(.up)), need.y + cacheHeight)
+            if rowEnd > rowStart { rects.append((need.x, rowStart, cacheWidth, rowEnd - rowStart)) }
+        }
         valid = need
         revision = world.revision
-        wasSweeping = worldFrame.sweeping
+        lastSweepFront = worldFrame.sweepFront
 
         let pipelines = gpu.shaders.pipelines
         if !rects.isEmpty {
@@ -148,26 +173,53 @@ final class ViewRenderer {
             }
         }
 
-        // Clouds at a quarter of the resolution.
+        // Clouds never change shape, they only drift, so they are painted at a quarter of the resolution
+        // with a margin and slid along until the margin runs out.
         let metresPerPixel = mpp / scale
+        let cloudPixel = metresPerPixel * 4
         let origin = SIMD2(Double(frame.minX), Double(frame.minY)) * mpp
-        let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
-        let cloudOrigin = world.cloudSpace(origin)
-        var cloudParams = CloudsGPU(
-            origin: SIMD4(Float(cloudOrigin.x), Float(cloudOrigin.y), Float(metresPerPixel * 4), Float(world.cloudCover)),
-            offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
-                           Float(toSun.y * World.cloudHeight)),
-            view: SIMD4(Float(clouds.height), 0, 0, 0))
-        let cloudPass = MTLRenderPassDescriptor()
-        cloudPass.colorAttachments[0].texture = clouds
-        cloudPass.colorAttachments[0].loadAction = .dontCare
-        cloudPass.colorAttachments[0].storeAction = .store
-        if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: cloudPass) {
-            encoder.label = "Clouds"
-            encoder.setRenderPipelineState(pipelines.clouds)
-            encoder.setFragmentBytes(&cloudParams, length: MemoryLayout<CloudsGPU>.stride, index: 0)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            encoder.endEncoding()
+        let viewCloud = world.cloudSpace(origin)
+        var offset = cloudCorner.map { Self.wrapped(viewCloud - $0) } ?? .zero
+        let marginMetres = Double(Self.cloudMargin) * cloudPixel
+        if cloudCorner == nil || full || offset.x < 0 || offset.y < 0
+            || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
+            let corner = viewCloud - SIMD2(marginMetres, marginMetres)
+            let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
+            var cloudParams = CloudsGPU(
+                origin: SIMD4(Float(corner.x.positiveRemainder(16384)), Float(corner.y.positiveRemainder(16384)),
+                              Float(cloudPixel), Float(world.cloudCover)),
+                offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
+                               Float(toSun.y * World.cloudHeight)),
+                view: SIMD4(Float(clouds.height), 0, 0, 0))
+            let cloudPass = MTLRenderPassDescriptor()
+            cloudPass.colorAttachments[0].texture = clouds
+            cloudPass.colorAttachments[0].loadAction = .dontCare
+            cloudPass.colorAttachments[0].storeAction = .store
+            if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: cloudPass) {
+                encoder.label = "Clouds"
+                encoder.setRenderPipelineState(pipelines.clouds)
+                encoder.setFragmentBytes(&cloudParams, length: MemoryLayout<CloudsGPU>.stride, index: 0)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+                encoder.endEncoding()
+            }
+            cloudCorner = corner
+            offset = SIMD2(marginMetres, marginMetres)
+        }
+
+        if paperDirty, let paper {
+            var paperParams = SIMD4<Float>(Float(target.width), Float(target.height), 0.5, 0)
+            let paperPass = MTLRenderPassDescriptor()
+            paperPass.colorAttachments[0].texture = paper
+            paperPass.colorAttachments[0].loadAction = .dontCare
+            paperPass.colorAttachments[0].storeAction = .store
+            if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: paperPass) {
+                encoder.label = "Paper"
+                encoder.setRenderPipelineState(pipelines.paper)
+                encoder.setFragmentBytes(&paperParams, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+                encoder.endEncoding()
+                paperDirty = false
+            }
         }
 
         // Composite into the target. The bird is drawn by whichever display it is over.
@@ -185,7 +237,8 @@ final class ViewRenderer {
             bird: SIMD4(Float(birdPoint.x * scale), Float(birdPoint.y * scale), Float(bird.heading - .pi / 2),
                         Float(bird.bank)),
             wings: SIMD4(Float(bird.wings), 14, Float(27 * scale), birdVisible ? 1 : 0),
-            finish: finish)
+            finish: finish,
+            clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0))
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = target
         pass.colorAttachments[0].loadAction = .dontCare
@@ -198,11 +251,17 @@ final class ViewRenderer {
             encoder.setFragmentTexture(color, index: 0)
             encoder.setFragmentTexture(mask, index: 1)
             encoder.setFragmentTexture(clouds, index: 2)
+            encoder.setFragmentTexture(paper, index: 3)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
+    }
+
+    /// The shortest offset between two points of the repeating cloud space.
+    private static func wrapped(_ d: SIMD2<Double>) -> SIMD2<Double> {
+        SIMD2((d.x + 8192).positiveRemainder(16384) - 8192, (d.y + 8192).positiveRemainder(16384) - 8192)
     }
 
     /// Splits a world texel rectangle where it wraps around the cache's edges.

@@ -93,4 +93,6 @@ struct CompositeGPU {
     var wings: SIMD4<Float>
     /// paper grain strength, edge vignette strength, debug, unused
     var finish: SIMD4<Float>
+    /// cloud-space offset of the view's corner from the cloud texture's corner (x, y), metres per cloud pixel
+    var clouds: SIMD4<Float>
 }

@@ -6,12 +6,15 @@ import OutboundCore
 final class DisplayManager {
     let world: World
     let gpu: GPU
+    let power: PowerMonitor
     private var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
+    private(set) var tier = PowerTier.choose(PowerState())
 
-    init(world: World, gpu: GPU) {
+    init(world: World, gpu: GPU, power: PowerMonitor) {
         self.world = world
         self.gpu = gpu
+        self.power = power
     }
 
     func start() {
@@ -42,6 +45,16 @@ final class DisplayManager {
         }
 
         gpu.shaders.onReload = { [weak self] in self?.repaint() }
+        world.onChasingChange = { [weak self] chasing in self?.power.birdEngaged = chasing }
+        power.onChange = { [weak self] _ in self?.applyPower() }
+        applyPower()
+    }
+
+    private func applyPower() {
+        tier = PowerTier.choose(power.state)
+        set(.lowPower, tier.frozen)
+        wallpapers.values.forEach { $0.halfRateClouds = tier.halfRateClouds }
+        refreshRates()
     }
 
     var isPaused: Bool {
@@ -82,12 +95,14 @@ final class DisplayManager {
         refreshRates()
     }
 
-    /// 30 frames a second, or the nearest rate that divides the display's refresh evenly.
+    /// The tier's frame rate, or the nearest below it that divides the display's refresh evenly.
     private func refreshRates() {
+        guard tier.framesPerSecond > 0 else { return }
         for screen in NSScreen.screens {
             guard let id = screen.displayID, let wallpaper = wallpapers[id] else { continue }
-            let refresh = screen.maximumFramesPerSecond
-            wallpaper.framesPerSecond = Float(FramePacing.rate(target: 30, refresh: Double(refresh)))
+            let refresh = Double(screen.maximumFramesPerSecond)
+            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, refresh: refresh))
+            wallpaper.halfRateClouds = tier.halfRateClouds
         }
     }
 }

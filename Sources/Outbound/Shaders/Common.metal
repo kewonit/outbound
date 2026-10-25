@@ -49,6 +49,7 @@ struct CompositeParams {
     float4 bird;   // px xy, heading, bank
     float4 wings;  // spread, altitude, scale px, visible
     float4 finish; // grain, vignette, debug
+    float4 clouds; // cloud-space offset of the view from the cloud texture's corner (xy), metres per cloud pixel
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4 };

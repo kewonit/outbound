@@ -1,96 +1,123 @@
 import AppKit
-import OutboundCore
-import SwiftUI
-
-/// What the label in the corner says.
-@MainActor
-@Observable
-final class Caption {
-    var place = ""
-    var season = ""
-    var coordinates = ""
-    var note: String?
-}
+import QuartzCore
 
 /// A scrap of paper in the corner naming the place under the bird, like the caption under a print.
-struct CaptionView: View {
-    let caption: Caption
+/// Built from plain layers: the paper and its shadow are drawn once, and only text that changes
+/// is redrawn, so the ticking coordinates cost next to nothing.
+final class CaptionView: NSView {
+    private static let ink = NSColor(srgbRed: 0.19, green: 0.18, blue: 0.17, alpha: 1)
+    private static let placeFont = NSFont.systemFont(ofSize: 13, weight: .semibold)
+    private static let seasonFont = NSFont.systemFont(ofSize: 11.5)
+    private static let coordinateFont = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .regular)
+    private static let noteFont = NSFont.systemFont(ofSize: 10, weight: .medium)
 
-    private static let ink = Color(red: 0.19, green: 0.18, blue: 0.17)
+    private let paper = CAShapeLayer()
+    private let place = CATextLayer()
+    private let season = CATextLayer()
+    private let coordinates = CATextLayer()
+    private let note = CATextLayer()
+    private var size = CGSize.zero
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2.5) {
-            Text(caption.place)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Self.ink)
-                .id(caption.place)
-                .transition(.opacity)
-            Text(caption.season)
-                .font(.system(size: 11.5))
-                .foregroundStyle(Self.ink.opacity(0.62))
-                .id(caption.season)
-                .transition(.opacity)
-            Text(caption.coordinates)
-                .font(.system(size: 10.5, design: .monospaced))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(Self.ink.opacity(0.45))
-                .padding(.top, 1.5)
-            if let note = caption.note {
-                Text(note)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Color(red: 0.72, green: 0.32, blue: 0.2))
-                    .padding(.top, 2)
-            }
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.masksToBounds = false
+        paper.fillColor = NSColor(srgbRed: 0.985, green: 0.972, blue: 0.94, alpha: 1).cgColor
+        paper.shadowColor = NSColor.black.cgColor
+        paper.shadowOpacity = 0.18
+        paper.shadowRadius = 3
+        paper.shadowOffset = CGSize(width: 1, height: -1.5)
+        layer?.addSublayer(paper)
+        for (text, font, color) in [(place, Self.placeFont, Self.ink), (season, Self.seasonFont, Self.ink.withAlphaComponent(0.62)),
+                                    (coordinates, Self.coordinateFont, Self.ink.withAlphaComponent(0.45)),
+                                    (note, Self.noteFont, NSColor(srgbRed: 0.72, green: 0.32, blue: 0.2, alpha: 1))] {
+            text.font = font
+            text.fontSize = font.pointSize
+            text.foregroundColor = color.cgColor
+            text.alignmentMode = .left
+            text.truncationMode = .none
+            layer?.addSublayer(text)
         }
-        .animation(.easeInOut(duration: 0.8), value: caption.place)
-        .animation(.easeInOut(duration: 0.8), value: caption.season)
-        .animation(.easeOut(duration: 0.3), value: caption.coordinates)
-        .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 11)
-        .background(
-            TornPaper(seed: 7)
-                .fill(Color(red: 0.985, green: 0.972, blue: 0.94))
-                .shadow(color: .black.opacity(0.18), radius: 3, x: 1, y: 1.5)
-        )
-        .fixedSize()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-        .allowsHitTesting(false)
+        // The coordinates change several times a second; never animate them.
+        coordinates.actions = ["contents": NSNull()]
+        note.actions = ["contents": NSNull()]
     }
-}
 
-/// A rectangle whose edges look torn by hand.
-struct TornPaper: Shape {
-    let seed: UInt64
+    required init?(coder: NSCoder) { fatalError() }
 
-    func path(in rect: CGRect) -> Path {
-        var random = SplitMix(seed: seed)
-        let step: CGFloat = 3.2
-        var points: [CGPoint] = []
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        let scale = window?.backingScaleFactor ?? 2
+        for text in [place, season, coordinates, note] { text.contentsScale = scale }
+    }
+
+    func update(place newPlace: String, season newSeason: String, coordinates newCoordinates: String, note newNote: String?) {
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.8)
+        if place.string as? String != newPlace { place.string = newPlace }
+        if season.string as? String != newSeason { season.string = newSeason }
+        if coordinates.string as? String != newCoordinates { coordinates.string = newCoordinates }
+        if note.string as? String != (newNote ?? "") { note.string = newNote ?? "" }
+        CATransaction.commit()
+        layoutText(note: newNote)
+    }
+
+    private func layoutText(note text: String?) {
+        func width(_ string: String, _ font: NSFont) -> CGFloat {
+            ceil((string as NSString).size(withAttributes: [.font: font]).width)
+        }
+        let lines: [(CATextLayer, NSFont, CGFloat)] = [
+            (place, Self.placeFont, 0), (season, Self.seasonFont, 2.5), (coordinates, Self.coordinateFont, 4)
+        ] + (text == nil ? [] : [(note, Self.noteFont, 4)])
+        let textWidth = lines.map { width(($0.0.string as? String) ?? "", $0.1) }.max() ?? 0
+        let paddingX: CGFloat = 14, top: CGFloat = 10, bottom: CGFloat = 11
+        var height = top + bottom
+        for (_, font, gap) in lines { height += ceil(font.ascender - font.descender) + gap }
+        let newSize = CGSize(width: textWidth + paddingX * 2, height: height)
+        guard newSize != size else { return }
+        size = newSize
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        var y = newSize.height - top
+        for (layer, font, gap) in lines {
+            let lineHeight = ceil(font.ascender - font.descender)
+            y -= lineHeight + gap
+            layer.frame = CGRect(x: paddingX, y: y, width: textWidth + 4, height: lineHeight + 2)
+        }
+        note.isHidden = text == nil
+        let path = Self.tornPath(CGRect(origin: .zero, size: newSize))
+        paper.path = path
+        paper.shadowPath = path
+        CATransaction.commit()
+    }
+
+    /// A rectangle whose edges look torn by hand, the same every launch.
+    private static func tornPath(_ rect: CGRect) -> CGPath {
+        var random = SplitMix(seed: 7)
+        let path = CGMutablePath()
+        var first = true
         func edge(from a: CGPoint, to b: CGPoint, depth: CGFloat) {
             let length = hypot(b.x - a.x, b.y - a.y)
-            let count = max(Int(length / step), 1)
+            let count = max(Int(length / 3.2), 1)
             let normal = CGPoint(x: (a.y - b.y) / length, y: (b.x - a.x) / length)
             for i in 0..<count {
                 let t = CGFloat(i) / CGFloat(count)
                 let wobble = (CGFloat(random.next()) - 0.5) * depth
-                points.append(CGPoint(x: a.x + (b.x - a.x) * t + normal.x * wobble,
-                                      y: a.y + (b.y - a.y) * t + normal.y * wobble))
+                let point = CGPoint(x: a.x + (b.x - a.x) * t + normal.x * wobble, y: a.y + (b.y - a.y) * t + normal.y * wobble)
+                if first { path.move(to: point); first = false } else { path.addLine(to: point) }
             }
         }
         edge(from: CGPoint(x: rect.minX, y: rect.minY), to: CGPoint(x: rect.maxX, y: rect.minY), depth: 1.6)
         edge(from: CGPoint(x: rect.maxX, y: rect.minY), to: CGPoint(x: rect.maxX, y: rect.maxY), depth: 2.6)
         edge(from: CGPoint(x: rect.maxX, y: rect.maxY), to: CGPoint(x: rect.minX, y: rect.maxY), depth: 1.6)
         edge(from: CGPoint(x: rect.minX, y: rect.maxY), to: CGPoint(x: rect.minX, y: rect.minY), depth: 1.2)
-        var path = Path()
-        path.addLines(points)
         path.closeSubpath()
         return path
     }
 }
 
-/// Small deterministic random numbers, so the torn edge is the same every launch.
+/// Small deterministic random numbers.
 struct SplitMix {
     private var state: UInt64
 
