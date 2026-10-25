@@ -64,6 +64,8 @@ final class ViewRenderer {
     /// World texel index of the cache's first column and row, nil when nothing valid is cached.
     private var valid: (x: Int, y: Int)?
     private var revision = -1
+    /// The next cache row down that a repaint wave still has to reach.
+    private var repaintRow: Int?
     /// Leading edge of a Fly To repaint at the last frame, to repaint only the band it swept since.
     private var lastSweepFront: Double?
     /// Cloud-space position of the cloud texture's bottom-left corner when it was last painted.
@@ -134,7 +136,13 @@ final class ViewRenderer {
         // Work out which world texel rectangles need painting.
         let need = (x: Int((x0 / texel).rounded(.down)) - Self.pad, y: Int((y0 / texel).rounded(.down)) - Self.pad)
         // A finished Fly To repaints once more in full, so every row ends up in the new place.
-        var full = valid == nil || revision != world.revision || (lastSweepFront != nil && worldFrame.sweepFront == nil)
+        var full = valid == nil || (lastSweepFront != nil && worldFrame.sweepFront == nil)
+        // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
+        // from top to bottom over about half a second, so no single frame has to repaint the whole screen.
+        if revision != world.revision {
+            repaintRow = valid == nil ? nil : (valid!.y + cacheHeight)
+            cloudCorner = nil
+        }
         var rects: [(x: Int, y: Int, w: Int, h: Int)] = []
         if !full, let v = valid {
             let dx = need.x - v.x, dy = need.y - v.y
@@ -150,7 +158,17 @@ final class ViewRenderer {
         }
         if full {
             rects = [(need.x, need.y, cacheWidth, cacheHeight)]
-        } else if let front = worldFrame.sweepFront {
+        }
+        if !full, let wave = repaintRow {
+            let row = min(wave, need.y + cacheHeight)
+            let band = max(cacheHeight / 12, 1)
+            let low = max(row - band, need.y)
+            if low < row { rects.append((need.x, low, cacheWidth, row - low)) }
+            repaintRow = low > need.y ? low : nil
+        } else if full {
+            repaintRow = nil
+        }
+        if !full, let front = worldFrame.sweepFront {
             // Only the band the wave crossed since the last frame changes; 400 m is its soft edge.
             let from = min(lastSweepFront ?? front, front) - 420
             let rowStart = max(Int((from / texel).rounded(.down)), need.y)
@@ -253,7 +271,20 @@ final class ViewRenderer {
                         Float(bird.bank)),
             wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
             finish: finish,
-            clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0))
+            clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0),
+            flock: .zero, flockShape: .zero, flockLook: .zero)
+        if let (flock, sighting) = world.flock {
+            let point = sighting.position - SIMD2(Double(frame.minX), Double(frame.minY))
+            let reach = flock.size * Double(flock.count) * 3 + 300
+            if point.x > -reach, point.y > -reach, point.x < Double(frame.width) + reach,
+               point.y < Double(frame.height) + reach {
+                params.flock = SIMD4(Float(point.x * scale), Float(point.y * scale), Float(sighting.heading), 1)
+                // Shadows fall altitude x shadow length metres from the birds, in pixels.
+                params.flockShape = SIMD4(Float(flock.formation.rawValue), Float(flock.count), Float(flock.size * scale),
+                                          Float(flock.altitude / metresPerPixel))
+                params.flockLook = SIMD4(flock.color, Float(sighting.time))
+            }
+        }
         // One pass: ground, animals, then sky, with the night's light kept in tile memory between them.
         let light = lightTarget(width: target.width, height: target.height)
         let pass = MTLRenderPassDescriptor()

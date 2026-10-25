@@ -1,5 +1,5 @@
 import AppKit
-import Metal
+@preconcurrency import Metal
 import UniformTypeIdentifiers
 
 /// Sets the real desktop picture to a painting of the current view, so the lock screen, the menu bar's
@@ -21,6 +21,8 @@ final class StillWriter {
         return base.appending(path: "Outbound/Stills", directoryHint: .isDirectory)
     }
 
+    /// Paints each display's view off the main thread's back: the GPU paints, a background queue encodes the
+    /// JPEG, and only setting the picture comes back to the main thread. At 1x, so it never stalls a frame.
     func capture(world: World) {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // The system caches desktop pictures by URL, so alternate between two names.
@@ -34,15 +36,31 @@ final class StillWriter {
                 originals[key] = current.absoluteString
             }
             let url = folder.appending(path: "display-\(id)-\(counter).jpg")
-            do {
-                try render(world: world, frame: screen.frame, scale: Double(screen.backingScaleFactor), to: url)
-                try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [
-                    .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
-                    .allowClipping: true
-                ])
-            } catch {
-                Log.display.error("Could not set the still for \(id): \(String(describing: error), privacy: .public)")
+            let renderer = ViewRenderer(gpu: gpu)
+            renderer.configure(frame: screen.frame, scale: 1)
+            let width = Int(screen.frame.width.rounded()), height = Int(screen.frame.height.rounded())
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
+                                                                      width: width, height: height, mipmapped: false)
+            descriptor.usage = [.renderTarget, .shaderRead]
+            descriptor.storageMode = .shared
+            guard let target = gpu.device.makeTexture(descriptor: descriptor),
+                  let commands = gpu.queue.makeCommandBuffer() else { continue }
+            renderer.encode(world: world, into: target, commandBuffer: commands)
+            commands.addCompletedHandler { _ in
+                do {
+                    try Exporter.write(target, to: url, type: .jpeg)
+                } catch {
+                    return
+                }
+                DispatchQueue.main.async {
+                    guard let screen = NSScreen.screens.first(where: { $0.displayID == id }) else { return }
+                    try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [
+                        .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
+                        .allowClipping: true
+                    ])
+                }
             }
+            commands.commit()
         }
         defaults.set(originals, forKey: Self.originalsKey)
     }
@@ -61,21 +79,5 @@ final class StillWriter {
             try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
         }
         defaults.removeObject(forKey: Self.originalsKey)
-    }
-
-    private func render(world: World, frame: CGRect, scale: Double, to url: URL) throws {
-        let renderer = ViewRenderer(gpu: gpu)
-        renderer.configure(frame: frame, scale: scale)
-        let width = Int((Double(frame.width) * scale).rounded()), height = Int((Double(frame.height) * scale).rounded())
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
-                                                                  width: width, height: height, mipmapped: false)
-        descriptor.usage = [.renderTarget, .shaderRead]
-        descriptor.storageMode = .shared
-        guard let target = gpu.device.makeTexture(descriptor: descriptor),
-              let commands = gpu.queue.makeCommandBuffer() else { throw CocoaError(.featureUnsupported) }
-        renderer.encode(world: world, into: target, commandBuffer: commands)
-        commands.commit()
-        commands.waitUntilCompleted()
-        try Exporter.write(target, to: url, type: .jpeg)
     }
 }

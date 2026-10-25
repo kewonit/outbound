@@ -24,6 +24,13 @@ struct BiomeGPU {
     /// drives on the left, street lights, boats, boat kind
     var h: SIMD4<Float>
     var lamp: SIMD4<Float>
+    var roof0, roof1, roof2, animalPatches: SIMD4<Float>
+    /// villages, road trees, flat roofs, levees
+    var i: SIMD4<Float>
+    /// first landmark, its density, second landmark, its density
+    var j: SIMD4<Float>
+    /// dry river, unused...
+    var k: SIMD4<Float>
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
@@ -41,6 +48,11 @@ struct BiomeGPU {
         g = SIMD4(b.herds, b.cars, b.clumping, b.treeLines)
         h = SIMD4(b.drivesLeft ? 1 : 0, b.streetLights, b.boats, Float(b.boat.rawValue))
         lamp = SIMD4(b.lampColor, 1)
+        roof0 = c(b.roofs.0); roof1 = c(b.roofs.1); roof2 = c(b.roofs.2)
+        animalPatches = SIMD4(b.animalPatches ?? .zero, b.animalPatches == nil ? 0 : 1)
+        i = SIMD4(b.villages, b.roadTrees, b.flatRoofs ? 1 : 0, b.levees)
+        j = SIMD4(Float(b.landmarks.0.rawValue), b.landmarks.1, Float(b.landmarks.2.rawValue), b.landmarks.3)
+        k = SIMD4(b.riverDry, 0, 0, 0)
     }
 }
 
@@ -48,6 +60,26 @@ struct LegGPU {
     var biome: BiomeGPU
     /// start (world y relative to the frame's reference), seed, index, unused
     var info: SIMD4<Float>
+    /// railway origin (leg-local x, y), angle, present
+    var rail: SIMD4<Float>
+    /// railway wiggle amplitude, wavelength, phase, electrified
+    var railShape: SIMD4<Float>
+}
+
+/// The train passing on screen, if any.
+struct TrainGPU {
+    /// rail origin (x, y relative to the reference), angle, active
+    var rail: SIMD4<Float>
+    /// wiggle amplitude, wavelength, phase, unused
+    var shape: SIMD4<Float>
+    /// nose position along the rail, direction, car length, cars
+    var run: SIMD4<Float>
+    /// locomotives, kind (0 passenger, 1 freight), unused, unused
+    var info: SIMD4<Float>
+    var body, stripe, roof, locomotive: SIMD4<Float>
+
+    static let none = TrainGPU(rail: .zero, shape: .zero, run: .zero, info: .zero, body: .zero, stripe: .zero,
+                               roof: .zero, locomotive: .zero)
 }
 
 /// Shared by every pass in a frame.
@@ -64,8 +96,9 @@ struct SceneGPU {
     var morph: SIMD4<Float>
     /// seconds wrapped hourly, seconds wrapped every two hours, car phase 0...1, night 0...1
     var time: SIMD4<Float>
-    /// hour of the day where the scene is, the hour the sun sets there, unused, unused
+    /// hour of the day where the scene is, the hour the sun sets there, boat phase 0...1, unused
     var clock: SIMD4<Float>
+    var train: TrainGPU
     var legA: LegGPU
     var legB: LegGPU
 }
@@ -112,4 +145,10 @@ struct CompositeGPU {
     var finish: SIMD4<Float>
     /// cloud-space offset of the view's corner from the cloud texture's corner (x, y), metres per cloud pixel
     var clouds: SIMD4<Float>
+    /// flock leader in view pixels (x, y), heading, visible
+    var flock: SIMD4<Float>
+    /// formation, birds, half wingspan in pixels, shadow offset in pixels per unit of sun shadow length
+    var flockShape: SIMD4<Float>
+    /// colour, seconds since the flock appeared
+    var flockLook: SIMD4<Float>
 }

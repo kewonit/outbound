@@ -16,6 +16,7 @@ public struct Place: Sendable, Identifiable {
     public let seasons: [Season]
     /// The season the place is best known for, shown when seasons follow the calendar is off.
     public let signature: Int
+    public var railway: Railway?
 
     /// What is happening at the place on this date.
     public func season(on date: Date, calendar: Calendar = .current) -> Season {
@@ -56,6 +57,14 @@ private let punjabBase: Biome = {
     b.trees = 0.2; b.treeSize = 10; b.hedgeTrees = 0.35; b.clumping = 0.85; b.houses = 0.35; b.ponds = 0.25
     b.riverWidth = 34; b.riverWander = 60; b.roadWidth = 12; b.paved = 1
     b.animal = .cattle; b.herds = 0.15; b.animalColor = rgb(0x3d3530); b.cars = 0.25
+    // Smaller rounded fields between narrow bunds dotted with trees, compact brick villages with flat roofs and
+    // water tanks, tube-well huts and the odd brick kiln; traffic keeps left.
+    b.fieldSize = 125; b.hedgeWidth = 5; b.hedgeTrees = 0.7
+    b.villages = 0.6; b.flatRoofs = true; b.roadTrees = 0.35
+    b.roofs = (rgb(0xd8c4a0), rgb(0xe0b0a8), rgb(0xeeeae2))
+    b.drivesLeft = true; b.streetLights = 0.25; b.lampColor = rgb(0xff9a30)
+    b.landmarks = (.tubeWell, 0.35, .kiln, 0.25)
+    b.boats = 0.05
     return b
 }()
 
@@ -72,11 +81,14 @@ private let punjab = Place(
             $0.flooded = 0.45; $0.ground = rgb(0x6aa944); $0.riverWidth = 44; $0.ponds = 0.45; $0.sway = 0.5
         }),
         Season(months: [10, 11, 12], line: "Autumn · rice harvest and new wheat", biome: punjabBase.with {
-            $0.crops = (rgb(0xd8b04a), rgb(0xb9945c), rgb(0x9cc860), rgb(0xe3c25e))
-            $0.ground = rgb(0x9ab656); $0.sway = 0.6
+            // Stubble, a few burnt fields, fresh-sown wheat on dark tilled soil.
+            $0.crops = (rgb(0xcdb576), rgb(0x3a3430), rgb(0x7a6048), rgb(0x9cc860))
+            $0.ground = rgb(0x9ab656); $0.sway = 0.4
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .passenger, body: rgb(0x33549e), stripe: rgb(0xe6d9b3), roof: rgb(0x5c6370), locomotive: rgb(0xa82924),
+                     cars: 18, carLength: 23, locomotives: 1, speed: 27, electrified: true, chance: 0.7))
 
 // MARK: - Niigata: flooded rice paddies and sakura
 
@@ -89,6 +101,14 @@ private let niigataBase: Biome = {
     b.strokes = 0.35; b.trees = 0.11; b.treeSize = 13; b.hedgeTrees = 0; b.clumping = 0.15; b.petals = 0.8
     b.riverWidth = 42; b.riverWander = 18; b.roadWidth = 8; b.paved = 1; b.houses = 0.15; b.ponds = 0.1
     b.cars = 0.2
+    // Sakura along the lanes and dykes rather than in the fields, villages of dark tile and coloured metal roofs,
+    // a wide river between grassy dykes, white LED street lights; traffic keeps left.
+    b.trees = 0.03; b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18
+    b.roofs = (rgb(0x4a4e55), rgb(0x3e5a80), rgb(0x7a3a3a))
+    b.riverWidth = 60; b.roadWidth = 7
+    b.drivesLeft = true; b.streetLights = 0.7; b.lampColor = rgb(0xffd4a6)
+    b.boats = 0.25
+    b.landmarks = (.glasshouse, 0.08, .none, 0)
     return b
 }()
 
@@ -112,7 +132,9 @@ private let niigata = Place(
             $0.petals = 0; $0.hedge = rgb(0xc9cdd2); $0.sway = 0; $0.cars = 0.1
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .passenger, body: rgb(0xcbcfd4), stripe: rgb(0xedb72e), roof: rgb(0x9ea1a6), locomotive: rgb(0xcbcfd4),
+                     cars: 4, carLength: 20, locomotives: 0, speed: 26, electrified: true, chance: 0.75))
 
 // MARK: - Serengeti: open savanna, herds and acacias
 
@@ -125,6 +147,15 @@ private let serengetiBase: Biome = {
     b.clumping = 0.1
     b.riverWidth = 26; b.riverWander = 70; b.roadWidth = 6; b.paved = 0; b.houses = 0; b.ponds = 0.35
     b.animal = .zebra; b.herds = 0.6; b.animalColor = rgb(0xf2efe8); b.cars = 0.04
+    // Granite kopjes ringed with green, burn scars, olive-brown seasonal water with hippos, and through the dry
+    // season mostly gazelles: the great herds are up north until December.
+    b.animal = .gazelle; b.herds = 0.3; b.animalColor = rgb(0xc49a5c)
+    b.water = rgb(0x5f6b48); b.shallows = rgb(0x7a7a52); b.riverWidth = 16
+    b.canopy = rgb(0x5d7a36); b.canopyLight = rgb(0x7f9a48); b.treeSize = 16; b.trees = 0.045
+    b.rock = rgb(0xb9ab98)
+    b.landmarks = (.kopje, 0.4, .burn, 0.22)
+    b.villages = 0; b.streetLights = 0
+    b.boats = 0.5; b.boat = .hippos
     return b
 }()
 
@@ -132,19 +163,22 @@ private let serengeti = Place(
     id: "serengeti", name: "Serengeti, Tanzania", anchor: Coordinate(latitude: -2.542, longitude: 35.063),
     seasons: [
         Season(months: [6, 7, 8, 9, 10], line: "Dry season · long grass", biome: serengetiBase),
-        Season(months: [11, 12], line: "Short rains · the plains turn green", biome: serengetiBase.with {
+        Season(months: [11, 12], line: "Short rains · the herds arrive", biome: serengetiBase.with {
             $0.ground = rgb(0xa9b84e); $0.groundDark = rgb(0x86a03e)
             $0.crops = (rgb(0xb7b552), rgb(0x9fb04a), rgb(0xcfb257), rgb(0x8ea845))
+            $0.animal = .zebra; $0.animalColor = rgb(0xf2efe8); $0.herds = 0.6; $0.landmarks = (.kopje, 0.4, .none, 0)
         }),
         Season(months: [1, 2, 3], line: "Calving season · wildebeest on short grass", biome: serengetiBase.with {
             $0.ground = rgb(0x93b84a); $0.groundDark = rgb(0x76a03c)
             $0.crops = (rgb(0x8fb64a), rgb(0xa5c25a), rgb(0x7ea842), rgb(0xb3c763))
             $0.animal = .wildebeest; $0.animalColor = rgb(0x4a4038); $0.herds = 0.95; $0.sway = 0.3
+            $0.landmarks = (.kopje, 0.4, .none, 0)
         }),
         Season(months: [4, 5], line: "Long rains · lush plains", biome: serengetiBase.with {
             $0.ground = rgb(0x6fa840); $0.groundDark = rgb(0x568f35)
             $0.crops = (rgb(0x6fa840), rgb(0x86b84c), rgb(0x5e9a3a), rgb(0x9cc45a))
-            $0.ponds = 0.6; $0.riverWidth = 36; $0.herds = 0.4
+            $0.ponds = 0.6; $0.riverWidth = 26; $0.herds = 0.4; $0.animal = .wildebeest; $0.animalColor = rgb(0x4a4038)
+            $0.landmarks = (.kopje, 0.4, .none, 0)
         })
     ],
     signature: 0)
@@ -160,6 +194,13 @@ private let pampaBase: Biome = {
     b.clumping = 0.7; b.treeLines = 0.35
     b.riverWidth = 32; b.riverWander = 22; b.roadWidth = 6; b.paved = 0; b.houses = 0.06; b.ponds = 0.12
     b.animal = .cattle; b.herds = 0.6; b.animalColor = rgb(0x6b3e26); b.cars = 0.12
+    // Kilometre-wide paddocks, a windmill and round tank in each with cattle trails fanning out, estancias in
+    // dark eucalyptus groves, black Angus, and only a thin reedy creek for a river.
+    b.fieldSize = 900; b.animalColor = rgb(0x1e1b1a); b.herds = 0.6
+    b.riverWidth = 9; b.levees = 0
+    b.landmarks = (.waterPoint, 0.55, .grove, 0.3)
+    b.villages = 0.05; b.houses = 0.03; b.streetLights = 0
+    b.roofs = (rgb(0xc65a3e), rgb(0x9a9c9e), rgb(0xe6e2da))
     return b
 }()
 
@@ -181,7 +222,9 @@ private let pampa = Place(
             $0.crops = (rgb(0xb3bf9c), rgb(0xc4ccae), rgb(0x9fae86), rgb(0xd0d6c0)); $0.sway = 0.1
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .freight, body: rgb(0xa6a29a), stripe: rgb(0x9c4a38), roof: rgb(0x9a968e), locomotive: rgb(0xb84d33),
+                     cars: 40, carLength: 16, locomotives: 2, speed: 15, electrified: false, chance: 0.35))
 
 // MARK: - Lapland: fells, spruce and rocky outcrops
 
@@ -194,6 +237,15 @@ private let laplandBase: Biome = {
     b.trees = 0.22; b.treeSize = 8; b.hedgeTrees = 0.8; b.clumping = 0.9; b.rocks = 0.45; b.houses = 0.05; b.ponds = 0.3
     b.riverWidth = 40; b.riverWander = 40; b.roadWidth = 7; b.paved = 1
     b.animal = .reindeer; b.herds = 0.2; b.animalColor = rgb(0x6b5a4a); b.cars = 0.06
+    // Pine heath on pale reindeer lichen broken by patterned bogs, dark lakes, reindeer corrals, red houses with
+    // dark metal roofs, cold white lamps.
+    b.layout = .taiga
+    b.crops = (rgb(0xd6d4c0), rgb(0x8aaa5a), rgb(0x7a8a4a), rgb(0x9a8a5a))
+    b.canopy = rgb(0x3d5a3a); b.canopyLight = rgb(0x5a7a4a); b.hedgeTrees = 0.55; b.trees = 0.02
+    b.roofs = (rgb(0x3a3a3e), rgb(0x7a2a22), rgb(0x2a2a2e))
+    b.villages = 0.1; b.streetLights = 0.6; b.lampColor = rgb(0xffd4a6)
+    b.landmarks = (.lake, 0.35, .corral, 0.15)
+    b.boats = 0.1
     return b
 }()
 
@@ -202,20 +254,23 @@ private let lapland = Place(
     seasons: [
         Season(months: [6, 7, 8], line: "Summer · midnight sun on the fells", biome: laplandBase),
         Season(months: [9], line: "Autumn · ruska colours on the fells", biome: laplandBase.with {
-            $0.crops = (rgb(0xd9862f), rgb(0xc4562c), rgb(0xe3b043), rgb(0xa8a04a))
-            $0.ground = rgb(0xb88a3a); $0.canopyLight = rgb(0xd9a23a)
+            // Crimson ground layer, ochre bogs and gold birches against dark pine on pale lichen.
+            $0.crops = (rgb(0xd2cdb0), rgb(0xc88a3a), rgb(0xb8402a), rgb(0xc8702a))
+            $0.canopyLight = rgb(0xe0b040)
         }),
         Season(months: [10, 11, 12, 1, 2, 3, 4], line: "Winter · snow on the fells", biome: laplandBase.with {
-            $0.crops = (rgb(0xf1f4f7), rgb(0xe6ecf2), rgb(0xdce4ec), rgb(0xf5f7f9)); $0.ground = rgb(0xeef2f6)
-            $0.hedge = rgb(0x3f5f4a); $0.snowCover = 0.9; $0.frozen = 0.85; $0.sway = 0; $0.rock = rgb(0x8c8f96)
-            $0.herds = 0.35
+            $0.crops = (rgb(0xf1f4f7), rgb(0xe6ecf2), rgb(0xdce4ec), rgb(0xd6dde6)); $0.ground = rgb(0xeef2f6)
+            $0.snowCover = 0.9; $0.frozen = 0.85; $0.sway = 0; $0.rock = rgb(0x8c8f96)
+            $0.herds = 0.35; $0.boats = 0
         }),
         Season(months: [5], line: "Spring · snowmelt on the fells", biome: laplandBase.with {
-            $0.crops = (rgb(0xb7b07a), rgb(0xe9edf1), rgb(0x9aa86a), rgb(0xc9c08a)); $0.snowCover = 0.35
-            $0.ground = rgb(0xa9a874); $0.frozen = 0.2
+            $0.crops = (rgb(0xb7b07a), rgb(0x9aa86a), rgb(0xe9edf1), rgb(0x8a7a5a)); $0.snowCover = 0.35
+            $0.frozen = 0.2
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .passenger, body: rgb(0xeceeee), stripe: rgb(0x008c4d), roof: rgb(0x9a9ca0), locomotive: rgb(0x008c4d),
+                     cars: 5, carLength: 26, locomotives: 1, speed: 25, electrified: true, chance: 0.4))
 
 // MARK: - Normandy: bocage hedgerows and orchards
 
@@ -228,6 +283,13 @@ private let normandyBase: Biome = {
     b.trees = 0.08; b.treeSize = 8; b.hedgeTrees = 0.6; b.clumping = 0.7; b.orchards = 0.22; b.petals = 0.4; b.houses = 0.3
     b.riverWidth = 34; b.riverWander = 140; b.roadWidth = 8; b.paved = 1; b.ponds = 0.2
     b.animal = .cattle; b.herds = 0.3; b.animalColor = rgb(0xece7de); b.cars = 0.25
+    // Larger bocage fields with hedges full of oaks, hedged lanes, Normande cows white with brown patches, farms
+    // under slate, old tile or thatch.
+    b.fieldSize = 210; b.hedgeTrees = 0.7; b.roadTrees = 0.3; b.villages = 0.35
+    b.roofs = (rgb(0x5d636b), rgb(0x9a5a42), rgb(0x8a7a5a))
+    b.animalColor = rgb(0xf0ebe2); b.animalPatches = rgb(0x8a4a2a); b.herds = 0.35
+    b.riverWidth = 22; b.streetLights = 0.45; b.lampColor = rgb(0xffbb6e)
+    b.boats = 0.3
     return b
 }()
 
@@ -249,7 +311,9 @@ private let normandy = Place(
             $0.ground = rgb(0x7f9f5a)
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .passenger, body: rgb(0xebebed), stripe: rgb(0x295cad), roof: rgb(0x9a9ca2), locomotive: rgb(0xebebed),
+                     cars: 4, carLength: 22, locomotives: 0, speed: 30, electrified: true, chance: 0.6))
 
 // MARK: - Lisse: bulb fields in stripes
 
@@ -261,6 +325,13 @@ private let lisseBase: Biome = {
     b.fieldSize = 22; b.hedgeWidth = 3; b.warp = 0.03; b.fallow = 0.18; b.strokes = 0.3; b.sway = 0.4
     b.trees = 0.03; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
     b.riverWidth = 18; b.riverWander = 8; b.roadWidth = 7; b.paved = 1; b.cars = 0.3
+    // Tree-lined lanes, brick villages under orange pantile, glasshouses and the odd polder mill, bright LED lamps,
+    // and boats on the canals. Many beds are already topped, leaving green stripes.
+    b.fallow = 0.3; b.roadTrees = 0.6; b.villages = 0.5
+    b.roofs = (rgb(0xb5523a), rgb(0x3a3a3e), rgb(0x8a4a3a))
+    b.streetLights = 0.8; b.lampColor = rgb(0xffc98a)
+    b.landmarks = (.glasshouse, 0.25, .windmill, 0.18)
+    b.boats = 0.5
     return b
 }()
 
@@ -271,12 +342,14 @@ private let lisse = Place(
         Season(months: [6, 7, 8, 9], line: "Summer · bulbs lifted, fields resting", biome: lisseBase.with {
             $0.crops = (rgb(0x86b85a), rgb(0xb5a77c), rgb(0x9cc46a), rgb(0xc2b48a)); $0.fallow = 0.3
         }),
-        Season(months: [10, 11, 12, 1, 2, 3], line: "Winter · bulbs sleeping under straw", biome: lisseBase.with {
+        Season(months: [10, 11, 12, 1, 2, 3], line: "Winter · new bulbs under straw", biome: lisseBase.with {
             $0.crops = (rgb(0xc9aa6a), rgb(0xb89a5e), rgb(0x8c6f50), rgb(0xd2b878)); $0.fallow = 0.15
             $0.ground = rgb(0x8aa86a); $0.hedge = rgb(0x7a8f5a); $0.sway = 0.1
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .passenger, body: rgb(0xfac91a), stripe: rgb(0x1a338c), roof: rgb(0x8c8e94), locomotive: rgb(0xfac91a),
+                     cars: 6, carLength: 26, locomotives: 0, speed: 34, electrified: true, chance: 0.9))
 
 // MARK: - Kansas: centre pivots on the section grid
 
@@ -290,6 +363,12 @@ private let kansasBase: Biome = {
     b.ponds = 0.05
     b.riverWidth = 16; b.riverWander = 120; b.roadWidth = 7; b.paved = 0; b.cars = 0.08
     b.animal = .cattle; b.herds = 0.08; b.animalColor = rgb(0x2e2622)
+    // Bigger circles with their sprinkler arms, farmsteads behind cedar windbreaks with grain bins, the odd feedlot,
+    // and the Arkansas a dry sand bed most of the year.
+    b.fieldSize = 420; b.houses = 0; b.villages = 0; b.streetLights = 0
+    b.landmarks = (.farmstead, 0.45, .feedlot, 0.1)
+    b.riverDry = 1; b.riverWidth = 60; b.sand = rgb(0xd8c9a0)
+    b.animalColor = rgb(0x1e1b1a)
     return b
 }()
 
@@ -297,15 +376,17 @@ private let kansas = Place(
     id: "kansas", name: "Kansas, United States", anchor: Coordinate(latitude: 37.689, longitude: -100.851),
     seasons: [
         Season(months: [6, 7, 8], line: "Summer · corn under the pivots", biome: kansasBase),
-        Season(months: [9, 10, 11], line: "Autumn · harvest circles", biome: kansasBase.with {
-            $0.crops = (rgb(0xd8b04c), rgb(0xa98a58), rgb(0xc9a046), rgb(0x8f9d4f))
+        Season(months: [9, 10, 11], line: "Autumn · sorghum and harvest circles", biome: kansasBase.with {
+            $0.crops = (rgb(0xc9a46a), rgb(0xa0522d), rgb(0xc9a046), rgb(0x8a7a5a))
         }),
-        Season(months: [12, 1, 2], line: "Winter · resting fields", biome: kansasBase.with {
-            $0.crops = (rgb(0xb59b70), rgb(0xa58a62), rgb(0xc4ad80), rgb(0x9a8a6a)); $0.ground = rgb(0xcdbb92)
+        Season(months: [12, 1, 2], line: "Winter · green wheat in the circles", biome: kansasBase.with {
+            $0.crops = (rgb(0x7a9e4a), rgb(0xc4ad80), rgb(0x8aa654), rgb(0xb59b70)); $0.ground = rgb(0xcdbb92)
             $0.sway = 0.1
         }),
         Season(months: [3, 4, 5], line: "Spring · wheat greening", biome: kansasBase.with {
             $0.crops = (rgb(0x7cb24a), rgb(0x92c05a), rgb(0xb5a46a), rgb(0x6aa542))
         })
     ],
-    signature: 0)
+    signature: 0,
+    railway: Railway(kind: .freight, body: rgb(0xb8b8b3), stripe: rgb(0x8c6b54), roof: rgb(0xa8a8a2), locomotive: rgb(0xf27319),
+                     cars: 100, carLength: 16, locomotives: 3, speed: 20, electrified: false, chance: 0.55))

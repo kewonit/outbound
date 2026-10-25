@@ -54,11 +54,15 @@ final class MetalView: NSView {
     }
 
     var backingScale: Double { Double(window?.backingScaleFactor ?? 2) }
+    /// Pixels drawn per point; below the backing scale, Core Animation scales the drawable up.
+    var renderScale: Double? {
+        didSet { updateDrawableSize() }
+    }
 
     private func updateDrawableSize() {
         metalLayer.contentsScale = window?.backingScaleFactor ?? 2
-        metalLayer.drawableSize = CGSize(width: bounds.width * metalLayer.contentsScale,
-                                         height: bounds.height * metalLayer.contentsScale)
+        let scale = renderScale ?? Double(metalLayer.contentsScale)
+        metalLayer.drawableSize = CGSize(width: (bounds.width * scale).rounded(), height: (bounds.height * scale).rounded())
     }
 }
 
@@ -66,7 +70,7 @@ final class MetalView: NSView {
 @MainActor
 final class Wallpaper: NSObject {
     enum Hold: Hashable {
-        case user, occluded, asleep, locked, inactive, lowPower
+        case user, occluded, asleep, locked, inactive, lowPower, resting
     }
 
     let displayID: CGDirectDisplayID
@@ -118,7 +122,8 @@ final class Wallpaper: NSObject {
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
         place(on: screen)
-        renderer.configure(frame: screen.frame, scale: Double(screen.backingScaleFactor))
+        let backing = Double(screen.backingScaleFactor)
+        renderer.configure(frame: screen.frame, scale: economical && backing > 1.5 ? 1.5 : backing)
     }
 
     /// Keeps the label in the corner of the usable area, clear of the Dock.
@@ -161,6 +166,17 @@ final class Wallpaper: NSObject {
     var halfRateClouds: Bool {
         get { renderer.halfRateClouds }
         set { renderer.halfRateClouds = newValue }
+    }
+
+    /// On battery a Retina display draws at 1.5x and lets Core Animation scale it up: almost half the pixels.
+    var economical = false {
+        didSet {
+            guard economical != oldValue, let screen = window.screen else { return }
+            let backing = Double(screen.backingScaleFactor)
+            let scale = economical && backing > 1.5 ? 1.5 : backing
+            view.renderScale = scale
+            renderer.configure(frame: screen.frame, scale: scale)
+        }
     }
 
     private func occlusionChanged() {

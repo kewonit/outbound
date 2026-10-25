@@ -54,6 +54,11 @@ inline float3 tree(float3 c, float2 d, float r, float2 local, constant Biome &b,
     return mix(c, crown, a);
 }
 
+inline float segmentDistance(float2 p, float2 a, float2 b) {
+    float2 pa = p - a, ba = b - a;
+    return length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba)));
+}
+
 // MARK: - Field layouts
 
 struct Cells {
@@ -120,6 +125,16 @@ inline float3 openGround(float2 p, constant Biome &b, uint seed) {
 inline Land grassland(float2 p, constant Biome &b, uint seed) {
     Land l;
     l.color = openGround(p, b, seed);
+    // Big fenced paddocks, each grazed a little differently, the fence only a crisp change of tone and a track.
+    if (b.a.y > 400.0) {
+        float size = b.a.y;
+        float2 g = floor(p / size);
+        float2 f = fract(p / size) * size;
+        l.color *= 0.93 + 0.14 * hash21(int2(g), seed + 50u);
+        float fence = min(min(f.x, size - f.x), min(f.y, size - f.y));
+        l.color = mix(l.color, l.color * 0.86, fill(fence - 0.4, 0.25));
+        l.color = mix(l.color, b.road.rgb * 1.05, fill(abs(f.x - 6.0) - 1.6, 0.5) * step(0.5, hash21(int2(g), seed + 51u)));
+    }
     l.water = 0.0;
     l.sway = b.b.w * 0.7;
     l.herd = 1.0;
@@ -223,7 +238,7 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
     // Columns come in blocks of five that share their cross levees, like a surveyed grid.
     int block = int(floor(float(col) / 5.0));
     int inBlock = col - block * 5;
-    float len = w * (1.5 + 0.9 * hash11(block, seed + 1u));
+    float len = w * (2.4 + 0.9 * hash11(block, seed + 1u));
     float ry = (p.y + hash11(block, seed + 2u) * len * 7.0) / len;
     float row = floor(ry);
     float rowDist = min(ry - row, row + 1.0 - ry) * len;
@@ -367,6 +382,12 @@ inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed
         c = mix(c, crop, fill(d, 1.2));
         l.sway = mix(l.sway, b.b.w, fill(d, 1.2));
         l.herd = 1.0 - fill(d, 1.2);
+        // The sprinkler arm reaching from the centre pad, raised on its towers, and its shadow.
+        float2 arm = rotate(float2(1.0, 0.0), hash21(cell, seed + 8u) * 6.283) * radius * 0.98;
+        float2 lift = scene.sun.xy * scene.sun.z * 3.5;
+        c = shade(c, fill(segmentDistance(r + lift, 0.0, arm) - 0.35, 0.3) * 0.55, scene);
+        c = mix(c, float3(0.72, 0.73, 0.74), fill(segmentDistance(r, 0.0, arm) - 0.3, 0.2));
+        c = mix(c, float3(0.66, 0.65, 0.62), fill(sdBox(r, float2(3.5)), 0.3));
     }
     // Section roads every mile.
     float mile = s * 2.0;
@@ -453,6 +474,28 @@ inline float3 trees(float3 c, float2 local, float2 world, constant Biome &b, con
             }
         }
     }
+
+    // Avenues: trees planted along both edges of the road for long stretches, with the odd gap.
+    if (b.i.y > 0.0) {
+        float rx = roadX(world.y, scene, wander);
+        float dx = world.x - rx;
+        float edge = b.e.x * 0.5 + 3.8;
+        int side = dx > 0.0 ? 1 : 0;
+        if (abs(abs(dx) - edge) < 8.0
+            && hash11(int(floor(local.y / 240.0)) * 2 + side, seed + 56u) < b.i.y
+            && abs(riverDistance(world, scene, wander)) > riverHalf + 14.0) {
+            float spacing = 8.5;
+            float j0 = floor(local.y / spacing);
+            for (int i = -1; i <= 1; i++) {
+                float j = j0 + float(i);
+                float jh = hash11(int(j) * 2 + side, seed + 57u);
+                if (jh < 0.12) continue;
+                float r = size * 0.36 * (0.85 + 0.3 * jh);
+                float2 center = float2(rx + (dx > 0.0 ? 1.0 : -1.0) * edge + (jh - 0.5), world.y + ((j + 0.5) * spacing - local.y));
+                c = tree(c, world - center, r, local, b, scene, seed, cover);
+            }
+        }
+    }
     return c;
 }
 
@@ -461,27 +504,27 @@ inline float3 trees(float3 c, float2 local, float2 world, constant Biome &b, con
 inline float houseGlow(float2 d, float2 size, int k, uint seed, float roofCover) {
     float glow = 0.0;
     float out = abs(d.x) - size.x;
-    if (out > -0.3 && out < 5.0 && abs(d.y) < size.y + 1.0) {
+    if (out > -0.3 && out < 8.0 && abs(d.y) < size.y + 1.5) {
         float n = max(2.0, floor(size.y * 2.0 / 3.0));
         float v = (d.y + size.y) / (2.0 * size.y) * n;
         float i = clamp(floor(v), 0.0, n - 1.0);
         float lit = step(0.35, hash11(k * 64 + int(i) * 2 + (d.x > 0.0 ? 1 : 0), seed + 400u));
         float across = abs(v - i - 0.5) * (2.0 * size.y / n);
         float spread = 0.5 + 0.45 * max(out, 0.0);
-        glow = lit * fill(across - spread, 0.3 + 0.15 * max(out, 0.0)) * exp(-max(out, 0.0) / 1.7)
+        glow = lit * fill(across - spread, 0.3 + 0.15 * max(out, 0.0)) * exp(-max(out, 0.0) / 2.6)
              * smoothstep(-0.3, 0.2, out) * 0.75;
     }
     float2 porch = float2(size.x * 0.4, size.y + 0.6);
     float r = length(d - porch);
     float hasPorch = step(0.3, hash11(k, seed + 402u));
-    float pool = pow(1.0 + r * r / 6.25, -1.5) * (1.0 - smoothstep(5.0, 8.0, r));
+    float pool = pow(1.0 + r * r / 9.0, -1.5) * (1.0 - smoothstep(6.0, 10.0, r));
     glow = max(glow, pool * 0.6 * hasPorch);
     glow = max(glow, fill(r - 0.25, 0.15) * hasPorch);
     // Half the farms keep a yard lamp on a pole beside the house.
     float2 yard = float2(-size.x - 4.0, -size.y * 0.3);
     float yardLamp = step(0.5, hash11(k, seed + 405u));
     float ry = length(d - yard);
-    glow = max(glow, yardLamp * (pow(1.0 + ry * ry / 25.0, -1.5) * (1.0 - smoothstep(7.0, 11.0, ry)) * 0.55
+    glow = max(glow, yardLamp * (pow(1.0 + ry * ry / 49.0, -1.5) * (1.0 - smoothstep(10.0, 16.0, ry)) * 0.6
                                  + fill(ry - 0.25, 0.15)));
     glow *= 1.0 - roofCover;
     float skylight = fill(sdBox(d - float2(-size.x * 0.45, size.y * 0.2), float2(0.45, 0.6)), 0.1);
@@ -495,53 +538,307 @@ inline float lampPool(float r, float height, float rim, float2 p, uint seed) {
     return max(pool * 0.7, fill(r - 0.3, 0.2));
 }
 
-inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
-                     float wander, thread float &cover, thread float &light, thread float &lightID) {
-    if (b.e.w <= 0.0) return c;
-    float slot = 85.0;
-    float k = floor(local.y / slot);
-    float h = hash11(int(k), seed + 60u);
-    if (h > b.e.w) return c;
-    float side = hash11(int(k), seed + 61u) < 0.5 ? -1.0 : 1.0;
-    float yC = (k + 0.3 + 0.4 * hash11(int(k), seed + 62u)) * slot;
-    float worldY = world.y + (yC - local.y);
-    float rx = roadX(worldY, scene, wander);
-    float s = riverSlope(worldY, scene, wander);
-    float2 center = float2(rx + side * (b.e.x * 0.5 + 9.0 + 16.0 * hash11(int(k), seed + 63u)), worldY);
-    if (abs(riverDistance(center, scene, wander)) < 30.0) return c;
-    float angle = atan(s) + (hash11(int(k), seed + 64u) - 0.5) * 0.3;
-    float2 d = rotate(world - center, -angle);
-    float2 size = float2(4.2, 6.5) * (0.85 + 0.35 * hash11(int(k), seed + 65u));
+inline float3 roofColor(constant Biome &b, float pick) {
+    return pick < 0.45 ? b.roof0.rgb : pick < 0.8 ? b.roof1.rgb : b.roof2.rgb;
+}
+
+// One house: shadow, roof (pitched halves catching the light differently, or flat with a water tank), a shed, and
+// after dark the light it spills on the ground. `d` is in house-local metres.
+inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constant Biome &b, constant Scene &scene,
+                    uint seed, thread float &cover, thread float &light, thread float &lightID) {
+    if (dot(d, d) > 600.0) return c;
     float2 shadowOff = rotate(-scene.sun.xy * scene.sun.z * 5.0, -angle);
     c = shade(c, fill(sdBox(d - shadowOff, size), 0.5) * 0.8, scene);
-    float roofPick = hash11(int(k), seed + 66u);
-    float3 roof = roofPick < 0.35 ? float3(0.80, 0.33, 0.24) : roofPick < 0.6 ? float3(0.68, 0.40, 0.30)
-                : roofPick < 0.8 ? float3(0.42, 0.50, 0.62) : float3(0.62, 0.60, 0.58);
+    float3 roof = roofColor(b, hash11(k, seed + 66u)) * (0.92 + 0.16 * hash11(k, seed + 68u));
     roof = mix(roof, b.snow.rgb, b.f.y * 0.8);
-    // Two roof halves catch the light differently.
-    float3 roofSide = d.x * scene.sun.x > 0.0 ? roof * 1.08 : roof * 0.78;
+    float3 face;
+    if (b.i.z > 0.5) {
+        // Flat roofs: a parapet rim and a round water tank on top.
+        face = roof * (1.0 - 0.12 * fill(abs(sdBox(d, size)) - 0.35, 0.15));
+        face = mix(face, hash11(k, seed + 69u) < 0.5 ? float3(0.16, 0.16, 0.18) : float3(0.93, 0.93, 0.9),
+                   fill(length(d - size * float2(0.45, 0.5)) - 0.75, 0.15));
+    } else {
+        face = d.x * rotate(scene.sun.xy, -angle).x > 0.0 ? roof * 1.08 : roof * 0.78;
+        face = mix(face, roof * 0.6, fill(abs(d.x) - 0.12, 0.08));
+    }
     float a = fill(sdBox(d, size), 0.35);
     cover = max(cover, a);
-    c = mix(c, roofSide, a);
-    // A shed beside it.
+    c = mix(c, face, a);
     float2 shed = d - float2(size.x + 3.5, -size.y * 0.4);
     c = shade(c, fill(sdBox(shed - shadowOff * 0.6, float2(2.0, 2.6)), 0.4) * 0.7, scene);
     float shedCover = fill(sdBox(shed, float2(2.0, 2.6)), 0.3);
     c = mix(c, float3(0.70, 0.66, 0.60), shedCover);
-
-    // After dark: the house's own glow, and a street lamp at the roadside in places that have them.
-    float glow = houseGlow(d, size, int(k), seed, a) * (1.0 - shedCover);
+    float glow = houseGlow(d, size, k, seed, a) * (1.0 - shedCover);
     if (glow > light) {
         light = glow;
-        lightID = 0.02 + 0.96 * hash11(int(k), seed + 403u);
+        lightID = 0.02 + 0.96 * hash11(k, seed + 403u);
     }
-    if (hash11(int(k), seed + 67u) < b.h.y) {
-        float2 lamp = float2(rx + side * (b.e.x * 0.5 + 1.0), worldY);
-        float pool = lampPool(length(world - lamp), 7.0, 11.0, world, seed + 411u);
-        if (pool > light) {
-            light = pool;
-            lightID = 1.0;
+    return c;
+}
+
+// Houses along the road: scattered farms in open country, and now and then a village where they crowd in two rows
+// with gardens, street lamps and trees.
+inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
+                     float wander, thread float &cover, thread float &light, thread float &lightID) {
+    if (b.e.w <= 0.0 && b.i.x <= 0.0) return c;
+    float rx0 = roadX(world.y, scene, wander);
+    float side = world.x > rx0 ? 1.0 : -1.0;
+    if (abs(world.x - rx0) > 95.0) return c;
+    float slot = 30.0;
+    float k0 = floor(local.y / slot);
+    for (int dk = -1; dk <= 1; dk++) {
+        float k = k0 + float(dk);
+        float yC = (k + 0.2 + 0.6 * hash11(int(k), seed + 62u)) * slot;
+        float village = smoothstep(0.62 - b.i.x * 0.22, 0.7 - b.i.x * 0.22, vnoise(float2(yC / 1100.0, 0.5), seed + 70u))
+                      * step(0.001, b.i.x);
+        float worldY = world.y + (yC - local.y);
+        float rx = roadX(worldY, scene, wander);
+        float s = riverSlope(worldY, scene, wander);
+        for (int row = 0; row < 2; row++) {
+            int id = (int(k) * 2 + (side > 0.0 ? 1 : 0)) * 2 + row;
+            float chance = row == 0 ? mix(b.e.w * 0.33, 0.85, village) : 0.7 * village;
+            if (hash11(id, seed + 60u) > chance) continue;
+            float out = row == 0 ? b.e.x * 0.5 + 8.0 + 10.0 * hash11(id, seed + 63u) : 36.0 + 16.0 * hash11(id, seed + 63u);
+            float2 center = float2(rx + side * out, worldY);
+            if (abs(riverDistance(center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0) continue;
+            float angle = atan(s) + (hash11(id, seed + 64u) - 0.5) * (0.3 + village * 0.2);
+            float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
+            c = house(c, rotate(world - center, -angle), angle, size, id, b, scene, seed, cover, light, lightID);
+            // A garden tree behind village houses.
+            if (village > 0.3 && hash11(id, seed + 71u) < 0.6) {
+                float2 behind = center + float2(side * (size.x + 6.0 + 4.0 * hash11(id, seed + 72u)), (hash11(id, seed + 73u) - 0.5) * 8.0);
+                c = tree(c, world - behind, 2.6 + 1.6 * hash11(id, seed + 74u), local, b, scene, seed, cover);
+            }
         }
+        // Street lamps at the roadside, thicker in villages.
+        int lampID = int(k) * 2 + (side > 0.0 ? 1 : 0);
+        if (hash11(lampID, seed + 67u) < b.h.y * mix(0.25, 1.0, village)) {
+            float2 lamp = float2(rx + side * (b.e.x * 0.5 + 1.0), worldY);
+            float pool = lampPool(length(world - lamp), 9.0, 15.0, world, seed + 411u);
+            if (pool > light) {
+                light = pool;
+                lightID = 1.0;
+            }
+        }
+    }
+    return c;
+}
+
+// MARK: - Landmarks
+
+inline float3 boulders(float3 c, float2 d, float radius, int id, constant Biome &b, constant Scene &scene, uint seed,
+                       thread float &herd) {
+    // A halo of greener grass round the rocks, then a cluster of granite domes lit from the sun's side.
+    c = mix(c, c * float3(0.78, 0.95, 0.72), (1.0 - smoothstep(radius * 0.6, radius * 1.4, length(d))) * 0.5);
+    for (int i = 0; i < 7; i++) {
+        float2 at = (hash22(int2(id, i), seed + 801u) - 0.5) * radius * 1.1;
+        float r = radius * (0.12 + 0.22 * hash11(id * 9 + i, seed + 802u));
+        float2 q = d - at;
+        c = shade(c, fill(length(q + scene.sun.xy * scene.sun.z * r * 0.6) - r, 1.0) * 0.7, scene);
+        float dome = length(q) - r * (1.0 + 0.12 * (vnoise(q / 3.0, seed + 803u) - 0.5));
+        float lit = saturate(dot(normalize(q + 1e-4), scene.sun.xy) * 0.5 + 0.5);
+        float3 rock = b.rock.rgb * (0.72 + 0.45 * lit) * (0.94 + 0.12 * vnoise(q / 1.5, seed + 804u));
+        rock = mix(rock, float3(0.85, 0.66, 0.52), 0.2 * vnoise(q / 4.0, seed + 805u));
+        c = mix(c, rock, fill(dome, 0.4));
+        herd *= 1.0 - fill(dome - 2.0, 1.0);
+    }
+    return c;
+}
+
+inline float3 landmark(float3 c, int kind, float density, float2 local, float2 world, constant Biome &b,
+                       constant Scene &scene, uint seed, float wander, float riverHalf, thread float &herd,
+                       thread float &water, thread float &cover, thread float &light, thread float &lightID) {
+    if (kind == markNone || density <= 0.0) return c;
+    float cell = kind == markTubeWell ? 170.0 : kind == markWindmill ? 700.0 : kind == markKopje ? 420.0
+               : kind == markFeedlot || kind == markKiln ? 1500.0 : kind == markCorral ? 1300.0 : 750.0;
+    float radius = kind == markTubeWell ? 14.0 : kind == markWindmill ? 22.0 : kind == markKopje ? 55.0
+                 : kind == markFeedlot ? 260.0 : kind == markGrove ? 120.0 : kind == markBurn ? 200.0
+                 : kind == markLake ? 170.0 : kind == markCorral ? 150.0 : kind == markKiln ? 110.0
+                 : kind == markFarmstead ? 70.0 : 90.0;
+    uint s = seed + uint(kind) * 131u;
+    float2 g = floor(local / cell);
+    int2 id2 = int2(g);
+    int id = id2.x * 7919 + id2.y;
+    if (hash21(id2, s) > density) return c;
+    float2 center = g * cell + radius + 10.0 + hash22(id2, s + 1u) * max(cell - 2.0 * radius - 20.0, 0.0);
+    if (kind == markFarmstead && int(b.a.x) == layoutPivots) {
+        // Farmsteads sit in the dry corners between the circles.
+        center = round(center / b.a.y) * b.a.y;
+    }
+    float2 d = local - center;
+    if (dot(d, d) > radius * radius * 1.7) return c;
+    float2 centerWorld = world + (center - local);
+    if (abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return c;
+    if (abs(roadDistance(centerWorld, scene, wander)) < b.e.x * 0.5 + radius * 0.8 + 6.0) return c;
+    float angle = hash21(id2, s + 2u) * 6.283;
+    float2 r = rotate(d, -angle);
+
+    if (kind == markKopje) {
+        c = boulders(c, d, radius * (0.6 + 0.5 * hash21(id2, s + 3u)), id, b, scene, s, herd);
+        for (int i = 0; i < 3; i++) {
+            float2 at = (hash22(int2(id, i + 20), s + 4u) - 0.5) * radius * 1.4;
+            c = tree(c, d - at, 4.0 + 3.0 * hash11(id * 3 + i, s + 5u), local, b, scene, seed, cover);
+        }
+    } else if (kind == markWaterPoint) {
+        // Cattle trails fan out from the water, the ground trampled bare round it.
+        float len = length(d);
+        float bare = 1.0 - smoothstep(22.0, 50.0, len + 8.0 * (vnoise(d / 9.0, s + 6u) - 0.5));
+        c = mix(c, float3(0.71, 0.60, 0.42), bare * 0.85);
+        float a = atan2(d.y, d.x);
+        float n = 9.0;
+        float trail = (floor(a / 6.283 * n) + 0.5) * 6.283 / n + (hash11(int(floor(a / 6.283 * n)) + id, s + 7u) - 0.5) * 0.4;
+        float across = len * abs(sin(a - trail));
+        c = mix(c, float3(0.74, 0.66, 0.5), fill(across - 0.6, 0.4) * smoothstep(30.0, 40.0, len) * (1.0 - smoothstep(80.0, 140.0, len)) * 0.7);
+        float tank = len - 9.0;
+        c = mix(c, float3(0.6, 0.62, 0.64), fill(abs(tank) - 0.6, 0.2));
+        c = mix(c, mix(b.water.rgb, float3(0.23, 0.35, 0.42), 0.5), fill(tank + 0.6, 0.2));
+        water = max(water, fill(tank + 0.6, 0.2));
+        // The windmill: a slim tower, its rotor, and their long shadow.
+        float2 mill = d - float2(13.0, 4.0);
+        float2 away = -scene.sun.xy * scene.sun.z * 10.0;
+        c = shade(c, fill(segmentDistance(mill, 0.0, away) - 0.18, 0.15) * 0.6, scene);
+        c = shade(c, fill(abs(length(mill - away) - 1.4) - 0.12, 0.12) * 0.5, scene);
+        c = mix(c, float3(0.55, 0.56, 0.58), fill(length(mill) - 0.7, 0.15));
+        herd = max(herd, bare);
+    } else if (kind == markGrove) {
+        // An estancia in its dark grove: a soft square of eucalyptus round a clearing with the house and sheds.
+        float edge = sdBox(r, float2(radius * 0.75)) + 12.0 * (vnoise(r / 14.0, s + 8u) - 0.5);
+        float clearing = sdBox(r - float2(radius * 0.15, 0.0), float2(radius * 0.32, radius * 0.24));
+        float grove = fill(edge, 2.0) * (1.0 - fill(clearing, 2.0));
+        c = shade(c, fill(sdBox(r + rotate(scene.sun.xy, -angle) * scene.sun.z * 12.0, float2(radius * 0.75)), 6.0) * 0.6, scene);
+        float crowns = vnoise(r / 4.0, s + 9u) * 0.6 + vnoise(r / 9.0, s + 10u) * 0.4;
+        float3 euc = float3(0.24, 0.36, 0.29) * (0.82 + 0.35 * crowns);
+        c = mix(c, euc, grove);
+        cover = max(cover, grove);
+        herd *= 1.0 - fill(edge - 6.0, 2.0);
+        c = house(c, rotate(r - float2(radius * 0.18, radius * 0.05), 0.0), angle, float2(5.0, 8.0), id, b, scene, s, cover, light, lightID);
+        float2 shed = r - float2(radius * 0.05, -radius * 0.12);
+        c = shade(c, fill(sdBox(shed + rotate(scene.sun.xy, -angle) * scene.sun.z * 4.0, float2(9.0, 5.0)), 0.5) * 0.6, scene);
+        c = mix(c, float3(0.72, 0.73, 0.74), fill(sdBox(shed, float2(9.0, 5.0)), 0.3));
+    } else if (kind == markFarmstead) {
+        // House, metal sheds and steel grain bins, sheltered by an L of dark cedar to the north and west.
+        float2 q = d;
+        float windbreak = max(fill(sdBox(q - float2(-radius * 0.55, 0.0), float2(10.0, radius * 0.6)), 3.0),
+                              fill(sdBox(q - float2(0.0, radius * 0.55), float2(radius * 0.6, 10.0)), 3.0));
+        windbreak *= smoothstep(0.35, 0.6, vnoise(q / 3.5, s + 11u) + 0.2);
+        float2 qs = q + scene.sun.xy * scene.sun.z * 9.0;
+        float shadowBreak = max(fill(sdBox(qs - float2(-radius * 0.55, 0.0), float2(10.0, radius * 0.6)), 4.0),
+                                fill(sdBox(qs - float2(0.0, radius * 0.55), float2(radius * 0.6, 10.0)), 4.0));
+        c = shade(c, shadowBreak * 0.75, scene);
+        float3 cedar = float3(0.18, 0.29, 0.20) * (0.85 + 0.3 * vnoise(q / 3.0, s + 12u));
+        c = mix(c, cedar, windbreak);
+        cover = max(cover, windbreak);
+        c = house(c, q - float2(-10.0, 18.0), 0.0, float2(5.0, 7.5), id, b, scene, s, cover, light, lightID);
+        for (int i = 0; i < 2; i++) {
+            float2 shed = q - float2(14.0 + 8.0 * float(i), -8.0 - 22.0 * float(i));
+            c = shade(c, fill(sdBox(shed + scene.sun.xy * scene.sun.z * 5.0, float2(8.0, 15.0)), 0.5) * 0.7, scene);
+            c = mix(c, float3(0.80, 0.81, 0.82) * (0.94 + 0.08 * float(i)), fill(sdBox(shed, float2(8.0, 15.0)), 0.3));
+        }
+        for (int i = 0; i < 4; i++) {
+            float2 bin = q - float2(-12.0 + 9.0 * float(i), -32.0);
+            float br = 3.8;
+            c = shade(c, fill(length(bin + scene.sun.xy * scene.sun.z * 8.0) - br, 0.6) * 0.7, scene);
+            float lit = saturate(dot(normalize(bin + 1e-4), scene.sun.xy) * 0.5 + 0.5);
+            c = mix(c, float3(0.70, 0.72, 0.74) * (0.8 + 0.35 * lit), fill(length(bin) - br, 0.25));
+            c = mix(c, float3(0.9, 0.9, 0.9), fill(length(bin) - 0.6, 0.15));
+        }
+        herd *= 1.0 - fill(length(q) - radius, 4.0);
+    } else if (kind == markTubeWell) {
+        // A tiny brick room with a tank beside it and a big shade tree.
+        float2 q = r;
+        c = shade(c, fill(sdBox(q - float2(0.0, 0.0) + rotate(scene.sun.xy, -angle) * scene.sun.z * 3.0, float2(1.8)), 0.3) * 0.7, scene);
+        c = mix(c, float3(0.83, 0.74, 0.62), fill(sdBox(q, float2(1.8)), 0.15));
+        c = mix(c, float3(0.42, 0.55, 0.62), fill(sdBox(q - float2(3.4, 0.0), float2(1.2, 1.6)), 0.15));
+        c = tree(c, q - float2(-4.0, 3.5), 4.5, local, b, scene, seed, cover);
+    } else if (kind == markKiln) {
+        // A long oval trench kiln of dusty red-brown, its chimney's long shadow, clay yards and rows of drying bricks.
+        float2 q = r;
+        float yard = sdBox(q, float2(radius * 0.95, radius * 0.6)) + 6.0 * (vnoise(q / 10.0, s + 13u) - 0.5);
+        c = mix(c, float3(0.70, 0.45, 0.33), fill(yard, 3.0) * 0.85);
+        float rows = fill(abs(fract(q.y / 4.0) - 0.5) * 4.0 - 0.7, 0.2) * fill(sdBox(q - float2(radius * 0.5, 0.0), float2(radius * 0.35, radius * 0.45)), 0.5);
+        c = mix(c, float3(0.80, 0.72, 0.62), rows * 0.8);
+        float trench = abs(length(q / float2(1.8, 1.0) - float2(-radius * 0.15, 0.0)) - radius * 0.22);
+        c = mix(c, float3(0.50, 0.28, 0.20), fill(trench - 4.0, 0.8));
+        float2 stack = q - float2(-radius * 0.15, 0.0);
+        float2 away = rotate(-scene.sun.xy, -angle) * scene.sun.z * 35.0;
+        c = shade(c, fill(segmentDistance(stack, 0.0, away) - 0.9, 0.5) * 0.65, scene);
+        c = mix(c, float3(0.38, 0.22, 0.17), fill(length(stack) - 1.6, 0.2));
+        herd *= 1.0 - fill(yard, 3.0);
+    } else if (kind == markGlasshouse) {
+        // Pale panels in a grid that catch the light in long stripes.
+        float2 q = r;
+        float2 extent = float2(radius * 0.8, radius * 0.5);
+        c = shade(c, fill(sdBox(q + rotate(scene.sun.xy, -angle) * scene.sun.z * 4.0, extent), 0.5) * 0.6, scene);
+        float panel = fill(sdBox(q, extent), 0.3);
+        float ridge = fill(abs(fract(q.x / 3.2) - 0.5) * 3.2 - 0.12, 0.08);
+        float glint = smoothstep(0.65, 1.0, vnoise(float2(q.x / 3.2, q.y / 40.0) + 3.0, s + 14u));
+        float3 glass = mix(float3(0.83, 0.87, 0.89), float3(0.97, 0.98, 0.99), glint) * (1.0 - 0.1 * ridge);
+        c = mix(c, glass, panel);
+        cover = max(cover, panel);
+        herd *= 1.0 - panel;
+    } else if (kind == markWindmill) {
+        // A polder mill: octagonal body, four sails and their shadow.
+        float2 q = r;
+        float sails = 1e9;
+        for (int i = 0; i < 4; i++) {
+            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
+            sails = min(sails, segmentDistance(q, arm * 1.5, arm * 12.0) - 0.9);
+        }
+        float2 sunR = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float sailShadow = 1e9;
+        for (int i = 0; i < 4; i++) {
+            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
+            sailShadow = min(sailShadow, segmentDistance(q + sunR * 16.0, arm * 1.5, arm * 12.0) - 0.9);
+        }
+        c = shade(c, fill(length(q + sunR * 12.0) - 4.2, 0.5) * 0.7, scene);
+        c = shade(c, fill(sailShadow, 0.4) * 0.55, scene);
+        float3 body = float3(0.36, 0.30, 0.26);
+        c = mix(c, body, fill(length(q) - 4.2, 0.3));
+        c = mix(c, float3(0.45, 0.35, 0.28), fill(length(q) - 2.0, 0.3));
+        c = mix(c, float3(0.86, 0.84, 0.80), fill(sails, 0.25) * 0.9);
+        cover = max(cover, fill(length(q) - 4.2, 0.3));
+    } else if (kind == markFeedlot) {
+        // Pens in rows, pale feed alleys, white bunk lines and dark cattle crowded along them.
+        float2 q = r;
+        float block = sdBox(q, float2(radius * 0.9, radius * 0.55));
+        if (block < 0.0) {
+            float2 pen = float2(fract(q.x / 34.0) * 34.0, fract(q.y / 62.0) * 62.0);
+            float3 dirt = float3(0.54, 0.45, 0.35) * (0.9 + 0.2 * vnoise(q / 6.0, s + 15u));
+            float alley = fill(min(pen.y, 62.0 - pen.y) - 4.0, 0.5);
+            float bunk = fill(abs(pen.y - 4.8) - 0.4, 0.15);
+            float fence = fill(min(pen.x, 34.0 - pen.x) - 0.25, 0.1);
+            float cattle = step(0.55, hash21(int2(floor(q / float2(1.6, 1.2))), s + 16u)) * fill(abs(pen.y - 7.5) - 2.2, 0.4);
+            float3 pens = mix(dirt, float3(0.78, 0.72, 0.6), alley);
+            pens = mix(pens, float3(0.93, 0.93, 0.91), bunk);
+            pens = mix(pens, dirt * 0.7, fence * 0.6);
+            pens = mix(pens, float3(0.17, 0.14, 0.12), cattle * 0.85);
+            c = mix(c, pens, fill(block, 2.0));
+            herd = 0.0;
+        }
+    } else if (kind == markBurn) {
+        float shape = length(d) / radius - 0.75 + 0.5 * (fbm(d / 60.0, 3, s + 17u) - 0.5);
+        float charred = fill(shape, 0.05);
+        float greenEdge = fill(abs(shape - 0.04) - 0.04, 0.03);
+        c = mix(c, float3(0.24, 0.22, 0.20) * (0.85 + 0.3 * vnoise(d / 5.0, s + 18u)), charred * 0.92);
+        c = mix(c, float3(0.6, 0.76, 0.36), greenEdge * 0.55);
+        c = mix(c, float3(0.55, 0.53, 0.5), fill(abs(shape) - 0.012, 0.01) * 0.4);
+    } else if (kind == markLake) {
+        float shape = length(d * float2(1.0, 1.3)) / radius - 0.72 + 0.55 * (fbm(d / 45.0, 3, s + 19u) - 0.5);
+        float wet = fill(shape, 0.02);
+        float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, float3(0.72, 0.8, 0.88), 0.4) : float3(0.12, 0.22, 0.32);
+        c = mix(c, b.sand.rgb, fill(shape - 0.05, 0.02) * (1.0 - b.f.y * 0.6));
+        c = mix(c, mix(deep, b.shallows.rgb * 0.8, smoothstep(-0.08, 0.0, shape)), wet);
+        water = max(water, wet * (1.0 - b.f.z));
+        herd *= 1.0 - fill(shape - 0.05, 0.02);
+        cover = max(cover, wet);
+    } else if (kind == markCorral) {
+        // A round reindeer corral with long funnel fences running out into the land.
+        float ring = abs(length(d) - 18.0);
+        c = mix(c, c * 1.12 + 0.04, fill(length(d) - 18.0, 1.0) * 0.5);
+        c = mix(c, float3(0.42, 0.36, 0.30), fill(ring - 0.3, 0.15));
+        float2 a1 = rotate(float2(1.0, 0.0), angle), a2 = rotate(float2(1.0, 0.0), angle + 0.7);
+        float fence = min(segmentDistance(d, a1 * 18.0, a1 * 150.0), segmentDistance(d, a2 * 18.0, a2 * 150.0));
+        c = mix(c, float3(0.42, 0.36, 0.30), fill(fence - 0.25, 0.15));
     }
     return c;
 }
@@ -587,6 +884,48 @@ inline float3 rocks(float3 c, float2 p, constant Biome &b, constant Scene &scene
 
 // MARK: - The whole ground for one leg
 
+// Lapland: pine heath on pale reindeer lichen, broken by aapa bogs where long curving strings of peat
+// separate dark pools, like fingerprints seen from above.
+inline Land taiga(float2 p, constant Biome &b, constant Scene &scene, uint seed) {
+    Land l;
+    l.road = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
+    float mire = smoothstep(0.56, 0.62, fbm(p / 380.0, 3, seed + 30u));
+    float3 heath = mix(b.crop0.rgb, b.crop2.rgb, smoothstep(0.45, 0.75, fbm(p / 26.0, 3, seed + 31u)) * 0.6);
+    heath *= 0.95 + 0.1 * vnoise(p / 3.0, seed + 32u);
+    float2 w = p + 40.0 * float2(fbm(p / 260.0, 2, seed + 33u), fbm(p / 260.0 + 7.0, 2, seed + 34u));
+    float strings = sin((w.x * 0.35 + w.y) / 7.0);
+    float pools = smoothstep(0.7, 0.9, -strings) * smoothstep(0.55, 0.72, vnoise(w / float2(22.0, 8.0), seed + 35u));
+    float3 sedge = b.crop1.rgb * (0.92 + 0.12 * vnoise(p / 4.0, seed + 36u));
+    sedge = mix(sedge, b.crop3.rgb, smoothstep(0.7, 0.95, strings) * 0.8);
+    float3 pool = mix(float3(0.24, 0.30, 0.32), mix(b.snow.rgb, float3(0.78, 0.84, 0.9), 0.3), b.f.z);
+    sedge = mix(sedge, pool, pools);
+    float3 c = mix(heath, sedge, mire);
+    l.water = pools * mire * (1.0 - b.f.z);
+    float cover = 0.0;
+    // Pines on the heath, in two scattered layers so they never line up.
+    for (int layer = 0; layer < 2; layer++) {
+        float spacing = layer == 0 ? 7.0 : 11.0;
+        float2 q = layer == 0 ? p : rotate(p, 0.6);
+        float2 g = floor(q / spacing);
+        int2 cell = int2(g);
+        float h = hash21(cell, seed + 37u + uint(layer));
+        float stand = smoothstep(0.3, 0.6, vnoise((g + 0.5) * spacing / 140.0, seed + 38u));
+        if (h < b.c.w * (1.0 - mire) * (0.25 + stand)) {
+            float r = (layer == 0 ? 2.2 : 3.0) * (0.75 + 0.5 * hash21(cell, seed + 39u));
+            float margin = r * 1.7;
+            float2 center = g * spacing + margin + hash22(cell, seed + 40u) * max(spacing - 2.0 * margin, 0.0);
+            c = tree(c, q - center, r, p, b, scene, seed, cover);
+        }
+    }
+    l.color = c;
+    l.forest = (1.0 - mire) * 0.7;
+    l.sway = mire * 0.35;
+    l.herd = mire > 0.5 && pools < 0.3 ? 1.0 : 0.0;
+    return l;
+}
+
 inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float riverHalf, float wander) {
     constant Biome &b = leg.biome;
     uint seed = uint(leg.info.y);
@@ -597,6 +936,7 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     else if (layout == layoutFields) l = fields(local, b, scene, seed);
     else if (layout == layoutStripes) l = stripes(local, b, seed);
     else if (layout == layoutPivots) l = pivots(local, b, scene, seed);
+    else if (layout == layoutTaiga) l = taiga(local, b, scene, seed);
     else l = grassland(local, b, seed);
 
     l.color = rocks(l.color, local, b, scene, seed, l.herd);
@@ -605,6 +945,10 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.herd *= 1.0 - smoothstep(0.0, 0.5, water - l.water);
     l.water = water;
     float cover = 0.0;
+    l.color = landmark(l.color, int(b.j.x), b.j.y, local, world, b, scene, seed, wander, riverHalf, l.herd, l.water,
+                       cover, l.light, l.lightID);
+    l.color = landmark(l.color, int(b.j.z), b.j.w, local, world, b, scene, seed + 17u, wander, riverHalf, l.herd, l.water,
+                       cover, l.light, l.lightID);
     l.color = houses(l.color, local, world, b, scene, seed, wander, cover, l.light, l.lightID);
     l.color = trees(l.color, local, world, b, scene, seed, riverHalf, wander, cover);
     l.sway *= 1.0 - cover;
@@ -636,7 +980,18 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     float wobble = (vnoise(float2(p.y / 23.0, d > 0.0 ? 3.0 : 7.0), 3u) - 0.5) * width * 0.16;
     float ad = abs(d) + wobble;
     float bank = halfWidth + 2.5 + width * 0.12;
-    if (ad > bank + 2.0) return c;
+    float levee = mix(a.i.w, b.i.w, m);
+    if (ad > bank + levee + 3.0) return c;
+    if (levee > 0.0) {
+        // Grassy dykes either side, with a pale track along the crest.
+        float out = ad - bank;
+        float3 dyke = mix(c, mix(a.ground.rgb, b.ground.rgb, m) * float3(0.92, 1.08, 0.86), 0.75);
+        dyke *= 0.95 + 0.1 * vnoise(p / 3.0, 9u);
+        dyke = mix(dyke, mix(a.road.rgb, b.road.rgb, m), fill(abs(out - levee * 0.55) - 1.4, 0.4) * 0.8);
+        c = mix(c, dyke, fill(out - levee, 1.2) * smoothstep(-1.0, 0.5, out));
+        c = shade(c, fill(abs(out - levee - 1.0) - 1.0, 0.8) * 0.35, scene);
+        herd *= 1.0 - fill(out - levee, 1.2);
+    }
 
     float3 deep = mix(a.water.rgb, b.water.rgb, m);
     float3 shallow = mix(a.shallows.rgb, b.shallows.rgb, m);
@@ -651,13 +1006,23 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     w *= 1.0 + 0.07 * (streak - 0.5);
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, streak));
     w = mix(w, ice, frozen);
+    // A dry river: a braided sand bed with only a thin trickle of water winding down it.
+    float dry = mix(a.k.x, b.k.x, m);
+    float trickle = 1.0;
+    if (dry > 0.0) {
+        float braid = abs(d - halfWidth * 0.35 * sin(p.y / 60.0 + vnoise(float2(p.y / 90.0, 1.0), 12u) * 4.0));
+        trickle = mix(1.0, fill(braid - 1.6, 0.6), dry);
+        float3 bed = sand * (0.9 + 0.15 * vnoise(float2(d / 3.0, p.y / 14.0), 13u));
+        bed = mix(bed, sand * 0.82, smoothstep(0.55, 0.8, vnoise(float2(d / 6.0, p.y / 30.0), 14u)) * 0.6);
+        w = mix(bed, w, trickle);
+    }
 
     float3 banks = mix(sand, sand * 0.85, vnoise(p / 3.0, 6u));
     banks = mix(banks, mix(a.snow.rgb, b.snow.rgb, m), mix(a.f.y, b.f.y, m) * 0.8);
     c = mix(c, banks, fill(ad - bank, 0.8));
     c = mix(c, mix(sand, shallow, 0.35), fill(ad - halfWidth - 1.0, 0.4));
     float inWater = fill(ad - halfWidth, 0.45);
-    water = max(water, inWater * (1.0 - frozen));
+    water = max(water, inWater * (1.0 - frozen) * trickle);
     herd *= 1.0 - fill(ad - bank, 0.8);
     return mix(c, w, inWater);
 }
@@ -705,6 +1070,60 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     water *= 1.0 - a2;
     herd *= 1.0 - fill(dd - 1.0, 0.5);
     return c;
+}
+
+// MARK: - Railways
+
+
+// The track bed, painted once: ballast, sleepers drawn wider apart than real ones so they never shimmer
+// at this scale, rails, overhead masts with their shadows, and a steel deck where it crosses the river.
+inline float3 railway(float3 c, float2 world, constant Leg &leg, constant Scene &scene, float texel,
+                      float riverHalf, float wander, thread float &herd, thread float &water) {
+    if (leg.rail.w < 0.5) return c;
+    float2 local = float2(world.x, world.y - leg.info.x);
+    float along;
+    float d = railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along);
+    float ad = abs(d);
+    if (ad > 10.0) return c;
+    float fw = max(texel * 0.7, 0.12);
+    float onRiver = fill(abs(riverDistance(world, scene, wander)) - riverHalf - 2.5, 0.6);
+    if (onRiver > 0.0) {
+        // The deck's shadow on the water.
+        float alongS;
+        float dS = railSigned(local + scene.sun.xy * scene.sun.z * 6.0, leg.rail.xy, leg.rail.z, leg.railShape.xyz, alongS);
+        c = shade(c, fill(abs(dS) - 2.4, 0.5) * onRiver * 0.85, scene);
+    }
+    float3 ballast = float3(0.58, 0.55, 0.50) * (0.92 + 0.16 * vnoise(local / 0.7, 501u));
+    ballast = mix(ballast, leg.biome.snow.rgb * 0.95, leg.biome.f.y * 0.7);
+    c = mix(c, c * 0.86, fill(ad - 3.8, 0.9) * (1.0 - onRiver));
+    c = mix(c, mix(ballast, float3(0.30, 0.29, 0.31), onRiver), fill(ad - 2.5, 0.35));
+    c = mix(c, float3(0.22, 0.22, 0.25), fill(abs(ad - 2.3) - 0.2, fw) * onRiver);
+    float tie = abs(fract(along / 1.1) - 0.5) * 1.1;
+    float sleeper = fill(tie - 0.17, fw) * fill(ad - 1.35, 0.15);
+    c = mix(c, float3(0.36, 0.31, 0.27), sleeper * 0.7);
+    c = mix(c, float3(0.80, 0.80, 0.83), fill(abs(ad - 0.72) - 0.06, max(0.08, texel * 0.6)) * 0.85);
+    if (leg.railShape.w > 0.5) {
+        // A mast every 55 m on one side, its shadow a long thin stroke away from the sun.
+        float foot = (floor(along / 55.0) + 0.5) * 55.0;
+        float2 lp = float2(along - foot, d - 3.3);
+        float2 away = rotate(-scene.sun.xy, -leg.rail.z) * scene.sun.z * 7.0;
+        c = shade(c, fill(segmentDistance(lp, 0.0, away) - 0.11, 0.12) * 0.7, scene);
+        c = mix(c, float3(0.30, 0.30, 0.33), fill(length(lp) - 0.22, 0.1));
+    }
+    herd *= 1.0 - fill(ad - 4.5, 0.5);
+    water *= 1.0 - fill(ad - 2.6, 0.3);
+    return c;
+}
+
+// Where the line crosses the road, the road wins but the rails still show across it.
+inline float3 railOverRoad(float3 c, float2 world, constant Leg &leg, float onRoad, float texel) {
+    if (leg.rail.w < 0.5 || onRoad < 0.01) return c;
+    float2 local = float2(world.x, world.y - leg.info.x);
+    float along;
+    float ad = abs(railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along));
+    if (ad > 3.0) return c;
+    c = mix(c, c * 0.8, fill(ad - 1.0, 0.2) * onRoad * 0.6);
+    return mix(c, float3(0.78, 0.78, 0.80), fill(abs(ad - 0.72) - 0.06, max(0.08, texel * 0.6)) * onRoad);
 }
 
 fragment GroundOut ground(VertexOut in [[stage_in]],
@@ -757,7 +1176,10 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     float water = l.water;
     float herd = l.herd;
     float3 c = river(l.color, world, scene, scene.legA.biome, scene.legB.biome, m, width, wander, water, herd);
+    constant Leg &railLeg = blend > 0.5 ? scene.legB : scene.legA;
+    c = railway(c, world, railLeg, scene, texel, riverHalf, wander, herd, water);
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, riverHalf, wander, onRoad, water, herd);
+    c = railOverRoad(c, world, railLeg, onRoad, texel);
 
     GroundOut out;
     out.color = float4(saturate(c), packGround(water, l.sway, onRoad > 0.5, herd > 0.5));

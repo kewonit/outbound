@@ -32,6 +32,7 @@ struct SettingsView: View {
                     Text("Keep flying, gently").tag(PowerState.BatteryMode.gentle)
                     Text("Hold a still painting").tag(PowerState.BatteryMode.still)
                 }
+                Toggle("Hold still while I'm away", isOn: $preferences.restsWhenAway)
                 Toggle("Show the painting on the lock screen", isOn: $preferences.matchingStill)
                 LabeledContent("Desktop picture") {
                     Button("Restore My Old Wallpaper", action: restoreWallpaper)
@@ -55,7 +56,7 @@ struct SettingsView: View {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
             } footer: {
-                Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on.")
+                Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on, and rests after five minutes with nobody at the Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

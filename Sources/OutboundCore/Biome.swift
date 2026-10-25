@@ -13,6 +13,8 @@ public struct Biome: Sendable {
         case stripes
         /// Centre-pivot circles on a square section grid.
         case pivots
+        /// Pine heath on pale lichen, with patterned bogs, as in Lapland.
+        case taiga
     }
 
     public enum Animal: Int, Sendable {
@@ -90,9 +92,54 @@ public struct Biome: Sendable {
         case hippos
     }
 
+    /// Roof colours, picked per house.
+    public var roofs: (SIMD3<Float>, SIMD3<Float>, SIMD3<Float>) = (Biome.rgb(0xcc543d), Biome.rgb(0xad664c), Biome.rgb(0x6b8099))
+    /// Flat roofs with water tanks, as in Punjab, instead of pitched ones.
+    public var flatRoofs = false
+    /// How often the road runs through a village rather than open country, 0 to 1.
+    public var villages: Float = 0.3
+    /// Avenues of trees along the road, 0 to 1.
+    public var roadTrees: Float = 0
+    /// Grassy dykes either side of the river, in metres.
+    public var levees: Float = 0
+    /// 1 for a river that is mostly a dry sand bed with a trickle down the middle.
+    public var riverDry: Float = 0
+    /// Landmarks scattered across the land, with how many per square kilometre or so.
+    public var landmarks: (Landmark, Float, Landmark, Float) = (.none, 0, .none, 0)
+
+    public enum Landmark: Int, Sendable {
+        case none
+        /// Rounded granite outcrops ringed with green, as on the Serengeti plains.
+        case kopje
+        /// A windmill pump and round tank with a trampled ring and cattle trails fanning out.
+        case waterPoint
+        /// An estancia in its dark grove of eucalyptus.
+        case grove
+        /// House, sheds and steel grain bins behind an L of cedar windbreak.
+        case farmstead
+        /// A tube-well hut with its tank and shade tree.
+        case tubeWell
+        /// A brick kiln with its tall chimney and drying yards.
+        case kiln
+        /// Glasshouses that glint in the sun.
+        case glasshouse
+        /// A polder windmill by a ditch.
+        case windmill
+        /// Rows of cattle pens.
+        case feedlot
+        /// A charred patch of burnt grass greening at the edges.
+        case burn
+        /// A dark lake with sandy shallows.
+        case lake
+        /// A round reindeer corral with funnel fences.
+        case corral
+    }
+
     public var animal: Animal = .none
     public var herds: Float = 0
     public var animalColor: SIMD3<Float> = Biome.rgb(0x6b3e26)
+    /// Patches on the coat, as on Normande or Hereford cattle; nil for plain coats.
+    public var animalPatches: SIMD3<Float>?
     public var cars: Float = 0.3
 
     public init(layout: Layout, ground: SIMD3<Float>, groundDark: SIMD3<Float>,

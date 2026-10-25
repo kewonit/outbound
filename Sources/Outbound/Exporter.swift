@@ -65,7 +65,7 @@ enum Exporter {
         let size = (options["size"] ?? "1512x982").split(separator: "x").compactMap { Double($0) }
         guard size.count == 2 else { throw Failure(description: "Sizes look like 1512x982") }
         let scale = Double(options["scale"] ?? "2") ?? 2
-        let time = Double(options["time"] ?? "20") ?? 20
+        var time = Double(options["time"] ?? "20") ?? 20
 
         let gpu = try GPU()
         let frame = CGRect(x: 0, y: 0, width: size[0], height: size[1])
@@ -92,6 +92,28 @@ enum Exporter {
             world.journey.refreshSeasons()
         }
         world.advance(to: time)
+        // With --find train or --find flock, fly on until one is in view.
+        if let event = options["find"] {
+            while time < 7200 {
+                if event == "train" ? world.trainPassing : world.flock != nil { break }
+                time += 2
+                world.advance(to: time)
+            }
+            print(String(format: "Found %@ at %.0f s", event, time))
+            time += Double(options["after"] ?? "0") ?? 0
+            world.advance(to: time)
+            if ProcessInfo.processInfo.environment["DEBUG_TRAIN"] != nil {
+                let f = world.frame(bottom: 0, top: 1)
+                let t = f.scene.train
+                let w = Double(t.run.x) / Double(t.shape.y) + Double(t.shape.z)
+                let across = Double(t.shape.x) * sin(w)
+                let a = Double(t.rail.z)
+                let nose = SIMD2(Double(t.rail.x) + Double(t.run.x) * cos(a) - across * sin(a),
+                                 Double(t.rail.y) + Double(t.run.x) * sin(a) + across * cos(a) + f.reference)
+                let pixel = (nose - world.camera) / World.metresPerPoint
+                print("train", t.rail, t.shape, t.run, "nose world", nose, "nose point", pixel)
+            }
+        }
         let renderer = ViewRenderer(gpu: gpu)
         renderer.configure(frame: frame, scale: scale)
 
@@ -271,7 +293,7 @@ enum Exporter {
         return image
     }
 
-    static func write(_ texture: MTLTexture, to url: URL, type: UTType = .png) throws {
+    nonisolated static func write(_ texture: MTLTexture, to url: URL, type: UTType = .png) throws {
         let width = texture.width, height = texture.height
         let rowBytes = width * 4
         var bytes = [UInt8](repeating: 0, count: rowBytes * height)

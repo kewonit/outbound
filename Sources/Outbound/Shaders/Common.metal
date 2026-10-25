@@ -15,11 +15,25 @@ struct Biome {
     float4 g; // herds, cars, clumping, treeLines
     float4 h; // drives left, street lights, boats, boat kind
     float4 lamp;
+    float4 roof0, roof1, roof2, animalPatches;
+    float4 i; // villages, road trees, flat roofs, levees
+    float4 j; // landmark A, density, landmark B, density
+    float4 k; // dry river
 };
 
 struct Leg {
     Biome biome;
-    float4 info; // start, seed, index
+    float4 info;      // start, seed, index
+    float4 rail;      // origin (leg-local), angle, present
+    float4 railShape; // wiggle amplitude, wavelength, phase, electrified
+};
+
+struct Train {
+    float4 rail;   // origin (relative to the reference), angle, active
+    float4 shape;  // wiggle amplitude, wavelength, phase
+    float4 run;    // nose along the rail, direction, car length, cars
+    float4 info;   // locomotives, kind
+    float4 body, stripe, roof, locomotive;
 };
 
 struct Scene {
@@ -29,7 +43,8 @@ struct Scene {
     float4 light;  // rgb, strength
     float4 morph;  // boundary, length, sweep (-1 flying), sweep wave
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
-    float4 clock;  // local hour, sunset hour
+    float4 clock;  // local hour, sunset hour, boat phase
+    Train train;
     Leg legA;
     Leg legB;
 };
@@ -53,9 +68,14 @@ struct CompositeParams {
     float4 wings;  // spread, altitude, scale px, visible
     float4 finish; // grain, vignette, debug
     float4 clouds; // cloud-space offset of the view from the cloud texture's corner (xy), metres per cloud pixel
+    float4 flock;      // leader px xy, heading, visible
+    float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
+    float4 flockLook;  // rgb, seconds aloft
 };
 
-enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4 };
+enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4, layoutTaiga = 5 };
+enum Landmark { markNone = 0, markKopje = 1, markWaterPoint = 2, markGrove = 3, markFarmstead = 4, markTubeWell = 5, markKiln = 6,
+                markGlasshouse = 7, markWindmill = 8, markFeedlot = 9, markBurn = 10, markLake = 11, markCorral = 12 };
 enum Animal { noAnimal = 0, cattle = 1, zebra = 2, wildebeest = 3, sheep = 4, reindeer = 5, gazelle = 6 };
 
 struct VertexOut {
@@ -148,6 +168,15 @@ inline float sdBox(float2 p, float2 b) {
 inline float2 rotate(float2 p, float a) {
     float c = cos(a), s = sin(a);
     return float2(c * p.x - s * p.y, s * p.x + c * p.y);
+}
+
+// A railway line: `along` runs in the line's direction, the result is the signed distance across it.
+inline float railSigned(float2 p, float2 origin, float angle, float3 shape, thread float &along) {
+    float2 q = rotate(p - origin, -angle);
+    float w = q.x / shape.y + shape.z;
+    float slope = shape.x / shape.y * cos(w);
+    along = q.x;
+    return (q.y - shape.x * sin(w)) * rsqrt(1.0 + slope * slope);
 }
 
 // Soft coverage of a signed distance, `w` metres wide.

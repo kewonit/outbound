@@ -83,3 +83,52 @@ struct SunTests {
         #expect(sun.elevation > 0)
     }
 }
+
+struct AmbientTests {
+    @Test func trainsPassWhileTheLineIsOnScreen() {
+        let place = Place.named("lisse")!
+        let railway = place.railway!
+        let line = RailLine(origin: SIMD2(400, 2000), angle: 0.6, amplitude: 0, wavelength: 1000, phase: 0)
+        // The screen's middle drifts sideways as it flies north, and crosses the line once.
+        let path = { (t: TimeInterval) in SIMD2(450 + 60 * sin(t / 70), 6.5 * t) }
+        let crossing = line.crossing(near: 100, path: path)!
+        #expect(abs(line.across(path(crossing.time))) < 0.1)
+        var seen = 0
+        for t in stride(from: 0.0, to: 700, by: 5) {
+            if let run = line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway, seed: 3) {
+                seen += 1
+                #expect(abs(run.head - crossing.along) < 2000)
+            }
+        }
+        #expect(seen > 0 && seen < 140)
+        // At the crossing the nose is exactly where the middle of the screen meets the line.
+        if let run = line.train(at: crossing.time, crossing: crossing.time, middle: crossing.along, railway: railway, seed: 3) {
+            #expect(abs(run.head - crossing.along) < 1e-9)
+        }
+    }
+
+    @Test func flocksCrossAndLeave() {
+        let area = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        var appearances = 0
+        var wasVisible = false
+        for t in stride(from: 0.0, to: 7200, by: 2) {
+            let visible = Flock.geese.sighting(at: t, area: area, seed: 1) != nil
+            if visible && !wasVisible { appearances += 1 }
+            wasVisible = visible
+        }
+        // About one flight every nine minutes over two hours.
+        #expect(appearances >= 5 && appearances <= 20)
+    }
+
+    @Test func flocksDependOnPlaceAndMonth() {
+        #expect(Flock.of(Place.named("niigata")!, month: 1)?.color == Flock.swans.color)
+        #expect(Flock.of(Place.named("pampa")!, month: 6)?.formation == .skein)
+        #expect(Flock.of(Place.named("kansas")!, month: 7) == nil)
+    }
+
+    @Test func railLinesAreDeterministic() {
+        let journey = Journey(start: Place.named("lisse")!, time: 0)
+        let leg = journey.legs[0]
+        #expect(RailLine.line(for: leg, riverX: 400, legLength: 4000) == RailLine.line(for: leg, riverX: 400, legLength: 4000))
+    }
+}

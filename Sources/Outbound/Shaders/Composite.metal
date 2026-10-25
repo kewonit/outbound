@@ -117,6 +117,142 @@ inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &sc
     return result;
 }
 
+// MARK: - Trains and boats
+
+// The train as one box per car along the line. `lp` comes back in car-local metres: x across, y along.
+inline float trainShape(float2 p, constant Train &tr, thread float2 &lp, thread float &k) {
+    float along;
+    float d = railSigned(p, tr.rail.xy, tr.rail.z, tr.shape.xyz, along);
+    float u = (tr.run.x - along) * tr.run.y;
+    float length = tr.run.z;
+    float cars = tr.run.w + tr.info.x;
+    k = clamp(floor(u / length), 0.0, cars - 1.0);
+    lp = float2(d, u - (k + 0.5) * length);
+    // Drawn a little wider than life, like the animals, so it reads from this height.
+    float round = k == 0.0 ? 1.2 : 0.3;
+    float gap = 0.6;
+    return sdBox(lp, float2(2.1, length * 0.5 - gap) - round) - round;
+}
+
+inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &scene, float mpp,
+                    thread float3 &light) {
+    float2 lp, lps;
+    float k, ks;
+    // Its shadow: is the point towards the sun inside the train? A train stands about 4 m tall.
+    float ds = trainShape(world + scene.sun.xy * scene.sun.z * 4.2, tr, lps, ks);
+    c = shade(c, fill(ds, 0.5) * 0.8, scene);
+    float db = trainShape(world, tr, lp, k);
+    bool loco = k < tr.info.x;
+    bool freight = tr.info.y > 0.5;
+    if (db < 1.0) {
+        float3 roof = loco ? tr.locomotive.rgb : tr.roof.rgb;
+        if (freight && !loco) {
+            // Covered hoppers, each weathered its own way, with a darker hatch strip down the middle.
+            float wear = hash11(int(k), 521u);
+            roof = mix(tr.body.rgb, tr.stripe.rgb, wear * wear * 0.8);
+            roof = mix(roof, roof * 0.72, fill(abs(lp.x) - 0.3, 0.08));
+            roof *= 1.0 - 0.18 * fill(abs(fract(lp.y / 3.4) - 0.5) * 3.4 - 0.08, 0.08);
+        } else {
+            // The livery carries the roof, with a pale roof strip down the middle and the stripe along each side.
+            float3 body = loco ? tr.locomotive.rgb : tr.body.rgb;
+            roof = mix(body, tr.roof.rgb, fill(abs(lp.x) - 0.7, 0.1) * 0.7);
+            roof = mix(roof, tr.stripe.rgb, step(1.65, abs(lp.x)));
+            roof *= 0.94 + 0.12 * hash11(int(k), 520u);
+            if (!loco && int(k) % 2 == 0) {
+                roof = mix(roof, float3(0.22, 0.23, 0.25), fill(abs(sdBox(lp + float2(0.0, tr.run.z * 0.3), float2(0.6, 0.8))) - 0.05, 0.06));
+            }
+        }
+        c = mix(c, roof, fill(db, mpp * 0.7));
+    }
+    if (scene.time.w > 0.0 && !freight) {
+        // Warm windows spill onto the ballast either side; the leading car throws a beam down the line.
+        float out = abs(lp.x) - 2.2;
+        float bay = step(0.5, fract(lp.y / 1.9 + 0.25));
+        light += (c * 0.85 + 0.18) * float3(1.0, 0.83, 0.65) * 0.6 * fill(out - 1.4, 0.8) * smoothstep(-0.2, 0.3, out)
+               * exp(-max(out, 0.0) / 0.9) * bay * step(abs(lp.y), tr.run.z * 0.5 - 1.0) * step(tr.info.x, k);
+    }
+    if (scene.time.w > 0.0) {
+        float ahead = -(lp.y + tr.run.z * 0.5) * step(k, 0.0);
+        light += float3(1.0, 0.92, 0.8) * 0.45 * fill(abs(lp.x) - 1.2 - ahead * 0.05, 0.6)
+               * smoothstep(0.0, 1.0, ahead) * exp(-ahead / 25.0);
+    }
+    return c;
+}
+
+inline float3 boatPaint(float h) {
+    return h < 0.3 ? float3(0.94, 0.94, 0.92) : h < 0.5 ? float3(0.78, 0.22, 0.18)
+         : h < 0.7 ? float3(0.20, 0.38, 0.62) : h < 0.85 ? float3(0.22, 0.48, 0.32) : float3(0.66, 0.46, 0.28);
+}
+
+// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two bright arms at 19.5
+// degrees either side of its track, crest lines across them, and churned water straight behind.
+inline float3 boats(float3 c, float2 world, float water, constant Biome &b, constant Scene &scene, float mpp,
+                    float t, thread float3 &light) {
+    if (b.h.z <= 0.0) return c;
+    float wander = b.d.w, width = b.d.z;
+    bool hippos = b.h.w > 1.5;
+    float slot = 700.0;
+    float phase = scene.clock.z;
+    float3 result = c;
+    for (int lane = 0; lane < 2; lane++) {
+        float dir = lane == 0 ? 1.0 : -1.0;
+        float p = lane == 0 ? phase : -phase;
+        float i = floor(world.y / slot - p);
+        int id = int(i) * 2 + lane;
+        if (hash11(id, 600u) > b.h.z * 0.6) continue;
+        float speed = hippos ? 0.0 : 2.0 + 3.0 * hash11(id, 603u);
+        float yBow = (i + p + 0.5) * slot;
+        float lane0 = width * (0.1 + 0.15 * hash11(id, 601u)) * (lane == 0 ? 1.0 : -1.0);
+        float u = (yBow - world.y) * dir;
+        float v = world.x - (riverX(world.y, scene, wander) + lane0);
+        if (u < -10.0 || u > 80.0) continue;
+        if (hippos) {
+            // A pod of backs in the water, each with slow ripple rings.
+            for (int h = 0; h < 4; h++) {
+                float2 at = float2((hash11(id * 8 + h, 610u) - 0.5) * 8.0, (hash11(id * 8 + h, 611u) - 0.5) * 14.0);
+                float2 q = float2(v, -u) - at;
+                float ring = fract(t * 0.18 + hash11(id * 8 + h, 612u));
+                result = mix(result, result * 1.15 + 0.05, fill(abs(length(q) - 1.6 - ring * 4.0) - 0.12, 0.15)
+                             * (1.0 - ring) * water * 0.6);
+                float back = (length(q / float2(0.95, 1.6)) - 1.0) * 0.95;
+                result = mix(result, float3(0.42, 0.40, 0.42), fill(back, mpp * 0.7));
+            }
+            continue;
+        }
+        float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
+        if (water > 0.3 && u > 0.0) {
+            float fade = exp(-u / 28.0);
+            float edge = abs(v) - 0.354 * u;
+            float arm = fill(abs(edge) - 0.22 - 0.012 * u, 0.35 + 0.02 * u);
+            float feather = smoothstep(0.55, 1.0, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / (0.5 + 0.06 * u)));
+            float lambda = 6.283 * speed * speed / 9.81;
+            float trans = smoothstep(0.65, 1.0, 0.5 + 0.5 * cos(6.283 * (u + 0.9 * v * v / max(u, 1.0)) / lambda));
+            float wash = fill(abs(v) - (W * 0.7 + 0.04 * u), 0.4) * smoothstep(0.0, 2.0, u - L) * exp(-u / 14.0);
+            float foam = (arm * (0.5 + 0.5 * feather) + fill(edge, 0.6) * trans * 0.22) * fade + wash * 0.6;
+            result *= 1.0 - 0.07 * fill(abs(edge - 0.7) - 0.3, 0.4) * fade;
+            result = mix(result, float3(0.93, 0.95, 0.96), saturate(foam) * 0.55 * water);
+        }
+        // Hull: pointed bow, rounded stern, a little shadow, someone aboard.
+        float2 hp = float2(v * dir, -u + L * 0.5);
+        float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
+        float2 hs = hp + float2(scene.sun.x * dir, scene.sun.y * dir) * scene.sun.z * 0.5;
+        float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
+        result = shade(result, fill(hullShadow, 0.3) * 0.6, scene);
+        float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
+        float3 paint = boatPaint(hash11(id, 605u));
+        result = mix(result, paint, fill(hull, mpp * 0.6));
+        result = mix(result, float3(0.60, 0.42, 0.26), fill(hull + 0.22, mpp * 0.6));
+        result = mix(result, float3(0.18, 0.17, 0.2), fill(length(hp - float2(0.0, -L * 0.15)) - 0.32, mpp));
+        if (scene.time.w > 0.0) {
+            float2 port = hp - float2(-W, L * 0.1), starboard = hp - float2(W, L * 0.1), stern = hp - float2(0.0, -L * 0.5);
+            light += float3(1.0, 0.12, 0.08) / (1.0 + dot(port, port) / 0.03);
+            light += float3(0.15, 1.0, 0.35) / (1.0 + dot(starboard, starboard) / 0.03);
+            light += float3(1.0, 0.95, 0.85) / (1.0 + dot(stern, stern) / 0.04);
+        }
+    }
+    return result;
+}
+
 fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             constant CompositeParams &params [[buffer(0)]],
                             constant Scene &scene [[buffer(1)]],
@@ -148,6 +284,13 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     bool inB = world.y > scene.morph.x + scene.morph.y * 0.5;
     constant Leg &leg = inB ? scene.legB : scene.legA;
     if (mask.road) c = cars(c, world, leg.biome, scene, mpp, light);
+    if (water > 0.3) c = boats(c, world, water, leg.biome, scene, mpp, scene.time.x, light);
+    if (scene.train.rail.w > 0.0) {
+        float along;
+        if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
+            c = train(c, world, scene.train, scene, mpp, light);
+        }
+    }
 
     // Water mirrors the sky: clouds overhead brighten it, and the sun glints off ripples.
     if (water > 0.01) {
@@ -182,7 +325,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         }
         float pool = lamp.x * on;
         // Lit ground shows its own colour warmed, over a little of the lamp's own colour so it never turns olive.
-        light += (c * 0.85 + 0.18) * tint * pool;
+        light += (c * 0.85 + 0.22) * tint * pool * 1.35;
         light += float3(1.0, 0.95, 0.85) * smoothstep(0.9, 1.0, pool) * 0.6;
     }
 
@@ -206,6 +349,7 @@ struct AnimalOut {
     float2 shadow;             // metres from where its shadow falls, in its own frame
     float4 coat [[flat]];      // rgb and kind
     float2 extent [[flat]];    // half length, half width
+    float4 patches [[flat]];   // patch colour and whether there are any, then a seed in the alpha's fraction
 };
 
 vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
@@ -220,6 +364,7 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     out.shadow = 0.0;
     out.coat = 0.0;
     out.extent = 1.0;
+    out.patches = 0.0;
     constant Biome &b = leg.biome;
     uint seed = uint(leg.info.y);
     int kind = int(b.f.w);
@@ -262,6 +407,7 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float3 coat = b.animalColor.rgb * (0.85 + 0.3 * hash21(cell, seed + 125u));
     out.coat = float4(coat, float(kind));
     out.extent = float2(len, wid);
+    out.patches = float4(b.animalPatches.rgb, b.animalPatches.w > 0.5 ? 1.0 + h : 0.0);
     return out;
 }
 
@@ -280,6 +426,12 @@ fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0
     if (in.coat.w == float(zebra)) {
         float band = step(0.5, fract(d.x * 1.0 + 0.3 * d.y));
         coat = mix(float3(0.96, 0.95, 0.92), float3(0.12, 0.12, 0.14), band * 0.9);
+    } else if (in.patches.w > 0.5) {
+        // Patched coats, each animal its own: Normande brown on white, Hereford white faces on red.
+        float seed = fract(in.patches.w) * 50.0;
+        float patch = smoothstep(0.48, 0.56, vnoise(d * 1.1 + seed, 130u));
+        coat = mix(coat, in.patches.rgb, patch);
+        coat = mix(coat, float3(0.93, 0.91, 0.87), fill(length(d - float2(len * 1.05, 0.0)) - 0.55, 0.1) * step(in.patches.r, 0.7));
     } else if (isGazelle) {
         // Thomson's gazelles: tan backs, a dark side stripe, pale bellies.
         coat = mix(coat, float3(0.18, 0.13, 0.10), fill(abs(abs(d.y) - wid * 0.62) - wid * 0.12, 0.05) * 0.7);
@@ -313,6 +465,58 @@ inline float birdShape(float2 p, float spread, float bank) {
     float head = length(p - float2(0.0, 0.27)) - 0.06;
     float tail = sdBox(p - float2(0.0, -0.31), float2(0.05 + 0.3 * max(-p.y - 0.27, 0.0), 0.06));
     return smin(smin(body, head, 0.06), min(wing, tail), 0.05);
+}
+
+// MARK: - Flocks
+
+// The nearest bird of the flock to `pixel`, as a signed distance in pixels. Skeins find their bird in O(1):
+// which arm, then which slot along it. Loose groups and circling birds are few enough to check each.
+inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, thread float2 &q, thread float &spread) {
+    int formation = int(p.flockShape.x);
+    int n = int(p.flockShape.y);
+    float size = p.flockShape.z;
+    if (formation == 2) {
+        float best = 1e9;
+        float radius = size * 11.0;
+        for (int i = 0; i < 8; i++) {
+            if (i >= n) break;
+            float a = p.flock.z * (0.8 + 0.3 * hash11(i, 702u)) + float(i) * 6.283 / float(n);
+            float r = radius * (0.75 + 0.5 * hash11(i, 703u));
+            float2 rel = rotate(pixel - p.flock.xy - float2(cos(a), sin(a)) * r, -a);
+            float d = birdShape(rel / size, 1.0, 0.6) * size;
+            if (d < best) { best = d; q = rel / size; spread = 1.0; }
+        }
+        return best;
+    }
+    float2 rel = rotate(pixel - p.flock.xy, -(p.flock.z - M_PI_F * 0.5));
+    if (formation == 1) {
+        float best = 1e9;
+        for (int i = 0; i < 8; i++) {
+            if (i >= n) break;
+            float h = hash11(i, 704u);
+            float2 at = (hash22(int2(i, 3), 705u) - 0.5) * size * float2(16.0, 12.0)
+                      + float2(sin(t * 0.6 + h * 9.0), cos(t * 0.45 + h * 4.0)) * size * 1.2;
+            float flap = 0.5 + 0.5 * sin(t * 4.0 + h * 6.283);
+            float d = birdShape((rel - at) / size, flap, 0.0) * size;
+            if (d < best) { best = d; q = (rel - at) / size; spread = flap; }
+        }
+        return best;
+    }
+    // A skein: two arms 18 degrees either side of the leader, a little ragged, a wingbeat travelling back.
+    float spacing = size * 3.4;
+    float side = rel.x < 0.0 ? -1.0 : 1.0;
+    float2 arm = float2(side * sin(0.32), -cos(0.32));
+    float perArm = side < 0.0 ? ceil(float(n - 1) * 0.55) : floor(float(n - 1) * 0.45);
+    float j = clamp(round(dot(rel, arm) / spacing), 0.0, perArm);
+    float h = hash11(int(j * side) + 64, 700u);
+    float2 at = arm * j * spacing + float2(sin(t * 0.7 + h * 6.0), cos(t * 0.5 + h * 9.0)) * spacing * 0.14;
+    spread = 0.5 + 0.5 * sin(t * 5.5 - j * 0.8 + h * 6.0);
+    q = (rel - at) / size;
+    return birdShape(q, spread, 0.0) * size;
+}
+
+inline float flockReach(constant CompositeParams &p) {
+    return p.flockShape.z * (4.0 * p.flockShape.y + 16.0);
 }
 
 // Paper grain and the dry-brush edge never move, so they are painted once per size at half resolution.
@@ -358,6 +562,26 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
             c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.9 / scale) * 0.55 * birdVisible, scene);
+        }
+    }
+
+    // A flock: soft shadows far below for high birds, crisp ones for low egrets, then the birds themselves.
+    if (params.flock.w > 0.0) {
+        float t = params.flockLook.w;
+        float reach = flockReach(params);
+        float2 q;
+        float spread;
+        float2 shadowPx = params.flock.xy - scene.sun.xy * scene.sun.z * params.flockShape.w;
+        if (length(pixel - shadowPx) < reach) {
+            float altitude = params.flockShape.w * mpp;
+            float d = flockDistance(pixel - (shadowPx - params.flock.xy), params, t, q, spread);
+            float blur = 0.8 + altitude * 0.0093 / mpp;
+            c = shade(c, fill(d, blur) * mix(0.45, 0.12, saturate(altitude / 150.0)), scene);
+        }
+        if (length(pixel - params.flock.xy) < reach) {
+            float d = flockDistance(pixel, params, t, q, spread);
+            float3 plumage = params.flockLook.rgb * (0.9 + 0.2 * saturate(0.5 - q.y));
+            c = mix(c, plumage, fill(d, 0.7));
         }
     }
 

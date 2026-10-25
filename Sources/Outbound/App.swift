@@ -109,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func observePreferences() {
         withObservationTracking {
             _ = (preferences.light, preferences.followsCalendar, preferences.pace, preferences.stay,
-                 preferences.batteryMode, preferences.matchingStill)
+                 preferences.batteryMode, preferences.matchingStill, preferences.restsWhenAway)
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.applyPreferences()
@@ -129,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if journey.speed != preferences.pace.speed { journey.setSpeed(preferences.pace.speed, at: world.time) }
         journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
         displays.power.batteryMode = preferences.batteryMode
+        displays.rest.after = preferences.restsWhenAway ? 300 : nil
         if preferences.matchingStill && !stillsWereOn && stills != nil { refreshStill(force: true) }
         stillsWereOn = preferences.matchingStill
     }

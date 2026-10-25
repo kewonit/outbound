@@ -68,7 +68,22 @@ final class World {
         updateSun(force: true)
     }
 
-    func advance(to t: TimeInterval) {
+    /// Time spent held still (asleep, locked, resting), taken off the clock so the flight carries on from where
+    /// it stopped instead of leaping ahead.
+    private var heldFor: TimeInterval = 0
+    private var heldSince: TimeInterval?
+
+    func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
+        if on, heldSince == nil {
+            heldSince = now
+        } else if !on, let since = heldSince {
+            heldFor += now - since
+            heldSince = nil
+        }
+    }
+
+    func advance(to displayTime: TimeInterval) {
+        let t = displayTime - heldFor
         guard t > time else { return }
         let dt = t - time
         time = t
@@ -134,7 +149,12 @@ final class World {
 
     func repaint() {
         revision += 1
+        legCache.removeAll()
+        railCache.removeAll()
     }
+
+    /// Each leg's shader parameters, built once rather than every frame.
+    private var legCache: [Int: BiomeGPU] = [:]
 
     /// Holds the bird still for a picture.
     func poseBird(at point: CGPoint, heading: Double) {
@@ -220,17 +240,85 @@ final class World {
             time: SIMD4(Float(time.truncatingRemainder(dividingBy: 3600)),
                         Float(time.truncatingRemainder(dividingBy: 7200)),
                         Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
-            clock: SIMD4(Float(clock.hour), Float(clock.sunset), 0, 0),
-            legA: Self.gpu(legA, reference: reference),
-            legB: Self.gpu(legB, reference: reference))
+            clock: SIMD4(Float(clock.hour), Float(clock.sunset),
+                         Float((time * Self.boatSpeed / 700).truncatingRemainder(dividingBy: 1)), 0),
+            train: train(reference: reference),
+            legA: gpu(legA, reference: reference),
+            legB: gpu(legB, reference: reference))
         return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
     }
 
-    private static func gpu(_ leg: Leg, reference: Double) -> LegGPU {
+    private func gpu(_ leg: Leg, reference: Double) -> LegGPU {
         // Seeds stay below 2^24 so they survive the trip through a float.
         let seed = Float((UInt32(truncatingIfNeeded: leg.index &* 2_654_435_761 &+ 977) >> 8) & 0xffff)
-        return LegGPU(biome: BiomeGPU(leg.season.biome),
-                      info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0))
+        if legCache.count > 8 { legCache.removeAll() }
+        let biome = legCache[leg.index] ?? BiomeGPU(leg.season.biome)
+        legCache[leg.index] = biome
+        var rail = SIMD4<Float>.zero, shape = SIMD4<Float>.zero
+        if let line = railLine(for: leg) {
+            rail = SIMD4(Float(line.origin.x), Float(line.origin.y), Float(line.angle), 1)
+            shape = SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase),
+                          leg.place.railway?.electrified == true ? 1 : 0)
+        }
+        return LegGPU(biome: biome, info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0),
+                      rail: rail, railShape: shape)
+    }
+
+    static let boatSpeed = 2.5
+    /// When the main display's middle passes over the current leg's railway, worked out once per leg.
+    private var trainCrossing: (leg: Int, time: TimeInterval, along: Double)?
+
+    private var railCache: [Int: RailLine?] = [:]
+
+    func railLine(for leg: Leg) -> RailLine? {
+        if let cached = railCache[leg.index] { return cached }
+        if railCache.count > 16 { railCache.removeAll() }
+        let line = RailLine.line(for: leg, riverX: riverX, legLength: journey.legLength)
+        railCache[leg.index] = line
+        return line
+    }
+
+    /// The train passing the middle of the main display, if one is.
+    private func train(reference: Double) -> TrainGPU {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY))
+        let leg = journey.leg(at: centre.y)
+        guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
+        // When the middle of the main display passes over the line, following the camera's real path.
+        let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
+        let path = { [journey] (t: TimeInterval) -> SIMD2<Double> in
+            SIMD2(journey.cameraX(at: t), journey.cameraY(at: t) - leg.start) + offset
+        }
+        if trainCrossing?.leg != leg.index {
+            trainCrossing = line.crossing(near: time, path: path).map { (leg.index, $0.time, $0.along) }
+        }
+        guard let crossing = trainCrossing,
+              let run = line.train(at: time, crossing: crossing.time, middle: crossing.along, railway: railway,
+                                   seed: leg.index) else { return .none }
+        func color(_ c: SIMD3<Float>) -> SIMD4<Float> { SIMD4(c, 1) }
+        return TrainGPU(
+            rail: SIMD4(Float(line.origin.x), Float(line.origin.y + leg.start - reference), Float(line.angle), 1),
+            shape: SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase), 0),
+            run: SIMD4(Float(run.head), Float(run.direction), Float(railway.carLength), Float(railway.cars)),
+            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), 0, 0),
+            body: color(railway.body), stripe: color(railway.stripe), roof: color(railway.roof),
+            locomotive: color(railway.locomotive))
+    }
+
+    /// Whether a train is passing the middle of the main display.
+    var trainPassing: Bool {
+        train(reference: 0).rail.w > 0
+    }
+
+    /// The flock in the sky over the desktop right now, if any, and what kind of birds they are.
+    var flock: (Flock, FlockSighting)? {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY))
+        let leg = journey.leg(at: centre.y)
+        let month = Calendar.current.component(.month, from: now())
+        guard let flock = Flock.of(leg.place, month: month),
+              let sighting = flock.sighting(at: time, area: desktop,
+                                             seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff)
+        else { return nil }
+        return (flock, sighting)
     }
 
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being

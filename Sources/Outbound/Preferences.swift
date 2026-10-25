@@ -32,6 +32,8 @@ final class Preferences {
     var batteryMode: PowerState.BatteryMode { didSet { save() } }
     /// Keep the desktop picture set to a painting of the current view, for the lock screen and menu bar.
     var matchingStill: Bool { didSet { save() } }
+    /// Hold still after five minutes without anyone at the Mac.
+    var restsWhenAway: Bool { didSet { save() } }
     /// The place to start from next launch.
     var lastPlace: String { didSet { save() } }
 
@@ -45,6 +47,7 @@ final class Preferences {
         stay = Stay(rawValue: defaults.integer(forKey: "stay")) ?? .medium
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
+        restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.all[0].id
     }
 
@@ -55,6 +58,7 @@ final class Preferences {
         defaults.set(stay.rawValue, forKey: "stay")
         defaults.set(batteryMode.rawValue, forKey: "batteryMode")
         defaults.set(matchingStill, forKey: "matchingStill")
+        defaults.set(restsWhenAway, forKey: "restsWhenAway")
         defaults.set(lastPlace, forKey: "lastPlace")
     }
 }

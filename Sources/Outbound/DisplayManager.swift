@@ -57,6 +57,11 @@ final class DisplayManager {
 
         gpu.shaders.onReload = { [weak self] in self?.repaint() }
         world.onChasingChange = { [weak self] chasing in self?.power.birdEngaged = chasing }
+        rest.onChange = { [weak self] resting in
+            self?.set(.resting, resting)
+            Log.power.info("\(resting ? "Resting: nobody is around" : "Awake", privacy: .public)")
+        }
+        rest.start()
         power.onChange = { [weak self] _ in self?.applyPower() }
         applyPower()
     }
@@ -64,9 +69,14 @@ final class DisplayManager {
     private func applyPower() {
         tier = PowerTier.choose(power.state)
         set(.lowPower, tier.frozen)
-        wallpapers.values.forEach { $0.halfRateClouds = tier.halfRateClouds }
+        wallpapers.values.forEach {
+            $0.halfRateClouds = tier.halfRateClouds
+            $0.economical = power.state.onBattery
+        }
         refreshRates()
     }
+
+    let rest = RestMonitor()
 
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
@@ -76,6 +86,7 @@ final class DisplayManager {
     func set(_ hold: Wallpaper.Hold, _ on: Bool) {
         if on { globalHolds.insert(hold) } else { globalHolds.remove(hold) }
         wallpapers.values.forEach { $0.set(hold, on) }
+        world.hold(!globalHolds.isEmpty)
     }
 
     func repaint() {
@@ -92,6 +103,7 @@ final class DisplayManager {
             } else {
                 let wallpaper = Wallpaper(screen: screen, displayID: id, world: world, gpu: gpu)
                 wallpaper.note = note
+                wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpapers[id] = wallpaper
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")
