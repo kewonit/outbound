@@ -6,5 +6,14 @@
     <link>https://outbound.edbn.me/appcast.xml</link>
     <description>New versions of Outbound.</description>
     <language>en</language>
+    <item>
+      <title>Outbound v1.0</title>
+      <pubDate>Sun, 25 Oct 2026 22:47:01 +0000</pubDate>
+      <description><![CDATA[<p>The first release of Outbound. It keeps itself up to date from here on.</p>]]></description>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.0/Outbound-v1.0.dmg" type="application/octet-stream" sparkle:edSignature="WYSD+SaV3eBdmeV+KMxVKIBb5/tj583f4yfDQAjQQ4mtVFk13LwtPVgtB6OKH8lNCyHEh5xhQ+mVjV+1Aub2Cw==" length="5485926"/>
+    </item>
   </channel>
 </rss>
