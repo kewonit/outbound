@@ -1,0 +1,103 @@
+import simd
+
+/// Everything the ground shader needs to paint one kind of landscape. Colours are sRGB, lengths are metres.
+public struct Biome: Sendable {
+    public enum Layout: Int, Sendable {
+        /// Open ground with soft patches, like the pampas or the savanna.
+        case grassland
+        /// Long staggered rice plots with levees and irrigation canals.
+        case paddies
+        /// Rounded fields between hedgerows.
+        case fields
+        /// Parallel bulb strips divided by ditches.
+        case stripes
+        /// Centre-pivot circles on a square section grid.
+        case pivots
+    }
+
+    public enum Animal: Int, Sendable {
+        case none, cattle, zebra, wildebeest, sheep, reindeer
+    }
+
+    public var layout: Layout
+
+    public var ground: SIMD3<Float>
+    public var groundDark: SIMD3<Float>
+    /// Field fills, picked per field by hash.
+    public var crops: (SIMD3<Float>, SIMD3<Float>, SIMD3<Float>, SIMD3<Float>)
+    /// Hedgerows between fields, or levees between paddies.
+    public var hedge: SIMD3<Float>
+    public var water: SIMD3<Float>
+    public var shallows: SIMD3<Float>
+    public var sand: SIMD3<Float>
+    public var road: SIMD3<Float>
+    public var canopy: SIMD3<Float>
+    public var canopyLight: SIMD3<Float>
+    public var rock: SIMD3<Float>
+    public var snow: SIMD3<Float>
+
+    public var fieldSize: Float = 160
+    public var hedgeWidth: Float = 7
+    /// How much field borders wander, 0 for surveyed straight lines.
+    public var warp: Float = 0.5
+    /// Share of fields left as plain ground.
+    public var fallow: Float = 0.1
+    public var patchiness: Float = 0.5
+    /// Strength of the brush strokes in crops and grass.
+    public var strokes: Float = 0.5
+    /// How strongly fields catch the wind, 0 for short grass, 1 for tall flowering crops.
+    public var sway: Float = 0.5
+    /// How much fields reflect the sky, for flooded paddies.
+    public var flooded: Float = 0
+
+    public var trees: Float = 0.3
+    public var treeSize: Float = 9
+    public var hedgeTrees: Float = 0.3
+    /// 0 scatters trees evenly, 1 gathers them into groves.
+    public var clumping: Float = 0.6
+    /// Chance of a straight windbreak line of trees along a survey line.
+    public var treeLines: Float = 0
+    public var orchards: Float = 0
+    /// Petals or blossom flecks drifting on the ground near trees.
+    public var petals: Float = 0
+
+    public var riverWidth: Float = 34
+    public var riverWander: Float = 90
+    public var roadWidth: Float = 9
+    public var paved: Float = 1
+    public var ponds: Float = 0.2
+    public var houses: Float = 0.3
+    public var rocks: Float = 0
+    public var snowCover: Float = 0
+    public var frozen: Float = 0
+
+    public var animal: Animal = .none
+    public var herds: Float = 0
+    public var animalColor: SIMD3<Float> = Biome.rgb(0x6b3e26)
+    public var cars: Float = 0.3
+
+    public init(layout: Layout, ground: SIMD3<Float>, groundDark: SIMD3<Float>,
+                crops: (SIMD3<Float>, SIMD3<Float>, SIMD3<Float>, SIMD3<Float>), hedge: SIMD3<Float>,
+                water: SIMD3<Float> = Biome.rgb(0x2f6cc0), shallows: SIMD3<Float> = Biome.rgb(0x5b9be0),
+                sand: SIMD3<Float> = Biome.rgb(0xd9c48f), road: SIMD3<Float> = Biome.rgb(0xc4bdb0),
+                canopy: SIMD3<Float> = Biome.rgb(0x2f6b3a), canopyLight: SIMD3<Float> = Biome.rgb(0x4f8f4a),
+                rock: SIMD3<Float> = Biome.rgb(0x9d9c94), snow: SIMD3<Float> = Biome.rgb(0xf4f6f8)) {
+        self.layout = layout
+        self.ground = ground
+        self.groundDark = groundDark
+        self.crops = crops
+        self.hedge = hedge
+        self.water = water
+        self.shallows = shallows
+        self.sand = sand
+        self.road = road
+        self.canopy = canopy
+        self.canopyLight = canopyLight
+        self.rock = rock
+        self.snow = snow
+    }
+
+    public static func rgb(_ hex: UInt32) -> SIMD3<Float> {
+        SIMD3(Float((hex >> 16) & 0xff), Float((hex >> 8) & 0xff), Float(hex & 0xff)) / 255
+    }
+}
