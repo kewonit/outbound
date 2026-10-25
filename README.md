@@ -6,7 +6,7 @@ Fields, rivers and clouds drift past under your icons while a small white bird f
 
 ![Flooded rice paddies and sakura in Niigata, painted by Outbound](Website/assets/places/niigata.jpg)
 
-[Website](https://outbound.edbn.me) · [Buy a license](https://outbound.edbn.me/#buy) · [Releases](https://github.com/kewonit/outbound/releases)
+[Website](https://outbound.edbn.me) · [Buy a license](https://outbound.edbn.me/#buy) · [Download](https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg)
 
 ## What it does
 

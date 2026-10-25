@@ -2,13 +2,11 @@
 (function () {
   "use strict";
 
-  // The only place site URLs live. While buy or download is empty, its buttons say
-  // "Coming soon" or hide. Go live with:
-  //   download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg"
-  //   buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA"
+  // The only place site URLs live. Emptying buy or download turns its buttons into
+  // "Coming soon", or hides them.
   var URLS = {
-    download: "",
-    buy: "",
+    download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
+    buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA",
     github: "https://github.com/kewonit/outbound"
   };
 
