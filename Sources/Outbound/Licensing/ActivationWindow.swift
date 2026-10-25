@@ -65,13 +65,13 @@ private struct ActivationView: View {
                 Text("Outbound")
                     .font(.system(size: 22, weight: .semibold))
                 if state.unlocked {
-                    Label("Outbound is yours. Enjoy the flight.", systemImage: "checkmark.circle.fill")
+                    Label("Unlocked. Enjoy!", systemImage: "checkmark.circle.fill")
                         .font(.title3)
                         .foregroundStyle(.green)
                 } else if license.waitingForPurchase {
                     waiting
                 } else {
-                    Text("A painted world drifting by behind your desktop, with a bird that follows your cursor.")
+                    Text("A painted world behind your desktop, and a bird that follows your cursor.")
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 12) {
@@ -79,7 +79,7 @@ private struct ActivationView: View {
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .disabled(license.busy)
-                        Text("One payment, for up to three of your Macs. Outbound unlocks by itself once you've paid.")
+                        Text("Pay once. Use it on up to 3 Macs.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -87,7 +87,7 @@ private struct ActivationView: View {
                 }
                 Divider().padding(.vertical, 4)
                 HStack {
-                    Text("Already bought it? Paste your license key.")
+                    Text("Already bought it? Paste your key.")
                         .font(.callout)
                     Spacer()
                     Link("Find my key", destination: Store.portalURL)
@@ -121,11 +121,11 @@ private struct ActivationView: View {
                 Text("Waiting for your purchase…")
                     .font(.headline)
             }
-            Text("Finish paying in your browser. Outbound unlocks by itself a moment after, so there's nothing to copy.")
+            Text("Finish paying in your browser. Outbound unlocks by itself.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 14) {
-                Button("Open Checkout Again", action: license.buy)
+                Button("Open Checkout", action: license.buy)
                 Button("Cancel", action: license.cancelPurchase)
                     .buttonStyle(.link)
             }

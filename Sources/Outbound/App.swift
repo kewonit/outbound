@@ -126,7 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         // Any web page can open these, so only the exact activation link is acted on.
-        guard let link = urls.lazy.compactMap({ ActivationLink($0) }).last else { return }
+        guard let link = urls.lazy.compactMap({ ActivationLink($0) }).last else {
+            Log.license.info("Ignored a link that isn't an activation link")
+            return
+        }
         if displays == nil {
             earlyLinks.append(link)
         } else {
@@ -138,37 +141,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let wasUnlocked = license.unlocks
         if !wasUnlocked { showActivation() }
         Task {
-            let result = await license.claim(link.checkout) { [weak self] email in
-                self?.confirmReplacing(boughtWith: email) ?? false
+            let result = await license.claim(link.checkout) { email in
+                await Notice.show("Use your new key?",
+                                  detail: "Outbound is already unlocked here\(email.map { " with another key. The new one was bought with \($0)" } ?? "").",
+                                  buttons: ["Use New Key", "Keep Current"]) == 0
             }
+            Log.license.info("Activation link: \(String(describing: result), privacy: .public)")
             guard wasUnlocked || result == .alreadyActive else { return }
             switch result {
-            case .alreadyActive: inform("Outbound is already unlocked on this Mac.", detail: "There's nothing more to do.")
-            case .activated: inform("Outbound now uses your new license.", detail: "Your old key is free for another Mac.")
-            case .failed: inform("Outbound couldn't use that purchase.", detail: license.message ?? "")
-            case .waiting: inform("Your purchase is still being processed.",
-                                  detail: "Click Activate in Outbound again in a minute.")
+            case .alreadyActive: await Notice.show("Outbound is already unlocked.", detail: "")
+            case .activated: await Notice.show("Outbound now uses your new key.", detail: "")
+            case .failed: await Notice.show("That purchase didn't unlock Outbound.", detail: license.message ?? "")
+            case .waiting: await Notice.show("Still processing your purchase.", detail: "Try again in a minute.")
             case .declined: break
             }
         }
-    }
-
-    private func confirmReplacing(boughtWith email: String?) -> Bool {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = "Replace this Mac's license?"
-        alert.informativeText = "Outbound is already unlocked here. Use the license bought\(email.map { " with \($0)" } ?? "") instead?"
-        alert.addButton(withTitle: "Use New License")
-        alert.addButton(withTitle: "Keep Current")
-        return alert.runModal() == .alertFirstButtonReturn
-    }
-
-    private func inform(_ message: String, detail: String) {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = message
-        alert.informativeText = detail
-        alert.runModal()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

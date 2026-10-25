@@ -16,7 +16,7 @@
   }
 
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
-    say("This page needs the link from your checkout. Your key is in your customer portal below.");
+    say("Your key is in your customer portal below.");
     return;
   }
 
@@ -37,31 +37,31 @@
       .then(function (answer) {
         if (answer.status === "ready" && answer.key) {
           keyText.textContent = answer.key;
-          email.textContent = answer.email ? "Bought with " + answer.email + "." : "";
+          email.textContent = answer.email ? "(" + answer.email + ")" : "";
           panel.hidden = false;
           say("");
           return;
         }
         if (answer.status === "open" || answer.status === "confirmed" || answer.status === "pending" || !answer.status) {
           if (Date.now() - started < 90000) {
-            say("Finding your license key…");
+            say("Finding your key…");
             setTimeout(poll, 2000);
           } else {
-            say("Your key is taking longer than usual. Activate in Outbound, or find it in your customer portal in a minute.");
+            say("Taking longer than usual. Try Activate, or check your customer portal in a minute.");
           }
           return;
         }
         if (answer.status === "refunded") {
-          say("This purchase was refunded, so its key no longer works.");
+          say("This purchase was refunded.");
         } else {
-          say("This checkout didn't finish. If you were charged, your key is in your customer portal.");
+          say("This checkout didn't finish.");
         }
       })
       .catch(function () {
         if (Date.now() - started < 90000) {
           setTimeout(poll, 3000);
         } else {
-          say("Couldn't reach the store. Activate in Outbound, or find your key in your customer portal.");
+          say("Couldn't reach the store. Try Activate, or check your customer portal.");
         }
       });
   }

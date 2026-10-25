@@ -159,7 +159,7 @@ final class LicenseController {
 
     /// Fetches the key for a paid checkout and activates it. A different license already working on this Mac is
     /// only replaced if `replace` agrees, given the email the new one was bought with.
-    func claim(_ checkout: UUID, replace: (String?) -> Bool = { _ in true }) async -> Claim {
+    func claim(_ checkout: UUID, replace: (String?) async -> Bool = { _ in true }) async -> Claim {
         let answer: Shop.Answer
         do {
             answer = try await Shop().license(for: checkout)
@@ -170,14 +170,14 @@ final class LicenseController {
         case .waiting:
             return .waiting
         case .closed:
-            message = "That purchase can't unlock Outbound: it didn't finish, or it was refunded. Your key is always in your customer portal."
+            message = "That purchase didn't finish, or was refunded."
             return .failed
         case .ready(let key, let email):
             if let record, record.key == key, unlocks {
                 if pending?.checkout == checkout { stopWatching() }
                 return .alreadyActive
             }
-            if Self.isGated, status.unlocksWallpaper, record != nil, !replace(email) { return .declined }
+            if Self.isGated, status.unlocksWallpaper, record != nil, !(await replace(email)) { return .declined }
             guard !busy else { return .waiting }
             busy = true
             message = nil
@@ -215,9 +215,9 @@ final class LicenseController {
             var revoked = record
             revoked.revokedAt = .now
             store(revoked, keepMessage: true)
-            message = "This Mac's license is no longer active. Paste a key to keep flying."
+            message = "Your license is no longer active."
         } catch {
-            if status == .lapsed { message = "Outbound needs to confirm your license. Connect to the internet and try again." }
+            if status == .lapsed { message = "Connect to the internet so Outbound can check your license." }
         }
     }
 
@@ -238,7 +238,7 @@ final class LicenseController {
         let saved = LicenseKeychain.save(record)
         if !keepMessage {
             message = saved ? nil
-                : "Outbound couldn't save your license to the keychain, so it will ask for the key again next time."
+                : "Couldn't save your license. You may be asked for it again."
         }
         update(LicenseStatus(record))
     }
