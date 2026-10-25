@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 ///     Outbound --render - --seconds 20 --fps 30 ... | ffmpeg -f rawvideo -pix_fmt bgra -s WxH -r 30 -i - out.mp4
 ///     Outbound --icon icon.png
 ///     Outbound --dmg background.png [--scale 2]
+///     Outbound --og preview.png
 ///
 /// For the website: --caption adds the place name in the corner as on the desktop, and --dock 58 leaves that
 /// many points for a Dock along the bottom, so the caption sits above it as it does on a Mac. --cursor flies a
@@ -22,6 +23,7 @@ import UniformTypeIdentifiers
 enum Exporter {
     static func handles(_ arguments: [String]) -> Bool {
         arguments.contains("--render") || arguments.contains("--icon") || arguments.contains("--dmg")
+            || arguments.contains("--og")
     }
 
     static func run(_ arguments: [String]) -> Int32 {
@@ -40,6 +42,8 @@ enum Exporter {
         do {
             if let path = options["icon"] {
                 try icon(to: URL(filePath: path))
+            } else if let path = options["og"] {
+                try linkPreview(to: URL(filePath: path))
             } else if let path = options["dmg"] {
                 try diskImage(to: URL(filePath: path), scale: Double(options["scale"] ?? "1") ?? 1)
             } else {
@@ -259,6 +263,60 @@ enum Exporter {
         context.setStrokeColor(CGColor(srgbRed: 1, green: 0.99, blue: 0.96, alpha: 0.35))
         context.setLineWidth(6)
         context.strokePath()
+        try save(context.makeImage()!, to: url, type: .png)
+    }
+
+    /// The picture shown when a link to the site is shared: the painting under a soft wash, with the app icon, the
+    /// name, what it is and the price, 1200 by 630 pixels.
+    private static func linkPreview(to url: URL) throws {
+        let frame = CGRect(x: 0, y: 0, width: 800, height: 420)
+        let painting = try paint(Place.named("punjab")!, season: 0, frame: frame, scale: 1.5,
+                                 bird: (CGPoint(x: 600, y: 250), 2.3), birdSize: 30, time: 34, clouds: false)
+        let appIcon = try paint(Place.named("punjab")!, season: 0, frame: CGRect(x: 0, y: 0, width: 512, height: 512),
+                                scale: 0.5, bird: (CGPoint(x: 262, y: 268), 0.75), birdSize: 92)
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        guard let context = CGContext(data: nil, width: 1200, height: 630, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+        context.draw(painting, in: CGRect(x: 0, y: 0, width: 1200, height: 630))
+
+        // A wash from the left, so the words sit on calm dark paint and the fields stay bright on the right.
+        let wash = CGGradient(colorsSpace: space, colors: [CGColor(gray: 0.02, alpha: 0.82), CGColor(gray: 0.02, alpha: 0.55),
+                                                           CGColor(gray: 0.02, alpha: 0)] as CFArray,
+                              locations: [0, 0.42, 0.78])!
+        context.drawLinearGradient(wash, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 1200, y: 0), options: [])
+
+        // The app icon, in the macOS squircle.
+        let iconRect = CGRect(x: 72, y: 410, width: 120, height: 120)
+        context.saveGState()
+        context.setShadow(offset: CGSize(width: 0, height: -4), blur: 14, color: CGColor(gray: 0, alpha: 0.45))
+        context.addPath(CGPath(roundedRect: iconRect, cornerWidth: 27, cornerHeight: 27, transform: nil))
+        context.setFillColor(CGColor(gray: 0, alpha: 1))
+        context.fillPath()
+        context.restoreGState()
+        context.saveGState()
+        context.addPath(CGPath(roundedRect: iconRect, cornerWidth: 27, cornerHeight: 27, transform: nil))
+        context.clip()
+        context.draw(appIcon, in: iconRect)
+        context.restoreGState()
+
+        func write(_ text: String, size: CGFloat, weight: NSFont.Weight, alpha: CGFloat, at point: CGPoint, width: CGFloat) {
+            let style = NSMutableParagraphStyle()
+            style.lineSpacing = size * 0.12
+            let string = NSAttributedString(string: text, attributes: [
+                .font: NSFont.systemFont(ofSize: size, weight: weight), .foregroundColor: NSColor(white: 1, alpha: alpha),
+                .kern: -size * 0.01, .paragraphStyle: style
+            ])
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+            let bounds = string.boundingRect(with: CGSize(width: width, height: 400), options: [.usesLineFragmentOrigin])
+            string.draw(with: CGRect(x: point.x, y: point.y - bounds.height, width: width, height: bounds.height),
+                        options: [.usesLineFragmentOrigin])
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        write("Outbound", size: 76, weight: .bold, alpha: 1, at: CGPoint(x: 70, y: 384), width: 560)
+        write("A painted world, flying by behind your desktop.", size: 34, weight: .medium, alpha: 0.92,
+              at: CGPoint(x: 72, y: 282), width: 500)
+        write("For Mac  ·  $7 + tax", size: 24, weight: .medium, alpha: 0.7, at: CGPoint(x: 72, y: 128), width: 500)
         try save(context.makeImage()!, to: url, type: .png)
     }
 

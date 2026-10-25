@@ -26,7 +26,8 @@ for entry in punjab:45 niigata:45 serengeti:150 normandy:45 lisse:45 pampa:45 la
     "$outbound" --render "$assets/places/$place.jpg" --place "$place" --best --time "${entry##*:}" \
         --size 1200x780 --scale 1
 done
-"$outbound" --render "$assets/og-image.png" --place niigata --best --time 40 --size 600x315 --scale 2 --caption
+# The picture shown when a link to the site is shared.
+"$outbound" --og "$assets/og.png"
 
 # The hero: Punjab in flower, with the bird coming to the cursor. The page lays a Dock over the bottom, so the
 # caption sits above it as on a Mac.
