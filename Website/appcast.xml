@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The update feed Outbound checks once a day. scripts/release.sh adds each new version at the top. -->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Outbound</title>
+    <link>https://outbound.edbn.me/appcast.xml</link>
+    <description>New versions of Outbound.</description>
+    <language>en</language>
+  </channel>
+</rss>

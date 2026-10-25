@@ -35,6 +35,18 @@
     <string>26.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>SUFeedURL</key>
+    <string>https://outbound.edbn.me/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>vF30lI+WnrIpUouUNgLKZ68Jlm99A16ssa10QLF475E=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Kartik Kulloli</string>
 </dict>

@@ -17,3 +17,6 @@
   Cache-Control: no-store
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex
+
+/appcast.xml
+  Cache-Control: no-cache

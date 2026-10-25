@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let license = LicenseController()
     private var activation: ActivationWindow?
     private var gpu: GPU!
+    private var updates: Updates!
     private var licenseTimer: Timer?
     private var settingsWindow: NSWindow?
     private var stillTimer: Timer?
@@ -64,6 +65,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let world = World(place: place, time: CACurrentMediaTime(), light: preferences.light)
         displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         stills = StillWriter(gpu: gpu)
+        updates = Updates()
+        updates.isQuiet = { [weak self] in self?.displays.isQuiet ?? false }
+        displays.onQuiet = { [weak self] in self?.updates.installIfQuiet() }
         stillsWereOn = preferences.matchingStill
         applyPreferences()
         if !LicenseController.isGated { displays.note = "Development build" }
@@ -219,6 +223,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "bird", accessibilityDescription: "Outbound")
         let menu = NSMenu()
         menu.delegate = self
+        // Items say for themselves whether they can be used, as Check for Updates does in development builds.
+        menu.autoenablesItems = false
         statusItem.menu = menu
     }
 
@@ -268,6 +274,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pause.target = self
         menu.addItem(pause)
         menu.addItem(.separator())
+        let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        check.target = self
+        check.isEnabled = updates.canCheck
+        menu.addItem(check)
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -294,6 +304,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func setLight(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let light = World.Light(rawValue: raw) else { return }
         preferences.light = light
+    }
+
+    @objc private func checkForUpdates() {
+        updates.checkNow()
     }
 
     @objc private func openActivation() {

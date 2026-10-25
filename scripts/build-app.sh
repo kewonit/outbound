@@ -27,11 +27,28 @@ for bundle in "$bin"/*.bundle; do
     [[ -d "$bundle" ]] && cp -R "$bundle" "$app/Contents/Resources/"
 done
 
+# Sparkle, for updates, lives in Contents/Frameworks. Its XPC services are only for sandboxed apps.
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+mkdir -p "$app/Contents/Frameworks"
+ditto "$bin/Sparkle.framework" "$sparkle"
+rm -rf "$sparkle/Versions/B/XPCServices" "$sparkle/XPCServices"
+# The build points the binary at its own folders by absolute path; a shipped app looks only inside itself.
+binary="$app/Contents/MacOS/Outbound"
+otool -l "$binary" | awk '/LC_RPATH/ { getline; getline; print $2 }' | while read -r path; do
+    if [[ "$path" == /* ]]; then install_name_tool -delete_rpath "$path" "$binary"; fi
+done
+install_name_tool -add_rpath @executable_path/../Frameworks "$binary"
+
+# Sign from the inside out, as notarization requires.
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
-    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$app"
+    sign=(codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY")
 else
-    codesign --force --sign - "$app"
+    sign=(codesign --force --sign -)
 fi
+"${sign[@]}" "$sparkle/Versions/B/Autoupdate"
+"${sign[@]}" "$sparkle/Versions/B/Updater.app"
+"${sign[@]}" "$sparkle"
+"${sign[@]}" "$app"
 
 if [[ "$configuration" == release ]]; then
     zip="build/Outbound.zip"

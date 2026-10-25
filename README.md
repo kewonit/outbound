@@ -63,6 +63,14 @@ Development builds answer `outbound-dev://` links, so they never take links mean
 
 `scripts/make-site-assets.sh` repaints every picture and video on the website.
 
+## Shipping an update
+
+```sh
+scripts/release.sh 1.0.2 "What's new, in a sentence or two."
+```
+
+It bumps the version, builds, signs and notarizes the app, publishes a GitHub release, and adds it to `Website/appcast.xml`. Every copy checks that feed once a day with [Sparkle](https://sparkle-project.org), downloads the update in the background, checks its signature, and installs it the next time the Mac is left alone. Publishing needs the Developer ID certificate, a notarytool profile and Sparkle's signing key in the keychain.
+
 ## How it works
 
 Each display gets a borderless window that sits just below the desktop icons, on every Space, and lets every click through to Finder.
