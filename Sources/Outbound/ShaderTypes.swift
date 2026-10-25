@@ -21,6 +21,9 @@ struct BiomeGPU {
     var f: SIMD4<Float>
     /// herds, cars, clumping, treeLines
     var g: SIMD4<Float>
+    /// drives on the left, street lights, boats, boat kind
+    var h: SIMD4<Float>
+    var lamp: SIMD4<Float>
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
@@ -36,6 +39,8 @@ struct BiomeGPU {
         e = SIMD4(b.roadWidth, b.paved, b.ponds, b.houses)
         f = SIMD4(b.rocks, b.snowCover, b.frozen, Float(b.animal.rawValue))
         g = SIMD4(b.herds, b.cars, b.clumping, b.treeLines)
+        h = SIMD4(b.drivesLeft ? 1 : 0, b.streetLights, b.boats, Float(b.boat.rawValue))
+        lamp = SIMD4(b.lampColor, 1)
     }
 }
 
@@ -59,6 +64,8 @@ struct SceneGPU {
     var morph: SIMD4<Float>
     /// seconds wrapped hourly, seconds wrapped every two hours, car phase 0...1, night 0...1
     var time: SIMD4<Float>
+    /// hour of the day where the scene is, the hour the sun sets there, unused, unused
+    var clock: SIMD4<Float>
     var legA: LegGPU
     var legB: LegGPU
 }
@@ -78,6 +85,16 @@ struct CloudsGPU {
     var offsets: SIMD4<Float>
     /// view height in pixels, unused...
     var view: SIMD4<Float>
+}
+
+/// One batch of instanced animals, for one leg.
+struct AnimalsGPU {
+    /// first cell x, y, cells across, cell spacing
+    var grid: SIMD4<Float>
+    /// leg start (y relative to the reference), lowest and highest world y drawn, unused
+    var leg: SIMD4<Float>
+    /// herd drift x, y, unused, unused
+    var drift: SIMD4<Float>
 }
 
 struct CompositeGPU {

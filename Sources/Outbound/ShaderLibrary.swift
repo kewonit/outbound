@@ -8,14 +8,20 @@ final class ShaderLibrary {
     struct Pipelines {
         let ground: MTLRenderPipelineState
         let clouds: MTLRenderPipelineState
-        let composite: MTLRenderPipelineState
         let paper: MTLRenderPipelineState
+        /// The three draws of the frame pass: ground, instanced animals, sky.
+        let view: MTLRenderPipelineState
+        let animals: MTLRenderPipelineState
+        let sky: MTLRenderPipelineState
     }
 
     static let files = ["Common.metal", "Ground.metal", "Clouds.metal", "Composite.metal"]
     static let cacheFormat = MTLPixelFormat.rgba8Unorm
+    static let nightFormat = MTLPixelFormat.rg8Unorm
     static let viewFormat = MTLPixelFormat.bgra8Unorm
     static let paperFormat = MTLPixelFormat.rg8Unorm
+    /// Night light, which only ever lives in tile memory, so its size costs nothing.
+    static let lightFormat = MTLPixelFormat.rgba8Unorm
 
     let device: MTLDevice
     private(set) var pipelines: Pipelines
@@ -48,18 +54,25 @@ final class ShaderLibrary {
         options.mathMode = .fast
         let library = try device.makeLibrary(source: source, options: options)
 
-        func pipeline(_ fragment: String, formats: [MTLPixelFormat]) throws -> MTLRenderPipelineState {
+        func pipeline(_ fragment: String, vertex: String = "fullscreen", formats: [MTLPixelFormat],
+                      writes: Int? = nil) throws -> MTLRenderPipelineState {
             let descriptor = MTLRenderPipelineDescriptor()
             descriptor.label = fragment
-            descriptor.vertexFunction = library.makeFunction(name: "fullscreen")
+            descriptor.vertexFunction = library.makeFunction(name: vertex)
             descriptor.fragmentFunction = library.makeFunction(name: fragment)
-            for (i, format) in formats.enumerated() { descriptor.colorAttachments[i].pixelFormat = format }
+            for (i, format) in formats.enumerated() {
+                descriptor.colorAttachments[i].pixelFormat = format
+                if let writes, i >= writes { descriptor.colorAttachments[i].writeMask = [] }
+            }
             return try device.makeRenderPipelineState(descriptor: descriptor)
         }
-        return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, cacheFormat]),
+        let frame = [viewFormat, lightFormat]
+        return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, nightFormat]),
                          clouds: try pipeline("clouds", formats: [cacheFormat]),
-                         composite: try pipeline("composite", formats: [viewFormat]),
-                         paper: try pipeline("paper", formats: [paperFormat]))
+                         paper: try pipeline("paper", formats: [paperFormat]),
+                         view: try pipeline("viewGround", formats: frame),
+                         animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),
+                         sky: try pipeline("sky", formats: frame, writes: 1))
     }
 
     private func watch() {

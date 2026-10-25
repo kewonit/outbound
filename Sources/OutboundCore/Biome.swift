@@ -16,7 +16,7 @@ public struct Biome: Sendable {
     }
 
     public enum Animal: Int, Sendable {
-        case none, cattle, zebra, wildebeest, sheep, reindeer
+        case none, cattle, zebra, wildebeest, sheep, reindeer, gazelle
     }
 
     public var layout: Layout
@@ -70,6 +70,25 @@ public struct Biome: Sendable {
     public var rocks: Float = 0
     public var snowCover: Float = 0
     public var frozen: Float = 0
+
+    /// Traffic keeps left, as in Japan and India.
+    public var drivesLeft = false
+    /// How many houses have a street lamp by the road outside, 0 to 1.
+    public var streetLights: Float = 0.5
+    /// Street lamp colour: sodium orange in older places, warm LED white in newer ones.
+    public var lampColor: SIMD3<Float> = Biome.rgb(0xffb04a)
+    /// Boats on the river, 0 to 1.
+    public var boats: Float = 0
+    public var boat: Boat = .rowing
+
+    public enum Boat: Int, Sendable {
+        /// Small open boats, wooden or painted.
+        case rowing
+        /// Long canal barges.
+        case barge
+        /// Hippos wallowing instead of boats.
+        case hippos
+    }
 
     public var animal: Animal = .none
     public var herds: Float = 0

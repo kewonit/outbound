@@ -1,5 +1,6 @@
 import CoreGraphics
 import Metal
+import OutboundCore
 import simd
 
 /// Shared Metal objects.
@@ -10,6 +11,8 @@ final class GPU {
     let shaders: ShaderLibrary
     let wrap: MTLSamplerState
     let clamp: MTLSamplerState
+    /// A small random lattice, so value noise in the frame pass is one texture fetch.
+    let noise: MTLTexture
 
     init() throws {
         guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else {
@@ -28,6 +31,15 @@ final class GPU {
         descriptor.sAddressMode = .clampToEdge
         descriptor.tAddressMode = .clampToEdge
         clamp = device.makeSamplerState(descriptor: descriptor)!
+
+        let lattice = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .r8Unorm, width: 256, height: 256,
+                                                               mipmapped: false)
+        lattice.usage = .shaderRead
+        lattice.storageMode = .shared
+        noise = device.makeTexture(descriptor: lattice)!
+        var random = SplitMix(seed: 150)
+        let bytes = (0..<(256 * 256)).map { _ in UInt8(random.next() * 255) }
+        noise.replace(region: MTLRegionMake2D(0, 0, 256, 256), mipmapLevel: 0, withBytes: bytes, bytesPerRow: 256)
     }
 }
 
@@ -78,7 +90,8 @@ final class ViewRenderer {
         cacheWidth = Int((Double(frame.width) * density).rounded(.up)) + Self.pad * 2 + 2
         cacheHeight = Int((Double(frame.height) * density).rounded(.up)) + Self.pad * 2 + 2
         color = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground")
-        mask = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground mask")
+        mask = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground at night",
+                           format: ShaderLibrary.nightFormat)
         let pixelWidth = Int((Double(frame.width) * scale).rounded())
         let pixelHeight = Int((Double(frame.height) * scale).rounded())
         clouds = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
@@ -241,24 +254,104 @@ final class ViewRenderer {
             wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0))
+        // One pass: ground, animals, then sky, with the night's light kept in tile memory between them.
+        let light = lightTarget(width: target.width, height: target.height)
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = target
         pass.colorAttachments[0].loadAction = .dontCare
         pass.colorAttachments[0].storeAction = .store
+        pass.colorAttachments[1].texture = light
+        pass.colorAttachments[1].loadAction = .dontCare
+        pass.colorAttachments[1].storeAction = .dontCare
         if let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) {
-            encoder.label = "Composite"
-            encoder.setRenderPipelineState(pipelines.composite)
+            encoder.label = "Frame"
             encoder.setFragmentBytes(&params, length: MemoryLayout<CompositeGPU>.stride, index: 0)
             encoder.setFragmentBytes(&scene, length: MemoryLayout<SceneGPU>.stride, index: 1)
             encoder.setFragmentTexture(color, index: 0)
             encoder.setFragmentTexture(mask, index: 1)
             encoder.setFragmentTexture(clouds, index: 2)
             encoder.setFragmentTexture(paper, index: 3)
+            encoder.setFragmentTexture(gpu.noise, index: 4)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
+            encoder.setRenderPipelineState(pipelines.view)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+
+            let batches = animalBatches(world: world, frame: worldFrame, x0: x0, x1: x0 + Double(frame.width) * mpp,
+                                        y0: y0, top: top)
+            if !batches.isEmpty {
+                encoder.setRenderPipelineState(pipelines.animals)
+                encoder.setVertexBytes(&scene, length: MemoryLayout<SceneGPU>.stride, index: 2)
+                encoder.setVertexBytes(&params, length: MemoryLayout<CompositeGPU>.stride, index: 3)
+                encoder.setVertexTexture(color, index: 0)
+                for var batch in batches {
+                    var leg = batch.leg
+                    encoder.setVertexBytes(&batch.params, length: MemoryLayout<AnimalsGPU>.stride, index: 0)
+                    encoder.setVertexBytes(&leg, length: MemoryLayout<LegGPU>.stride, index: 1)
+                    encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: batch.count)
+                }
+            }
+
+            encoder.setRenderPipelineState(pipelines.sky)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
+    }
+
+    private var light: MTLTexture?
+
+    /// The night's light between the draws of the frame pass. Memoryless: it only ever exists in tile memory.
+    private func lightTarget(width: Int, height: Int) -> MTLTexture? {
+        if let light, light.width == width, light.height == height { return light }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.lightFormat,
+                                                                  width: width, height: height, mipmapped: false)
+        descriptor.usage = .renderTarget
+        descriptor.storageMode = .memoryless
+        light = gpu.device.makeTexture(descriptor: descriptor)
+        return light
+    }
+
+    private struct AnimalBatch {
+        var params: AnimalsGPU
+        var leg: LegGPU
+        var count: Int
+    }
+
+    /// Herds are drawn as instanced sprites, one instance per cell of each visible leg's herd grid.
+    private func animalBatches(world: World, frame: World.Frame, x0: Double, x1: Double, y0: Double,
+                               top: Double) -> [AnimalBatch] {
+        var regions: [(leg: Leg, gpu: LegGPU, low: Double, high: Double)] = []
+        if frame.legA.index == frame.legB.index {
+            regions.append((frame.legB, frame.scene.legB, -.infinity, .infinity))
+        } else {
+            let split = frame.legB.start + Journey.morphLength * 0.5
+            regions.append((frame.legA, frame.scene.legA, -.infinity, split))
+            regions.append((frame.legB, frame.scene.legB, split, .infinity))
+        }
+        var batches: [AnimalBatch] = []
+        for region in regions {
+            let biome = region.leg.season.biome
+            guard biome.animal != .none, biome.herds > 0 else { continue }
+            let low = max(y0, region.low), high = min(top, region.high)
+            guard high > low else { continue }
+            let spacing: Double = [Biome.Animal.zebra, .wildebeest, .gazelle].contains(biome.animal) ? 9 : 10
+            let drift = World.herdDrift(time: world.time, seed: UInt32(region.gpu.info.y))
+            let margin = 6.0
+            let cx0 = Int(((x0 - margin - drift.x) / spacing).rounded(.down))
+            let cx1 = Int(((x1 + margin - drift.x) / spacing).rounded(.down))
+            let cy0 = Int(((low - region.leg.start - margin - drift.y) / spacing).rounded(.down))
+            let cy1 = Int(((high - region.leg.start + margin - drift.y) / spacing).rounded(.down))
+            let across = cx1 - cx0 + 1, rows = cy1 - cy0 + 1
+            guard across > 0, rows > 0 else { continue }
+            let clampLow = region.low.isFinite ? Float(region.low - frame.reference) : -1e9
+            let clampHigh = region.high.isFinite ? Float(region.high - frame.reference) : 1e9
+            batches.append(AnimalBatch(
+                params: AnimalsGPU(grid: SIMD4(Float(cx0), Float(cy0), Float(across), Float(spacing)),
+                                   leg: SIMD4(Float(region.leg.start - frame.reference), clampLow, clampHigh, 0),
+                                   drift: SIMD4(Float(drift.x), Float(drift.y), 0, 0)),
+                leg: region.gpu, count: across * rows))
+        }
+        return batches
     }
 
     /// The shortest offset between two points of the repeating cloud space.

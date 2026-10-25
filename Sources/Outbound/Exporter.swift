@@ -85,6 +85,7 @@ enum Exporter {
         world.home = frame
         world.desktop = frame
         world.centreRiver(on: frame)
+        if options["still"] != nil { world.journey.setSpeed(0, at: 0) }
         if options["best"] != nil {
             // Each place in the season it is known for, rather than the one it is in on --date.
             world.journey.followsCalendar = false
@@ -100,6 +101,25 @@ enum Exporter {
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .shared
         guard let target = gpu.device.makeTexture(descriptor: descriptor) else { throw Failure(description: "No GPU") }
+
+        // With --bench, fly for a while and report GPU time per frame, without writing anything.
+        if let seconds = options["bench"].flatMap(Double.init) {
+            let fps = Double(options["fps"] ?? "30") ?? 30
+            var times: [Double] = []
+            for frame in 0..<Int(seconds * fps) {
+                world.advance(to: time + Double(frame) / fps)
+                guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
+                renderer.encode(world: world, into: target, commandBuffer: commands)
+                commands.commit()
+                commands.waitUntilCompleted()
+                if frame > 2 { times.append((commands.gpuEndTime - commands.gpuStartTime) * 1000) }
+            }
+            times.sort()
+            let mean = times.reduce(0, +) / Double(max(times.count, 1))
+            print(String(format: "%@ %dx%d: median %.3f ms, mean %.3f ms, p95 %.3f ms over %d frames", place.id,
+                         width, height, times[times.count / 2], mean, times[times.count * 95 / 100], times.count))
+            return
+        }
 
         // With --seconds, stream raw BGRA frames to standard output for ffmpeg, flying on between them.
         if let seconds = options["seconds"].flatMap(Double.init) {

@@ -1,10 +1,18 @@
 // The ground: painted once into a scrolling cache, a few new rows at a time.
 
 struct GroundOut {
+    // Paint, with water, sway, road and herd packed into the alpha byte so a daytime frame reads one texture.
     float4 color [[color(0)]];
-    // water, sway, road, herd
-    float4 mask [[color(1)]];
+    // Night light pool and which lamp it belongs to; only read after dark.
+    float4 night [[color(1)]];
 };
+
+// Alpha byte: water in the top two bits, sway in the next four, then a road bit and a herd bit.
+inline float packGround(float water, float sway, bool road, bool herd) {
+    uint packed = (uint(saturate(water) * 3.0 + 0.5) << 6) | (uint(saturate(sway) * 15.0 + 0.5) << 2)
+                | (road ? 2u : 0u) | (herd ? 1u : 0u);
+    return float(packed) / 255.0;
+}
 
 struct Land {
     float3 color;
@@ -13,6 +21,9 @@ struct Land {
     float herd;
     float road;
     float forest;
+    /// Light that falls on the ground after dark, and which lamp it comes from (1 for street lamps).
+    float light;
+    float lightID;
 };
 
 inline float3 cropColor(constant Biome &b, float h) {
@@ -114,6 +125,8 @@ inline Land grassland(float2 p, constant Biome &b, uint seed) {
     l.herd = 1.0;
     l.road = 0.0;
     l.forest = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
     return l;
 }
 
@@ -132,6 +145,8 @@ inline Land fields(float2 p, constant Biome &b, constant Scene &scene, uint seed
     l.water = b.c.x * step(fallow, 0.5) * 0.6;
     l.road = 0.0;
     l.forest = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
     if (fallow < b.b.x) {
         l.color = openGround(p, b, seed);
         l.sway = b.b.w * 0.4;
@@ -224,6 +239,8 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
     l.road = 0.0;
     l.herd = 0.0;
     l.forest = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
     float3 c;
     if (kind < b.b.x) {
         // Ploughed mud.
@@ -286,6 +303,8 @@ inline Land stripes(float2 p, constant Biome &b, uint seed) {
     l.herd = 0.0;
     l.water = 0.0;
     l.forest = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
     float3 c;
     if (hash21(strip, seed + 3u) < b.b.x) {
         c = mix(b.ground.rgb, b.groundDark.rgb, 0.3 + 0.4 * vnoise(p / 9.0, seed + 4u));
@@ -324,6 +343,8 @@ inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed
     l.road = 0.0;
     l.water = 0.0;
     l.forest = 0.0;
+    l.light = 0.0;
+    l.lightID = 0.0;
     float3 c = openGround(p, b, seed);
     l.herd = 1.0;
     l.sway = b.b.w * 0.3;
@@ -435,8 +456,47 @@ inline float3 trees(float3 c, float2 local, float2 world, constant Biome &b, con
     return c;
 }
 
+// Light leaving a house after dark, in house-local metres. Windows can't be seen from above, so this is
+// what they do to the ground: warm patches outside the long walls, a porch lamp, sometimes a roof window.
+inline float houseGlow(float2 d, float2 size, int k, uint seed, float roofCover) {
+    float glow = 0.0;
+    float out = abs(d.x) - size.x;
+    if (out > -0.3 && out < 5.0 && abs(d.y) < size.y + 1.0) {
+        float n = max(2.0, floor(size.y * 2.0 / 3.0));
+        float v = (d.y + size.y) / (2.0 * size.y) * n;
+        float i = clamp(floor(v), 0.0, n - 1.0);
+        float lit = step(0.35, hash11(k * 64 + int(i) * 2 + (d.x > 0.0 ? 1 : 0), seed + 400u));
+        float across = abs(v - i - 0.5) * (2.0 * size.y / n);
+        float spread = 0.5 + 0.45 * max(out, 0.0);
+        glow = lit * fill(across - spread, 0.3 + 0.15 * max(out, 0.0)) * exp(-max(out, 0.0) / 1.7)
+             * smoothstep(-0.3, 0.2, out) * 0.75;
+    }
+    float2 porch = float2(size.x * 0.4, size.y + 0.6);
+    float r = length(d - porch);
+    float hasPorch = step(0.3, hash11(k, seed + 402u));
+    float pool = pow(1.0 + r * r / 6.25, -1.5) * (1.0 - smoothstep(5.0, 8.0, r));
+    glow = max(glow, pool * 0.6 * hasPorch);
+    glow = max(glow, fill(r - 0.25, 0.15) * hasPorch);
+    // Half the farms keep a yard lamp on a pole beside the house.
+    float2 yard = float2(-size.x - 4.0, -size.y * 0.3);
+    float yardLamp = step(0.5, hash11(k, seed + 405u));
+    float ry = length(d - yard);
+    glow = max(glow, yardLamp * (pow(1.0 + ry * ry / 25.0, -1.5) * (1.0 - smoothstep(7.0, 11.0, ry)) * 0.55
+                                 + fill(ry - 0.25, 0.15)));
+    glow *= 1.0 - roofCover;
+    float skylight = fill(sdBox(d - float2(-size.x * 0.45, size.y * 0.2), float2(0.45, 0.6)), 0.1);
+    return max(glow, skylight * 0.85 * step(0.6, hash11(k, seed + 404u)) * roofCover);
+}
+
+// A painted pool of lamplight: the falloff of a lamp `height` up, cut off at a slightly wobbly rim.
+inline float lampPool(float r, float height, float rim, float2 p, uint seed) {
+    float pool = pow(1.0 + r * r / (height * height), -1.5);
+    pool *= 1.0 - smoothstep(rim * 0.7, rim, r + 1.5 * (vnoise(p / 2.5, seed) - 0.5));
+    return max(pool * 0.7, fill(r - 0.3, 0.2));
+}
+
 inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
-                     float wander, thread float &cover) {
+                     float wander, thread float &cover, thread float &light, thread float &lightID) {
     if (b.e.w <= 0.0) return c;
     float slot = 85.0;
     float k = floor(local.y / slot);
@@ -466,7 +526,23 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
     // A shed beside it.
     float2 shed = d - float2(size.x + 3.5, -size.y * 0.4);
     c = shade(c, fill(sdBox(shed - shadowOff * 0.6, float2(2.0, 2.6)), 0.4) * 0.7, scene);
-    c = mix(c, float3(0.70, 0.66, 0.60), fill(sdBox(shed, float2(2.0, 2.6)), 0.3));
+    float shedCover = fill(sdBox(shed, float2(2.0, 2.6)), 0.3);
+    c = mix(c, float3(0.70, 0.66, 0.60), shedCover);
+
+    // After dark: the house's own glow, and a street lamp at the roadside in places that have them.
+    float glow = houseGlow(d, size, int(k), seed, a) * (1.0 - shedCover);
+    if (glow > light) {
+        light = glow;
+        lightID = 0.02 + 0.96 * hash11(int(k), seed + 403u);
+    }
+    if (hash11(int(k), seed + 67u) < b.h.y) {
+        float2 lamp = float2(rx + side * (b.e.x * 0.5 + 1.0), worldY);
+        float pool = lampPool(length(world - lamp), 7.0, 11.0, world, seed + 411u);
+        if (pool > light) {
+            light = pool;
+            lightID = 1.0;
+        }
+    }
     return c;
 }
 
@@ -529,7 +605,7 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.herd *= 1.0 - smoothstep(0.0, 0.5, water - l.water);
     l.water = water;
     float cover = 0.0;
-    l.color = houses(l.color, local, world, b, scene, seed, wander, cover);
+    l.color = houses(l.color, local, world, b, scene, seed, wander, cover, l.light, l.lightID);
     l.color = trees(l.color, local, world, b, scene, seed, riverHalf, wander, cover);
     l.sway *= 1.0 - cover;
     l.herd *= 1.0 - cover;
@@ -671,6 +747,8 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
         l.sway = mix(a.sway, b.sway, blend);
         l.herd = mix(a.herd, b.herd, blend);
         l.road = mix(a.road, b.road, blend);
+        l.light = mix(a.light, b.light, blend);
+        l.lightID = blend > 0.5 ? b.lightID : a.lightID;
         // A darker tide line where the two paints meet.
         l.color *= 1.0 - 0.12 * (1.0 - abs(blend * 2.0 - 1.0));
     }
@@ -682,7 +760,7 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, riverHalf, wander, onRoad, water, herd);
 
     GroundOut out;
-    out.color = float4(saturate(c), 1.0);
-    out.mask = float4(saturate(water), saturate(l.sway), saturate(onRoad), saturate(herd));
+    out.color = float4(saturate(c), packGround(water, l.sway, onRoad > 0.5, herd > 0.5));
+    out.night = float4(saturate(l.light * (1.0 - water * 0.8)), l.lightID, 0.0, 0.0);
     return out;
 }

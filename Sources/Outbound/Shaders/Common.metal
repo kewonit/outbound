@@ -13,6 +13,8 @@ struct Biome {
     float4 e; // roadWidth, paved, ponds, houses
     float4 f; // rocks, snowCover, frozen, animal
     float4 g; // herds, cars, clumping, treeLines
+    float4 h; // drives left, street lights, boats, boat kind
+    float4 lamp;
 };
 
 struct Leg {
@@ -27,6 +29,7 @@ struct Scene {
     float4 light;  // rgb, strength
     float4 morph;  // boundary, length, sweep (-1 flying), sweep wave
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
+    float4 clock;  // local hour, sunset hour
     Leg legA;
     Leg legB;
 };
@@ -53,7 +56,7 @@ struct CompositeParams {
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4 };
-enum Animal { noAnimal = 0, cattle = 1, zebra = 2, wildebeest = 3, sheep = 4, reindeer = 5 };
+enum Animal { noAnimal = 0, cattle = 1, zebra = 2, wildebeest = 3, sheep = 4, reindeer = 5, gazelle = 6 };
 
 struct VertexOut {
     float4 position [[position]];

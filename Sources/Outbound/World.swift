@@ -93,6 +93,15 @@ final class World {
         if t - sunUpdated > 20 { updateSun(force: false) }
     }
 
+    /// The hour of the day where the scene is, and when the sun sets there, for switching lights on.
+    private(set) var clock = (hour: 12.0, sunset: 19.0)
+
+    /// How far a leg's herds have wandered; the same formula the animal sprites are laid out with.
+    static func herdDrift(time: TimeInterval, seed: UInt32) -> SIMD2<Double> {
+        let t = time.truncatingRemainder(dividingBy: 7200)
+        return SIMD2(18 * sin(t * 2 * .pi * 3 / 7200 + Double(seed % 7)), 14 * sin(t * 2 * .pi * 2 / 7200 + 1.7))
+    }
+
     private func updateSun(force: Bool) {
         sunUpdated = time
         let place = journey.leg(at: camera.y).place
@@ -100,20 +109,23 @@ final class World {
         let calendar = Calendar.current
         let day = calendar.ordinality(of: .day, in: .year, for: now) ?? 172
         let next: Sun
+        var hour = 12.0
         switch light {
         case .alwaysDay:
             next = .fair
         case .yourTime:
             let parts = calendar.dateComponents([.hour, .minute], from: now)
-            next = Sun(latitude: place.anchor.latitude, dayOfYear: day,
-                       solarHour: Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60)
+            hour = Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60
+            next = Sun(latitude: place.anchor.latitude, dayOfYear: day, solarHour: hour)
         case .placeTime:
             var utc = Calendar(identifier: .gregorian)
             utc.timeZone = TimeZone(identifier: "UTC")!
             let parts = utc.dateComponents([.hour, .minute], from: now)
-            let hour = Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60 + place.anchor.longitude / 15
-            next = Sun(latitude: place.anchor.latitude, dayOfYear: day, solarHour: (hour + 24).truncatingRemainder(dividingBy: 24))
+            hour = (Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60 + place.anchor.longitude / 15 + 24)
+                .truncatingRemainder(dividingBy: 24)
+            next = Sun(latitude: place.anchor.latitude, dayOfYear: day, solarHour: hour)
         }
+        clock = (hour, Sun.sunsetHour(latitude: place.anchor.latitude, dayOfYear: day))
         // Shadows are baked into the cached ground, so only repaint it when the light has really moved.
         let moved = abs(next.azimuth - sun.azimuth) + abs(next.elevation - sun.elevation)
         sun = next
@@ -159,6 +171,8 @@ final class World {
         var reference: Double
         /// A Fly To repaint is under way: the world y of its leading edge, where the land is changing.
         var sweepFront: Double?
+        var legA: Leg
+        var legB: Leg
     }
 
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
@@ -206,9 +220,10 @@ final class World {
             time: SIMD4(Float(time.truncatingRemainder(dividingBy: 3600)),
                         Float(time.truncatingRemainder(dividingBy: 7200)),
                         Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
+            clock: SIMD4(Float(clock.hour), Float(clock.sunset), 0, 0),
             legA: Self.gpu(legA, reference: reference),
             legB: Self.gpu(legB, reference: reference))
-        return Frame(scene: scene, reference: reference, sweepFront: sweepFront)
+        return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
     }
 
     private static func gpu(_ leg: Leg, reference: Double) -> LegGPU {

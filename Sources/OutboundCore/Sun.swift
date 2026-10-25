@@ -25,6 +25,14 @@ public struct Sun: Equatable, Sendable {
         azimuth = atan2(-sin(hourAngle), tan(declination) * cos(phi) - sin(phi) * cos(hourAngle))
     }
 
+    /// Local solar time of sunset. 24 when the sun never sets, 12 when it never rises.
+    public static func sunsetHour(latitude: Double, dayOfYear: Int) -> Double {
+        let phi = latitude * .pi / 180
+        let declination = 23.44 * .pi / 180 * sin(2 * .pi * Double(284 + dayOfYear) / 365)
+        let cosine = max(-1, min(1, -tan(phi) * tan(declination)))
+        return 12 + acos(cosine) * 12 / .pi
+    }
+
     /// Horizontal unit vector towards the sun, east and north.
     public var direction: SIMD2<Double> {
         SIMD2(sin(azimuth), cos(azimuth))
