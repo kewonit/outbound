@@ -548,41 +548,66 @@ kbd {
 .dock {
   position: absolute;
   left: 50%;
-  bottom: 10px;
-  bottom: 1cqw;
+  bottom: 5px;
+  bottom: 0.45cqw;
   transform: translateX(-50%);
   display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  gap: 0.55cqw;
-  padding: 5px;
-  padding: 0.55cqw;
-  border-radius: 18px;
-  border-radius: 1.9cqw;
-  background: rgba(250, 250, 252, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  -webkit-backdrop-filter: blur(20px) saturate(1.05);
-  backdrop-filter: blur(20px) saturate(1.05);
+  align-items: center;
+  padding: 3px 4px;
+  padding: 0.3cqw 0.35cqw;
+  border-radius: 22px;
+  border-radius: 2.1cqw;
+  /* Clear glass, as in macOS 26: a little light, a little blur, and a bright rim where the light catches it. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 55%, rgba(255, 255, 255, 0.14));
+  -webkit-backdrop-filter: blur(8px) saturate(1.6) brightness(1.06);
+  backdrop-filter: blur(8px) saturate(1.6) brightness(1.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
   pointer-events: none;
 }
-.dock-item { position: relative; display: block; width: 48px; height: 48px; width: 5cqw; height: 5cqw; }
-.dock-item svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2)); }
+.dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.25) 28%,
+                              rgba(255, 255, 255, 0.12) 62%, rgba(255, 255, 255, 0.6));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Each icon is one tile of assets/dock.webp, with the padding the system gives it. */
+.dock-item {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  width: 4.6cqw;
+  height: 4.6cqw;
+  background: url("assets/dock.webp?v=1") no-repeat;
+  background-size: 1400% 100%;
+  background-position: calc(var(--i) * 100% / 13) 0;
+}
 .dock-item.open::after {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -4px;
-  bottom: -0.42cqw;
-  width: 4px;
-  height: 4px;
-  width: 0.38cqw;
-  height: 0.38cqw;
+  bottom: -2px;
+  bottom: -0.2cqw;
+  width: 3px;
+  height: 3px;
+  width: 0.32cqw;
+  height: 0.32cqw;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.55);
 }
-.dock-divider { align-self: stretch; width: 1px; margin: 4px 2px; margin: 0.4cqw 0.25cqw; background: rgba(255, 255, 255, 0.45); }
+.dock-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 8px 3px;
+  margin: 0.75cqw 0.3cqw;
+  background: rgba(255, 255, 255, 0.5);
+}
 
 /* ---------- Thank-you page after checkout ---------- */
 .muted { color: var(--ink-mute); }
@@ -621,17 +646,19 @@ kbd {
   user-select: all;
 }
 .thanks #status { margin-top: 2rem; }
-.your-key {
-  margin-top: 2rem;
-  padding: 1rem 1.1rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  max-width: 34rem;
+/* A buyer's key in place of Buy: the key, cut short to fit, and Copy. */
+.key-button { max-width: 100%; gap: 0.65rem; }
+.key-button code {
+  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #3d3d3d;
 }
-.your-key-title { margin: 0; font-weight: 600; color: var(--ink); }
-.your-key .key-row { margin-top: 0.6rem; }
-.your-key .muted { margin: 0.7rem 0 0; font-size: 0.92rem; }
+.key-button code + span { padding-left: 0.65rem; border-left: 1px solid rgba(0, 0, 0, 0.15); }
+.hero .your-key { margin: 0.9rem 0 0; font-size: 0.92rem; }
 .text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .thanks #status:empty { display: none; }
 

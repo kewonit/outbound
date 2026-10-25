@@ -37,35 +37,60 @@
     }
   });
 
-  // A buyer's key, kept in this browser for a year after checkout so it is easy to find again.
-  var yourKey = document.getElementById("your-key");
-  if (yourKey) {
-    var saved = null;
+  // A buyer's key, kept in this browser for a year after checkout so it is easy to find again. While it is
+  // here, the Buy buttons in the top bar, the hero and the footer become the key, and a click copies it.
+  var saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem("outbound-license") || "null");
+  } catch (error) {}
+  var year = 365 * 24 * 3600 * 1000;
+  if (saved && !(typeof saved.key === "string" && Date.now() - saved.saved < year)) {
     try {
-      saved = JSON.parse(localStorage.getItem("outbound-license") || "null");
+      localStorage.removeItem("outbound-license");
     } catch (error) {}
-    var year = 365 * 24 * 3600 * 1000;
-    if (saved && typeof saved.key === "string" && Date.now() - saved.saved < year) {
-      var value = document.getElementById("your-key-value");
-      var copyKey = document.getElementById("your-key-copy");
-      value.textContent = saved.key;
-      yourKey.hidden = false;
-      copyKey.addEventListener("click", function () {
-        navigator.clipboard.writeText(saved.key).then(function () {
-          copyKey.textContent = "Copied";
-          setTimeout(function () { copyKey.textContent = "Copy"; }, 1600);
+    saved = null;
+  }
+  if (saved) {
+    var swapped = [];
+    document.querySelectorAll('.topbar a[data-url="buy"], .hero a[data-url="buy"], .foot-cta a[data-url="buy"]')
+      .forEach(function (buy) {
+        var small = buy.classList.contains("btn-sm");
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-light key-button" + (small ? " btn-sm" : "");
+        button.title = "Copy your key";
+        if (!small) {
+          var code = document.createElement("code");
+          code.textContent = saved.key;
+          button.appendChild(code);
+        }
+        var label = document.createElement("span");
+        label.textContent = small ? "Copy key" : "Copy";
+        button.appendChild(label);
+        button.addEventListener("click", function () {
+          navigator.clipboard.writeText(saved.key).then(function () {
+            var was = label.textContent;
+            label.textContent = "Copied";
+            setTimeout(function () { label.textContent = was; }, 1600);
+          });
         });
+        buy.hidden = true;
+        buy.parentNode.insertBefore(button, buy.nextSibling);
+        swapped.push({ buy: buy, button: button });
       });
+    var yourKey = document.getElementById("your-key");
+    if (yourKey) {
+      yourKey.hidden = false;
       document.getElementById("your-key-forget").addEventListener("click", function () {
         try {
           localStorage.removeItem("outbound-license");
         } catch (error) {}
         yourKey.hidden = true;
+        swapped.forEach(function (pair) {
+          pair.buy.hidden = false;
+          pair.button.remove();
+        });
       });
-    } else if (saved) {
-      try {
-        localStorage.removeItem("outbound-license");
-      } catch (error) {}
     }
   }
 

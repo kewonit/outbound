@@ -34,7 +34,7 @@ done
 # The hero: the pivots of Kansas in summer, with the bird coming to the cursor. It shows as much land as a wide
 # desktop, 1200 points across, in the same 1600 pixels. The page lays a Dock over the bottom, and the caption sits
 # level with it in the corner, as on a Mac.
-scale=1.33334 video "$assets/flight.mp4" 1200 750 16 --place kansas --best --time 184 --caption --dock 22 --cursor
+scale=1.33334 video "$assets/flight.mp4" 1200 750 16 --place kansas --best --time 184 --caption --dock 11 --cursor
 mv "$assets/flight.jpg" "$assets/poster.jpg"
 
 # Short demos of what happens now and then.
