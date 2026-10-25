@@ -36,6 +36,10 @@
       .then(function (response) { return response.json().catch(function () { return {}; }); })
       .then(function (answer) {
         if (answer.status === "ready" && answer.key) {
+          // Kept in this browser for a year, so the homepage can show it again.
+          try {
+            localStorage.setItem("outbound-license", JSON.stringify({ key: answer.key, saved: Date.now() }));
+          } catch (error) {}
           keyText.textContent = answer.key;
           email.textContent = answer.email ? "(" + answer.email + ")" : "";
           panel.hidden = false;

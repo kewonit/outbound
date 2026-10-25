@@ -24,7 +24,7 @@ It needs a Mac with Apple silicon and macOS 26 or newer.
 
 ## Buying
 
-Outbound costs $7, once, for up to three of your Macs, sold through Polar.
+Outbound costs $7 plus tax, once, for up to three of your Macs, sold through Polar.
 
 - **From the app:** open Outbound and click Buy. Pay in your browser, and Outbound unlocks by itself a moment later, with nothing to copy.
 - **From the [website](https://outbound.edbn.me/#buy):** after paying, the thank-you page has an Activate in Outbound button that unlocks the app, and shows your key too.

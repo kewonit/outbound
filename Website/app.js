@@ -39,6 +39,38 @@
     }
   });
 
+  // A buyer's key, kept in this browser for a year after checkout so it is easy to find again.
+  var yourKey = document.getElementById("your-key");
+  if (yourKey) {
+    var saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem("outbound-license") || "null");
+    } catch (error) {}
+    var year = 365 * 24 * 3600 * 1000;
+    if (saved && typeof saved.key === "string" && Date.now() - saved.saved < year) {
+      var value = document.getElementById("your-key-value");
+      var copyKey = document.getElementById("your-key-copy");
+      value.textContent = saved.key;
+      yourKey.hidden = false;
+      copyKey.addEventListener("click", function () {
+        navigator.clipboard.writeText(saved.key).then(function () {
+          copyKey.textContent = "Copied";
+          setTimeout(function () { copyKey.textContent = "Copy"; }, 1600);
+        });
+      });
+      document.getElementById("your-key-forget").addEventListener("click", function () {
+        try {
+          localStorage.removeItem("outbound-license");
+        } catch (error) {}
+        yourKey.hidden = true;
+      });
+    } else if (saved) {
+      try {
+        localStorage.removeItem("outbound-license");
+      } catch (error) {}
+    }
+  }
+
   // Demo clips load and play only while on screen, so the page stays light.
   var demos = document.querySelectorAll("video[data-src]");
   var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

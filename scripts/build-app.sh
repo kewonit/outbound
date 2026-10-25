@@ -73,16 +73,16 @@ on run {mountPath}
         set current view of win to icon view
         set toolbar visible of win to false
         set statusbar visible of win to false
-        set bounds of win to {200, 120, 800, 488}
+        set bounds of win to {200, 120, 800, 520}
         set viewOptions to icon view options of win
         set arrangement of viewOptions to not arranged
-        set icon size of viewOptions to 128
+        set icon size of viewOptions to 112
         set text size of viewOptions to 13
         set shows item info of viewOptions to false
         set shows icon preview of viewOptions to false
         set background picture of viewOptions to (POSIX file (mountPath & "/.background/Background.tiff") as alias)
-        set position of item "Outbound.app" of theDisk to {170, 160}
-        set position of item "Applications" of theDisk to {430, 160}
+        set position of item "Outbound.app" of theDisk to {170, 196}
+        set position of item "Applications" of theDisk to {430, 196}
         update theDisk without registering applications
         delay 1
         close win

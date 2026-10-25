@@ -203,14 +203,21 @@ enum Exporter {
         print(String(format: "%@ · %@ · %.2f ms GPU", place.name, season, gpuTime))
     }
 
-    /// A still of a place in fair daylight, with the bird where it is asked to be.
+    /// A still of a place, in fair daylight or at a given hour, with the bird where it is asked to be.
     private static func paint(_ place: Place, season: Int, frame: CGRect, scale: Double, bird: (CGPoint, Double)?,
-                              birdSize: Double = 27, time: Double = 30) throws -> CGImage {
+                              birdSize: Double = 27, time: Double = 30, hour: Double? = nil,
+                              clouds: Bool = true) throws -> CGImage {
         let gpu = try GPU()
         let date = Calendar.current.date(from: DateComponents(year: 2026, month: place.seasons[season].months.min() ?? 1, day: 15))!
         let world = World(place: place, time: 0, date: date, light: .alwaysDay)
         world.pointer = { nil }
         world.isDesktop = { _ in false }
+        if !clouds { world.cloudCover = 0 }
+        if let hour {
+            let clock = Calendar.current.startOfDay(for: date).addingTimeInterval(hour * 3600)
+            world.now = { clock }
+            world.light = .yourTime
+        }
         world.home = frame
         world.desktop = frame
         world.centreRiver(on: frame)
@@ -255,49 +262,92 @@ enum Exporter {
         try save(context.makeImage()!, to: url, type: .png)
     }
 
-    /// The disk image window: warm paper with a torn strip of painted paddies along the bottom, and a
-    /// pencil arrow from the app to Applications.
+    /// The disk image window, 600 points wide: a strip of painted tulip fields torn across the top of a sheet of
+    /// warm slate paper, the two icons on the paper, and a white arrow from the app to Applications. Finder writes
+    /// the icon names itself, black in Light Mode and white in Dark Mode, so the paper is a middle tone that keeps
+    /// either one readable. Icons sit at (170, 196) and (430, 196) in Finder's coordinates, 112 points across.
+    /// The sheet runs 400 points down, more than the window shows, so its foot is always paper however tall
+    /// Finder makes the title bar.
     private static func diskImage(to url: URL, scale: Double) throws {
-        let frame = CGRect(x: 0, y: 0, width: 600, height: 360)
-        let painting = try paint(Place.named("niigata")!, season: 0, frame: frame, scale: scale, bird: nil)
-        let width = Int(600 * scale), height = Int(360 * scale)
+        let top = 400.0
+        let frame = CGRect(x: 0, y: 0, width: 600, height: top)
+        let strip = CGRect(x: 0, y: top - 124, width: 600, height: 124)
+        let painting = try paint(Place.named("lisse")!, season: 0, frame: strip.offsetBy(dx: 0, dy: -strip.minY),
+                                 scale: scale, bird: (CGPoint(x: 452, y: 70), 2.6), birdSize: 22, time: 44, clouds: false)
+        let width = Int(600 * scale), height = Int(top * scale)
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+                                      space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
         context.scaleBy(x: scale, y: scale)
-        context.draw(painting, in: frame)
 
-        // Paper over everything but a strip at the bottom, its lower edge torn.
-        var random = SplitMix(seed: 11)
-        let paper = CGMutablePath()
-        paper.move(to: CGPoint(x: 0, y: 360))
-        paper.addLine(to: CGPoint(x: 600, y: 360))
+        // Warm slate paper with a faint grain, a touch lighter in the middle.
+        context.setFillColor(CGColor(srgbRed: 0.475, green: 0.455, blue: 0.43, alpha: 1))
+        context.fill(frame)
+        let glow = CGGradient(colorsSpace: space, colors: [CGColor(gray: 1, alpha: 0.06), CGColor(gray: 1, alpha: 0)] as CFArray,
+                              locations: [0, 1])!
+        context.drawRadialGradient(glow, startCenter: CGPoint(x: 300, y: top - 210), startRadius: 0,
+                                   endCenter: CGPoint(x: 300, y: top - 210), endRadius: 340, options: [])
+        var random = SplitMix(seed: 23)
+        for _ in 0..<9000 {
+            let x = random.next() * 600, y = random.next() * strip.minY
+            context.setFillColor(CGColor(gray: random.next() < 0.5 ? 0 : 1, alpha: 0.035 + 0.03 * random.next()))
+            context.fill(CGRect(x: x, y: y, width: 0.7, height: 0.7))
+        }
+
+        // The painting, torn along its lower edge, lying on the paper with a soft shadow.
+        let torn = CGMutablePath()
+        torn.move(to: CGPoint(x: 0, y: top))
+        torn.addLine(to: CGPoint(x: 600, y: top))
         var x = 600.0
         while x >= 0 {
-            paper.addLine(to: CGPoint(x: x, y: 92 + (random.next() - 0.5) * 3.2 + sin(x / 47) * 2.2))
-            x -= 3
+            torn.addLine(to: CGPoint(x: x, y: strip.minY + (random.next() - 0.5) * 3 + sin(x / 53) * 2.4))
+            x -= 2.5
         }
-        paper.closeSubpath()
+        torn.closeSubpath()
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -1.5), blur: 4, color: CGColor(gray: 0, alpha: 0.22))
-        context.setFillColor(CGColor(srgbRed: 0.982, green: 0.968, blue: 0.935, alpha: 1))
-        context.addPath(paper)
+        context.setShadow(offset: CGSize(width: 0, height: -2), blur: 7, color: CGColor(gray: 0, alpha: 0.38))
+        context.addPath(torn)
+        context.setFillColor(CGColor(gray: 0.9, alpha: 1))
         context.fillPath()
         context.restoreGState()
+        context.saveGState()
+        context.addPath(torn)
+        context.clip()
+        context.draw(painting, in: strip.insetBy(dx: 0, dy: -4).offsetBy(dx: 0, dy: 4))
+        context.restoreGState()
 
-        // A pencil arrow, drawn a little unevenly.
-        context.setStrokeColor(CGColor(srgbRed: 0.33, green: 0.31, blue: 0.29, alpha: 0.85))
-        context.setLineWidth(1.6)
+        // The arrow, from the app to Applications, rising a little as it goes.
+        context.saveGState()
+        context.setShadow(offset: CGSize(width: 0, height: -1), blur: 4, color: CGColor(gray: 0, alpha: 0.3))
+        context.setStrokeColor(CGColor(gray: 1, alpha: 0.92))
+        context.setLineWidth(3)
         context.setLineCap(.round)
         context.setLineJoin(.round)
         let arrow = CGMutablePath()
-        arrow.move(to: CGPoint(x: 268, y: 200))
-        arrow.addCurve(to: CGPoint(x: 332, y: 201.5), control1: CGPoint(x: 290, y: 203), control2: CGPoint(x: 312, y: 199))
-        arrow.move(to: CGPoint(x: 322, y: 209))
-        arrow.addLine(to: CGPoint(x: 333, y: 201.5))
-        arrow.addLine(to: CGPoint(x: 321.5, y: 194))
+        // Finder's y runs down from the top, so the icons' centre line is `top - 196` here.
+        let y = top - 196
+        arrow.move(to: CGPoint(x: 256, y: y - 4))
+        arrow.addCurve(to: CGPoint(x: 342, y: y + 2), control1: CGPoint(x: 284, y: y + 8), control2: CGPoint(x: 316, y: y + 10))
+        arrow.move(to: CGPoint(x: 331, y: y + 12))
+        arrow.addLine(to: CGPoint(x: 343, y: y + 2))
+        arrow.addLine(to: CGPoint(x: 330, y: y - 6))
         context.addPath(arrow)
         context.strokePath()
+        context.restoreGState()
+
+        // What to do, along the bottom.
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor(white: 0, alpha: 0.35)
+        shadow.shadowBlurRadius = 3
+        shadow.shadowOffset = CGSize(width: 0, height: -0.5)
+        let line = NSAttributedString(string: "Drag Outbound into Applications", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: NSColor(white: 1, alpha: 0.9),
+            .shadow: shadow, .kern: 0.2
+        ])
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+        line.draw(at: CGPoint(x: 300 - line.size().width / 2, y: top - 330))
+        NSGraphicsContext.restoreGraphicsState()
         try save(context.makeImage()!, to: url, type: .png)
     }
 

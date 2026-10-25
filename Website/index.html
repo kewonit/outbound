@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
     <a class="mark-logo" href="#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
     <div class="topbar-actions">
       <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
-      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7 + tax</a>
     </div>
   </div>
 </header>
@@ -44,8 +44,17 @@
       <h1>A painted world,<br>flying by behind your desktop.</h1>
       <p class="lede">Fields, rivers and clouds drift past under your icons while a small white bird follows your cursor. Real places, in the season they are in today, under the light outside.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7 + tax</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
+      </div>
+      <!-- Shown to buyers for a year after checkout, from this browser's storage only. -->
+      <div class="your-key" id="your-key" hidden>
+        <p class="your-key-title">Your key</p>
+        <div class="key-row">
+          <code id="your-key-value"></code>
+          <button class="btn btn-dark btn-sm" id="your-key-copy" type="button">Copy</button>
+        </div>
+        <p class="muted">Paste it into Outbound to unlock it. <button class="text-button" id="your-key-forget" type="button">Forget</button></p>
       </div>
     </div>
   </section>
@@ -208,9 +217,9 @@
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price">$7<span class="per"> once</span></p>
+          <p class="tier-price">$7<span class="per"> + tax, once</span></p>
           <p class="tier-desc">A license key for up to three of your Macs. Signed and notarized by Apple.</p>
-          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7 + tax</a>
         </article>
         <article class="tier tier-side" data-needs="download">
           <h3 class="tier-name">Already have a key?</h3>
@@ -262,9 +271,9 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2>Somewhere better to look.<span class="caret" aria-hidden="true"></span></h2>
-      <p class="section-sub">$7 for Mac.</p>
+      <p class="section-sub">$7 + tax, once.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7 + tax</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
       </div>
     </div>
@@ -292,6 +301,6 @@
   </div>
 </footer>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
