@@ -29,7 +29,7 @@ struct BiomeGPU {
     var i: SIMD4<Float>
     /// first landmark, its density, second landmark, its density
     var j: SIMD4<Float>
-    /// dry river, unused...
+    /// dry river, sodium lamps, lamps off late, unused
     var k: SIMD4<Float>
 
     init(_ b: Biome) {
@@ -52,7 +52,7 @@ struct BiomeGPU {
         animalPatches = SIMD4(b.animalPatches ?? .zero, b.animalPatches == nil ? 0 : 1)
         i = SIMD4(b.villages, b.roadTrees, b.flatRoofs ? 1 : 0, b.levees)
         j = SIMD4(Float(b.landmarks.0.rawValue), b.landmarks.1, Float(b.landmarks.2.rawValue), b.landmarks.3)
-        k = SIMD4(b.riverDry, 0, 0, 0)
+        k = SIMD4(b.riverDry, b.sodiumLamps, b.lampsOffLate ? 1 : 0, 0)
     }
 }
 

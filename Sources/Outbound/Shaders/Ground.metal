@@ -531,13 +531,6 @@ inline float houseGlow(float2 d, float2 size, int k, uint seed, float roofCover)
     return max(glow, skylight * 0.85 * step(0.6, hash11(k, seed + 404u)) * roofCover);
 }
 
-// A painted pool of lamplight: the falloff of a lamp `height` up, cut off at a slightly wobbly rim.
-inline float lampPool(float r, float height, float rim, float2 p, uint seed) {
-    float pool = pow(1.0 + r * r / (height * height), -1.5);
-    pool *= 1.0 - smoothstep(rim * 0.7, rim, r + 1.5 * (vnoise(p / 2.5, seed) - 0.5));
-    return max(pool * 0.7, fill(r - 0.3, 0.2));
-}
-
 inline float3 roofColor(constant Biome &b, float pick) {
     return pick < 0.45 ? b.roof0.rgb : pick < 0.8 ? b.roof1.rgb : b.roof2.rgb;
 }
@@ -571,7 +564,71 @@ inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constan
     float glow = houseGlow(d, size, k, seed, a) * (1.0 - shedCover);
     if (glow > light) {
         light = glow;
-        lightID = 0.02 + 0.96 * hash11(k, seed + 403u);
+        lightID = 0.02 + 0.86 * hash11(k, seed + 403u);
+    }
+    return c;
+}
+
+// Street lamps through villages: poles at a steady spacing, staggered across the road or all down one side,
+// each with its head on a short arm over the kerb. By day only the head and the pole's shadow show. After
+// dark each lamp throws a pool stretched along the road, brighter on the road than behind the pole, and
+// neighbouring pools run together. The night texture keeps the pool below 0.8 and the glowing head above
+// it, with lamp ids from 0.9 up so the composite can tell lamps apart.
+inline float3 streetLamps(float3 c, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
+                          float wander, thread float &light, thread float &lightID) {
+    if (b.h.y <= 0.0 || b.i.x <= 0.0) return c;
+    const float spacing = 34.0, height = 7.0;
+    float roadHalf = b.e.x * 0.5;
+    float j0 = floor(local.y / spacing);
+    float pools = 0.0, head = 0.0, strongest = 0.0, chosen = 0.0;
+    float2 shadow = -scene.sun.xy * min(scene.sun.z, 2.0) * height;
+    for (int dj = -1; dj <= 1; dj++) {
+        float j = j0 + float(dj);
+        float y = (j + 0.5) * spacing;
+        float village = smoothstep(0.62 - b.i.x * 0.22, 0.7 - b.i.x * 0.22, vnoise(float2(y / 1100.0, 0.5), seed + 70u));
+        // Lamps run the length of a village, with the odd gap where a pole is missing.
+        if (village < 0.5 || hash11(int(j), seed + 67u) > 0.55 + b.h.y * 0.45) continue;
+        int stretch = int(floor(y / 520.0));
+        float side = hash11(stretch, seed + 68u) < 0.5 ? ((int(j) & 1) == 0 ? 1.0 : -1.0)
+                                                      : (hash11(stretch, seed + 69u) < 0.5 ? -1.0 : 1.0);
+        float worldY = world.y + (y - local.y);
+        float rx = roadX(worldY, scene, wander);
+        float slope = (roadX(worldY + 2.0, scene, wander) - roadX(worldY - 2.0, scene, wander)) * 0.25;
+        float2 along = normalize(float2(slope, 1.0));
+        float2 out = float2(along.y, -along.x) * side;
+        float2 base = float2(rx, worldY);
+        float2 pole = base + out * (roadHalf + 1.5);
+        float2 lamp = base + out * (roadHalf + 0.2);
+        float2 q = world - lamp;
+        float u = dot(q, along), v = dot(q, out);
+
+        // Day: the pole and arm cast a thin shadow, and the head is a small grey box.
+        float poleShadow = segmentDistance(world, pole, pole + shadow);
+        float armShadow = segmentDistance(world, pole + shadow, lamp + shadow);
+        c = shade(c, fill(min(poleShadow, armShadow) - 0.1, 0.22) * 0.5, scene);
+        c = mix(c, float3(0.24, 0.24, 0.26), fill(segmentDistance(world, pole, lamp) - 0.07, 0.15) * 0.6);
+        c = mix(c, float3(0.2, 0.2, 0.22), fill(length(world - pole) - 0.16, 0.1));
+        float box = sdBox(float2(u, v), float2(0.24, 0.5));
+        float3 housing = mix(float3(0.36, 0.37, 0.4), float3(0.55, 0.56, 0.6), saturate(dot(scene.sun.xy, along) * 0.5 + 0.5));
+        c = mix(c, housing, fill(box, 0.1));
+
+        // Night: the pool falls on the road ahead of the head, stretched along the road.
+        float2 centre = float2(u, v + 1.2);
+        float r2 = centre.x * centre.x / 2.9 + centre.y * centre.y;
+        float pool = pow(1.0 + r2 / (height * height), -1.5);
+        pool *= 1.0 - smoothstep(13.0, 20.0, sqrt(r2) + 2.5 * (vnoise(world / 3.0, seed + 411u) - 0.5));
+        pool *= 1.0 - 0.55 * smoothstep(0.0, 6.0, v - 1.0);
+        pools += pool;
+        if (pool > strongest) {
+            strongest = pool;
+            chosen = j;
+        }
+        head = max(head, max(fill(box, 0.1), exp(-dot(q, q) / 0.45) * 0.55));
+    }
+    float value = head > 0.02 ? 0.8 + 0.2 * head : 0.8 * saturate(pools);
+    if (strongest > 0.0 && value > light) {
+        light = value;
+        lightID = 0.9 + 0.1 * hash11(int(chosen), seed + 412u);
     }
     return c;
 }
@@ -610,18 +667,8 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
                 c = tree(c, world - behind, 2.6 + 1.6 * hash11(id, seed + 74u), local, b, scene, seed, cover);
             }
         }
-        // Street lamps at the roadside, thicker in villages.
-        int lampID = int(k) * 2 + (side > 0.0 ? 1 : 0);
-        if (hash11(lampID, seed + 67u) < b.h.y * mix(0.25, 1.0, village)) {
-            float2 lamp = float2(rx + side * (b.e.x * 0.5 + 1.0), worldY);
-            float pool = lampPool(length(world - lamp), 9.0, 15.0, world, seed + 411u);
-            if (pool > light) {
-                light = pool;
-                lightID = 1.0;
-            }
-        }
     }
-    return c;
+    return streetLamps(c, local, world, b, scene, seed, wander, light, lightID);
 }
 
 // MARK: - Landmarks
@@ -950,7 +997,9 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.color = landmark(l.color, int(b.j.z), b.j.w, local, world, b, scene, seed + 17u, wander, riverHalf, l.herd, l.water,
                        cover, l.light, l.lightID);
     l.color = houses(l.color, local, world, b, scene, seed, wander, cover, l.light, l.lightID);
+    float roofs = cover;
     l.color = trees(l.color, local, world, b, scene, seed, riverHalf, wander, cover);
+    l.light *= 1.0 - 0.75 * saturate(cover - roofs);
     l.sway *= 1.0 - cover;
     l.herd *= 1.0 - cover;
     l.water *= 1.0 - cover;

@@ -75,10 +75,14 @@ public struct Biome: Sendable {
 
     /// Traffic keeps left, as in Japan and India.
     public var drivesLeft = false
-    /// How many houses have a street lamp by the road outside, 0 to 1.
+    /// How fully village streets are lit, 0 for none to 1 for a lamp on every pole.
     public var streetLights: Float = 0.5
-    /// Street lamp colour: sodium orange in older places, warm LED white in newer ones.
-    public var lampColor: SIMD3<Float> = Biome.rgb(0xffb04a)
+    /// The colour of the newer LED street lamps.
+    public var lampColor: SIMD3<Float> = Biome.rgb(0xffe0b8)
+    /// The share of older sodium lamps still glowing orange among the LED ones, 0 to 1.
+    public var sodiumLamps: Float = 0.3
+    /// Village lamps go off from midnight until five, as in much of rural France.
+    public var lampsOffLate = false
     /// Boats on the river, 0 to 1.
     public var boats: Float = 0
     public var boat: Boat = .rowing

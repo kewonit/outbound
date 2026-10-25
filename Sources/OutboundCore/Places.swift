@@ -62,7 +62,7 @@ private let punjabBase: Biome = {
     b.fieldSize = 125; b.hedgeWidth = 5; b.hedgeTrees = 0.7
     b.villages = 0.6; b.flatRoofs = true; b.roadTrees = 0.35
     b.roofs = (rgb(0xd8c4a0), rgb(0xe0b0a8), rgb(0xeeeae2))
-    b.drivesLeft = true; b.streetLights = 0.25; b.lampColor = rgb(0xff9a30)
+    b.drivesLeft = true; b.streetLights = 0.45; b.lampColor = rgb(0xe4ecff); b.sodiumLamps = 0.4
     b.landmarks = (.tubeWell, 0.35, .kiln, 0.25)
     b.boats = 0.05
     return b
@@ -106,7 +106,7 @@ private let niigataBase: Biome = {
     b.trees = 0.03; b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18
     b.roofs = (rgb(0x4a4e55), rgb(0x3e5a80), rgb(0x7a3a3a))
     b.riverWidth = 60; b.roadWidth = 7
-    b.drivesLeft = true; b.streetLights = 0.7; b.lampColor = rgb(0xffd4a6)
+    b.drivesLeft = true; b.streetLights = 0.7; b.lampColor = rgb(0xeef2ff); b.sodiumLamps = 0.08
     b.boats = 0.25
     b.landmarks = (.glasshouse, 0.08, .none, 0)
     return b
@@ -243,7 +243,7 @@ private let laplandBase: Biome = {
     b.crops = (rgb(0xd6d4c0), rgb(0x8aaa5a), rgb(0x7a8a4a), rgb(0x9a8a5a))
     b.canopy = rgb(0x3d5a3a); b.canopyLight = rgb(0x5a7a4a); b.hedgeTrees = 0.55; b.trees = 0.02
     b.roofs = (rgb(0x3a3a3e), rgb(0x7a2a22), rgb(0x2a2a2e))
-    b.villages = 0.1; b.streetLights = 0.6; b.lampColor = rgb(0xffd4a6)
+    b.villages = 0.1; b.streetLights = 0.6; b.lampColor = rgb(0xffdcb4); b.sodiumLamps = 0.35
     b.landmarks = (.lake, 0.35, .corral, 0.15)
     b.boats = 0.1
     return b
@@ -288,7 +288,8 @@ private let normandyBase: Biome = {
     b.fieldSize = 210; b.hedgeTrees = 0.7; b.roadTrees = 0.3; b.villages = 0.35
     b.roofs = (rgb(0x5d636b), rgb(0x9a5a42), rgb(0x8a7a5a))
     b.animalColor = rgb(0xf0ebe2); b.animalPatches = rgb(0x8a4a2a); b.herds = 0.35
-    b.riverWidth = 22; b.streetLights = 0.45; b.lampColor = rgb(0xffbb6e)
+    b.riverWidth = 22; b.streetLights = 0.5; b.lampColor = rgb(0xffd6a0); b.sodiumLamps = 0.45
+    b.lampsOffLate = true
     b.boats = 0.3
     return b
 }()
@@ -329,7 +330,7 @@ private let lisseBase: Biome = {
     // and boats on the canals. Many beds are already topped, leaving green stripes.
     b.fallow = 0.3; b.roadTrees = 0.6; b.villages = 0.5
     b.roofs = (rgb(0xb5523a), rgb(0x3a3a3e), rgb(0x8a4a3a))
-    b.streetLights = 0.8; b.lampColor = rgb(0xffc98a)
+    b.streetLights = 0.8; b.lampColor = rgb(0xfff0dc); b.sodiumLamps = 0.15
     b.landmarks = (.glasshouse, 0.25, .windmill, 0.18)
     b.boats = 0.5
     return b

@@ -60,6 +60,38 @@ inline float houseOn(float id, float hour, float sunset) {
     return max(evening, morning);
 }
 
+// One street lamp's light on the ground. `value` is the baked pool below 0.8 and the glowing head above it;
+// `lamp` tells lamps apart, 0 to 1. Photocells switch lamps on a few at a time through dusk. Older sodium
+// lamps glow a dim pinkish red for their first minutes before reaching their orange, newer LED lamps come
+// on at once in the place's own white. Now and then one is failing and stutters. Some villages, as in much
+// of rural France, switch their lamps off from midnight until five.
+inline float3 streetLight(float3 c, float value, float lamp, float night, float hour, constant Biome &b, float time) {
+    float h1 = fract(lamp * 7.13 + 0.31), h2 = fract(lamp * 17.9 + 0.57);
+    float start = 0.08 + 0.14 * h1;
+    float on = smoothstep(start, start + 0.02, night);
+    if (b.k.z > 0.5) on *= 1.0 - step(24.0, hour) * step(hour, 29.0);
+    bool sodium = h2 < b.k.y;
+    float3 tint = b.lamp.rgb;
+    if (sodium) {
+        float warm = saturate((night - start) / 0.12);
+        tint = mix(float3(0.95, 0.45, 0.32), float3(1.0, 0.6, 0.22), warm);
+        on *= mix(0.35, 1.0, warm);
+    }
+    if (fract(lamp * 31.7) > 0.955) {
+        float tick = floor(time * 9.0);
+        float burst = step(0.82, fract(sin(floor(time / 6.0) * 12.9898 + lamp * 78.2) * 43758.5));
+        on *= 1.0 - burst * step(0.45, fract(sin(tick * 12.9898 + lamp * 4.1) * 43758.5)) * 0.85;
+    }
+    if (on <= 0.0) return 0.0;
+    float pool = min(value, 0.8) / 0.8;
+    float glow = saturate((value - 0.8) / 0.2);
+    // The lamp's colour wins over the ground's: grass under a lamp reads pale, not lurid green.
+    float3 ground = mix(float3(luma(c)), c, 0.45) * 0.85 + 0.2;
+    float3 light = ground * tint * (pool * pool * 0.85 + pool * 0.25);
+    light += tint * glow * 0.7 + float3(1.0, 0.98, 0.94) * glow * glow * glow * 0.5;
+    return light * on;
+}
+
 inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &scene, float mpp,
                    thread float3 &light) {
     float density = b.g.y;
@@ -316,17 +348,21 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float2 lamp = night > 0.0 ? groundNight.read(nearest).rg : 0.0;
     if (lamp.x > 0.004) {
         float id = lamp.y;
-        float on = id > 0.99 ? smoothstep(0.1, 0.35, night) : houseOn(id, scene.clock.x, scene.clock.y);
-        float3 tint = id > 0.99 ? leg.biome.lamp.rgb : float3(1.0, 0.68, 0.35);
-        // About one lit house in ten has a television on in the evening: cool and restless.
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
-        if (id < 0.99 && fract(id * 41.3) > 0.9 && hour > 20.5 && hour < 23.6) {
-            tint = float3(0.62, 0.72, 1.0) * (0.75 + 0.25 * sin(scene.time.x * 3.1 + id * 90.0));
+        if (id > 0.895) {
+            light += streetLight(c, lamp.x, (id - 0.9) * 10.0, night, hour, leg.biome, scene.time.x);
+        } else {
+            float on = houseOn(id, scene.clock.x, scene.clock.y);
+            float3 tint = float3(1.0, 0.68, 0.35);
+            // About one lit house in ten has a television on in the evening: cool and restless.
+            if (fract(id * 41.3) > 0.9 && hour > 20.5 && hour < 23.6) {
+                tint = float3(0.62, 0.72, 1.0) * (0.75 + 0.25 * sin(scene.time.x * 3.1 + id * 90.0));
+            }
+            float pool = lamp.x * on;
+            // Lit ground shows its own colour warmed, over a little of the lamp's own colour so it never turns olive.
+            light += (mix(float3(luma(c)), c, 0.65) * 0.85 + 0.22) * tint * pool * 1.35;
+            light += float3(1.0, 0.95, 0.85) * smoothstep(0.9, 1.0, pool) * 0.6;
         }
-        float pool = lamp.x * on;
-        // Lit ground shows its own colour warmed, over a little of the lamp's own colour so it never turns olive.
-        light += (c * 0.85 + 0.22) * tint * pool * 1.35;
-        light += float3(1.0, 0.95, 0.85) * smoothstep(0.9, 1.0, pool) * 0.6;
     }
 
     ViewOut out;
