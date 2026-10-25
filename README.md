@@ -6,7 +6,7 @@ Fields, rivers and clouds drift past under your icons while a small white bird f
 
 ![Flooded rice paddies and sakura in Niigata, painted by Outbound](Website/assets/places/niigata.jpg)
 
-[Website](https://outbound.edbn.me) · [Buy a license](https://outbound.edbn.me/#buy) · [Download](https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg)
+[Website](https://outbound.edbn.me) · [Buy a license](https://outbound.edbn.me/#buy) · [Releases](https://github.com/kewonit/outbound/releases)
 
 ## What it does
 
@@ -14,13 +14,13 @@ Fields, rivers and clouds drift past under your icons while a small white bird f
 - **Real seasons.** Each place shows what is growing there today: mustard in Punjab in February, the rice harvest in Niigata in October, snow on the fells in Lapland in winter. Or keep every place at its best.
 - **Real light.** The sun follows your clock, so evenings bring long golden shadows and nights turn a moonlit blue.
 - **Life passing by.** Now and then a train crosses in the place's own livery, a boat leaves its wake, or a skein of geese, a pair of cranes or a line of flamingos flies over.
-- **Lights at night.** Windows light up house by house through the evening, villages glow with street lamps, cars and trains light the way.
+- **Lights at night.** Windows light up house by house through the evening, street lamps come on along the village roads, a few at a time, and cars and trains light the way.
 - **Each place itself.** Granite kopjes on the Serengeti, windmill pumps and estancia groves on the pampas, polder mills and glasshouses in Lisse, farmsteads and grain bins in Kansas, bogs and reindeer corrals in Lapland.
 - **A bird that follows you.** Move the cursor over the desktop and the bird comes to circle it. One bird for all your displays, and it flies from one to the next.
 - **Easy on the battery.** It stops drawing whenever the desktop is covered, the screen sleeps or locks, you are away, or Low Power Mode is on. On battery it flies at a lower frame rate and resolution, or holds a still painting if you prefer.
-- **The lock screen matches.** Your desktop picture is kept as a painting of where you are, and your old one can be put back from Settings.
+- **The lock screen matches.** While Outbound runs, your desktop picture is a painting of where you are. Quit it and your own picture comes back.
 
-It needs macOS 26 or newer.
+It needs a Mac with Apple silicon and macOS 26 or newer.
 
 ## Buying
 
@@ -53,7 +53,7 @@ OUTBOUND_SHADERS=$PWD/Sources/Outbound/Shaders .build/debug/Outbound
 OUTBOUND_POLAR_SANDBOX=1 OUTBOUND_POLAR_ORGANIZATION=<sandbox organization id> .build/debug/Outbound
 ```
 
-`scripts/make-site-assets.sh` repaints every picture and the video on the website.
+`scripts/make-site-assets.sh` repaints every picture and video on the website.
 
 ## How it works
 

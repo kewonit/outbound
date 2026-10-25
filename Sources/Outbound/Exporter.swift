@@ -9,6 +9,10 @@ import UniformTypeIdentifiers
 ///     Outbound --render out.png [--place punjab] [--date 2026-04-20] [--hour 16.5] [--time 20]
 ///                               [--size 1512x982] [--scale 2]
 ///     Outbound --render - --seconds 20 --fps 30 ... | ffmpeg -f rawvideo -pix_fmt bgra -s WxH -r 30 -i - out.mp4
+///
+/// For the website: --caption adds the place name in the corner as on the desktop, --cursor flies a pointer
+/// across the frame for the bird to chase, and --fly-to lisse --fly-at 3 picks Lisse from the menu after
+/// three seconds. --pace sets metres per second over the ground.
 ///     Outbound --icon icon.png
 ///     Outbound --dmg background.png [--scale 2]
 ///
@@ -91,6 +95,14 @@ enum Exporter {
             world.journey.followsCalendar = false
             world.journey.refreshSeasons()
         }
+        if let pace = options["pace"].flatMap(Double.init) { world.journey.setSpeed(pace, at: 0) }
+        // A pointer that wanders over the frame and rests now and then, for the bird to chase.
+        let cursor = options["cursor"] != nil
+        var clockTime = time
+        if cursor {
+            world.isDesktop = { _ in true }
+            world.pointer = { cursorPoint(at: clockTime, in: frame) }
+        }
         world.advance(to: time)
         // With --find train or --find flock, fly on until one is in view.
         if let event = options["find"] {
@@ -99,7 +111,8 @@ enum Exporter {
                 time += 2
                 world.advance(to: time)
             }
-            print(String(format: "Found %@ at %.0f s", event, time))
+            // On standard error, so a video streaming to standard output stays clean.
+            FileHandle.standardError.write(Data(String(format: "Found %@ at %.0f s\n", event, time).utf8))
             time += Double(options["after"] ?? "0") ?? 0
             world.advance(to: time)
             if ProcessInfo.processInfo.environment["DEBUG_TRAIN"] != nil {
@@ -143,32 +156,47 @@ enum Exporter {
             return
         }
 
+        let caption = options["caption"] != nil
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        func paintFrame() throws -> Double {
+            guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
+            renderer.encode(world: world, into: target, commandBuffer: commands)
+            commands.commit()
+            commands.waitUntilCompleted()
+            if let error = commands.error { throw error }
+            target.getBytes(&bytes, bytesPerRow: width * 4, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+            if caption || cursor {
+                let centre = world.camera.y + Double(frame.midY) * World.metresPerPoint
+                overlay(&bytes, width: width, height: height, scale: scale,
+                        caption: caption ? world.journey.leg(at: centre).place.name : nil,
+                        cursor: cursor ? cursorPoint(at: clockTime, in: frame) : nil)
+            }
+            return (commands.gpuEndTime - commands.gpuStartTime) * 1000
+        }
+
         // With --seconds, stream raw BGRA frames to standard output for ffmpeg, flying on between them.
         if let seconds = options["seconds"].flatMap(Double.init) {
             let fps = Double(options["fps"] ?? "30") ?? 30
+            let destination = options["fly-to"].flatMap(Place.named)
+            var flyAt = Double(options["fly-at"] ?? "3") ?? 3
             let out = FileHandle.standardOutput
-            var bytes = [UInt8](repeating: 0, count: width * height * 4)
             for frame in 0..<Int(seconds * fps) {
-                world.advance(to: time + Double(frame) / fps)
-                guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
-                renderer.encode(world: world, into: target, commandBuffer: commands)
-                commands.commit()
-                commands.waitUntilCompleted()
-                target.getBytes(&bytes, bytesPerRow: width * 4, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+                clockTime = time + Double(frame) / fps
+                world.advance(to: clockTime)
+                if let destination, Double(frame) / fps >= flyAt {
+                    let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
+                    world.journey.fly(to: destination, from: bottom, time: world.time)
+                    flyAt = .infinity
+                }
+                _ = try paintFrame()
                 out.write(Data(bytes))
             }
             return
         }
 
-        guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
-        renderer.encode(world: world, into: target, commandBuffer: commands)
-        commands.commit()
-        commands.waitUntilCompleted()
-        if let error = commands.error { throw error }
-
+        let gpuTime = try paintFrame()
         let url = URL(filePath: output)
-        try write(target, to: url, type: url.pathExtension == "jpg" ? .jpeg : .png)
-        let gpuTime = (commands.gpuEndTime - commands.gpuStartTime) * 1000
+        try save(try image(bytes, width: width, height: height), to: url, type: url.pathExtension == "jpg" ? .jpeg : .png)
         let season = world.journey.leg(at: world.camera.y).season.line
         print(String(format: "%@ · %@ · %.2f ms GPU", place.name, season, gpuTime))
     }
@@ -271,10 +299,73 @@ enum Exporter {
         try save(context.makeImage()!, to: url, type: .png)
     }
 
+    /// Where the wandering pointer is at time `t`: sweeping loops across the middle of the frame, resting for a
+    /// moment at the end of each.
+    private static func cursorPoint(at t: Double, in frame: CGRect) -> CGPoint {
+        let cycle = 9.0
+        let phase = t.truncatingRemainder(dividingBy: cycle) / cycle
+        let moving = min(phase / 0.7, 1)
+        let eased = moving * moving * (3 - 2 * moving)
+        let loop = (t / cycle).rounded(.down) + eased
+        let x = 0.5 + 0.3 * sin(loop * 2.1 + 0.4)
+        let y = 0.5 + 0.24 * sin(loop * 3.3 + 1.2)
+        return CGPoint(x: frame.minX + frame.width * x, y: frame.minY + frame.height * y)
+    }
+
+    /// Draws the caption and the pointer over a frame read back from the GPU, as they appear on the desktop.
+    private static func overlay(_ bytes: inout [UInt8], width: Int, height: Int, scale: Double, caption: String?,
+                                cursor: CGPoint?) {
+        let info = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        bytes.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: info) else { return }
+            context.scaleBy(x: scale, y: scale)
+            if let caption, let image = CaptionView.image(place: caption, note: nil, scale: scale) {
+                let size = CGSize(width: Double(image.width) / scale, height: Double(image.height) / scale)
+                context.draw(image, in: CGRect(origin: CGPoint(x: 20 - CaptionView.margin, y: 18 - CaptionView.margin),
+                                               size: size))
+            }
+            if let cursor {
+                // The system arrow: black with a white rim and a soft shadow, its tip at the point.
+                let arrow = CGMutablePath()
+                let points: [(Double, Double)] = [(0, 0), (0, 17), (4, 13.2), (7, 19.6), (9.6, 18.5), (6.8, 12.3), (12, 12.3)]
+                for (index, point) in points.enumerated() {
+                    let p = CGPoint(x: cursor.x + point.0, y: cursor.y - point.1)
+                    if index == 0 { arrow.move(to: p) } else { arrow.addLine(to: p) }
+                }
+                arrow.closeSubpath()
+                context.saveGState()
+                context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: CGColor(gray: 0, alpha: 0.35))
+                context.setFillColor(CGColor(gray: 1, alpha: 1))
+                context.addPath(arrow)
+                context.setLineWidth(2.4)
+                context.setLineJoin(.round)
+                context.setStrokeColor(CGColor(gray: 1, alpha: 1))
+                context.drawPath(using: .fillStroke)
+                context.restoreGState()
+                context.setFillColor(CGColor(gray: 0, alpha: 1))
+                context.addPath(arrow)
+                context.fillPath()
+            }
+        }
+    }
+
+    private static func image(_ bytes: [UInt8], width: Int, height: Int) throws -> CGImage {
+        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        guard let provider = CGDataProvider(data: Data(bytes) as CFData),
+              let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+                                  bytesPerRow: width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: info, provider: provider, decode: nil, shouldInterpolate: false,
+                                  intent: .defaultIntent)
+        else { throw Failure(description: "Could not read the frame back") }
+        return image
+    }
+
     private static func save(_ image: CGImage, to url: URL, type: UTType) throws {
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)
         else { throw Failure(description: "Could not write \(url.path)") }
-        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.88] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw Failure(description: "Could not write \(url.path)") }
     }
 

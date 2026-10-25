@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <!--
-  OUTBOUND URL CONFIG: the only place site URLs live.
-    download : the disk image in the latest GitHub release
-    buy      : the Polar checkout for a license
-    github   : project repository
-  app.js applies these to every [data-url] link at load. No build step.
+  Site URLs (download, buy, github) live once, at the top of app.js.
   Link previews need absolute URLs, so og:image and twitter:image point at
   the live site.
 -->
@@ -25,14 +21,7 @@
 <meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
-<link rel="stylesheet" href="styles.css?v=4">
-<script>
-window.OUTBOUND_URLS = {
-  download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
-  buy: "https://buy.polar.sh/POLAR_CHECKOUT_LINK",
-  github: "https://github.com/kewonit/outbound"
-};
-</script>
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -41,7 +30,7 @@ window.OUTBOUND_URLS = {
     <a class="mark-logo" href="#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
     <div class="topbar-actions">
       <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
-      <a class="btn btn-light btn-sm" href="#buy" data-url="buy">Buy for $7</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
     </div>
   </div>
 </header>
@@ -55,8 +44,8 @@ window.OUTBOUND_URLS = {
       <h1>A painted world,<br>flying by behind your desktop.</h1>
       <p class="lede">Fields, rivers and clouds drift past under your icons while a small white bird follows your cursor. Real places, in the season they are in today, under the light outside.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
       </div>
     </div>
   </section>
@@ -66,8 +55,43 @@ window.OUTBOUND_URLS = {
     <div class="wrap-wide">
       <figure>
         <video src="assets/flight.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="metadata"
-               width="1600" height="1000" aria-label="Mustard fields in Punjab drifting past, with clouds and a white bird"></video>
+               width="1600" height="1000" aria-label="Mustard fields in Punjab drifting past while the white bird follows the cursor"></video>
       </figure>
+    </div>
+  </section>
+
+  <!-- ============ DEMOS: short clips, each drawn by the app's own renderer ============ -->
+  <section class="section" id="demos">
+    <div class="wrap-narrow">
+      <h2>Something new every minute.</h2>
+      <p class="section-sub">Straight from Outbound's renderer, at the size it draws on a MacBook.</p>
+      <div class="demos">
+        <figure class="demo demo-wide">
+          <video data-src="assets/demos/follow.mp4" poster="assets/demos/follow.jpg" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="The gull following the cursor over rice paddies in Niigata"></video>
+          <figcaption><strong>The bird follows you</strong><span>Move the cursor over the desktop and the gull comes to circle it.</span></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="assets/demos/night.mp4" poster="assets/demos/night.jpg" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="A Normandy village at night, with lit windows and street lamps along the road"></video>
+          <figcaption><strong>Night in the villages</strong><span>Windows light up one by one, and street lamps glow along the road.</span></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="assets/demos/train.mp4" poster="assets/demos/train.jpg" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="A white train with a yellow stripe crossing rice paddies in Niigata"></video>
+          <figcaption><strong>A train passes</strong><span>In each place's own colours, now and then, across the fields.</span></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="assets/demos/flock.mp4" poster="assets/demos/flock.jpg" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="A skein of geese flying over tulip fields in Lisse"></video>
+          <figcaption><strong>Geese fly over</strong><span>Skeins in the migration months, cranes and flamingos where they live.</span></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="assets/demos/fly.mp4" poster="assets/demos/fly.jpg" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Mustard fields in Punjab turning into tulip fields in Lisse"></video>
+          <figcaption><strong>Fly anywhere</strong><span>Pick a place from the menu bar and the land repaints itself.</span></figcaption>
+        </figure>
+      </div>
     </div>
   </section>
 
@@ -119,12 +143,26 @@ window.OUTBOUND_URLS = {
         </article>
         <article class="feature">
           <h3>Lock screen too</h3>
-          <p>Your desktop picture stays a painting of where you are, so the lock screen matches.</p>
+          <p>Your desktop picture becomes a painting of where you are. Quit, and your own comes back.</p>
         </article>
         <article class="feature">
           <h3>No tracking</h3>
           <p>No account and no analytics. Only a license check now and then.</p>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIGHT: one village through a day ============ -->
+  <section class="section" id="light">
+    <div class="wrap-narrow">
+      <h2>Under the light outside your window.</h2>
+      <p class="section-sub">The sun follows your clock. One village in Normandy, through an April day.</p>
+      <div class="day">
+        <figure><img src="assets/day/morning.jpg" alt="The village in soft morning light" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Morning</figcaption></figure>
+        <figure><img src="assets/day/noon.jpg" alt="The village at midday with short shadows" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Noon</figcaption></figure>
+        <figure><img src="assets/day/evening.jpg" alt="The village in warm evening light with long shadows" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Evening</figcaption></figure>
+        <figure><img src="assets/day/night.jpg" alt="The village at night with lit windows and street lamps" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Night</figcaption></figure>
       </div>
     </div>
   </section>
@@ -157,13 +195,13 @@ window.OUTBOUND_URLS = {
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
           <p class="tier-price">$7<span class="per"> once</span></p>
           <p class="tier-desc">A license key for up to three of your Macs. Signed and notarized by Apple.</p>
-          <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
         </article>
-        <article class="tier tier-side">
+        <article class="tier tier-side" data-needs="download">
           <h3 class="tier-name">Already have a key?</h3>
           <p class="tier-price">Unlock</p>
           <p class="tier-desc">Download Outbound, open it, and paste the key from your receipt.</p>
-          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
         </article>
       </div>
     </div>
@@ -176,7 +214,7 @@ window.OUTBOUND_URLS = {
       <div class="faq">
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">What do I need to run Outbound?</button>
-          <div class="faq-a"><p>A Mac with macOS 26 or newer. Apple silicon runs it best.</p></div>
+          <div class="faq-a"><p>A Mac with Apple silicon and macOS 26 or newer.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">Will it drain my battery?</button>
@@ -184,7 +222,7 @@ window.OUTBOUND_URLS = {
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">Does it show on the lock screen?</button>
-          <div class="faq-a"><p>macOS doesn't let apps animate the lock screen. Outbound keeps your desktop picture set to a painting of the place you are flying over, so the lock screen shows that, and puts your old picture back if you ask.</p></div>
+          <div class="faq-a"><p>macOS doesn't let apps animate the lock screen. Outbound keeps your desktop picture set to a painting of the place you are flying over, so the lock screen shows that. Quit Outbound, or turn this off in Settings, and your own picture comes back.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">Does it work with more than one display?</button>
@@ -211,8 +249,8 @@ window.OUTBOUND_URLS = {
       <h2>Somewhere better to look.<span class="caret" aria-hidden="true"></span></h2>
       <p class="section-sub">$7 for Mac.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
       </div>
     </div>
     <nav class="foot-cols" aria-label="Footer">
@@ -235,10 +273,10 @@ window.OUTBOUND_URLS = {
         <a href="/license">License</a>
       </div>
     </nav>
-    <p class="foot-base"><span>Needs macOS 26 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+    <p class="foot-base"><span>Needs a Mac with Apple silicon and macOS 26 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
   </div>
 </footer>
 
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
