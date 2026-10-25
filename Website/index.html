@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -53,9 +53,24 @@
   <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
   <section class="visual-bleed" aria-label="Outbound flying over Punjab">
     <div class="wrap-wide">
-      <figure>
+      <figure class="desktop">
         <video src="assets/flight.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="metadata"
-               width="1600" height="1000" aria-label="Mustard fields in Punjab drifting past while the white bird follows the cursor"></video>
+               width="1600" height="1000" aria-label="A Mac desktop: mustard fields in Punjab drift past behind the Dock while the white bird follows the cursor"></video>
+        <!-- A Dock over the clip, so it reads as a Mac's desktop. Generic icons, drawn for this page. -->
+        <div class="dock" aria-hidden="true">
+          <span class="dock-item open"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#74d2f7"/><stop offset="1" stop-color="#2a86e2"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-a)"/><path d="M13 23a4 4 0 0 1 4-4h9l4 4h17a4 4 0 0 1 4 4v17a4 4 0 0 1-4 4H17a4 4 0 0 1-4-4z" fill="#fff" opacity=".94"/><path d="M13 29h38" stroke="#2a86e2" stroke-opacity=".3" stroke-width="2"/></svg></span>
+          <span class="dock-item open"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fc6f8"/><stop offset="1" stop-color="#1662c4"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-b)"/><g fill="none" stroke="#fff" stroke-width="2.6"><circle cx="32" cy="32" r="17"/><ellipse cx="32" cy="32" rx="7.5" ry="17"/><path d="M15 32h34M18 23h28M18 41h28"/></g></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6dbcf6"/><stop offset="1" stop-color="#1b6fd0"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-c)"/><rect x="14" y="20" width="36" height="25" rx="3.5" fill="#fff"/><path d="M15 22l17 13 17-13" fill="none" stroke="#1b6fd0" stroke-width="2.4" stroke-linejoin="round"/></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#72e483"/><stop offset="1" stop-color="#22ad48"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-d)"/><ellipse cx="32" cy="30" rx="18" ry="14" fill="#fff"/><path d="M21 40c-1 4-3 6-6 7 5 1 10-1 13-4z" fill="#fff"/></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#fbfbfb"/><text x="32" y="21" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="9.5" font-weight="600" fill="#e5483d">MON</text><text x="32" y="49" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="27" font-weight="300" fill="#222">26</text></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9bd8ff"/><stop offset="1" stop-color="#4b9ff0"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-e)"/><circle cx="44" cy="20" r="6" fill="#ffd54a"/><path d="M8 50l15-18 9 10 8-8 16 16v0a6 6 0 0 1 0 0H8z" fill="#3f9b4a"/><path d="M8 50l15-18 9 10-6 8z" fill="#2f7d3a"/></svg></span>
+          <span class="dock-item open"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7593"/><stop offset="1" stop-color="#e5324d"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-f)"/><path d="M27 43V21l17-4v22" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/><ellipse cx="23" cy="43.5" rx="5.5" ry="4.5" fill="#fff"/><ellipse cx="40" cy="39.5" rx="5.5" ry="4.5" fill="#fff"/></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#fffbea"/><path d="M0 14a14 14 0 0 1 14-14h36a14 14 0 0 1 14 14v6H0z" fill="#ffd34d"/><g stroke="#d9d3bd" stroke-width="2"><path d="M12 31h40M12 40h40M12 49h28"/></g></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#45454a"/><stop offset="1" stop-color="#1d1d20"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-g)"/><path d="M17 24l9 8-9 8" fill="none" stroke="#e8e8e8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 41h15" stroke="#e8e8e8" stroke-width="3.2" stroke-linecap="round"/></svg></span>
+          <span class="dock-item"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dcdfe4"/><stop offset="1" stop-color="#9ba1a9"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-h)"/><circle cx="32" cy="32" r="15" fill="none" stroke="#5c626a" stroke-width="7" stroke-dasharray="5.9 5.9"/><circle cx="32" cy="32" r="12" fill="#5c626a"/><circle cx="32" cy="32" r="5" fill="#c8ccd2"/></svg></span>
+          <span class="dock-divider"></span>
+          <span class="dock-item trash"><svg viewBox="0 0 64 64"><path d="M18 19h28l-3 31a3.5 3.5 0 0 1-3.5 3H24.5a3.5 3.5 0 0 1-3.5-3z" fill="rgba(255,255,255,.5)" stroke="rgba(255,255,255,.9)" stroke-width="1.6"/><ellipse cx="32" cy="19" rx="14" ry="3.2" fill="rgba(255,255,255,.75)"/><g stroke="rgba(255,255,255,.85)" stroke-width="1.4"><path d="M25 26l1 23M32 26v23M39 26l-1 23"/></g></svg></span>
+        </div>
       </figure>
     </div>
   </section>
@@ -277,6 +292,6 @@
   </div>
 </footer>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

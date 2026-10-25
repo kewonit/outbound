@@ -28,8 +28,9 @@ for entry in punjab:45 niigata:45 serengeti:150 normandy:45 lisse:45 pampa:45 la
 done
 "$outbound" --render "$assets/og-image.png" --place niigata --best --time 40 --size 600x315 --scale 2 --caption
 
-# The hero: Punjab in flower, with the bird coming to the cursor.
-video "$assets/flight.mp4" 800 500 16 --place punjab --best --time 30 --caption --cursor
+# The hero: Punjab in flower, with the bird coming to the cursor. The page lays a Dock over the bottom, so the
+# caption sits above it as on a Mac.
+video "$assets/flight.mp4" 800 500 16 --place punjab --best --time 30 --caption --dock 58 --cursor
 mv "$assets/flight.jpg" "$assets/poster.jpg"
 
 # Short demos of what happens now and then.

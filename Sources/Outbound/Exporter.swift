@@ -9,12 +9,13 @@ import UniformTypeIdentifiers
 ///     Outbound --render out.png [--place punjab] [--date 2026-04-20] [--hour 16.5] [--time 20]
 ///                               [--size 1512x982] [--scale 2]
 ///     Outbound --render - --seconds 20 --fps 30 ... | ffmpeg -f rawvideo -pix_fmt bgra -s WxH -r 30 -i - out.mp4
-///
-/// For the website: --caption adds the place name in the corner as on the desktop, --cursor flies a pointer
-/// across the frame for the bird to chase, and --fly-to lisse --fly-at 3 picks Lisse from the menu after
-/// three seconds. --pace sets metres per second over the ground.
 ///     Outbound --icon icon.png
 ///     Outbound --dmg background.png [--scale 2]
+///
+/// For the website: --caption adds the place name in the corner as on the desktop, and --dock 58 leaves that
+/// many points for a Dock along the bottom, so the caption sits above it as it does on a Mac. --cursor flies a
+/// pointer across the frame for the bird to chase, and --fly-to lisse --fly-at 3 picks Lisse from the menu
+/// after three seconds. --pace sets metres per second over the ground.
 ///
 /// Without --hour the light is always fair daytime; with it the sun stands where it would at that hour.
 @MainActor
@@ -157,6 +158,7 @@ enum Exporter {
         }
 
         let caption = options["caption"] != nil
+        let dock = Double(options["dock"] ?? "0") ?? 0
         var bytes = [UInt8](repeating: 0, count: width * height * 4)
         func paintFrame() throws -> Double {
             guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
@@ -168,7 +170,7 @@ enum Exporter {
             if caption || cursor {
                 let centre = world.camera.y + Double(frame.midY) * World.metresPerPoint
                 overlay(&bytes, width: width, height: height, scale: scale,
-                        caption: caption ? world.journey.leg(at: centre).place.name : nil,
+                        caption: caption ? world.journey.leg(at: centre).place.name : nil, dock: dock,
                         cursor: cursor ? cursorPoint(at: clockTime, in: frame) : nil)
             }
             return (commands.gpuEndTime - commands.gpuStartTime) * 1000
@@ -314,7 +316,7 @@ enum Exporter {
 
     /// Draws the caption and the pointer over a frame read back from the GPU, as they appear on the desktop.
     private static func overlay(_ bytes: inout [UInt8], width: Int, height: Int, scale: Double, caption: String?,
-                                cursor: CGPoint?) {
+                                dock: Double, cursor: CGPoint?) {
         let info = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
         bytes.withUnsafeMutableBytes { buffer in
             guard let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
@@ -323,7 +325,7 @@ enum Exporter {
             context.scaleBy(x: scale, y: scale)
             if let caption, let image = CaptionView.image(place: caption, note: nil, scale: scale) {
                 let size = CGSize(width: Double(image.width) / scale, height: Double(image.height) / scale)
-                context.draw(image, in: CGRect(origin: CGPoint(x: 20 - CaptionView.margin, y: 18 - CaptionView.margin),
+                context.draw(image, in: CGRect(origin: CGPoint(x: 20 - CaptionView.margin, y: dock + 18 - CaptionView.margin),
                                                size: size))
             }
             if let cursor {
