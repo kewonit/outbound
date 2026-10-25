@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!--
+  OUTBOUND URL CONFIG: the only place site URLs live.
+    download : the disk image in the latest GitHub release
+    buy      : the Polar checkout for a license
+    github   : project repository
+  app.js applies these to every [data-url] link at load. No build step.
+  Link previews need absolute URLs, so og:image and twitter:image point at
+  the live site.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outbound · A painted world behind your desktop</title>
+<meta name="description" content="Outbound is a live wallpaper for Mac. A painted landscape drifts past under your icons while a small white bird follows your cursor. Real places, real seasons, real light.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Outbound · A painted world behind your desktop">
+<meta property="og:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og-image.png">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Outbound · A painted world behind your desktop">
+<meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
+<script>
+window.OUTBOUND_URLS = {
+  download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
+  buy: "https://buy.polar.sh/POLAR_CHECKOUT_LINK",
+  github: "https://github.com/kewonit/outbound"
+};
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy">Buy for $7</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1>A painted world,<br>flying by behind your desktop.</h1>
+      <p class="lede">Fields, rivers and clouds drift past under your icons while a small white bird follows your cursor. Real places, in the season they are in today, under the light outside.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
+  <section class="visual-bleed" aria-label="Outbound flying over Punjab">
+    <div class="wrap-wide">
+      <figure>
+        <video src="assets/flight.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label="Mustard fields in Punjab drifting past, with clouds and a white bird"></video>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ FEATURE GRID ============ -->
+  <section class="section" id="features">
+    <div class="wrap-narrow">
+      <h2>Painted live, never a video loop.</h2>
+      <p class="section-sub">Every field, tree and cloud is drawn as you fly, so it never repeats.</p>
+      <div class="feature-grid">
+        <article class="feature">
+          <h3>Real places</h3>
+          <p>Niigata, Punjab, the Serengeti, Normandy, Lisse, La Pampa, Lapland and Kansas.</p>
+        </article>
+        <article class="feature">
+          <h3>Real seasons</h3>
+          <p>Each place shows what is growing there today. Mustard in February, harvest in October.</p>
+        </article>
+        <article class="feature">
+          <h3>Real light</h3>
+          <p>The sun follows your clock: long golden shadows in the evening, a moonlit blue at night.</p>
+        </article>
+        <article class="feature">
+          <h3>A bird that follows you</h3>
+          <p>Move the cursor over the desktop and the bird comes to circle it, then glides off on its own.</p>
+        </article>
+        <article class="feature">
+          <h3>Slow travel</h3>
+          <p>Places turn into one another as you fly, like paint spreading across the paper.</p>
+        </article>
+        <article class="feature">
+          <h3>Every display</h3>
+          <p>One landscape across all your screens. The bird flies from one to the next.</p>
+        </article>
+        <article class="feature">
+          <h3>Light on battery</h3>
+          <p>Pauses whenever the desktop is hidden, and holds still in Low Power Mode.</p>
+        </article>
+        <article class="feature">
+          <h3>Lock screen too</h3>
+          <p>Your desktop picture stays a painting of where you are, so the lock screen matches.</p>
+        </article>
+        <article class="feature">
+          <h3>No tracking</h3>
+          <p>No account and no analytics. Only a license check now and then.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACES ============ -->
+  <section class="section" id="places">
+    <div class="wrap-narrow">
+      <h2>Where you'll fly.</h2>
+      <p class="section-sub">Pick a place from the menu bar, or let the journey carry on.</p>
+      <div class="places">
+        <figure><img src="assets/places/niigata.jpg" alt="Flooded rice paddies and sakura in Niigata" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong><span>Spring · sakura over flooded paddies</span></figcaption></figure>
+        <figure><img src="assets/places/punjab.jpg" alt="Mustard fields between dark hedgerows in Punjab" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong><span>Late winter · mustard in flower</span></figcaption></figure>
+        <figure><img src="assets/places/lisse.jpg" alt="Stripes of red, yellow, pink and purple tulips in Lisse" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong><span>Spring · tulips in bloom</span></figcaption></figure>
+        <figure><img src="assets/places/serengeti.jpg" alt="Golden grass and zebras in the Serengeti" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong><span>Dry season · long grass</span></figcaption></figure>
+        <figure><img src="assets/places/normandy.jpg" alt="Hedged fields and apple blossom in Normandy" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong><span>Spring · apple blossom and new grass</span></figcaption></figure>
+        <figure><img src="assets/places/kansas.jpg" alt="Circles of corn under centre pivots in Kansas" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong><span>Summer · corn under the pivots</span></figcaption></figure>
+        <figure><img src="assets/places/lapland.jpg" alt="Green fells, spruce and rock in Lapland" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong><span>Summer · midnight sun on the fells</span></figcaption></figure>
+        <figure><img src="assets/places/pampa.jpg" alt="Open grassland and cattle in La Pampa" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong><span>Spring · open grassland</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUY ============ -->
+  <section class="section" id="buy">
+    <div class="wrap-narrow">
+      <h2>Buy once, fly for good.</h2>
+      <p class="section-sub">One payment. No subscription.</p>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">$7<span class="per"> once</span></p>
+          <p class="tier-desc">A license key for up to three of your Macs. Signed and notarized by Apple.</p>
+          <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
+        </article>
+        <article class="tier tier-side">
+          <h3 class="tier-name">Already have a key?</h3>
+          <p class="tier-price">Unlock</p>
+          <p class="tier-desc">Download Outbound, open it, and paste the key from your receipt.</p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">What do I need to run Outbound?</button>
+          <div class="faq-a"><p>A Mac with macOS 26 or newer. Apple silicon runs it best.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Will it drain my battery?</button>
+          <div class="faq-a"><p>Very little. The ground is painted once and only new strips are added as you fly, so each frame is mostly copying. Outbound stops drawing whenever the desktop is covered, the screen is asleep or locked, and in Low Power Mode. On battery it flies at a lower frame rate, or you can have it hold a still painting.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Does it show on the lock screen?</button>
+          <div class="faq-a"><p>macOS doesn't let apps animate the lock screen. Outbound keeps your desktop picture set to a painting of the place you are flying over, so the lock screen shows that, and puts your old picture back if you ask.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Does it work with more than one display?</button>
+          <div class="faq-a"><p>Yes. Every display shows its part of the same landscape, at a frame rate that suits it, and the bird can fly from one to another.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">The code is on GitHub. Is it free?</button>
+          <div class="faq-a"><p>The code is public so you can read it, learn from it and help improve it. Using Outbound needs a license, whether you download it or build it yourself. See the <a href="/license">license</a>.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">How many Macs can I use it on?</button>
+          <div class="faq-a"><p>Up to three of your own. To move it to another Mac, deactivate it in Outbound's settings on the old one.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2>Somewhere better to look.<span class="caret" aria-hidden="true"></span></h2>
+      <p class="section-sub">$7 for Mac.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg" data-url="download">Download for Mac</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="Footer">
+      <div>
+        <h3>Product</h3>
+        <a href="#features">Features</a>
+        <a href="#places">Places</a>
+        <a href="#buy">Buy</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div>
+        <h3>Source</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases">Releases</a>
+        <a href="https://github.com/kewonit/outbound/issues">Issues</a>
+      </div>
+      <div>
+        <h3>Legal</h3>
+        <a href="/privacy">Privacy</a>
+        <a href="/license">License</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span>Needs macOS 26 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

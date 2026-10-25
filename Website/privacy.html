@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+  OUTBOUND URL CONFIG: same single edit point as index.html.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy · Outbound</title>
+<meta name="description" content="Outbound has no account and no analytics. It only checks your license with the store now and then.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Privacy · Outbound">
+<meta property="og:description" content="Outbound has no account and no analytics. It only checks your license with the store now and then.">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og-image.png">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy · Outbound">
+<meta name="twitter:description" content="Outbound has no account and no analytics. It only checks your license with the store now and then.">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og-image.png">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=4">
+<script>
+window.OUTBOUND_URLS = {
+  download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg",
+  buy: "https://buy.polar.sh/POLAR_CHECKOUT_LINK",
+  github: "https://github.com/kewonit/outbound"
+};
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/#buy" data-url="buy">Buy for $7</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1>Privacy.</h1>
+    <p class="lede">No account and no analytics. The painting happens on your Mac.</p>
+
+    <h2>In short</h2>
+    <ul>
+      <li>Outbound collects nothing about you or how you use it.</li>
+      <li>No analytics, ads or crash reports.</li>
+      <li>The only network request is the license check, described below.</li>
+    </ul>
+
+    <h2>The license check</h2>
+    <ul>
+      <li>When you unlock Outbound, it sends your license key and your Mac's name to Polar, the store that sells it, so the key can count which Macs use it.</li>
+      <li>About every two weeks it asks Polar whether the key is still active. Offline is fine for a month.</li>
+      <li>Deactivating in Settings tells Polar to free that Mac's place.</li>
+      <li>Payments are handled by Polar. See <a href="https://polar.sh/legal/privacy">Polar's privacy policy</a>.</li>
+    </ul>
+
+    <h2>What Outbound stores on your Mac</h2>
+    <ul>
+      <li>Your license key, in your keychain.</li>
+      <li>Your settings, in the app preferences.</li>
+      <li>Paintings of the current view, in <code>~/Library/Application Support/Outbound/Stills</code>, used as your desktop picture.</li>
+      <li>The desktop picture you had before, so it can be put back.</li>
+    </ul>
+
+    <h2>Your cursor</h2>
+    <ul>
+      <li>Outbound reads where the cursor is so the bird can follow it. It never records it, and needs no special permission.</li>
+    </ul>
+  </div>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
