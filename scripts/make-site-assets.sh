@@ -10,12 +10,14 @@ outbound="$(swift build --show-bin-path)/Outbound"
 assets=Website/assets
 mkdir -p "$assets/places" "$assets/demos" "$assets/day"
 
-# video <file> <width> <height> <seconds> <renderer options...>, in points at Retina scale, as on a MacBook.
+# video <file> <width> <height> <seconds> <renderer options...>, in points at Retina scale, as on a MacBook,
+# or at $scale.
 video() {
-    local file=$1 width=$2 height=$3 seconds=$4
+    local file=$1 width=$2 height=$3 seconds=$4 scale=${scale:-2}
     shift 4
-    "$outbound" --render - --size "${width}x${height}" --scale 2 --seconds "$seconds" --fps 30 "$@" \
-        | ffmpeg -y -loglevel error -f rawvideo -pix_fmt bgra -s "$((width * 2))x$((height * 2))" -r 30 -i - \
+    "$outbound" --render - --size "${width}x${height}" --scale "$scale" --seconds "$seconds" --fps 30 "$@" \
+        | ffmpeg -y -loglevel error -f rawvideo -pix_fmt bgra -r 30 \
+            -s "$(awk "BEGIN { printf \"%dx%d\", $width * $scale, $height * $scale }")" -i - \
             -c:v libx264 -pix_fmt yuv420p -crf 25 -preset slow -movflags +faststart "$file"
     ffmpeg -y -loglevel error -i "$file" -frames:v 1 -q:v 3 "${file%.mp4}.jpg"
 }
@@ -29,9 +31,10 @@ done
 # The picture shown when a link to the site is shared.
 "$outbound" --og "$assets/og.png"
 
-# The hero: Punjab in flower, with the bird coming to the cursor. The page lays a Dock over the bottom, so the
-# caption sits above it as on a Mac.
-video "$assets/flight.mp4" 800 500 16 --place punjab --best --time 30 --caption --dock 58 --cursor
+# The hero: the pivots of Kansas in summer, with the bird coming to the cursor. It shows as much land as a wide
+# desktop, 1200 points across, in the same 1600 pixels. The page lays a Dock over the bottom, and the caption sits
+# level with it in the corner, as on a Mac.
+scale=1.33334 video "$assets/flight.mp4" 1200 750 16 --place kansas --best --time 184 --caption --dock 22 --cursor
 mv "$assets/flight.jpg" "$assets/poster.jpg"
 
 # Short demos of what happens now and then.

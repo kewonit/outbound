@@ -24,7 +24,7 @@
 <meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 
@@ -50,7 +50,6 @@
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
       </div>
-      <p class="hero-note">Pay once. Use it on 3 Macs.</p>
       <!-- Shown to buyers for a year after checkout, from this browser's storage only. -->
       <div class="your-key" id="your-key" hidden>
         <p class="your-key-title">Your key</p>
@@ -67,8 +66,8 @@
   <section class="visual-bleed" aria-label="Outbound flying over Punjab">
     <div class="wrap-wide">
       <figure class="desktop">
-        <video src="assets/flight.mp4" poster="assets/poster.jpg" autoplay muted loop playsinline preload="metadata"
-               width="1600" height="1000" aria-label="A Mac desktop: mustard fields in Punjab drift past behind the Dock while the white bird follows the cursor"></video>
+        <video src="assets/flight.mp4?v=2" poster="assets/poster.jpg?v=2" autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label="A Mac desktop: round fields of corn and wheat in Kansas drift past behind the Dock while the white bird follows the cursor"></video>
         <!-- A Dock over the clip, so it reads as a Mac's desktop. Generic icons, drawn for this page. -->
         <div class="dock" aria-hidden="true">
           <span class="dock-item open"><svg viewBox="0 0 64 64"><defs><linearGradient id="dk-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#74d2f7"/><stop offset="1" stop-color="#2a86e2"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#dk-a)"/><path d="M13 23a4 4 0 0 1 4-4h9l4 4h17a4 4 0 0 1 4 4v17a4 4 0 0 1-4 4H17a4 4 0 0 1-4-4z" fill="#fff" opacity=".94"/><path d="M13 29h38" stroke="#2a86e2" stroke-opacity=".3" stroke-width="2"/></svg></span>
@@ -195,24 +194,36 @@
           <div class="faq-a"><p>A Mac with Apple silicon and macOS 26 or newer.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Will it drain my battery?</button>
-          <div class="faq-a"><p>No. It pauses when the desktop is hidden, the screen is off, or you're away.</p></div>
+          <button class="faq-q" aria-expanded="false">Will it slow my Mac or drain the battery?</button>
+          <div class="faq-a"><p>No. It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">Does it work with more than one display?</button>
           <div class="faq-a"><p>Yes. One landscape runs across all of them.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">How do updates work?</button>
-          <div class="faq-a"><p>It updates itself.</p></div>
+          <button class="faq-q" aria-expanded="false">What happens to my own wallpaper?</button>
+          <div class="faq-a"><p>It comes back when you quit Outbound.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Where do I find my key?</button>
+          <div class="faq-a"><p>It shows right after you pay, and stays in your <a href="https://polar.sh/edbnme/portal">customer portal</a>. Buy from inside the app and it unlocks by itself.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">How many Macs can I use?</button>
-          <div class="faq-a"><p>Three. Free one up in Settings or your <a href="https://polar.sh/edbnme/portal">customer portal</a>.</p></div>
+          <div class="faq-a"><p>Three at once. Move it to a new Mac from Settings or your customer portal.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Are updates free?</button>
+          <div class="faq-a"><p>Yes. They install themselves while you're away.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">The code is on GitHub. Is it free?</button>
           <div class="faq-a"><p>The code is open to read. Using the app needs a <a href="/license">license</a>.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Need help?</button>
+          <div class="faq-a"><p>Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, or see <a href="/support">Support</a>.</p></div>
         </div>
       </div>
     </div>
@@ -236,6 +247,7 @@
         <a href="#places">Places</a>
         <a href="#buy">Buy</a>
         <a href="#faq">FAQ</a>
+        <a href="/support">Support</a>
       </div>
       <div>
         <h3>Source</h3>

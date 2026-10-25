@@ -637,7 +637,6 @@ kbd {
 
 
 /* ---------- Leaner landing page ---------- */
-.hero-note { margin: 0.9rem 0 0; font-size: 0.95rem; color: var(--ink-mute); }
 .facts-section { padding-top: 0; padding-bottom: 0; }
 .facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
 .facts li {
