@@ -8,5 +8,6 @@ xcuserdata/
 .wrangler/
 node_modules/
 
-# Tests stay on the maintainer's Mac.
-Tests/
+# Tests stay on the maintainer's Mac, apart from the shader tests.
+Tests/*
+!Tests/ShaderTests/

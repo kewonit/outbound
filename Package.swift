@@ -13,7 +13,11 @@ let package = Package(
         .target(name: "OutboundCore"),
         // Shaders ship as source and are compiled at launch, so they can be edited live while developing.
         .executableTarget(name: "Outbound", dependencies: ["OutboundCore", .product(name: "Sparkle", package: "Sparkle")],
-                          resources: [.copy("Shaders")])
+                          resources: [.copy("Shaders")]),
+        // Runs the shaders on the GPU, next to a frozen copy of how they shipped. Reads its .metal files from the
+        // source tree.
+        .testTarget(name: "ShaderTests", dependencies: ["Outbound", "OutboundCore"],
+                    exclude: ["Probes.metal", "Shipped"])
     ]
 )
 
