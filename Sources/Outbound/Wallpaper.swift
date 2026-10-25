@@ -27,14 +27,14 @@ final class WallpaperWindow: NSWindow {
 final class MetalView: NSView {
     let metalLayer = CAMetalLayer()
 
-    init(device: MTLDevice) {
+    init(device: MTLDevice, opaque: Bool = true) {
         super.init(frame: .zero)
         metalLayer.device = device
         metalLayer.pixelFormat = ShaderLibrary.viewFormat
         metalLayer.colorspace = CGColorSpace(name: CGColorSpace.sRGB)
         metalLayer.framebufferOnly = true
         metalLayer.maximumDrawableCount = 2
-        metalLayer.isOpaque = true
+        metalLayer.isOpaque = opaque
         metalLayer.allowsNextDrawableTimeout = true
         wantsLayer = true
     }
@@ -80,6 +80,15 @@ final class Wallpaper: NSObject {
     private let world: World
     private let gpu: GPU
     private let label = CaptionView(frame: .zero)
+    /// The bird's own small layer, so following the cursor smoothly never means redrawing the whole landscape.
+    private let birdView: MetalView
+    private var birdLink: CADisplayLink?
+    private static let birdBox = 120.0
+    var birdFramesPerSecond: Float = 60 {
+        didSet { birdLink?.preferredFrameRateRange = CAFrameRateRange(minimum: birdFramesPerSecond * 0.8,
+                                                                      maximum: birdFramesPerSecond,
+                                                                      preferred: birdFramesPerSecond) }
+    }
     private var captionUpdated = -TimeInterval.infinity
     private var link: CADisplayLink?
     private(set) var holds: Set<Hold> = []
@@ -97,11 +106,14 @@ final class Wallpaper: NSObject {
         window = WallpaperWindow(screen: screen)
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
+        birdView = MetalView(device: gpu.device, opaque: false)
         super.init()
         let container = NSView()
         view.autoresizingMask = [.width, .height]
         container.addSubview(view)
+        container.addSubview(birdView)
         container.addSubview(label)
+        birdView.isHidden = true
         window.contentView = container
         view.frame = container.bounds
         place(on: screen)
@@ -145,6 +157,8 @@ final class Wallpaper: NSObject {
     func close() {
         link?.invalidate()
         link = nil
+        birdLink?.invalidate()
+        birdLink = nil
         observers.forEach(NotificationCenter.default.removeObserver)
         window.orderOut(nil)
         window.close()
@@ -155,6 +169,10 @@ final class Wallpaper: NSObject {
         let paused = !holds.isEmpty
         if link?.isPaused != paused {
             link?.isPaused = paused
+            if paused {
+                birdLink?.invalidate()
+                birdLink = nil
+            }
             Log.display.info("Display \(self.displayID) \(paused ? "paused" : "running", privacy: .public) \(String(describing: self.holds), privacy: .public)")
         }
     }
@@ -188,8 +206,53 @@ final class Wallpaper: NSObject {
                                                          preferred: framesPerSecond)
     }
 
+    /// Moves and repaints the bird's layer. While the bird chases the cursor over this display it gets a display link
+    /// of its own; otherwise it rides along with the landscape's frames.
+    private func updateBird(at time: TimeInterval) {
+        let frame = window.frame
+        let point = world.bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
+        let box = Self.birdBox
+        let visible = point.x > -box && point.y > -box && point.x < Double(frame.width) + box
+            && point.y < Double(frame.height) + box && link?.isPaused == false
+        // Gliding on its own, the bird is drawn with the landscape at no extra cost. Chasing the cursor, it moves
+        // to its own layer so it can follow smoothly without the whole landscape redrawing to keep up.
+        let chasing = visible && world.chasing
+        renderer.drawsBird = !chasing
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        birdView.isHidden = !chasing
+        if chasing {
+            birdView.frame = CGRect(x: point.x - box / 2, y: point.y - box / 2, width: box, height: box)
+        }
+        CATransaction.commit()
+        if chasing && birdLink == nil {
+            let link = birdView.displayLink(target: self, selector: #selector(birdTick(_:)))
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: birdFramesPerSecond * 0.8, maximum: birdFramesPerSecond,
+                                                            preferred: birdFramesPerSecond)
+            link.add(to: .main, forMode: .common)
+            birdLink = link
+        } else if !chasing, let link = birdLink {
+            link.invalidate()
+            birdLink = nil
+        }
+        guard chasing else { return }
+        let scale = Double(window.backingScaleFactor)
+        birdView.metalLayer.contentsScale = CGFloat(scale)
+        birdView.metalLayer.drawableSize = CGSize(width: box * scale, height: box * scale)
+        guard let drawable = birdView.metalLayer.nextDrawable(), let commands = gpu.queue.makeCommandBuffer() else { return }
+        renderer.encodeBird(world: world, into: drawable.texture, commandBuffer: commands, size: box, scale: scale)
+        commands.present(drawable)
+        commands.commit()
+    }
+
+    @objc private func birdTick(_ link: CADisplayLink) {
+        world.advance(to: link.targetTimestamp)
+        updateBird(at: link.targetTimestamp)
+    }
+
     @objc private func tick(_ link: CADisplayLink) {
         world.advance(to: link.targetTimestamp)
+        if birdLink == nil { updateBird(at: link.targetTimestamp) }
         if link.targetTimestamp - captionUpdated > 0.5 {
             captionUpdated = link.targetTimestamp
             updateCaption()

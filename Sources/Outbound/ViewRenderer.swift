@@ -79,6 +79,8 @@ final class ViewRenderer {
     var finish = SIMD4<Float>(1, 0.3, 0, 0)
     /// Half the bird's wingspan, in points.
     var birdSize = 27.0
+    /// Draw the bird into the frame, for stills and exports; live it has a layer of its own.
+    var drawsBird = true
 
     init(gpu: GPU) {
         self.gpu = gpu
@@ -261,6 +263,8 @@ final class ViewRenderer {
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
             && birdPoint.x < Double(frame.width) + 90 && birdPoint.y < Double(frame.height) + 90
+        var finish = self.finish
+        finish.z = drawsBird ? 1 : 0
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
             world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), Float(gust.x), Float(gust.y)),
@@ -388,6 +392,31 @@ final class ViewRenderer {
     /// The shortest offset between two points of the repeating cloud space.
     private static func wrapped(_ d: SIMD2<Double>) -> SIMD2<Double> {
         SIMD2((d.x + 8192).positiveRemainder(16384) - 8192, (d.y + 8192).positiveRemainder(16384) - 8192)
+    }
+
+    /// Paints the bird alone into the small layer that follows it, `size` points square around its centre.
+    func encodeBird(world: World, into target: MTLTexture, commandBuffer: MTLCommandBuffer, size: Double, scale: Double) {
+        let bird = world.bird
+        let centre = Float(size * scale * 0.5)
+        var params = CompositeGPU(
+            view: SIMD4(Float(target.width), Float(target.height), Float(World.metresPerPoint / scale), 0),
+            world: .zero, cache: .zero,
+            bird: SIMD4(centre, centre, Float(bird.heading - .pi / 2), Float(bird.bank)),
+            wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), 1),
+            finish: .zero, clouds: .zero, flock: .zero, flockShape: .zero, flockLook: .zero)
+        var scene = world.frame(bottom: world.camera.y, top: world.camera.y + 1).scene
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = target
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return }
+        encoder.label = "Bird"
+        encoder.setRenderPipelineState(gpu.shaders.pipelines.bird)
+        encoder.setFragmentBytes(&params, length: MemoryLayout<CompositeGPU>.stride, index: 0)
+        encoder.setFragmentBytes(&scene, length: MemoryLayout<SceneGPU>.stride, index: 1)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
     }
 
     /// Splits a world texel rectangle where it wraps around the cache's edges.

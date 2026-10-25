@@ -284,7 +284,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     bool inB = world.y > scene.morph.x + scene.morph.y * 0.5;
     constant Leg &leg = inB ? scene.legB : scene.legA;
     if (mask.road) c = cars(c, world, leg.biome, scene, mpp, light);
-    if (water > 0.3) c = boats(c, world, water, leg.biome, scene, mpp, scene.time.x, light);
+    if (water > 0.99) c = boats(c, world, water, leg.biome, scene, mpp, scene.time.x, light);
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
@@ -397,9 +397,12 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float len = (kind == sheep ? 1.2 : kind == zebra ? 1.45 : kind == gazelle ? 0.9 : 1.6) * 1.6;
     float wid = (kind == sheep ? 0.75 : kind == gazelle ? 0.42 : 0.62) * 1.6;
     float2 shadowOff = -scene.sun.xy * scene.sun.z * 1.1;
-    float reach = len * 1.35 + length(shadowOff) + params.view.z * 2.0;
-
+    // A quad just big enough for the animal, its head and its shadow, so herds cost as few pixels as possible.
+    float2 heading2 = float2(cos(heading), sin(heading));
+    float2 centre = world + heading2 * len * 0.25 + shadowOff * 0.5;
+    float reach = len * 1.3 + length(shadowOff) * 0.5 + params.view.z * 2.0;
     float2 corner = float2((vid & 1u) ? 1.0 : -1.0, (vid & 2u) ? 1.0 : -1.0) * reach;
+    corner += centre - world;
     float2 pixel = (world + corner - params.world.xy) / params.view.z;
     out.position = float4(pixel / params.view.xy * 2.0 - 1.0, 0.0, 1.0);
     out.offset = rotate(corner, -heading);
@@ -515,8 +518,14 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
     return birdShape(q, spread, 0.0) * size;
 }
 
+// How far from the leader any bird of the flock can be, in pixels: only pixels this close do any work.
 inline float flockReach(constant CompositeParams &p) {
-    return p.flockShape.z * (4.0 * p.flockShape.y + 16.0);
+    int formation = int(p.flockShape.x);
+    float n = p.flockShape.y;
+    float size = p.flockShape.z;
+    if (formation == 2) return size * 16.0;
+    if (formation == 1) return size * 11.0;
+    return size * (3.4 * ceil((n - 1.0) * 0.55) * 1.15 + 2.5);
 }
 
 // Paper grain and the dry-brush edge never move, so they are painted once per size at half resolution.
@@ -591,7 +600,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         c = mix(c, cloudColor, cloudAlpha);
     }
 
-    if (birdVisible > 0.0) {
+    // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
+    if (birdVisible > 0.0 && params.finish.z > 0.5) {
         float2 offset = pixel - birdPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
@@ -629,4 +639,28 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     SkyOut out;
     out.color = float4(saturate(c), 1.0);
     return out;
+}
+
+// MARK: - The bird's own layer
+
+// The gull alone on a transparent square, lit for the time of day, for the small layer that follows the cursor.
+fragment float4 birdSprite(VertexOut in [[stage_in]],
+                           constant CompositeParams &params [[buffer(0)]],
+                           constant Scene &scene [[buffer(1)]]) {
+    float2 pixel = float2(in.position.x, params.view.y - in.position.y);
+    float scale = params.wings.z;
+    float2 q = rotate(pixel - params.bird.xy, -params.bird.z) / scale;
+    float sb = birdShape(q, params.wings.x, params.bird.w);
+    float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
+    float3 c = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
+    c = mix(c, float3(0.24, 0.25, 0.28), smoothstep(0.8, 0.9, abs(q.x)) * 0.85);
+    float body = fill(sb, 0.8 / scale);
+    float rim = fill(sb - 0.025, 0.9 / scale) * 0.32;
+    float alpha = max(body, rim);
+    c = mix(float3(0.0), c, body / max(alpha, 1e-4));
+    float night = scene.time.w;
+    float3 lit = c * scene.light.rgb * scene.light.w;
+    float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.44, 0.54, 0.76) * 0.78 + float3(0.015, 0.02, 0.045);
+    c = mix(lit, moonlit, night);
+    return float4(saturate(c) * alpha, alpha);
 }

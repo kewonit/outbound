@@ -126,6 +126,7 @@ final class DisplayManager {
             guard let id = screen.displayID, let wallpaper = wallpapers[id] else { continue }
             let refresh = Double(screen.maximumFramesPerSecond)
             wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, refresh: refresh))
+            wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, refresh: refresh))
             wallpaper.halfRateClouds = tier.halfRateClouds
         }
     }

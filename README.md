@@ -13,8 +13,11 @@ Fields, rivers and clouds drift past under your icons while a small white bird f
 - **Real places.** Niigata, Punjab, the Serengeti, Normandy, Lisse, La Pampa, Lapland and Kansas, one after another, each turning into the next like paint spreading across paper. Fly to any of them from the menu bar.
 - **Real seasons.** Each place shows what is growing there today: mustard in Punjab in February, the rice harvest in Niigata in October, snow on the fells in Lapland in winter. Or keep every place at its best.
 - **Real light.** The sun follows your clock, so evenings bring long golden shadows and nights turn a moonlit blue.
+- **Life passing by.** Now and then a train crosses in the place's own livery, a boat leaves its wake, or a skein of geese, a pair of cranes or a line of flamingos flies over.
+- **Lights at night.** Windows light up house by house through the evening, villages glow with street lamps, cars and trains light the way.
+- **Each place itself.** Granite kopjes on the Serengeti, windmill pumps and estancia groves on the pampas, polder mills and glasshouses in Lisse, farmsteads and grain bins in Kansas, bogs and reindeer corrals in Lapland.
 - **A bird that follows you.** Move the cursor over the desktop and the bird comes to circle it. One bird for all your displays, and it flies from one to the next.
-- **Easy on the battery.** It stops drawing whenever the desktop is covered, the screen sleeps or locks, and in Low Power Mode. On battery it flies at a lower frame rate, or holds a still painting if you prefer.
+- **Easy on the battery.** It stops drawing whenever the desktop is covered, the screen sleeps or locks, you are away, or Low Power Mode is on. On battery it flies at a lower frame rate and resolution, or holds a still painting if you prefer.
 - **The lock screen matches.** Your desktop picture is kept as a painting of where you are, and your old one can be put back from Settings.
 
 It needs macOS 26 or newer.
@@ -56,7 +59,7 @@ OUTBOUND_POLAR_SANDBOX=1 OUTBOUND_POLAR_ORGANIZATION=<sandbox organization id> .
 
 Each display gets a borderless window that sits just below the desktop icons, on every Space, and lets every click through to Finder.
 
-The landscape is a set of Metal shaders that paint fields, rivers, roads, trees, houses and snow from noise, with no images or video. The ground is painted once into a texture that wraps around in both directions, and as the camera flies north only the newly revealed strip is painted. Clouds never change shape, only drift, so they are painted at a quarter of the resolution and slid along. That leaves each frame mostly copying, plus the few things that move: the bird, the animals, the cars and the glints on the water.
+The landscape is a set of Metal shaders that paint fields, rivers, roads, railways, trees, houses and snow from noise, with no images or video. The ground is painted once into a texture that wraps around in both directions, and as the camera flies north only the newly revealed strip is painted. Clouds never change shape, only drift, so they are painted at a quarter of the resolution and slid along. Each frame is then one render pass that stays in tile memory: the cached ground with cars, boats and trains, the herds as small instanced sprites, then the sky with clouds, birds, paper grain and the light of the hour. While the bird chases the cursor it moves to a small layer of its own, so following smoothly never means redrawing the whole landscape faster.
 
 `Sources/OutboundCore` holds the parts that are plain logic, with tests: places and seasons, the journey, the bird's flight, the sun, the power policy and the license rules.
 

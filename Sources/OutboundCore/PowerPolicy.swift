@@ -1,14 +1,14 @@
 import Foundation
 
 public enum FramePacing {
-    /// The frame rate closest to `target` without going over that the display can show evenly. Fixed-rate
-    /// panels only show whole fractions of their refresh: 30 on a 75 Hz panel would alternate between
-    /// two and three refreshes per frame and judder, while 25 is exactly every third.
+    /// The frame rate nearest `target` that the display can show evenly. Fixed-rate panels only show whole
+    /// fractions of their refresh: 24 or 30 on a 75 Hz panel would alternate between refreshes per frame and
+    /// judder, while 25 is exactly every third.
     public static func rate(target: Double, refresh: Double) -> Double {
         guard refresh > 0 else { return target }
         // ProMotion panels pace any rate down to 24 themselves.
         if refresh >= 120 { return min(target, refresh) }
-        let divisor = (refresh / target).rounded(.up)
+        let divisor = (refresh / target).rounded()
         return refresh / max(divisor, 1)
     }
 }
@@ -45,6 +45,8 @@ public struct PowerTier: Equatable, Sendable {
     public var frozen: Bool
     /// Repaint the clouds only every other frame.
     public var halfRateClouds: Bool
+    /// The bird has its own small layer, which runs faster while it chases the cursor.
+    public var birdFramesPerSecond: Double = 60
 
     public static func choose(_ state: PowerState) -> PowerTier {
         if state.lowPower || state.thermal >= .serious {
@@ -53,10 +55,11 @@ public struct PowerTier: Equatable, Sendable {
         if state.onBattery && state.batteryMode == .still {
             return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
         }
-        // A slow pan moves about a pixel a frame at 24, which bilinear sampling keeps smooth.
+        // A slow pan moves about a pixel a frame at 24, which bilinear sampling keeps smooth. The bird chasing the
+        // cursor wants more, but it has its own small layer, so only that runs faster.
         var fps: Double = state.onBattery ? 15 : 24
-        if state.birdEngaged { fps = state.onBattery ? 30 : 60 }
         if state.thermal == .fair { fps = state.onBattery ? 12 : 20 }
-        return PowerTier(framesPerSecond: fps, frozen: false, halfRateClouds: state.onBattery)
+        return PowerTier(framesPerSecond: fps, frozen: false, halfRateClouds: state.onBattery,
+                         birdFramesPerSecond: state.onBattery || state.thermal == .fair ? 30 : 60)
     }
 }

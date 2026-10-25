@@ -13,6 +13,7 @@ final class ShaderLibrary {
         let view: MTLRenderPipelineState
         let animals: MTLRenderPipelineState
         let sky: MTLRenderPipelineState
+        let bird: MTLRenderPipelineState
     }
 
     static let files = ["Common.metal", "Ground.metal", "Clouds.metal", "Composite.metal"]
@@ -72,7 +73,8 @@ final class ShaderLibrary {
                          paper: try pipeline("paper", formats: [paperFormat]),
                          view: try pipeline("viewGround", formats: frame),
                          animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),
-                         sky: try pipeline("sky", formats: frame, writes: 1))
+                         sky: try pipeline("sky", formats: frame, writes: 1),
+                         bird: try pipeline("birdSprite", formats: [viewFormat]))
     }
 
     private func watch() {

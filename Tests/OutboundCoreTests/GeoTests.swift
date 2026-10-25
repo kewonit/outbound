@@ -30,8 +30,10 @@ struct GeoTests {
 struct FramePacingTests {
     @Test func dividesFixedRefreshEvenly() {
         #expect(FramePacing.rate(target: 30, refresh: 75) == 25)
+        #expect(FramePacing.rate(target: 24, refresh: 75) == 25)
+        #expect(FramePacing.rate(target: 15, refresh: 75) == 15)
         #expect(FramePacing.rate(target: 30, refresh: 60) == 30)
-        #expect(FramePacing.rate(target: 60, refresh: 75) == 37.5)
+        #expect(FramePacing.rate(target: 60, refresh: 75) == 75)
         #expect(FramePacing.rate(target: 20, refresh: 144) == 20)
     }
 
@@ -43,12 +45,13 @@ struct FramePacingTests {
     @Test func tiersFollowPower() {
         var state = PowerState()
         #expect(PowerTier.choose(state).framesPerSecond == 24)
+        // Chasing the cursor speeds up only the bird's own layer.
         state.birdEngaged = true
-        #expect(PowerTier.choose(state).framesPerSecond == 60)
+        #expect(PowerTier.choose(state).framesPerSecond == 24)
+        #expect(PowerTier.choose(state).birdFramesPerSecond == 60)
         state.onBattery = true
-        #expect(PowerTier.choose(state).framesPerSecond == 30)
-        state.birdEngaged = false
         #expect(PowerTier.choose(state).framesPerSecond == 15)
+        #expect(PowerTier.choose(state).birdFramesPerSecond == 30)
         #expect(PowerTier.choose(state).halfRateClouds)
         state.lowPower = true
         #expect(PowerTier.choose(state).frozen)

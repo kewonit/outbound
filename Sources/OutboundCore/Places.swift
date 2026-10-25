@@ -196,7 +196,7 @@ private let pampaBase: Biome = {
     b.animal = .cattle; b.herds = 0.6; b.animalColor = rgb(0x6b3e26); b.cars = 0.12
     // Kilometre-wide paddocks, a windmill and round tank in each with cattle trails fanning out, estancias in
     // dark eucalyptus groves, black Angus, and only a thin reedy creek for a river.
-    b.fieldSize = 900; b.animalColor = rgb(0x1e1b1a); b.herds = 0.6
+    b.fieldSize = 900; b.animalColor = rgb(0x1e1b1a); b.herds = 0.48
     b.riverWidth = 9; b.levees = 0
     b.landmarks = (.waterPoint, 0.55, .grove, 0.3)
     b.villages = 0.05; b.houses = 0.03; b.streetLights = 0
