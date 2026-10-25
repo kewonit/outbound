@@ -19,8 +19,32 @@ final class World {
     static let wind = SIMD2<Double>(2.6, 1.1)
     static let carSpeed = 11.0
 
+    enum Light: String, CaseIterable {
+        /// The sun as it stands at the place at your clock's time of day.
+        case yourTime
+        /// The sun as it stands at the place right now.
+        case placeTime
+        case alwaysDay
+    }
+
     let journey: Journey
     private(set) var time: TimeInterval
+    private(set) var bird: Bird
+    private(set) var sun = Sun.fair
+    /// The bird follows the cursor for a while after it last moved.
+    private(set) var chasing = false
+    var light = Light.yourTime {
+        didSet { updateSun(force: true) }
+    }
+    /// Where the cursor is, or nil when rendering without a screen.
+    var pointer: () -> CGPoint? = { NSEvent.mouseLocation }
+    /// The wall clock, for the sun.
+    var now: () -> Date = { .now }
+    /// The display the bird circles when nobody is pointing.
+    var home = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    private var lastPointer: CGPoint?
+    private var pointerMoved = -TimeInterval.infinity
+    private var sunUpdated = -TimeInterval.infinity
     /// Union of every display in global points, so the land is decided far enough ahead.
     var desktop = CGRect(x: 0, y: 0, width: 1512, height: 982)
     /// World x the river meanders around.
@@ -29,17 +53,57 @@ final class World {
     /// Bumped when something changes that is baked into the ground, so every display repaints it.
     private(set) var revision = 0
 
-    init(place: Place, time: TimeInterval, date: Date = .now) {
+    init(place: Place, time: TimeInterval, date: Date = .now, light: Light = .yourTime) {
         self.time = time
+        self.light = light
         journey = Journey(start: place, time: time, date: date, speed: 6.5, legLength: 6.5 * 60 * 12)
+        bird = Bird(at: Bird.wander(in: home, time: time))
+        updateSun(force: true)
     }
 
     func advance(to t: TimeInterval) {
         guard t > time else { return }
+        let dt = t - time
         time = t
         let camera = self.camera
         journey.extend(through: camera.y + Double(desktop.maxY) * Self.metresPerPoint + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500)
+
+        if let point = pointer() {
+            if let last = lastPointer, abs(point.x - last.x) + abs(point.y - last.y) > 0.5 { pointerMoved = t }
+            lastPointer = point
+        }
+        chasing = t - pointerMoved < 6
+        let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
+        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t))
+        if t - sunUpdated > 20 { updateSun(force: false) }
+    }
+
+    private func updateSun(force: Bool) {
+        sunUpdated = time
+        let place = journey.leg(at: camera.y).place
+        let now = self.now()
+        let calendar = Calendar.current
+        let day = calendar.ordinality(of: .day, in: .year, for: now) ?? 172
+        let next: Sun
+        switch light {
+        case .alwaysDay:
+            next = .fair
+        case .yourTime:
+            let parts = calendar.dateComponents([.hour, .minute], from: now)
+            next = Sun(latitude: place.anchor.latitude, dayOfYear: day,
+                       solarHour: Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60)
+        case .placeTime:
+            var utc = Calendar(identifier: .gregorian)
+            utc.timeZone = TimeZone(identifier: "UTC")!
+            let parts = utc.dateComponents([.hour, .minute], from: now)
+            let hour = Double(parts.hour ?? 12) + Double(parts.minute ?? 0) / 60 + place.anchor.longitude / 15
+            next = Sun(latitude: place.anchor.latitude, dayOfYear: day, solarHour: (hour + 24).truncatingRemainder(dividingBy: 24))
+        }
+        // Shadows are baked into the cached ground, so only repaint it when the light has really moved.
+        let moved = abs(next.azimuth - sun.azimuth) + abs(next.elevation - sun.elevation)
+        sun = next
+        if force || moved > 0.06 { repaint() }
     }
 
     func repaint() {
@@ -101,17 +165,18 @@ final class World {
         let river = SIMD4<Float>(phase(Self.riverWaves.x, 0.3), phase(Self.riverWaves.y, 1.9),
                                  phase(Self.riverWaves.z, 4.1), phase(Self.riverWaves.w, 2.7))
         let crossPhase = Float(reference.truncatingRemainder(dividingBy: Self.crossroadSpacing))
-        let toSun = simd_normalize(SIMD2<Float>(-0.62, 0.78))
+        let toSun = SIMD2<Float>(Float(sun.direction.x), Float(sun.direction.y))
+        let light = sun.light
 
         let scene = SceneGPU(
             river: river,
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
-            sun: SIMD4(toSun.x, toSun.y, 0.85, 0.85),
-            light: SIMD4(1.0, 0.995, 0.985, 1.0),
+            sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
+            light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
             morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(time.truncatingRemainder(dividingBy: 3600)),
                         Float(time.truncatingRemainder(dividingBy: 7200)),
-                        Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), 0),
+                        Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
             legA: Self.gpu(legA, reference: reference),
             legB: Self.gpu(legB, reference: reference))
         return Frame(scene: scene, reference: reference, sweeping: sweeping)

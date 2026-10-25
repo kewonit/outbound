@@ -6,7 +6,10 @@ import UniformTypeIdentifiers
 /// Renders frames to files without opening any windows, for checking the painting and for making
 /// videos of it:
 ///
-///     Outbound --render out.png [--place punjab] [--date 2026-04-20] [--time 20] [--size 1512x982] [--scale 2]
+///     Outbound --render out.png [--place punjab] [--date 2026-04-20] [--hour 16.5] [--time 20]
+///                               [--size 1512x982] [--scale 2]
+///
+/// Without --hour the light is always fair daytime; with it the sun stands where it would at that hour.
 @MainActor
 enum Exporter {
     static func handles(_ arguments: [String]) -> Bool {
@@ -57,7 +60,19 @@ enum Exporter {
 
         let gpu = try GPU()
         let frame = CGRect(x: 0, y: 0, width: size[0], height: size[1])
-        let world = World(place: place, time: 0, date: date)
+        var light = World.Light.alwaysDay
+        var clock = date
+        if let hour = options["hour"].flatMap(Double.init) {
+            light = .yourTime
+            var calendar = Calendar.current
+            calendar.timeZone = .current
+            clock = calendar.startOfDay(for: date).addingTimeInterval(hour * 3600)
+        }
+        let world = World(place: place, time: 0, date: date, light: .alwaysDay)
+        world.pointer = { nil }
+        world.now = { clock }
+        world.light = light
+        world.home = frame
         world.desktop = frame
         world.centreRiver(on: frame)
         world.advance(to: time)

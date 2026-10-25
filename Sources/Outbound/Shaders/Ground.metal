@@ -19,16 +19,18 @@ inline float3 cropColor(constant Biome &b, float h) {
     return h < 0.25 ? b.crop0.rgb : h < 0.5 ? b.crop1.rgb : h < 0.75 ? b.crop2.rgb : b.crop3.rgb;
 }
 
-// Shadows are a cool multiply, never grey.
-inline float3 shade(float3 c, float amount) {
-    return c * mix(float3(1.0), float3(0.56, 0.62, 0.78), amount);
+// Shadows are a cool multiply, never grey, and fade away once the sun is down.
+inline float3 shade(float3 c, float amount, constant Scene &scene) {
+    float daylight = mix(0.2, 1.0, smoothstep(-0.1, 0.12, scene.sun.w));
+    return c * mix(float3(1.0), float3(0.56, 0.62, 0.78), amount * daylight);
 }
 
 // One tree crown with its shadow. `d` is the offset from the trunk.
 inline float3 tree(float3 c, float2 d, float r, float2 local, constant Biome &b, constant Scene &scene, uint seed,
                    thread float &cover) {
-    float2 shadowOff = -scene.sun.xy * scene.sun.z * r * 1.7;
-    c = shade(c, fill(length(d - shadowOff) - r * 0.95, 0.7) * 0.85);
+    // Capped so the shadow stays inside the tree's cell even when the sun is low.
+    float2 shadowOff = -scene.sun.xy * min(scene.sun.z, 0.75) * r * 1.7;
+    c = shade(c, fill(length(d - shadowOff) - r * 0.95, 0.7) * 0.85, scene);
     float lobes = vnoise(local / (r * 0.55), seed + 44u);
     float dt = length(d) - r * (0.88 + 0.28 * lobes);
     float lit = dot(normalize(d + 1e-4), scene.sun.xy) * 0.5 + 0.5;
@@ -169,7 +171,7 @@ inline Land fields(float2 p, constant Biome &b, constant Scene &scene, uint seed
     float2 toSun = scene.sun.xy * scene.sun.z * (2.5 + b.a.z * 0.45);
     Cells vs = voronoi(fieldSpace(p + toSun, b, seed), seed);
     float shadowEdge = vs.border * size - hedgeHalfWidth(p + toSun, b, seed);
-    l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8);
+    l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8, scene);
 
     if (border < hw + 1.0) {
         // Soft, rotated noise so the hedge reads as massed crowns rather than a grid, with a few
@@ -451,7 +453,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
     float2 d = rotate(world - center, -angle);
     float2 size = float2(4.2, 6.5) * (0.85 + 0.35 * hash11(int(k), seed + 65u));
     float2 shadowOff = rotate(-scene.sun.xy * scene.sun.z * 5.0, -angle);
-    c = shade(c, fill(sdBox(d - shadowOff, size), 0.5) * 0.8);
+    c = shade(c, fill(sdBox(d - shadowOff, size), 0.5) * 0.8, scene);
     float roofPick = hash11(int(k), seed + 66u);
     float3 roof = roofPick < 0.35 ? float3(0.80, 0.33, 0.24) : roofPick < 0.6 ? float3(0.68, 0.40, 0.30)
                 : roofPick < 0.8 ? float3(0.42, 0.50, 0.62) : float3(0.62, 0.60, 0.58);
@@ -463,7 +465,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
     c = mix(c, roofSide, a);
     // A shed beside it.
     float2 shed = d - float2(size.x + 3.5, -size.y * 0.4);
-    c = shade(c, fill(sdBox(shed - shadowOff * 0.6, float2(2.0, 2.6)), 0.4) * 0.7);
+    c = shade(c, fill(sdBox(shed - shadowOff * 0.6, float2(2.0, 2.6)), 0.4) * 0.7, scene);
     c = mix(c, float3(0.70, 0.66, 0.60), fill(sdBox(shed, float2(2.0, 2.6)), 0.3));
     return c;
 }
@@ -605,7 +607,7 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
     float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth, dc);
-    c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9);
+    c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9, scene);
 
     float3 r = surface * (0.95 + 0.08 * vnoise(p / 1.8, 71u));
     // Paved roads get a dashed centre line, dirt roads two wheel ruts.
@@ -646,14 +648,32 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
             m = saturate((scene.morph.z * (wave + 400.0) - (world.y - boundary)) / 400.0);
         }
     }
+    // The new place spreads in organic patches, like wet paint creeping across the sheet. Inside the
+    // soft edge both places are painted and blended; elsewhere only one is.
     float2 localB = float2(world.x, world.y - scene.legB.info.x);
-    float threshold = 0.1 + 0.8 * (0.7 * vnoise(localB / 75.0, 77u) + 0.3 * hash21(int2(floor(localB / 7.0)), 78u));
-    bool useB = m > threshold;
+    float threshold = 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
+    float blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
 
     float wander = mix(scene.legA.biome.d.w, scene.legB.biome.d.w, m);
     float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
     float riverHalf = width * 0.5;
-    Land l = useB ? land(world, scene.legB, scene, riverHalf, wander) : land(world, scene.legA, scene, riverHalf, wander);
+    Land l;
+    if (blend >= 1.0) {
+        l = land(world, scene.legB, scene, riverHalf, wander);
+    } else if (blend <= 0.0) {
+        l = land(world, scene.legA, scene, riverHalf, wander);
+    } else {
+        Land a = land(world, scene.legA, scene, riverHalf, wander);
+        Land b = land(world, scene.legB, scene, riverHalf, wander);
+        l = a;
+        l.color = mix(a.color, b.color, blend);
+        l.water = mix(a.water, b.water, blend);
+        l.sway = mix(a.sway, b.sway, blend);
+        l.herd = mix(a.herd, b.herd, blend);
+        l.road = mix(a.road, b.road, blend);
+        // A darker tide line where the two paints meet.
+        l.color *= 1.0 - 0.12 * (1.0 - abs(blend * 2.0 - 1.0));
+    }
 
     float onRoad = l.road;
     float water = l.water;

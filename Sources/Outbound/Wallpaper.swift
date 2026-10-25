@@ -1,5 +1,7 @@
 import AppKit
+import OutboundCore
 import QuartzCore
+import SwiftUI
 
 /// A borderless window that sits just below the desktop icons on every Space and lets every click
 /// through to Finder.
@@ -74,6 +76,9 @@ final class Wallpaper: NSObject {
     private let renderer: ViewRenderer
     private let world: World
     private let gpu: GPU
+    private let caption = Caption()
+    private let label: NSHostingView<CaptionView>
+    private var captionUpdated = -TimeInterval.infinity
     private var link: CADisplayLink?
     private(set) var holds: Set<Hold> = []
     private var observers: [NSObjectProtocol] = []
@@ -88,8 +93,15 @@ final class Wallpaper: NSObject {
         window = WallpaperWindow(screen: screen)
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
+        label = NSHostingView(rootView: CaptionView(caption: caption))
         super.init()
-        window.contentView = view
+        let container = NSView()
+        view.autoresizingMask = [.width, .height]
+        container.addSubview(view)
+        container.addSubview(label)
+        window.contentView = container
+        view.frame = container.bounds
+        place(on: screen)
         renderer.configure(frame: screen.frame, scale: Double(screen.backingScaleFactor))
         window.orderFrontRegardless()
 
@@ -106,7 +118,26 @@ final class Wallpaper: NSObject {
 
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
+        place(on: screen)
         renderer.configure(frame: screen.frame, scale: Double(screen.backingScaleFactor))
+    }
+
+    /// Keeps the label in the corner of the usable area, clear of the Dock.
+    private func place(on screen: NSScreen) {
+        let visible = screen.visibleFrame
+        label.frame = CGRect(x: visible.minX - screen.frame.minX + 20, y: visible.minY - screen.frame.minY + 18,
+                             width: 420, height: 140)
+    }
+
+    private func updateCaption() {
+        let mpp = World.metresPerPoint
+        let frame = window.frame
+        let centre = world.camera + SIMD2(Double(frame.midX), Double(frame.midY)) * mpp
+        let leg = world.journey.leg(at: centre.y)
+        if caption.place != leg.place.name { caption.place = leg.place.name }
+        if caption.season != leg.season.line { caption.season = leg.season.line }
+        let text = Geo.caption(world.journey.coordinate(x: centre.x, y: centre.y))
+        if caption.coordinates != text { caption.coordinates = text }
     }
 
     func close() {
@@ -141,6 +172,10 @@ final class Wallpaper: NSObject {
 
     @objc private func tick(_ link: CADisplayLink) {
         world.advance(to: link.targetTimestamp)
+        if link.targetTimestamp - captionUpdated > 0.25 {
+            captionUpdated = link.targetTimestamp
+            updateCaption()
+        }
         guard let drawable = view.metalLayer.nextDrawable(),
               let commands = gpu.queue.makeCommandBuffer() else { return }
         renderer.encode(world: world, into: drawable.texture, commandBuffer: commands)

@@ -121,10 +121,10 @@ private let serengetiBase: Biome = {
                   crops: (rgb(0xd9a443), rgb(0xe7bb5c), rgb(0xc99a3e), rgb(0xb98a38)), hedge: rgb(0xa77a33),
                   water: rgb(0x3d8f8a), shallows: rgb(0x5fb3a8), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
                   canopy: rgb(0x55803a), canopyLight: rgb(0x77a04a))
-    b.patchiness = 0.85; b.strokes = 0.75; b.sway = 0.6; b.trees = 0.035; b.treeSize = 17; b.hedgeTrees = 0
+    b.patchiness = 0.85; b.strokes = 0.45; b.sway = 0.6; b.trees = 0.035; b.treeSize = 17; b.hedgeTrees = 0
     b.clumping = 0.1
     b.riverWidth = 26; b.riverWander = 70; b.roadWidth = 6; b.paved = 0; b.houses = 0; b.ponds = 0.35
-    b.animal = .zebra; b.herds = 0.75; b.animalColor = rgb(0xf2efe8); b.cars = 0.04
+    b.animal = .zebra; b.herds = 0.6; b.animalColor = rgb(0xf2efe8); b.cars = 0.04
     return b
 }()
 

@@ -170,16 +170,21 @@ final class ViewRenderer {
             encoder.endEncoding()
         }
 
-        // Composite into the target.
+        // Composite into the target. The bird is drawn by whichever display it is over.
         let gust = world.gustSpace(origin)
+        let bird = world.bird
+        let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
+        let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
+            && birdPoint.x < Double(frame.width) + 90 && birdPoint.y < Double(frame.height) + 90
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
             world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), Float(gust.x), Float(gust.y)),
             cache: SIMD4(Float((x0 / texel).positiveRemainder(Double(cacheWidth))),
                          Float((y0 / texel).positiveRemainder(Double(cacheHeight))),
                          Float(cacheWidth), Float(cacheHeight)),
-            bird: .zero,
-            wings: .zero,
+            bird: SIMD4(Float(birdPoint.x * scale), Float(birdPoint.y * scale), Float(bird.heading - .pi / 2),
+                        Float(bird.bank)),
+            wings: SIMD4(Float(bird.wings), 14, Float(27 * scale), birdVisible ? 1 : 0),
             finish: finish)
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = target

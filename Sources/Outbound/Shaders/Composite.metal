@@ -10,13 +10,13 @@ inline float3 animal(float3 c, float2 local, constant Biome &b, constant Scene &
     float2 drift = float2(18.0 * sin(t * 6.283 * 3.0 / 7200.0 + float(seed % 7u)),
                           14.0 * sin(t * 6.283 * 2.0 / 7200.0 + 1.7));
     float2 hp = local - drift;
-    float spacing = kind == zebra || kind == wildebeest ? 6.5 : 8.0;
+    float spacing = kind == zebra || kind == wildebeest ? 9.0 : 10.0;
     float2 g = floor(hp / spacing);
     int2 cell = int2(g);
     float2 cellCenter = (g + 0.5) * spacing;
-    float herd = smoothstep(1.0 - herds * 0.75, 1.05 - herds * 0.55, vnoise(cellCenter / 95.0, seed + 120u));
+    float herd = smoothstep(1.0 - herds * 0.7, 1.08 - herds * 0.5, vnoise(cellCenter / 110.0, seed + 120u));
     float h = hash21(cell, seed + 121u);
-    if (h > herd * 0.8) return c;
+    if (h > herd * 0.42) return c;
 
     // Graze, then take a few steps somewhere else.
     float period = 9.0 + 7.0 * hash21(cell, seed + 122u);
@@ -38,7 +38,7 @@ inline float3 animal(float3 c, float2 local, constant Biome &b, constant Scene &
     float head = length((d - float2(len * 1.05, 0.0)) / float2(0.7, 0.5)) - 1.0;
     float shadowBody = length((d - shadowOff) / float2(len, wid)) - 1.0;
     float px = mpp;
-    c = shade(c, fill(min(shadowBody, head), px * 0.9) * 0.7);
+    c = shade(c, fill(min(shadowBody, head), px * 0.9) * 0.7, scene);
     float3 coat = b.animalColor.rgb * (0.85 + 0.3 * hash21(cell, seed + 125u));
     if (kind == zebra) {
         float band = step(0.5, fract(d.x * 1.0 + 0.3 * d.y));
@@ -70,7 +70,7 @@ inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &sc
         float2 d = rotate(world - center, angle);
         float2 size = float2(1.05, 2.3);
         float2 shadowOff = rotate(-scene.sun.xy * scene.sun.z * 1.3, angle);
-        result = shade(result, fill(sdBox(d - shadowOff, size) - 0.3, mpp) * 0.75);
+        result = shade(result, fill(sdBox(d - shadowOff, size) - 0.3, mpp) * 0.75, scene);
         float k = hash11(int(i) * 2 + lane, 141u);
         float3 paint = k < 0.3 ? float3(0.95, 0.95, 0.93) : k < 0.45 ? float3(0.82, 0.18, 0.16)
                      : k < 0.6 ? float3(0.20, 0.34, 0.62) : k < 0.75 ? float3(0.16, 0.16, 0.18)
@@ -86,14 +86,18 @@ inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &sc
 // A small white bird, seen from above, drawn as a few soft shapes.
 inline float birdShape(float2 p, float spread, float bank) {
     // Wings shorten on the side the bird banks towards.
-    float side = p.x < 0.0 ? 1.0 - bank * 0.35 : 1.0 + bank * 0.35;
-    float span = (0.55 + 0.45 * spread) * side;
+    float side = p.x < 0.0 ? 1.0 - bank * 0.3 : 1.0 + bank * 0.3;
+    // From above a wingbeat only shortens the span a little.
+    float span = (0.8 + 0.2 * spread) * side;
     float2 w = float2(abs(p.x) / span, p.y);
-    float sweep = w.x * w.x * 0.18;
-    float wing = sdBox(float2(w.x - 0.5, w.y + sweep - 0.02), float2(0.5, 0.055 * (1.2 - w.x))) * span;
-    float body = length(p / float2(0.07, 0.3)) - 1.0;
-    float tail = sdBox(p - float2(0.0, -0.28), float2(0.05 + 0.4 * max(-p.y - 0.25, 0.0), 0.06));
-    return min(min(wing, body * 0.07), tail);
+    float sweep = w.x * w.x * 0.12;
+    // Broad at the shoulder, tapering to pointed tips, swept back like a gull's.
+    float chord = mix(0.15, 0.025, smoothstep(0.0, 1.0, w.x));
+    float wing = sdBox(float2(w.x - 0.5, w.y + sweep - 0.03 + chord * 0.3), float2(0.5, chord)) * span;
+    float body = (length(p / float2(0.085, 0.32)) - 1.0) * 0.085;
+    float head = length(p - float2(0.0, 0.3)) - 0.065;
+    float tail = sdBox(p - float2(0.0, -0.3), float2(0.06 + 0.45 * max(-p.y - 0.26, 0.0), 0.07));
+    return min(min(min(wing, body), head), tail);
 }
 
 fragment float4 composite(VertexOut in [[stage_in]],
@@ -143,7 +147,7 @@ fragment float4 composite(VertexOut in [[stage_in]],
     c = mix(c, float3(1.0, 1.0, 0.97), glint * smoothstep(0.85, 1.0, water) * 0.8 * (1.0 - cloud.z));
 
     // Cloud shadow, then the bird's shadow, then clouds, then the bird above it all.
-    c = shade(c, smoothstep(0.05, 0.8, cloud.z) * 0.62);
+    c = shade(c, smoothstep(0.05, 0.8, cloud.z) * 0.62, scene);
 
     float birdVisible = params.wings.w;
     float2 birdPx = params.bird.xy;
@@ -152,22 +156,23 @@ fragment float4 composite(VertexOut in [[stage_in]],
         float2 shadowPx = birdPx - scene.sun.xy * scene.sun.z * params.wings.y / mpp;
         float2 q = rotate(pixel - shadowPx, -params.bird.z) / scale;
         float sb = birdShape(q, params.wings.x, params.bird.w);
-        c = shade(c, fill(sb, 0.9 / scale) * 0.55 * birdVisible);
+        c = shade(c, fill(sb, 0.9 / scale) * 0.55 * birdVisible, scene);
     }
 
     float3 cloudColor = mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, cloud.y));
-    c = mix(c, cloudColor, smoothstep(0.02, 0.6, cloud.x));
+    float cloudAlpha = smoothstep(0.02, 0.6, cloud.x);
+    c = mix(c, cloudColor, cloudAlpha);
 
     if (birdVisible > 0.0) {
         float2 q = rotate(pixel - birdPx, -params.bird.z) / scale;
         float sb = birdShape(q, params.wings.x, params.bird.w);
         float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
-        float3 feathers = mix(float3(0.98, 0.98, 0.97), float3(0.80, 0.83, 0.88), underside * 0.6);
-        c = mix(c, feathers, fill(sb, 0.8 / scale) * birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x)));
+        float3 feathers = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
+        float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
+        // A faint darker rim keeps the white bird readable over pale ground and cloud.
+        c = mix(c, c * 0.72, fill(sb - 0.025, 0.9 / scale) * 0.45 * through);
+        c = mix(c, feathers, fill(sb, 0.8 / scale) * through);
     }
-
-    // Light for the time of day.
-    c *= scene.light.rgb * scene.light.w;
 
     // Paper: a fixed grain that does not scroll with the paint, and a soft dry-brush edge.
     float grain = vnoise(in.position.xy / 1.7, 170u) * 0.6 + hash21(int2(in.position.xy), 171u) * 0.4;
@@ -178,6 +183,14 @@ fragment float4 composite(VertexOut in [[stage_in]],
     float bristles = vnoise(in.position.xy / float2(3.0, 40.0), 173u) * 0.5 + vnoise(in.position.xy / float2(40.0, 3.0), 174u) * 0.5;
     float vignette = 1.0 - smoothstep(0.0, 0.006 + 0.012 * bristles, edge);
     c = mix(c, float3(0.97, 0.95, 0.91), vignette * params.finish.y);
+
+    // Light for the time of day. At night colour drains towards a cool moonlit blue but the shapes
+    // keep their values, so it still reads as the same painting.
+    float night = scene.time.w;
+    float3 lit = c * scene.light.rgb * scene.light.w;
+    float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.46, 0.54, 0.78) * 0.78 + float3(0.015, 0.02, 0.045);
+    moonlit += water * float3(0.05, 0.06, 0.08) * (1.0 - cloudAlpha);
+    c = mix(lit, moonlit, night);
 
     return float4(saturate(c), 1.0);
 }

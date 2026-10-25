@@ -20,7 +20,7 @@ public final class Journey {
     /// How long a Fly To repaint takes.
     public static let sweepDuration: TimeInterval = 1.6
     /// The caption's coordinates run faster than the painted ground so the digits visibly tick.
-    public static let geoScale = 9.0
+    public static let geoScale = 30.0
 
     public private(set) var legs: [Leg]
     /// Metres per second.
