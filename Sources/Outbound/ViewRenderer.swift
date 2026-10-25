@@ -63,6 +63,8 @@ final class ViewRenderer {
     var halfRateClouds = false
     /// Paper grain and edge strength.
     var finish = SIMD4<Float>(1, 0.3, 0, 0)
+    /// Half the bird's wingspan, in points.
+    var birdSize = 27.0
 
     init(gpu: GPU) {
         self.gpu = gpu
@@ -236,7 +238,7 @@ final class ViewRenderer {
                          Float(cacheWidth), Float(cacheHeight)),
             bird: SIMD4(Float(birdPoint.x * scale), Float(birdPoint.y * scale), Float(bird.heading - .pi / 2),
                         Float(bird.bank)),
-            wings: SIMD4(Float(bird.wings), 14, Float(27 * scale), birdVisible ? 1 : 0),
+            wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0))
         let pass = MTLRenderPassDescriptor()

@@ -7,6 +7,10 @@ cd "$(dirname "$0")/.."
 # SIGN_IDENTITY to a Developer ID Application identity to sign, and NOTARY_PROFILE
 # to a notarytool keychain profile to notarize. Without them the app is signed ad hoc.
 configuration="${1:-debug}"
+if [[ -n "${SIGN_IDENTITY:-}" ]] && grep -q 'POLAR_ORGANIZATION_ID\|POLAR_CHECKOUT_LINK' Sources/Outbound/Licensing/Store.swift; then
+    echo "Set the Polar organization ID and checkout link in Sources/Outbound/Licensing/Store.swift first." >&2
+    exit 1
+fi
 arch=()
 [[ "$configuration" == release ]] && arch=(--arch arm64 --arch x86_64)
 

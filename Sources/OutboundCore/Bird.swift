@@ -41,6 +41,16 @@ public struct Bird: Sendable {
         return SIMD2(x, y)
     }
 
+    /// Puts the bird somewhere for a still picture.
+    public mutating func pose(at position: SIMD2<Double>, heading: Double, wings: Double = 1) {
+        self.position = position
+        self.heading = heading
+        self.wings = wings
+        bank = 0
+        velocity = SIMD2(cos(heading), sin(heading)) * Self.cruise
+        steer.value = velocity
+    }
+
     public mutating func step(dt rawDt: Double, towards target: SIMD2<Double>) {
         let dt = min(max(rawDt, 0), 0.25)
         guard dt > 0 else { return }

@@ -286,7 +286,7 @@ private let kansasBase: Biome = {
                   water: rgb(0x3c6fae), shallows: rgb(0x5a8fcc), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
                   canopy: rgb(0x4a6e35), canopyLight: rgb(0x6a8f45))
     b.fieldSize = 270; b.hedgeWidth = 6; b.warp = 0; b.fallow = 0.12; b.strokes = 0.5; b.sway = 0.6
-    b.trees = 0.015; b.treeSize = 10; b.hedgeTrees = 0.05; b.clumping = 0.95; b.treeLines = 0.25; b.houses = 0.08
+    b.trees = 0.015; b.treeSize = 10; b.hedgeTrees = 0.05; b.clumping = 0.95; b.houses = 0.08
     b.ponds = 0.05
     b.riverWidth = 16; b.riverWander = 120; b.roadWidth = 7; b.paved = 0; b.cars = 0.08
     b.animal = .cattle; b.herds = 0.08; b.animalColor = rgb(0x2e2622)

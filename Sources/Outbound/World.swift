@@ -124,6 +124,11 @@ final class World {
         revision += 1
     }
 
+    /// Holds the bird still for a picture.
+    func poseBird(at point: CGPoint, heading: Double) {
+        bird.pose(at: SIMD2(Double(point.x), Double(point.y)), heading: heading)
+    }
+
     /// The window a click at the point would reach. Wallpaper windows ignore the mouse, so over the desktop
     /// that is Finder's desktop, which sits below every normal window level.
     static func desktopIsUnder(_ point: CGPoint) -> Bool {

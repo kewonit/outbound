@@ -83,21 +83,27 @@ inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &sc
     return result;
 }
 
-// A small white bird, seen from above, drawn as a few soft shapes.
+inline float taperedSegment(float2 p, float2 a, float2 b, float ra, float rb) {
+    float2 pa = p - a, ba = b - a;
+    float h = saturate(dot(pa, ba) / dot(ba, ba));
+    return length(pa - ba * h) - mix(ra, rb, h);
+}
+
+// A gull seen from above, facing +y, wingtips at x = ±1. Each wing is an inner arm that reaches slightly
+// forward to the wrist and a hand that sweeps back to a fine point.
 inline float birdShape(float2 p, float spread, float bank) {
-    // Wings shorten on the side the bird banks towards.
+    // Wings shorten on the side the bird banks towards; a wingbeat only shortens the span a little.
     float side = p.x < 0.0 ? 1.0 - bank * 0.3 : 1.0 + bank * 0.3;
-    // From above a wingbeat only shortens the span a little.
-    float span = (0.8 + 0.2 * spread) * side;
-    float2 w = float2(abs(p.x) / span, p.y);
-    float sweep = w.x * w.x * 0.12;
-    // Broad at the shoulder, tapering to pointed tips, swept back like a gull's.
-    float chord = mix(0.15, 0.025, smoothstep(0.0, 1.0, w.x));
-    float wing = sdBox(float2(w.x - 0.5, w.y + sweep - 0.03 + chord * 0.3), float2(0.5, chord)) * span;
-    float body = (length(p / float2(0.085, 0.32)) - 1.0) * 0.085;
-    float head = length(p - float2(0.0, 0.3)) - 0.065;
-    float tail = sdBox(p - float2(0.0, -0.3), float2(0.06 + 0.45 * max(-p.y - 0.26, 0.0), 0.07));
-    return min(min(min(wing, body), head), tail);
+    float span = (0.82 + 0.18 * spread) * side;
+    float2 q = float2(abs(p.x) / span, p.y);
+    float wrist = 0.08 + 0.07 * (1.0 - spread);
+    float inner = taperedSegment(q, float2(0.03, 0.02), float2(0.5, wrist), 0.12, 0.085);
+    float hand = taperedSegment(q, float2(0.5, wrist), float2(1.0, -0.1), 0.085, 0.01);
+    float wing = min(inner, hand) * span;
+    float body = (length(p / float2(0.078, 0.31)) - 1.0) * 0.078;
+    float head = length(p - float2(0.0, 0.27)) - 0.06;
+    float tail = sdBox(p - float2(0.0, -0.31), float2(0.05 + 0.3 * max(-p.y - 0.27, 0.0), 0.06));
+    return smin(smin(body, head, 0.06), min(wing, tail), 0.05);
 }
 
 // Paper grain and the dry-brush edge never move, so they are painted once per size at half resolution.
@@ -193,6 +199,8 @@ fragment float4 composite(VertexOut in [[stage_in]],
             float sb = birdShape(q, params.wings.x, params.bird.w);
             float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
             float3 feathers = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
+            // Dark wingtips, as gulls have.
+            feathers = mix(feathers, float3(0.24, 0.25, 0.28), smoothstep(0.8, 0.9, abs(q.x)) * 0.85);
             float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
             // A faint darker rim keeps the white bird readable over pale ground and cloud.
             c = mix(c, c * 0.72, fill(sb - 0.025, 0.9 / scale) * 0.45 * through);
