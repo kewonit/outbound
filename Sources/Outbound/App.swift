@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var stillTaken = Date.distantPast
     private var stillsWereOn = false
     private var signals: [DispatchSourceSignal] = []
+    /// Links from the thank-you page that arrived before launch finished.
+    private var earlyLinks: [ActivationLink] = []
 
     private var world: World { displays.world }
 
@@ -79,17 +81,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshStill(force: true)
 
         license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }
-        if !license.unlocks { showActivation() }
+        if !license.unlocks {
+            showActivation()
+            license.resumePurchase()
+        }
         Task { await license.refresh() }
         licenseTimer = Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.license.refresh() }
         }
+        // Back from the browser after paying: ask about the purchase now rather than at the next tick.
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.license.checkPurchaseNow() }
+        }
+        earlyLinks.forEach(handle)
+        earlyLinks = []
     }
 
     private func licenseChanged(_ unlocked: Bool) {
         displays.running = unlocked
         if unlocked {
-            activation?.close()
+            activation?.finish()
             activation = nil
             refreshStill(force: true)
         } else {
@@ -108,6 +120,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
         // Leave the desktop as the user had it before Outbound.
         stills.restore()
+    }
+
+    // MARK: - Links from the thank-you page
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        // Any web page can open these, so only the exact activation link is acted on.
+        guard let link = urls.lazy.compactMap({ ActivationLink($0) }).last else { return }
+        if displays == nil {
+            earlyLinks.append(link)
+        } else {
+            handle(link)
+        }
+    }
+
+    private func handle(_ link: ActivationLink) {
+        let wasUnlocked = license.unlocks
+        if !wasUnlocked { showActivation() }
+        Task {
+            let result = await license.claim(link.checkout) { [weak self] email in
+                self?.confirmReplacing(boughtWith: email) ?? false
+            }
+            guard wasUnlocked || result == .alreadyActive else { return }
+            switch result {
+            case .alreadyActive: inform("Outbound is already unlocked on this Mac.", detail: "There's nothing more to do.")
+            case .activated: inform("Outbound now uses your new license.", detail: "Your old key is free for another Mac.")
+            case .failed: inform("Outbound couldn't use that purchase.", detail: license.message ?? "")
+            case .waiting: inform("Your purchase is still being processed.",
+                                  detail: "Click Activate in Outbound again in a minute.")
+            case .declined: break
+            }
+        }
+    }
+
+    private func confirmReplacing(boughtWith email: String?) -> Bool {
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = "Replace this Mac's license?"
+        alert.informativeText = "Outbound is already unlocked here. Use the license bought\(email.map { " with \($0)" } ?? "") instead?"
+        alert.addButton(withTitle: "Use New License")
+        alert.addButton(withTitle: "Keep Current")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    private func inform(_ message: String, detail: String) {
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = detail
+        alert.runModal()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

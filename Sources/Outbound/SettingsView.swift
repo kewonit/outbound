@@ -45,6 +45,9 @@ struct SettingsView: View {
                                 .disabled(license.busy)
                         }
                     }
+                    LabeledContent("Your key and Macs") {
+                        Link("Customer Portal", destination: Store.portalURL)
+                    }
                 }
                 if let message = license.message {
                     Text(message).font(.caption).foregroundStyle(.red)

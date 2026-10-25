@@ -1,11 +1,26 @@
 {
-  // The website, served as static assets. Deploy with: npx wrangler deploy
+  // The website: static files from Website/, and a small API under /api/ in worker/index.js that hands
+  // a buyer's license key to the app. Deploys from main through Workers Builds, or with npx wrangler deploy.
+  //
+  // One secret, set once and kept across deploys: npx wrangler secret put POLAR_ACCESS_TOKEN
   "name": "outbound",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./Website",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
   },
+  "vars": {
+    "POLAR_API": "https://api.polar.sh",
+    "POLAR_PRODUCT_ID": "e7c27b2b-6c8d-4514-82dc-9f6ad3394928",
+    "POLAR_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54"
+  },
+  "ratelimits": [
+    { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
+    { "name": "LOOKUPS", "namespace_id": "1102", "simple": { "limit": 60, "period": 60 } }
+  ],
   "routes": [{ "pattern": "outbound.edbn.me", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false

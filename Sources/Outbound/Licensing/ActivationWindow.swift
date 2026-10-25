@@ -2,17 +2,18 @@ import AppKit
 import OutboundCore
 import SwiftUI
 
-/// The window shown before Outbound is unlocked: a live window onto the world, a way to buy it, and a
-/// place to paste the key from the receipt.
+/// The window shown before Outbound is unlocked: a live window onto the world, a way to buy it that unlocks
+/// by itself once paid, and a place to paste a key bought earlier.
 @MainActor
 final class ActivationWindow {
     private let window: NSWindow
     private let preview: PreviewView
+    private let state = ActivationState()
 
     init(license: LicenseController, world: World, gpu: GPU) {
         let size = CGSize(width: 560, height: 300)
         preview = PreviewView(world: world, gpu: gpu, size: size)
-        let view = ActivationView(license: license, preview: preview)
+        let view = ActivationView(license: license, preview: preview, state: state)
         window = NSWindow(contentViewController: NSHostingController(rootView: view))
         window.title = "Unlock Outbound"
         window.styleMask = [.titled, .closable, .fullSizeContentView]
@@ -31,11 +32,29 @@ final class ActivationWindow {
         preview.stop()
         window.close()
     }
+
+    /// Says thank you for a moment, then gets out of the way of the wallpaper.
+    func finish() {
+        guard window.isVisible else {
+            close()
+            return
+        }
+        state.unlocked = true
+        // Holds on to the window until it has closed; the app lets go of it straight away.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { self.close() }
+    }
+}
+
+@MainActor
+@Observable
+final class ActivationState {
+    var unlocked = false
 }
 
 private struct ActivationView: View {
     @Bindable var license: LicenseController
     let preview: PreviewView
+    let state: ActivationState
     @State private var key = ""
 
     var body: some View {
@@ -45,22 +64,37 @@ private struct ActivationView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Outbound")
                     .font(.system(size: 22, weight: .semibold))
-                Text("A painted world drifting by behind your desktop, with a bird that follows your cursor.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 12) {
-                    Button("Buy for \(Store.price)") { NSWorkspace.shared.open(Store.checkoutURL) }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                    Text("One payment, for up to three of your Macs.")
-                        .font(.callout)
+                if state.unlocked {
+                    Label("Outbound is yours. Enjoy the flight.", systemImage: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.green)
+                } else if license.waitingForPurchase {
+                    waiting
+                } else {
+                    Text("A painted world drifting by behind your desktop, with a bird that follows your cursor.")
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 12) {
+                        Button("Buy for \(Store.price)", action: license.buy)
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .disabled(license.busy)
+                        Text("One payment, for up to three of your Macs. Outbound unlocks by itself once you've paid.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Divider().padding(.vertical, 4)
-                Text("Already bought it? Paste the license key from your receipt.")
-                    .font(.callout)
                 HStack {
-                    TextField("License key", text: $key)
+                    Text("Already bought it? Paste your license key.")
+                        .font(.callout)
+                    Spacer()
+                    Link("Find my key", destination: Store.portalURL)
+                        .font(.callout)
+                }
+                HStack {
+                    TextField("OUTBOUND-…", text: $key)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit(unlock)
                     Button("Unlock", action: unlock)
@@ -78,6 +112,24 @@ private struct ActivationView: View {
         }
         .frame(width: 560)
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var waiting: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                Text("Waiting for your purchase…")
+                    .font(.headline)
+            }
+            Text("Finish paying in your browser. Outbound unlocks by itself a moment after, so there's nothing to copy.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 14) {
+                Button("Open Checkout Again", action: license.buy)
+                Button("Cancel", action: license.cancelPurchase)
+                    .buttonStyle(.link)
+            }
+        }
     }
 
     private func unlock() {

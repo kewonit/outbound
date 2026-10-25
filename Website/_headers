@@ -5,3 +5,15 @@
 
 /assets/*
   Cache-Control: public, max-age=86400
+
+/thanks
+  ! Referrer-Policy
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex
+
+/thanks.html
+  ! Referrer-Policy
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex

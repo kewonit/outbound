@@ -5,7 +5,7 @@
   // The only place site URLs live. While buy or download is empty, its buttons say
   // "Coming soon" or hide. Go live with:
   //   download: "https://github.com/kewonit/outbound/releases/latest/download/Outbound.dmg"
-  //   buy: the Polar checkout link
+  //   buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA"
   var URLS = {
     download: "",
     buy: "",

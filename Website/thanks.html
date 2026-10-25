@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Thank you · Outbound</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=7">
+<script>
+// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
+// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
+(function () {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("checkout_id");
+  try {
+    if (id) sessionStorage.setItem("outbound-checkout", id);
+  } catch (error) {}
+  window.OUTBOUND_CHECKOUT = id || (function () {
+    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
+  })();
+  if (location.search) history.replaceState(null, "", location.pathname);
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1>Thank you.</h1>
+    <p class="lede">Outbound is yours, on up to three of your Macs.</p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong>Download Outbound</strong> and move it to Applications.
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a></div>
+      </li>
+      <li>
+        <strong>Open it, then come back and activate.</strong> Your browser asks to open Outbound; allow it, and Outbound unlocks by itself.
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true">Activate in Outbound</a></div>
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2>Your license key</h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button">Copy</button>
+      </div>
+      <p class="muted">If the button doesn't open Outbound, paste this key into its Unlock window. <span id="email"></span></p>
+    </div>
+
+    <p class="muted" id="status" role="status">Finding your license key…</p>
+    <p class="muted">Lost your key, or moving to another Mac? It is always in your <a href="https://polar.sh/edbnme/portal">customer portal</a>, where you can also free up a Mac.</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <p class="foot-base"><span>Needs a Mac with Apple silicon and macOS 26 or newer</span><span><a href="/">outbound.edbn.me</a></span></p>
+  </div>
+</footer>
+
+<script src="/app.js?v=7"></script>
+<script src="/thanks.js?v=1"></script>
+</body>
+</html>

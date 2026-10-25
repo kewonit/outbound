@@ -2,6 +2,40 @@ import Foundation
 import Testing
 @testable import OutboundCore
 
+struct PurchaseTests {
+    private let id = "6f1c2c8e-3b7a-4c55-9d2e-0a1b2c3d4e5f"
+
+    @Test func acceptsTheThankYouLink() {
+        let link = ActivationLink(URL(string: "outbound://activate?checkout=\(id)")!)
+        #expect(link?.checkout == UUID(uuidString: id))
+        #expect(ActivationLink(URL(string: "OUTBOUND://Activate/?checkout=\(id.uppercased())")!) != nil)
+        #expect(ActivationLink(URL(string: "outbound-dev://activate?checkout=\(id)")!) != nil)
+    }
+
+    @Test func ignoresAnythingElse() {
+        for link in [
+            "https://activate?checkout=\(id)",
+            "outbound://unlock?checkout=\(id)",
+            "outbound://activate/now?checkout=\(id)",
+            "outbound://activate?key=OUTBOUND-123",
+            "outbound://activate?checkout=\(id)&key=OUTBOUND-123",
+            "outbound://activate?checkout=\(id)&checkout=\(id)",
+            "outbound://activate?checkout=not-a-uuid",
+            "outbound://activate?checkout=\(id)#more",
+            "outbound://activate"
+        ] {
+            #expect(ActivationLink(URL(string: link)!) == nil, "\(link)")
+        }
+    }
+
+    @Test func watchesQuicklyThenLessThenStops() {
+        #expect(PurchaseWatch.delay(after: 0) == 3)
+        #expect(PurchaseWatch.delay(after: 300) == 6)
+        #expect(PurchaseWatch.delay(after: 1200) == 15)
+        #expect(PurchaseWatch.delay(after: PurchaseWatch.giveUpAfter) == nil)
+    }
+}
+
 struct LicenseTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -36,6 +70,16 @@ struct LicenseTests {
     @Test func clockSetBackHasToBeConfirmed() {
         #expect(LicenseStatus(record(daysAgo: -5), now: now) == .lapsed)
         #expect(LicenseStatus(record(daysAgo: -0.5), now: now) == .valid)
+    }
+
+    @Test func revokedKeyLapsesUntilConfirmedAgain() {
+        var revoked = record(daysAgo: 1)
+        revoked.revokedAt = now
+        #expect(LicenseStatus(revoked, now: now) == .lapsed)
+        // Records saved before revocation existed still decode.
+        let old = #"{"key":"K","activationID":"A","validatedAt":0}"#
+        let decoded = try? JSONDecoder().decode(LicenseRecord.self, from: Data(old.utf8))
+        #expect(decoded?.revokedAt == nil)
     }
 
     @Test func cleansPastedKeys() {

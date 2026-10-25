@@ -7,12 +7,16 @@ public struct LicenseRecord: Codable, Equatable, Sendable {
     /// When the store last confirmed the key.
     public var validatedAt: Date
     public var expiresAt: Date?
+    /// When the store last said the key is no longer active, say after a refund. The record is kept rather
+    /// than deleted, so a mistaken answer is undone by the next good check.
+    public var revokedAt: Date?
 
-    public init(key: String, activationID: String, validatedAt: Date, expiresAt: Date? = nil) {
+    public init(key: String, activationID: String, validatedAt: Date, expiresAt: Date? = nil, revokedAt: Date? = nil) {
         self.key = key
         self.activationID = activationID
         self.validatedAt = validatedAt
         self.expiresAt = expiresAt
+        self.revokedAt = revokedAt
     }
 }
 
@@ -31,6 +35,10 @@ public enum LicenseStatus: Equatable, Sendable {
     public init(_ record: LicenseRecord?, now: Date = .now) {
         guard let record else {
             self = .unlicensed
+            return
+        }
+        if record.revokedAt != nil {
+            self = .lapsed
             return
         }
         if let expiry = record.expiresAt, expiry < now {

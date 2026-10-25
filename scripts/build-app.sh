@@ -4,14 +4,10 @@ cd "$(dirname "$0")/.."
 
 # Usage: scripts/build-app.sh [debug|release]
 # Release builds are for Apple silicon, whose GPUs the renderer needs, and are
-# packaged as a zip and a disk image. Set
-# SIGN_IDENTITY to a Developer ID Application identity to sign, and NOTARY_PROFILE
-# to a notarytool keychain profile to notarize. Without them the app is signed ad hoc.
+# packaged as a zip and a disk image. Set SIGN_IDENTITY to a Developer ID
+# Application identity to sign, and NOTARY_PROFILE to a notarytool keychain
+# profile to notarize. Without them the app is signed ad hoc.
 configuration="${1:-debug}"
-if [[ -n "${SIGN_IDENTITY:-}" ]] && grep -q 'POLAR_ORGANIZATION_ID\|POLAR_CHECKOUT_LINK' Sources/Outbound/Licensing/Store.swift; then
-    echo "Set the Polar organization ID and checkout link in Sources/Outbound/Licensing/Store.swift first." >&2
-    exit 1
-fi
 arch=()
 [[ "$configuration" == release ]] && arch=(--arch arm64)
 
@@ -23,6 +19,9 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/Outbound" "$app/Contents/MacOS/"
 cp Configuration/Info.plist "$app/Contents/"
+# A development build answers outbound-dev:// links, so it never takes links meant for an installed release.
+[[ "$configuration" == debug ]] && plutil -replace CFBundleURLTypes.0.CFBundleURLSchemes.0 -string outbound-dev \
+    "$app/Contents/Info.plist"
 cp Configuration/AppIcon.icns "$app/Contents/Resources/"
 for bundle in "$bin"/*.bundle; do
     [[ -d "$bundle" ]] && cp -R "$bundle" "$app/Contents/Resources/"

@@ -24,7 +24,12 @@ It needs a Mac with Apple silicon and macOS 26 or newer.
 
 ## Buying
 
-Outbound costs $7, once, for up to three of your Macs. Buy a key on the [website](https://outbound.edbn.me/#buy), download the app, and paste the key from your receipt when it asks.
+Outbound costs $7, once, for up to three of your Macs, sold through Polar.
+
+- **From the app:** open Outbound and click Buy. Pay in your browser, and Outbound unlocks by itself a moment later, with nothing to copy.
+- **From the [website](https://outbound.edbn.me/#buy):** after paying, the thank-you page has an Activate in Outbound button that unlocks the app, and shows your key too.
+
+Your key is always in your [customer portal](https://polar.sh/edbnme/portal), where you can also free up a Mac you no longer use.
 
 ## Building it yourself
 
@@ -49,9 +54,12 @@ OUTBOUND_SHADERS=$PWD/Sources/Outbound/Shaders .build/debug/Outbound
 .build/debug/Outbound --render - --place niigata --best --seconds 16 --size 1600x1000 --scale 1 \
     | ffmpeg -f rawvideo -pix_fmt bgra -s 1600x1000 -r 30 -i - flight.mp4
 
-# Test licensing against Polar's sandbox.
-OUTBOUND_POLAR_SANDBOX=1 OUTBOUND_POLAR_ORGANIZATION=<sandbox organization id> .build/debug/Outbound
+# Try the paid flow from a development build, against the live store or a local copy of the site.
+OUTBOUND_GATED=1 .build/debug/Outbound
+OUTBOUND_GATED=1 OUTBOUND_SHOP=http://localhost:8787/api .build/debug/Outbound   # with npx wrangler dev
 ```
+
+Development builds answer `outbound-dev://` links, so they never take links meant for an installed copy.
 
 `scripts/make-site-assets.sh` repaints every picture and video on the website.
 
@@ -62,6 +70,8 @@ Each display gets a borderless window that sits just below the desktop icons, on
 The landscape is a set of Metal shaders that paint fields, rivers, roads, railways, trees, houses and snow from noise, with no images or video. The ground is painted once into a texture that wraps around in both directions, and as the camera flies north only the newly revealed strip is painted. Clouds never change shape, only drift, so they are painted at a quarter of the resolution and slid along. Each frame is then one render pass that stays in tile memory: the cached ground with cars, boats and trains, the herds as small instanced sprites, then the sky with clouds, birds, paper grain and the light of the hour. While the bird chases the cursor it moves to a small layer of its own, so following smoothly never means redrawing the whole landscape faster.
 
 `Sources/OutboundCore` holds the parts that are plain logic, with tests: places and seasons, the journey, the bird's flight, the sun, the power policy and the license rules.
+
+The website in `Website/` is served by a Cloudflare Worker, and `worker/index.js` adds a small API to it. When you buy from the app, the app asks the site to start a Polar checkout, opens it in your browser, and asks every few seconds whether it has been paid. Once it has, the Worker finds the license key Polar made for that order and hands it over, and the app activates it with Polar directly. The thank-you page after a website purchase does the same through an `outbound://activate` link that carries only the checkout, never the key.
 
 ## License
 
