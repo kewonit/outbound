@@ -29,8 +29,10 @@ struct BiomeGPU {
     var i: SIMD4<Float>
     /// first landmark, its density, second landmark, its density
     var j: SIMD4<Float>
-    /// dry river, sodium lamps, lamps off late, unused
+    /// sodium lamps, lamps off late, unused, unused
     var k: SIMD4<Float>
+    /// Orchard trees in flower, shaded (w is 1 when only orchards flower) and lit.
+    var blossom, blossomLight: SIMD4<Float>
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
@@ -52,7 +54,10 @@ struct BiomeGPU {
         animalPatches = SIMD4(b.animalPatches ?? .zero, b.animalPatches == nil ? 0 : 1)
         i = SIMD4(b.villages, b.roadTrees, b.flatRoofs ? 1 : 0, b.levees)
         j = SIMD4(Float(b.landmarks.0.rawValue), b.landmarks.1, Float(b.landmarks.2.rawValue), b.landmarks.3)
-        k = SIMD4(b.riverDry, b.sodiumLamps, b.lampsOffLate ? 1 : 0, 0)
+        k = SIMD4(b.sodiumLamps, b.lampsOffLate ? 1 : 0, 0, 0)
+        let flowers = b.blossom ?? (b.canopy, b.canopyLight)
+        blossom = SIMD4(flowers.0, b.blossom == nil ? 0 : 1)
+        blossomLight = c(flowers.1)
     }
 }
 

@@ -18,7 +18,8 @@ struct Biome {
     float4 roof0, roof1, roof2, animalPatches;
     float4 i; // villages, road trees, flat roofs, levees
     float4 j; // landmark A, density, landmark B, density
-    float4 k; // dry river
+    float4 k; // sodium lamps, lamps off late
+    float4 blossom, blossomLight; // orchard trees in flower; blossom.w is 1 when only orchards flower
 };
 
 struct Leg {

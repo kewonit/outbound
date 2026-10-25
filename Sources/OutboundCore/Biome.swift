@@ -63,6 +63,7 @@ public struct Biome: Sendable {
     /// Petals or blossom flecks drifting on the ground near trees.
     public var petals: Float = 0
 
+    /// Metres; 0 for a place with no river, where it narrows away as the land changes.
     public var riverWidth: Float = 34
     public var riverWander: Float = 90
     public var roadWidth: Float = 9
@@ -106,8 +107,6 @@ public struct Biome: Sendable {
     public var roadTrees: Float = 0
     /// Grassy dykes either side of the river, in metres.
     public var levees: Float = 0
-    /// 1 for a river that is mostly a dry sand bed with a trickle down the middle.
-    public var riverDry: Float = 0
     /// Landmarks scattered across the land, with how many per square kilometre or so.
     public var landmarks: (Landmark, Float, Landmark, Float) = (.none, 0, .none, 0)
 
@@ -144,6 +143,9 @@ public struct Biome: Sendable {
     public var animalColor: SIMD3<Float> = Biome.rgb(0x6b3e26)
     /// Patches on the coat, as on Normande or Hereford cattle; nil for plain coats.
     public var animalPatches: SIMD3<Float>?
+    /// Orchard trees in flower, shaded and lit, while the other trees keep their leaves; nil when orchards look
+    /// like any other tree.
+    public var blossom: (SIMD3<Float>, SIMD3<Float>)?
     public var cars: Float = 0.3
 
     public init(layout: Layout, ground: SIMD3<Float>, groundDark: SIMD3<Float>,

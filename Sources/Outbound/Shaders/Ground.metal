@@ -36,9 +36,10 @@ inline float3 shade(float3 c, float amount, constant Scene &scene) {
     return c * mix(float3(1.0), float3(0.56, 0.62, 0.78), amount * daylight);
 }
 
-// One tree crown with its shadow. `d` is the offset from the trunk.
+// One tree crown with its shadow. `d` is the offset from the trunk; `dark` and `light` are the crown's shaded
+// and lit colours.
 inline float3 tree(float3 c, float2 d, float r, float2 local, constant Biome &b, constant Scene &scene, uint seed,
-                   thread float &cover) {
+                   thread float &cover, float3 dark, float3 light) {
     // Capped so the shadow stays inside the tree's cell even when the sun is low.
     float2 shadowOff = -scene.sun.xy * min(scene.sun.z, 0.75) * r * 1.7;
     c = shade(c, fill(length(d - shadowOff) - r * 0.95, 0.7) * 0.85, scene);
@@ -46,12 +47,17 @@ inline float3 tree(float3 c, float2 d, float r, float2 local, constant Biome &b,
     float dt = length(d) - r * (0.88 + 0.28 * lobes);
     float lit = dot(normalize(d + 1e-4), scene.sun.xy) * 0.5 + 0.5;
     float clumps = vnoise(local / (r * 0.4), seed + 45u);
-    float3 crown = mix(b.canopy.rgb, b.canopyLight.rgb, saturate(lit * 0.8 + clumps * 0.35 - 0.12));
+    float3 crown = mix(dark, light, saturate(lit * 0.8 + clumps * 0.35 - 0.12));
     crown *= 0.92 + 0.16 * smoothstep(0.2, 1.0, lit) * clumps;
     crown = mix(crown, b.snow.rgb, b.f.y * 0.55 * smoothstep(0.45, 0.8, clumps));
     float a = fill(dt, 0.45);
     cover = max(cover, a);
     return mix(c, crown, a);
+}
+
+inline float3 tree(float3 c, float2 d, float r, float2 local, constant Biome &b, constant Scene &scene, uint seed,
+                   thread float &cover) {
+    return tree(c, d, r, local, b, scene, seed, cover, b.canopy.rgb, b.canopyLight.rgb);
 }
 
 inline float segmentDistance(float2 p, float2 a, float2 b) {
@@ -191,7 +197,13 @@ inline Land fields(float2 p, constant Biome &b, constant Scene &scene, uint seed
         if (hash21(cell, seed + 11u) < 0.88) {
             float2 local = q - (g + 0.5) * spacing - (hash22(cell, seed + 12u) - 0.5) * 1.6;
             float r = b.c.z * 0.3 * (0.85 + 0.3 * hash21(cell, seed + 13u));
-            l.color = tree(l.color, rotate(local, -angle), r, p, b, scene, seed, trees);
+            // Fallen petals in the grass round trees in flower.
+            if (b.d.y > 0.0 && b.blossom.w > 0.5) {
+                float petal = hash21(int2(floor(p / 0.9)), seed + 46u);
+                float near = 1.0 - smoothstep(r, r * 2.4, length(local));
+                l.color = mix(l.color, b.blossomLight.rgb * 1.03, step(1.0 - 0.3 * b.d.y * near, petal) * 0.9);
+            }
+            l.color = tree(l.color, rotate(local, -angle), r, p, b, scene, seed, trees, b.blossom.rgb, b.blossomLight.rgb);
         }
         l.sway = b.b.w * 0.3 * (1.0 - trees);
         l.herd = 0.0;
@@ -347,7 +359,33 @@ inline Land stripes(float2 p, constant Biome &b, uint seed) {
     return l;
 }
 
-inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed) {
+inline float riverDistance(float2 p, constant Scene &scene, float wander) {
+    float cx = riverX(p.y, scene, wander);
+    float s = riverSlope(p.y, scene, wander);
+    return (p.x - cx) / sqrt(1.0 + s * s);
+}
+
+inline float roadDistance(float2 p, constant Scene &scene, float wander) {
+    float rx = roadX(p.y, scene, wander);
+    float s = riverSlope(p.y, scene, wander);
+    float t = tanh(3.0 * sin(p.y / roadWave + scene.road.z));
+    s += scene.road.y * (1.0 - t * t) * 3.0 * cos(p.y / roadWave + scene.road.z) / roadWave;
+    return (p.x - rx) / sqrt(1.0 + s * s);
+}
+
+// How far a leg-local point is outside the strip a pivot must keep clear of: the main road and the railway.
+inline float pivotClearance(float2 p, constant Leg &leg, constant Scene &scene, float wander) {
+    float2 world = float2(p.x, p.y + leg.info.x);
+    float clear = abs(roadDistance(world, scene, wander)) - leg.biome.e.x * 0.5 - 9.0;
+    if (leg.rail.w > 0.5) {
+        float along;
+        clear = min(clear, abs(railSigned(p, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along)) - 12.0);
+    }
+    return clear;
+}
+
+inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed, float wander) {
+    constant Biome &b = leg.biome;
     float s = b.a.y;
     float2 g = floor(p / s);
     float2 center = (g + 0.5) * s;
@@ -364,7 +402,11 @@ inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed
     l.herd = 1.0;
     l.sway = b.b.w * 0.3;
     float d = length(r) - radius;
-    if (hash21(cell, seed + 1u) > b.b.x) {
+    // A circle whose pad would sit on the road or the railway is left out; one they only cross is cut short
+    // along them, like the part circles seen from the air.
+    float clear = d < 1.5 ? pivotClearance(p, leg, scene, wander) : 1e3;
+    if (hash21(cell, seed + 1u) > b.b.x && pivotClearance(center, leg, scene, wander) > 12.0) {
+        float planted = smoothstep(0.0, 2.5, clear);
         float angle = atan2(r.y, r.x);
         float split = hash21(cell, seed + 2u);
         float h = hash21(cell, seed + 3u);
@@ -379,14 +421,21 @@ inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed
         float rings = sin(length(r) * (2.0 * M_PI_F / 54.0));
         crop *= 1.0 - 0.05 * smoothstep(0.85, 1.0, rings);
         crop *= 1.0 + b.b.z * 0.12 * (vnoise(rotate(r, angle) * float2(1.0 / 1.0, 1.0 / 14.0), seed + 6u) - 0.5);
-        c = mix(c, crop, fill(d, 1.2));
-        l.sway = mix(l.sway, b.b.w, fill(d, 1.2));
-        l.herd = 1.0 - fill(d, 1.2);
-        // The sprinkler arm reaching from the centre pad, raised on its towers, and its shadow.
+        float inCircle = fill(d, 1.2) * planted;
+        c = mix(c, crop, inCircle);
+        l.sway = mix(l.sway, b.b.w, inCircle);
+        l.herd = 1.0 - inCircle;
+        // The sprinkler arm reaching from the centre pad, raised on its towers, and its shadow. It turns back
+        // before reaching a road or a railway, so it always rests over the crop.
         float2 arm = rotate(float2(1.0, 0.0), hash21(cell, seed + 8u) * 6.283) * radius * 0.98;
+        if (min(pivotClearance(center + arm, leg, scene, wander), pivotClearance(center + arm * 0.5, leg, scene, wander)) < 2.0) {
+            arm = -arm;
+        }
+        float armShown = step(2.0, min(pivotClearance(center + arm, leg, scene, wander),
+                                       pivotClearance(center + arm * 0.5, leg, scene, wander)));
         float2 lift = scene.sun.xy * scene.sun.z * 3.5;
-        c = shade(c, fill(segmentDistance(r + lift, 0.0, arm) - 0.35, 0.3) * 0.55, scene);
-        c = mix(c, float3(0.72, 0.73, 0.74), fill(segmentDistance(r, 0.0, arm) - 0.3, 0.2));
+        c = shade(c, fill(segmentDistance(r + lift, 0.0, arm) - 0.35, 0.3) * 0.55 * armShown, scene);
+        c = mix(c, float3(0.72, 0.73, 0.74), fill(segmentDistance(r, 0.0, arm) - 0.3, 0.2) * armShown);
         c = mix(c, float3(0.66, 0.65, 0.62), fill(sdBox(r, float2(3.5)), 0.3));
     }
     // Section roads every mile.
@@ -402,23 +451,14 @@ inline Land pivots(float2 p, constant Biome &b, constant Scene &scene, uint seed
 
 // MARK: - Things on the land
 
-inline float riverDistance(float2 p, constant Scene &scene, float wander) {
-    float cx = riverX(p.y, scene, wander);
-    float s = riverSlope(p.y, scene, wander);
-    return (p.x - cx) / sqrt(1.0 + s * s);
-}
-
-inline float roadDistance(float2 p, constant Scene &scene, float wander) {
-    float rx = roadX(p.y, scene, wander);
-    float s = riverSlope(p.y, scene, wander);
-    float t = tanh(3.0 * sin(p.y / roadWave + scene.road.z));
-    s += scene.road.y * (1.0 - t * t) * 3.0 * cos(p.y / roadWave + scene.road.z) / roadWave;
-    return (p.x - rx) / sqrt(1.0 + s * s);
+// How much river there is: none in a place without one, narrowing away where such a place begins.
+inline float riverPresence(float riverHalf) {
+    return smoothstep(0.25, 2.0, riverHalf);
 }
 
 inline bool clearOfWater(float2 world, constant Biome &b, constant Scene &scene, float riverHalf, float wander,
                          float r) {
-    return abs(riverDistance(world, scene, wander)) > riverHalf + r + 5.0
+    return (riverHalf <= 0.25 || abs(riverDistance(world, scene, wander)) > riverHalf + r + 5.0)
         && abs(roadDistance(world, scene, wander)) > b.e.x * 0.5 + r + 2.0;
 }
 
@@ -444,7 +484,7 @@ inline float3 trees(float3 c, float2 local, float2 world, constant Biome &b, con
             if (clearOfWater(world + (center - local), b, scene, riverHalf, wander, r)) {
                 float2 d = local - center;
                 // Petals scattered round blossom trees.
-                if (b.d.y > 0.0) {
+                if (b.d.y > 0.0 && b.blossom.w < 0.5) {
                     float petal = hash21(int2(floor(local / 0.9)), seed + 46u);
                     float near = 1.0 - smoothstep(r, r * 2.6, length(d));
                     c = mix(c, b.canopyLight.rgb * 1.05, step(1.0 - 0.22 * b.d.y * near, petal) * 0.9);
@@ -483,7 +523,7 @@ inline float3 trees(float3 c, float2 local, float2 world, constant Biome &b, con
         int side = dx > 0.0 ? 1 : 0;
         if (abs(abs(dx) - edge) < 8.0
             && hash11(int(floor(local.y / 240.0)) * 2 + side, seed + 56u) < b.i.y
-            && abs(riverDistance(world, scene, wander)) > riverHalf + 14.0) {
+            && (riverHalf <= 0.25 || abs(riverDistance(world, scene, wander)) > riverHalf + 14.0)) {
             float spacing = 8.5;
             float j0 = floor(local.y / spacing);
             for (int i = -1; i <= 1; i++) {
@@ -657,7 +697,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
             if (hash11(id, seed + 60u) > chance) continue;
             float out = row == 0 ? b.e.x * 0.5 + 8.0 + 10.0 * hash11(id, seed + 63u) : 36.0 + 16.0 * hash11(id, seed + 63u);
             float2 center = float2(rx + side * out, worldY);
-            if (abs(riverDistance(center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0) continue;
+            if (b.d.z > 0.5 && abs(riverDistance(center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0) continue;
             float angle = atan(s) + (hash11(id, seed + 64u) - 0.5) * (0.3 + village * 0.2);
             float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
             c = house(c, rotate(world - center, -angle), angle, size, id, b, scene, seed, cover, light, lightID);
@@ -715,7 +755,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     float2 d = local - center;
     if (dot(d, d) > radius * radius * 1.7) return c;
     float2 centerWorld = world + (center - local);
-    if (abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return c;
+    if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return c;
     if (abs(roadDistance(centerWorld, scene, wander)) < b.e.x * 0.5 + radius * 0.8 + 6.0) return c;
     float angle = hash21(id2, s + 2u) * 6.283;
     float2 r = rotate(d, -angle);
@@ -872,7 +912,8 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     } else if (kind == markLake) {
         float shape = length(d * float2(1.0, 1.3)) / radius - 0.72 + 0.55 * (fbm(d / 45.0, 3, s + 19u) - 0.5);
         float wet = fill(shape, 0.02);
-        float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, float3(0.72, 0.8, 0.88), 0.4) : float3(0.12, 0.22, 0.32);
+        float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, float3(0.72, 0.8, 0.88), 0.4)
+                                  : mix(b.water.rgb * 0.72, float3(0.1, 0.17, 0.28), 0.35);
         c = mix(c, b.sand.rgb, fill(shape - 0.05, 0.02) * (1.0 - b.f.y * 0.6));
         c = mix(c, mix(deep, b.shallows.rgb * 0.8, smoothstep(-0.08, 0.0, shape)), wet);
         water = max(water, wet * (1.0 - b.f.z));
@@ -900,7 +941,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float r = 14.0 + 22.0 * hash21(cell, seed + 81u);
     float2 center = g * spacing + r * 2.0 + hash22(cell, seed + 82u) * (spacing - r * 4.0);
     float2 centerWorld = world + (center - local);
-    if (abs(riverDistance(centerWorld, scene, wander)) < 90.0) return c;
+    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, wander)) < 90.0) return c;
     float2 d = local - center;
     float shape = length(d * float2(1.0, 1.25)) / r - 1.0 + 0.45 * (fbm(local / 16.0, 3, seed + 83u) - 0.5);
     float dist = shape * r;
@@ -982,7 +1023,7 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     if (layout == layoutPaddies) l = paddies(local, b, seed);
     else if (layout == layoutFields) l = fields(local, b, scene, seed);
     else if (layout == layoutStripes) l = stripes(local, b, seed);
-    else if (layout == layoutPivots) l = pivots(local, b, scene, seed);
+    else if (layout == layoutPivots) l = pivots(local, leg, scene, seed, wander);
     else if (layout == layoutTaiga) l = taiga(local, b, scene, seed);
     else l = grassland(local, b, seed);
 
@@ -1023,13 +1064,16 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
 
 inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a, constant Biome &b, float m,
                     float width, float wander, thread float &water, thread float &herd) {
+    if (width < 0.5) return c;
     float d = riverDistance(p, scene, wander);
     float halfWidth = width * 0.5;
+    // A narrowing river takes its banks and dykes with it.
+    float presence = saturate(width / 12.0);
     // Banks wobble a little so the river looks painted, not ruled.
     float wobble = (vnoise(float2(p.y / 23.0, d > 0.0 ? 3.0 : 7.0), 3u) - 0.5) * width * 0.16;
     float ad = abs(d) + wobble;
-    float bank = halfWidth + 2.5 + width * 0.12;
-    float levee = mix(a.i.w, b.i.w, m);
+    float bank = halfWidth + (2.5 + width * 0.12) * presence;
+    float levee = mix(a.i.w, b.i.w, m) * presence;
     if (ad > bank + levee + 3.0) return c;
     if (levee > 0.0) {
         // Grassy dykes either side, with a pale track along the crest.
@@ -1037,6 +1081,8 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
         float3 dyke = mix(c, mix(a.ground.rgb, b.ground.rgb, m) * float3(0.92, 1.08, 0.86), 0.75);
         dyke *= 0.95 + 0.1 * vnoise(p / 3.0, 9u);
         dyke = mix(dyke, mix(a.road.rgb, b.road.rgb, m), fill(abs(out - levee * 0.55) - 1.4, 0.4) * 0.8);
+        // Snow lies on the dykes as it does on the fields.
+        dyke = mix(dyke, mix(a.snow.rgb, b.snow.rgb, m) * (0.95 + 0.05 * vnoise(p / 5.0, 10u)), mix(a.f.y, b.f.y, m) * 0.9);
         c = mix(c, dyke, fill(out - levee, 1.2) * smoothstep(-1.0, 0.5, out));
         c = shade(c, fill(abs(out - levee - 1.0) - 1.0, 0.8) * 0.35, scene);
         herd *= 1.0 - fill(out - levee, 1.2);
@@ -1055,23 +1101,13 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     w *= 1.0 + 0.07 * (streak - 0.5);
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, streak));
     w = mix(w, ice, frozen);
-    // A dry river: a braided sand bed with only a thin trickle of water winding down it.
-    float dry = mix(a.k.x, b.k.x, m);
-    float trickle = 1.0;
-    if (dry > 0.0) {
-        float braid = abs(d - halfWidth * 0.35 * sin(p.y / 60.0 + vnoise(float2(p.y / 90.0, 1.0), 12u) * 4.0));
-        trickle = mix(1.0, fill(braid - 1.6, 0.6), dry);
-        float3 bed = sand * (0.9 + 0.15 * vnoise(float2(d / 3.0, p.y / 14.0), 13u));
-        bed = mix(bed, sand * 0.82, smoothstep(0.55, 0.8, vnoise(float2(d / 6.0, p.y / 30.0), 14u)) * 0.6);
-        w = mix(bed, w, trickle);
-    }
 
     float3 banks = mix(sand, sand * 0.85, vnoise(p / 3.0, 6u));
     banks = mix(banks, mix(a.snow.rgb, b.snow.rgb, m), mix(a.f.y, b.f.y, m) * 0.8);
     c = mix(c, banks, fill(ad - bank, 0.8));
     c = mix(c, mix(sand, shallow, 0.35), fill(ad - halfWidth - 1.0, 0.4));
     float inWater = fill(ad - halfWidth, 0.45);
-    water = max(water, inWater * (1.0 - frozen) * trickle);
+    water = max(water, inWater * (1.0 - frozen));
     herd *= 1.0 - fill(ad - bank, 0.8);
     return mix(c, w, inWater);
 }
@@ -1093,7 +1129,7 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
 
     float dd = min(abs(d) - halfWidth, dc);
     if (dd > 3.0) return c;
-    float onRiver = fill(abs(riverDistance(p, scene, wander)) - riverHalf - 3.0, 0.5);
+    float onRiver = fill(abs(riverDistance(p, scene, wander)) - riverHalf - 3.0, 0.5) * riverPresence(riverHalf);
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
     float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth, dc);
@@ -1135,7 +1171,7 @@ inline float3 railway(float3 c, float2 world, constant Leg &leg, constant Scene 
     float ad = abs(d);
     if (ad > 10.0) return c;
     float fw = max(texel * 0.7, 0.12);
-    float onRiver = fill(abs(riverDistance(world, scene, wander)) - riverHalf - 2.5, 0.6);
+    float onRiver = fill(abs(riverDistance(world, scene, wander)) - riverHalf - 2.5, 0.6) * riverPresence(riverHalf);
     if (onRiver > 0.0) {
         // The deck's shadow on the water.
         float alongS;
@@ -1199,16 +1235,25 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     float blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
 
     float wander = mix(scene.legA.biome.d.w, scene.legB.biome.d.w, m);
-    float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
+    float widthA = scene.legA.biome.d.z, widthB = scene.legB.biome.d.z;
+    float width = mix(widthA, widthB, m);
+    // Between a place with a river and one without, the river is painted over in the same creeping patches as
+    // the land, rather than narrowing to a point in the middle of a field.
+    float riverShown = 1.0;
+    if ((widthA < 0.5) != (widthB < 0.5)) {
+        width = max(widthA, widthB);
+        riverShown = widthA >= 0.5 ? 1.0 - blend : blend;
+    }
     float riverHalf = width * 0.5;
+    float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
     Land l;
     if (blend >= 1.0) {
-        l = land(world, scene.legB, scene, riverHalf, wander);
+        l = land(world, scene.legB, scene, halfB, wander);
     } else if (blend <= 0.0) {
-        l = land(world, scene.legA, scene, riverHalf, wander);
+        l = land(world, scene.legA, scene, halfA, wander);
     } else {
-        Land a = land(world, scene.legA, scene, riverHalf, wander);
-        Land b = land(world, scene.legB, scene, riverHalf, wander);
+        Land a = land(world, scene.legA, scene, halfA, wander);
+        Land b = land(world, scene.legB, scene, halfB, wander);
         l = a;
         l.color = mix(a.color, b.color, blend);
         l.water = mix(a.water, b.water, blend);
@@ -1225,9 +1270,16 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     float water = l.water;
     float herd = l.herd;
     float3 c = river(l.color, world, scene, scene.legA.biome, scene.legB.biome, m, width, wander, water, herd);
+    if (riverShown < 1.0) {
+        c = mix(l.color, c, riverShown);
+        water = mix(l.water, water, riverShown);
+        herd = mix(l.herd, herd, riverShown);
+    }
+    // Bridges only where the river is still painted.
+    float crossingHalf = riverShown > 0.5 ? riverHalf : 0.0;
     constant Leg &railLeg = blend > 0.5 ? scene.legB : scene.legA;
-    c = railway(c, world, railLeg, scene, texel, riverHalf, wander, herd, water);
-    c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, riverHalf, wander, onRoad, water, herd);
+    c = railway(c, world, railLeg, scene, texel, crossingHalf, wander, herd, water);
+    c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, crossingHalf, wander, onRoad, water, herd);
     c = railOverRoad(c, world, railLeg, onRoad, texel);
 
     GroundOut out;

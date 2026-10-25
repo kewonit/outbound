@@ -57,9 +57,9 @@ private let punjabBase: Biome = {
     b.trees = 0.2; b.treeSize = 10; b.hedgeTrees = 0.35; b.clumping = 0.85; b.houses = 0.35; b.ponds = 0.25
     b.riverWidth = 34; b.riverWander = 60; b.roadWidth = 12; b.paved = 1
     b.animal = .cattle; b.herds = 0.15; b.animalColor = rgb(0x3d3530); b.cars = 0.25
-    // Smaller rounded fields between narrow bunds dotted with trees, compact brick villages with flat roofs and
-    // water tanks, tube-well huts and the odd brick kiln; traffic keeps left.
-    b.fieldSize = 125; b.hedgeWidth = 5; b.hedgeTrees = 0.7
+    // Smaller rounded fields between narrow bunds dotted with trees (few stand out in the crops), compact brick
+    // villages with flat roofs and water tanks, tube-well huts and the odd brick kiln; traffic keeps left.
+    b.fieldSize = 125; b.hedgeWidth = 5; b.hedgeTrees = 0.7; b.trees = 0.03
     b.villages = 0.6; b.flatRoofs = true; b.roadTrees = 0.35
     b.roofs = (rgb(0xd8c4a0), rgb(0xe0b0a8), rgb(0xeeeae2))
     b.drivesLeft = true; b.streetLights = 0.45; b.lampColor = rgb(0xe4ecff); b.sodiumLamps = 0.4
@@ -103,7 +103,7 @@ private let niigataBase: Biome = {
     b.cars = 0.2
     // Sakura along the lanes and dykes rather than in the fields, villages of dark tile and coloured metal roofs,
     // a wide river between grassy dykes, white LED street lights; traffic keeps left.
-    b.trees = 0.03; b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18
+    b.trees = 0; b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18
     b.roofs = (rgb(0x4a4e55), rgb(0x3e5a80), rgb(0x7a3a3a))
     b.riverWidth = 60; b.roadWidth = 7
     b.drivesLeft = true; b.streetLights = 0.7; b.lampColor = rgb(0xeef2ff); b.sodiumLamps = 0.08
@@ -234,7 +234,7 @@ private let laplandBase: Biome = {
                   water: rgb(0x2a63b0), shallows: rgb(0x4a86d0), sand: rgb(0xcdbf98), road: rgb(0xb9b3a8),
                   canopy: rgb(0x2b5a33), canopyLight: rgb(0x3f7a44), rock: rgb(0x9a9890))
     b.fieldSize = 260; b.hedgeWidth = 26; b.warp = 0.8; b.fallow = 0.2; b.strokes = 0.5; b.sway = 0.25
-    b.trees = 0.22; b.treeSize = 8; b.hedgeTrees = 0.8; b.clumping = 0.9; b.rocks = 0.45; b.houses = 0.05; b.ponds = 0.3
+    b.trees = 0.22; b.treeSize = 8; b.hedgeTrees = 0.8; b.clumping = 0.9; b.houses = 0.05; b.ponds = 0.3
     b.riverWidth = 40; b.riverWander = 40; b.roadWidth = 7; b.paved = 1
     b.animal = .reindeer; b.herds = 0.2; b.animalColor = rgb(0x6b5a4a); b.cars = 0.06
     // Pine heath on pale reindeer lichen broken by patterned bogs, dark lakes, reindeer corrals, red houses with
@@ -277,8 +277,8 @@ private let lapland = Place(
 private let normandyBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8cc74e), groundDark: rgb(0x3f8a3a),
                   crops: (rgb(0x92cc52), rgb(0xb7d95e), rgb(0xd7d44a), rgb(0x7cbd4a)), hedge: rgb(0x2e6e34),
-                  water: rgb(0x2d64bd), shallows: rgb(0x4d8bd8), road: rgb(0xbfbab2), canopy: rgb(0xf3e6ea),
-                  canopyLight: rgb(0xfbf4f6))
+                  water: rgb(0x2d64bd), shallows: rgb(0x4d8bd8), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
+                  canopy: rgb(0x4f8a3a), canopyLight: rgb(0x7db04f))
     b.fieldSize = 150; b.hedgeWidth = 8; b.warp = 0.6; b.fallow = 0.1; b.sway = 0.5
     b.trees = 0.08; b.treeSize = 8; b.hedgeTrees = 0.6; b.clumping = 0.7; b.orchards = 0.22; b.petals = 0.4; b.houses = 0.3
     b.riverWidth = 34; b.riverWander = 140; b.roadWidth = 8; b.paved = 1; b.ponds = 0.2
@@ -297,7 +297,9 @@ private let normandyBase: Biome = {
 private let normandy = Place(
     id: "normandy", name: "Normandy, France", anchor: Coordinate(latitude: 48.948, longitude: -0.148),
     seasons: [
-        Season(months: [4, 5], line: "Spring · apple blossom and new grass", biome: normandyBase),
+        Season(months: [4, 5], line: "Spring · apple blossom and new grass", biome: normandyBase.with {
+            $0.blossom = (rgb(0xf3e6ea), rgb(0xfbf4f6))
+        }),
         Season(months: [6, 7, 8], line: "Summer · wheat, flax and pasture", biome: normandyBase.with {
             $0.crops = (rgb(0xe3c252), rgb(0x86a9de), rgb(0x8cc74e), rgb(0xd6b84a)); $0.petals = 0
             $0.canopy = rgb(0x2f6b38); $0.canopyLight = rgb(0x4d8e45); $0.sway = 0.8
@@ -364,11 +366,12 @@ private let kansasBase: Biome = {
     b.ponds = 0.05
     b.riverWidth = 16; b.riverWander = 120; b.roadWidth = 7; b.paved = 0; b.cars = 0.08
     b.animal = .cattle; b.herds = 0.08; b.animalColor = rgb(0x2e2622)
-    // Bigger circles with their sprinkler arms, farmsteads behind cedar windbreaks with grain bins, the odd feedlot,
-    // and the Arkansas a dry sand bed most of the year.
+    // Bigger circles with their sprinkler arms, farmsteads behind cedar windbreaks with grain bins, the odd feedlot.
+    // Out on the High Plains there is no river, only the odd playa pond, and the road runs straight with the
+    // sections.
     b.fieldSize = 420; b.houses = 0; b.villages = 0; b.streetLights = 0
     b.landmarks = (.farmstead, 0.45, .feedlot, 0.1)
-    b.riverDry = 1; b.riverWidth = 60; b.sand = rgb(0xd8c9a0)
+    b.riverWidth = 0; b.riverWander = 0; b.sand = rgb(0xd8c9a0)
     b.animalColor = rgb(0x1e1b1a)
     return b
 }()

@@ -69,8 +69,8 @@ inline float3 streetLight(float3 c, float value, float lamp, float night, float 
     float h1 = fract(lamp * 7.13 + 0.31), h2 = fract(lamp * 17.9 + 0.57);
     float start = 0.08 + 0.14 * h1;
     float on = smoothstep(start, start + 0.02, night);
-    if (b.k.z > 0.5) on *= 1.0 - step(24.0, hour) * step(hour, 29.0);
-    bool sodium = h2 < b.k.y;
+    if (b.k.y > 0.5) on *= 1.0 - step(24.0, hour) * step(hour, 29.0);
+    bool sodium = h2 < b.k.x;
     float3 tint = b.lamp.rgb;
     if (sodium) {
         float warm = saturate((night - start) / 0.12);
