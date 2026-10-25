@@ -6,8 +6,6 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var preferences: Preferences
     let license: LicenseController
-    let restoreWallpaper: () -> Void
-    let canRestore: Bool
     @State private var opensAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -34,10 +32,6 @@ struct SettingsView: View {
                 }
                 Toggle("Hold still while I'm away", isOn: $preferences.restsWhenAway)
                 Toggle("Show the painting on the lock screen", isOn: $preferences.matchingStill)
-                LabeledContent("Desktop picture") {
-                    Button("Restore My Old Wallpaper", action: restoreWallpaper)
-                        .disabled(!canRestore)
-                }
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             }
             Section {
@@ -56,7 +50,7 @@ struct SettingsView: View {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
             } footer: {
-                Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on, and rests after five minutes with nobody at the Mac.")
+                Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on, and rests after five minutes with nobody at the Mac. Quitting it puts your own desktop picture back.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -36,13 +36,21 @@ final class LicenseController {
 
     func activate(_ typed: String) async {
         let key = LicenseStatus.clean(typed)
-        guard !key.isEmpty else { return }
+        guard !key.isEmpty, !busy else { return }
         busy = true
         message = nil
         defer { busy = false }
+        let previous = record
         do {
-            let record = try await Polar().activate(key: key, label: macName)
-            store(record)
+            // The same key pasted again, say after a long time offline: confirm this Mac's activation rather than
+            // taking another of the key's three.
+            if let previous, previous.key == key, let confirmed = try? await Polar().validate(previous) {
+                store(confirmed)
+                return
+            }
+            // A different key replaces the old one, so give its activation back first.
+            if let previous, previous.key != key { try? await Polar().deactivate(previous) }
+            store(try await Polar().activate(key: key, label: macName))
         } catch {
             message = error.localizedDescription
         }
@@ -50,10 +58,17 @@ final class LicenseController {
 
     /// Confirms the key with the store now and then. Offline is forgiven until the grace period runs out.
     func refresh() async {
-        guard let record, status != .valid || Date.now.timeIntervalSince(record.validatedAt) > 24 * 3600 else { return }
+        // Time passes while the app runs, so the status ages too.
+        update(LicenseStatus(record))
+        guard let record, !busy, status != .valid || Date.now.timeIntervalSince(record.validatedAt) > 24 * 3600
+        else { return }
         do {
-            store(try await Polar().validate(record))
+            let confirmed = try await Polar().validate(record)
+            // Something else, an activation or a deactivation, may have changed the license while this was out.
+            guard self.record == record else { return }
+            store(confirmed)
         } catch Polar.Failure.unknownKey {
+            guard self.record == record else { return }
             forget()
             message = "This Mac's license is no longer active. Paste a key to keep flying."
         } catch {
@@ -74,19 +89,21 @@ final class LicenseController {
     }
 
     private func store(_ record: LicenseRecord) {
-        let was = unlocks
         self.record = record
-        LicenseKeychain.save(record)
-        status = LicenseStatus(record)
-        message = nil
-        if unlocks != was { onChange(unlocks) }
+        message = LicenseKeychain.save(record) ? nil
+            : "Outbound couldn't save your license to the keychain, so it will ask for the key again next time."
+        update(LicenseStatus(record))
     }
 
     private func forget() {
-        let was = unlocks
         record = nil
         LicenseKeychain.delete()
-        status = .unlicensed
+        update(.unlicensed)
+    }
+
+    private func update(_ newStatus: LicenseStatus) {
+        let was = unlocks
+        status = newStatus
         if unlocks != was { onChange(unlocks) }
     }
 }

@@ -135,15 +135,16 @@ enum LicenseKeychain {
         return try? JSONDecoder().decode(LicenseRecord.self, from: data)
     }
 
-    static func save(_ record: LicenseRecord) {
-        guard let data = try? JSONEncoder().encode(record) else { return }
+    /// Whether the record is safely in the keychain.
+    static func save(_ record: LicenseRecord) -> Bool {
+        guard let data = try? JSONEncoder().encode(record) else { return false }
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service]
-        if SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary) == errSecItemNotFound {
-            var item = query
-            item[kSecValueData as String] = data
-            item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-            SecItemAdd(item as CFDictionary, nil)
-        }
+        let updated = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        guard updated == errSecItemNotFound else { return updated == errSecSuccess }
+        var item = query
+        item[kSecValueData as String] = data
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
 
     static func delete() {

@@ -83,6 +83,7 @@ final class World {
     }
 
     func advance(to displayTime: TimeInterval) {
+        guard heldSince == nil else { return }
         let t = displayTime - heldFor
         guard t > time else { return }
         let dt = t - time

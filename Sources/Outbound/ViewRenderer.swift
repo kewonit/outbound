@@ -15,8 +15,13 @@ final class GPU {
     let noise: MTLTexture
 
     init() throws {
-        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else {
-            throw CocoaError(.featureUnsupported)
+        // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
+        // Apple's own GPUs can do.
+        guard let device = MTLCreateSystemDefaultDevice(), device.supportsFamily(.apple7),
+              let queue = device.makeCommandQueue() else {
+            throw CocoaError(.featureUnsupported, userInfo: [
+                NSLocalizedDescriptionKey: "Outbound needs a Mac with Apple silicon."
+            ])
         }
         self.device = device
         self.queue = queue
@@ -440,5 +445,23 @@ final class ViewRenderer {
             remainingH -= h
         }
         return out
+    }
+}
+
+/// Small deterministic random numbers.
+struct SplitMix {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed
+    }
+
+    mutating func next() -> Double {
+        state &+= 0x9e3779b97f4a7c15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xbf58476d1ce4e5b9
+        z = (z ^ (z >> 27)) &* 0x94d049bb133111eb
+        z ^= z >> 31
+        return Double(z >> 11) / Double(1 << 53)
     }
 }

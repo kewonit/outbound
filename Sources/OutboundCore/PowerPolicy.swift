@@ -3,11 +3,10 @@ import Foundation
 public enum FramePacing {
     /// The frame rate nearest `target` that the display can show evenly. Fixed-rate panels only show whole
     /// fractions of their refresh: 24 or 30 on a 75 Hz panel would alternate between refreshes per frame and
-    /// judder, while 25 is exactly every third.
-    public static func rate(target: Double, refresh: Double) -> Double {
-        guard refresh > 0 else { return target }
-        // ProMotion panels pace any rate down to 24 themselves.
-        if refresh >= 120 { return min(target, refresh) }
+    /// judder, while 25 is exactly every third. Variable-rate panels, like ProMotion, pace any rate themselves.
+    public static func rate(target: Double, refresh: Double, variable: Bool = false) -> Double {
+        guard refresh > 0, target > 0 else { return target }
+        if variable { return min(target, refresh) }
         let divisor = (refresh / target).rounded()
         return refresh / max(divisor, 1)
     }

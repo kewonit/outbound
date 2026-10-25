@@ -33,8 +33,9 @@ struct LicenseTests {
         #expect(LicenseStatus(record(daysAgo: 1, expires: now.addingTimeInterval(-60)), now: now) == .lapsed)
     }
 
-    @Test func clockInTheFutureIsChecked() {
-        #expect(LicenseStatus(record(daysAgo: -5), now: now) == .needsCheck)
+    @Test func clockSetBackHasToBeConfirmed() {
+        #expect(LicenseStatus(record(daysAgo: -5), now: now) == .lapsed)
+        #expect(LicenseStatus(record(daysAgo: -0.5), now: now) == .valid)
     }
 
     @Test func cleansPastedKeys() {

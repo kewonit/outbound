@@ -3,7 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Usage: scripts/build-app.sh [debug|release]
-# Release builds are universal and packaged as a zip and a disk image. Set
+# Release builds are for Apple silicon, whose GPUs the renderer needs, and are
+# packaged as a zip and a disk image. Set
 # SIGN_IDENTITY to a Developer ID Application identity to sign, and NOTARY_PROFILE
 # to a notarytool keychain profile to notarize. Without them the app is signed ad hoc.
 configuration="${1:-debug}"
@@ -12,7 +13,7 @@ if [[ -n "${SIGN_IDENTITY:-}" ]] && grep -q 'POLAR_ORGANIZATION_ID\|POLAR_CHECKO
     exit 1
 fi
 arch=()
-[[ "$configuration" == release ]] && arch=(--arch arm64 --arch x86_64)
+[[ "$configuration" == release ]] && arch=(--arch arm64)
 
 swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --product Outbound
 bin="$(swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --show-bin-path)"

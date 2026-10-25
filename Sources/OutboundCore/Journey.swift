@@ -31,6 +31,8 @@ public final class Journey {
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
+    /// When the sideways drift started; unlike the anchor, a change of pace leaves it alone.
+    private let driftStart: TimeInterval
     private var nextIndex = 1
 
     public init(start place: Place, time: TimeInterval, date: Date = .now, speed: Double = 11,
@@ -40,6 +42,7 @@ public final class Journey {
         self.followsCalendar = followsCalendar
         anchorTime = time
         anchorY = 0
+        driftStart = time
         let season = followsCalendar ? place.season(on: date) : place.signatureSeason
         // The first leg starts a little behind the camera, so the land on screen at launch belongs to it.
         legs = [Leg(index: 0, place: place, season: season, start: -legLength * 0.15, sweepStart: nil)]
@@ -51,7 +54,7 @@ public final class Journey {
 
     /// A slow sideways drift so the flight never feels like a conveyor belt.
     public func cameraX(at time: TimeInterval) -> Double {
-        let t = time - anchorTime
+        let t = time - driftStart
         return 70 * sin(t * 2 * .pi / 430) + 24 * sin(t * 2 * .pi / 163 + 1.3)
     }
 

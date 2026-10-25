@@ -78,6 +78,11 @@ final class DisplayManager {
 
     let rest = RestMonitor()
 
+    /// Nobody can see any display: they are asleep, or another user has the Mac.
+    var isAsleep: Bool {
+        !globalHolds.isDisjoint(with: [.asleep, .inactive])
+    }
+
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
         set { set(.user, newValue) }
@@ -115,7 +120,10 @@ final class DisplayManager {
             Log.display.info("Removed display \(id)")
         }
         world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
-        if let main = NSScreen.screens.first { world.centreRiver(on: main.frame) }
+        if let main = NSScreen.screens.first {
+            world.home = main.frame
+            world.centreRiver(on: main.frame)
+        }
         refreshRates()
     }
 
@@ -125,8 +133,11 @@ final class DisplayManager {
         for screen in NSScreen.screens {
             guard let id = screen.displayID, let wallpaper = wallpapers[id] else { continue }
             let refresh = Double(screen.maximumFramesPerSecond)
-            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, refresh: refresh))
-            wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, refresh: refresh))
+            let variable = screen.minimumRefreshInterval < screen.maximumRefreshInterval - 0.0005
+            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, refresh: refresh,
+                                                               variable: variable))
+            wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, refresh: refresh,
+                                                                   variable: variable))
             wallpaper.halfRateClouds = tier.halfRateClouds
         }
     }

@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var stillLeg = -1
     private var stillTaken = Date.distantPast
     private var stillsWereOn = false
+    private var signals: [DispatchSourceSignal] = []
 
     private var world: World { displays.world }
 
@@ -39,6 +40,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if isAlreadyRunning {
             NSApp.terminate(nil)
             return
+        }
+        // `kill` or `killall Outbound` quits properly too, so the user's own desktop picture comes back.
+        for number in [SIGTERM, SIGINT] {
+            signal(number, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .main)
+            source.setEventHandler { NSApp.terminate(nil) }
+            source.resume()
+            signals.append(source)
         }
         do {
             gpu = try GPU()
@@ -58,6 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !LicenseController.isGated { displays.note = "Development build" }
         displays.running = license.unlocks
         displays.start()
+        // A painting left behind by a crash, or by a license that has since lapsed, goes back to the user's own.
+        if !(preferences.matchingStill && license.unlocks) { stills.restore() }
         installStatusItem()
         observePreferences()
 
@@ -82,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             activation = nil
             refreshStill(force: true)
         } else {
+            stills.restore()
             showActivation()
         }
     }
@@ -94,7 +106,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
-        if preferences.matchingStill && license.unlocks { stills.capture(world: world) }
+        // Leave the desktop as the user had it before Outbound.
+        stills.restore()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard displays != nil else { return false }
+        if license.unlocks { openSettings() } else { showActivation() }
+        return false
     }
 
     private var isAlreadyRunning: Bool {
@@ -130,12 +149,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway ? 300 : nil
-        if preferences.matchingStill && !stillsWereOn && stills != nil { refreshStill(force: true) }
+        if stills != nil && preferences.matchingStill != stillsWereOn {
+            if preferences.matchingStill { refreshStill(force: true) } else { stills.restore() }
+        }
         stillsWereOn = preferences.matchingStill
     }
 
     private func refreshStill(force: Bool) {
-        guard preferences.matchingStill, license.unlocks else { return }
+        guard preferences.matchingStill, license.unlocks, !displays.isAsleep else { return }
         let leg = world.journey.leg(at: world.camera.y).index
         guard force || leg != stillLeg || Date.now.timeIntervalSince(stillTaken) > 600 else { return }
         stillLeg = leg
@@ -238,9 +259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let view = SettingsView(preferences: preferences, license: license,
-                                    restoreWallpaper: { [weak self] in self?.restoreWallpaper() },
-                                    canRestore: stills.hasOriginals)
+            let view = SettingsView(preferences: preferences, license: license)
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = "Outbound Settings"
             window.styleMask = [.titled, .closable]
@@ -250,11 +269,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         NSApp.activate()
         settingsWindow?.makeKeyAndOrderFront(nil)
-    }
-
-    private func restoreWallpaper() {
-        preferences.matchingStill = false
-        stills.restore()
     }
 }
 

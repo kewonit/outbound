@@ -38,8 +38,8 @@ public enum LicenseStatus: Equatable, Sendable {
             return
         }
         let age = now.timeIntervalSince(record.validatedAt)
-        // A clock set backwards should not unlock anything for longer than it should.
-        if age < -24 * 3600 { self = .needsCheck; return }
+        // A clock set back by more than a day can't be trusted to measure the grace period, so confirm first.
+        if age < -24 * 3600 { self = .lapsed; return }
         self = age < Self.recheckAfter ? .valid : age < Self.offlineGrace ? .needsCheck : .lapsed
     }
 

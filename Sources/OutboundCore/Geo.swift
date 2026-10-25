@@ -23,11 +23,4 @@ public enum Geo {
         longitude = (longitude + 540).truncatingRemainder(dividingBy: 360) - 180
         return Coordinate(latitude: latitude, longitude: longitude)
     }
-
-    /// "30.838° N  76.189° E", always three decimals so the digits tick in place.
-    public static func caption(_ coordinate: Coordinate) -> String {
-        let lat = String(format: "%.3f", abs(coordinate.latitude))
-        let lon = String(format: "%.3f", abs(coordinate.longitude))
-        return "\(lat)° \(coordinate.latitude < 0 ? "S" : "N")  \(lon)° \(coordinate.longitude < 0 ? "W" : "E")"
-    }
 }

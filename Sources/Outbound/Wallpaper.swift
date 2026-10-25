@@ -90,6 +90,7 @@ final class Wallpaper: NSObject {
                                                                       preferred: birdFramesPerSecond) }
     }
     private var captionUpdated = -TimeInterval.infinity
+    private var hasDrawn = false
     private var link: CADisplayLink?
     private(set) var holds: Set<Hold> = []
     private var observers: [NSObjectProtocol] = []
@@ -117,7 +118,7 @@ final class Wallpaper: NSObject {
         window.contentView = container
         view.frame = container.bounds
         place(on: screen)
-        renderer.configure(frame: screen.frame, scale: Double(screen.backingScaleFactor))
+        applyScale(on: screen)
         window.orderFrontRegardless()
 
         let link = view.displayLink(target: self, selector: #selector(tick(_:)))
@@ -134,8 +135,16 @@ final class Wallpaper: NSObject {
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
         place(on: screen)
+        applyScale(on: screen)
+    }
+
+    /// On battery a Retina display draws at 1.5x and lets Core Animation scale it up: almost half the pixels.
+    /// The drawable and the renderer always change together, or the cache would tile across the screen.
+    private func applyScale(on screen: NSScreen) {
         let backing = Double(screen.backingScaleFactor)
-        renderer.configure(frame: screen.frame, scale: economical && backing > 1.5 ? 1.5 : backing)
+        let scale = economical && backing > 1.5 ? 1.5 : backing
+        view.renderScale = scale == backing ? nil : scale
+        renderer.configure(frame: screen.frame, scale: scale)
     }
 
     /// Keeps the label in the corner of the usable area, clear of the Dock.
@@ -146,12 +155,8 @@ final class Wallpaper: NSObject {
     }
 
     private func updateCaption() {
-        let mpp = World.metresPerPoint
-        let frame = window.frame
-        let centre = world.camera + SIMD2(Double(frame.midX), Double(frame.midY)) * mpp
-        let leg = world.journey.leg(at: centre.y)
-        label.update(place: leg.place.name, season: leg.season.line,
-                     coordinates: Geo.caption(world.journey.coordinate(x: centre.x, y: centre.y)), note: note)
+        let centre = world.camera.y + Double(window.frame.midY) * World.metresPerPoint
+        label.update(place: world.journey.leg(at: centre).place.name, note: note)
     }
 
     func close() {
@@ -172,6 +177,9 @@ final class Wallpaper: NSObject {
             if paused {
                 birdLink?.invalidate()
                 birdLink = nil
+                // Held before its first frame, say in Low Power Mode, it would show a blank window over the desktop
+                // picture; paint once so it holds a still painting instead.
+                if !hasDrawn { DispatchQueue.main.async { [weak self] in self?.drawStill() } }
             }
             Log.display.info("Display \(self.displayID) \(paused ? "paused" : "running", privacy: .public) \(String(describing: self.holds), privacy: .public)")
         }
@@ -186,14 +194,11 @@ final class Wallpaper: NSObject {
         set { renderer.halfRateClouds = newValue }
     }
 
-    /// On battery a Retina display draws at 1.5x and lets Core Animation scale it up: almost half the pixels.
     var economical = false {
         didSet {
-            guard economical != oldValue, let screen = window.screen else { return }
-            let backing = Double(screen.backingScaleFactor)
-            let scale = economical && backing > 1.5 ? 1.5 : backing
-            view.renderScale = scale
-            renderer.configure(frame: screen.frame, scale: scale)
+            guard economical != oldValue,
+                  let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == displayID }) else { return }
+            applyScale(on: screen)
         }
     }
 
@@ -257,10 +262,23 @@ final class Wallpaper: NSObject {
             captionUpdated = link.targetTimestamp
             updateCaption()
         }
+        draw()
+    }
+
+    /// One frame for a wallpaper that was held before it ever drew.
+    private func drawStill() {
+        guard !hasDrawn, link != nil else { return }
+        view.layoutSubtreeIfNeeded()
+        updateCaption()
+        draw()
+    }
+
+    private func draw() {
         guard let drawable = view.metalLayer.nextDrawable(),
               let commands = gpu.queue.makeCommandBuffer() else { return }
         renderer.encode(world: world, into: drawable.texture, commandBuffer: commands)
         commands.present(drawable)
+        hasDrawn = true
         #if DEBUG
         commands.addCompletedHandler { [weak self] buffer in
             let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000

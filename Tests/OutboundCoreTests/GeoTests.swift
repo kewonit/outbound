@@ -3,11 +3,6 @@ import Testing
 @testable import OutboundCore
 
 struct GeoTests {
-    @Test func formatsBothHemispheres() {
-        #expect(Geo.caption(Coordinate(latitude: 30.8381, longitude: 76.1894)) == "30.838° N  76.189° E")
-        #expect(Geo.caption(Coordinate(latitude: -36.842, longitude: -64.037)) == "36.842° S  64.037° W")
-    }
-
     @Test func movesNorthByMetres() {
         let start = Coordinate(latitude: 10, longitude: 20)
         let moved = Geo.offset(start, east: 0, north: Geo.metresPerDegree)
@@ -34,12 +29,15 @@ struct FramePacingTests {
         #expect(FramePacing.rate(target: 15, refresh: 75) == 15)
         #expect(FramePacing.rate(target: 30, refresh: 60) == 30)
         #expect(FramePacing.rate(target: 60, refresh: 75) == 75)
-        #expect(FramePacing.rate(target: 20, refresh: 144) == 20)
+        #expect(FramePacing.rate(target: 24, refresh: 144) == 24)
+        #expect(FramePacing.rate(target: 24, refresh: 165) == 165.0 / 7)
+        #expect(FramePacing.rate(target: 24, refresh: 120) == 24)
     }
 
     @Test func leavesProMotionAlone() {
-        #expect(FramePacing.rate(target: 30, refresh: 120) == 30)
-        #expect(FramePacing.rate(target: 24, refresh: 120) == 24)
+        #expect(FramePacing.rate(target: 30, refresh: 120, variable: true) == 30)
+        #expect(FramePacing.rate(target: 24, refresh: 120, variable: true) == 24)
+        #expect(FramePacing.rate(target: 15, refresh: 120, variable: true) == 15)
     }
 
     @Test func tiersFollowPower() {
