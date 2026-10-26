@@ -7,6 +7,15 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.2</title>
+      <pubDate>Mon, 26 Oct 2026 17:27:39 +0000</pubDate>
+      <description><![CDATA[<p>Light, seasons, pace, time at each place and battery choices are now in the menu bar, under a new gull icon. Settings always opens in front of your other windows.</p>]]></description>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.2/Outbound-v1.2.dmg" type="application/octet-stream" sparkle:edSignature="PNrLlxtp/Lxeb9hRtd0FdYb2hG8QJk+rlqlVQL0OB749lrkVbWBxin/vR50rGsGB2xXaX4zQ+HrYZqlQShDfCg==" length="5526380"/>
+    </item>
+    <item>
       <title>Outbound v1.1</title>
       <pubDate>Mon, 26 Oct 2026 11:00:23 +0000</pubDate>
       <description><![CDATA[<p>Smoother on every display: frames reach the screen at an even 30 a second, the bird keeps up with the cursor, and Fly To no longer stutters. Pasting a license key works, and Outbound now runs on macOS 13 Ventura and later.</p>]]></description>
