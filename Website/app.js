@@ -7,6 +7,7 @@
   var URLS = {
     download: "/download",
     buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA",
+    city: "https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b",
     github: "https://github.com/kewonit/outbound"
   };
 

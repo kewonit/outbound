@@ -10,6 +10,7 @@
   var keyText = document.getElementById("key");
   var email = document.getElementById("email");
   var copy = document.getElementById("copy");
+  var city = document.getElementById("city");
 
   function say(text) {
     status.textContent = text;
@@ -35,6 +36,7 @@
     })
       .then(function (response) { return response.json().catch(function () { return {}; }); })
       .then(function (answer) {
+        if (answer.city) city.hidden = false;
         if (answer.status === "ready" && answer.key) {
           // Kept in this browser for a year, so the homepage can show it again.
           try {

@@ -34,8 +34,12 @@ extension Place {
     /// Where a new install starts flying: Kansas, as on the website.
     public static let first = kansas
 
+    /// Towns and cities painted in for the people who asked for theirs. They wait under Fly To, in Extended Places,
+    /// rather than joining the flight's round.
+    public static let extended: [Place] = []
+
     public static func named(_ id: String) -> Place? {
-        all.first { $0.id == id }
+        (all + extended).first { $0.id == id }
     }
 }
 

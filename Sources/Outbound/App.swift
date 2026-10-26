@@ -349,12 +349,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         let places = NSMenu()
-        for place in Place.all {
+        func destination(_ place: Place) -> NSMenuItem {
             let item = NSMenuItem(title: place.name, action: #selector(fly(_:)), keyEquivalent: "")
             item.representedObject = place.id
             item.target = self
             item.state = place.id == leg.place.id ? .on : .off
-            places.addItem(item)
+            return item
+        }
+        Place.all.forEach { places.addItem(destination($0)) }
+        if !Place.extended.isEmpty {
+            places.addItem(.separator())
+            let heading = NSMenuItem(title: "Extended Places", action: nil, keyEquivalent: "")
+            heading.isEnabled = false
+            places.addItem(heading)
+            Place.extended.forEach { places.addItem(destination($0)) }
         }
         menu.addItem(submenu("Fly To", places))
         let pause = NSMenuItem(title: displays.isPaused ? "Resume" : "Pause", action: #selector(togglePause),

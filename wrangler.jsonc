@@ -15,7 +15,9 @@
   "vars": {
     "POLAR_API": "https://api.polar.sh",
     "POLAR_PRODUCT_ID": "e7c27b2b-6c8d-4514-82dc-9f6ad3394928",
-    "POLAR_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54"
+    "POLAR_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54",
+    // Your City in Outbound: a buyer's city painted in, with the same license key benefit.
+    "POLAR_CITY_PRODUCT_ID": "a1589a31-9bb3-4d5a-a647-edf5e1f54a71"
   },
   "ratelimits": [
     { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
