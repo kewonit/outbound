@@ -41,8 +41,8 @@ final class Preferences: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        light = World.Light(rawValue: defaults.string(forKey: "light") ?? "") ?? .yourTime
-        followsCalendar = defaults.object(forKey: "followsCalendar") as? Bool ?? true
+        light = World.Light(rawValue: defaults.string(forKey: "light") ?? "") ?? .alwaysDay
+        followsCalendar = defaults.object(forKey: "followsCalendar") as? Bool ?? false
         pace = Pace(rawValue: defaults.string(forKey: "pace") ?? "") ?? .gentle
         stay = Stay(rawValue: defaults.integer(forKey: "stay")) ?? .medium
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
