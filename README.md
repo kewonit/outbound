@@ -33,7 +33,7 @@
   <img src="Website/assets/day/night.jpg" alt="Night" width="24%">
 </p>
 
-Needs a Mac with Apple silicon and macOS 26. $7 + tax, once, for up to 3 Macs.
+Needs a Mac with Apple silicon and macOS 13 Ventura or newer. $7 + tax, once, for up to 3 Macs.
 
 ## Build
 
