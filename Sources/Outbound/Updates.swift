@@ -25,7 +25,7 @@ final class Updates: NSObject {
     var canCheck: Bool { controller.updater.canCheckForUpdates }
 
     func checkNow() {
-        NSApp.activate()
+        NSApp.comeForward()
         controller.checkForUpdates(nil)
     }
 

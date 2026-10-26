@@ -1,10 +1,10 @@
+import Combine
 import Foundation
 import OutboundCore
 
 /// The user's choices, kept in UserDefaults.
 @MainActor
-@Observable
-final class Preferences {
+final class Preferences: ObservableObject {
     enum Pace: String, CaseIterable, Identifiable {
         case slow, gentle, brisk
         var id: Self { self }
@@ -25,17 +25,17 @@ final class Preferences {
         var title: String { self == .hour ? "An hour" : "\(rawValue) minutes" }
     }
 
-    var light: World.Light { didSet { save() } }
-    var followsCalendar: Bool { didSet { save() } }
-    var pace: Pace { didSet { save() } }
-    var stay: Stay { didSet { save() } }
-    var batteryMode: PowerState.BatteryMode { didSet { save() } }
+    @Published var light: World.Light { didSet { save() } }
+    @Published var followsCalendar: Bool { didSet { save() } }
+    @Published var pace: Pace { didSet { save() } }
+    @Published var stay: Stay { didSet { save() } }
+    @Published var batteryMode: PowerState.BatteryMode { didSet { save() } }
     /// Show a painting of the current view on the lock screen, as the desktop picture while the Mac is locked.
-    var matchingStill: Bool { didSet { save() } }
+    @Published var matchingStill: Bool { didSet { save() } }
     /// Hold still after five minutes without anyone at the Mac.
-    var restsWhenAway: Bool { didSet { save() } }
+    @Published var restsWhenAway: Bool { didSet { save() } }
     /// The place to start from next launch.
-    var lastPlace: String { didSet { save() } }
+    @Published var lastPlace: String { didSet { save() } }
 
     private let defaults: UserDefaults
 

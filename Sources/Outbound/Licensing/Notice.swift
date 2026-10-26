@@ -41,7 +41,7 @@ private final class NoticePanel {
             MainActor.assumeIsolated { finish(nil) }
         }
         panel.center()
-        NSApp.activate()
+        NSApp.comeForward()
         panel.makeKeyAndOrderFront(nil)
     }
 

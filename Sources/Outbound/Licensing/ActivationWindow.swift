@@ -46,7 +46,7 @@ final class ActivationWindow {
         // Locked again, say after a refund, while the thank-you was still up.
         state.unlocked = false
         preview.start()
-        NSApp.activate()
+        NSApp.comeForward()
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -80,16 +80,15 @@ final class ActivationWindow {
 }
 
 @MainActor
-@Observable
-final class ActivationState {
-    var unlocked = false
-    var opensAtLogin = true
+final class ActivationState: ObservableObject {
+    @Published var unlocked = false
+    @Published var opensAtLogin = true
 }
 
 private struct ActivationView: View {
-    @Bindable var license: LicenseController
+    @ObservedObject var license: LicenseController
     let preview: PreviewView
-    @Bindable var state: ActivationState
+    @ObservedObject var state: ActivationState
     let resized: (CGSize) -> Void
     let done: () -> Void
     @State private var key = ""
@@ -209,7 +208,7 @@ final class PreviewView: NSView {
     private let gpu: GPU
     private let metal: MetalView
     private let renderer: ViewRenderer
-    private var link: CADisplayLink?
+    private var link: FrameClock?
 
     @MainActor
     init(world: World, gpu: GPU, size: CGSize) {
@@ -232,9 +231,9 @@ final class PreviewView: NSView {
         let frame = CGRect(x: main.midX - bounds.width / 2, y: main.midY - bounds.height / 2,
                            width: bounds.width, height: bounds.height)
         renderer.configure(frame: frame, scale: Double(NSScreen.main?.backingScaleFactor ?? 2))
-        let link = metal.displayLink(target: self, selector: #selector(tick(_:)))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 24, maximum: 30, preferred: 30)
-        link.add(to: .main, forMode: .common)
+        let display = (window?.screen ?? NSScreen.main)?.displayID ?? CGMainDisplayID()
+        let link = FrameClock(view: metal, display: display) { [weak self] tick in self?.tick(tick) }
+        link.rate = 30
         self.link = link
     }
 
@@ -244,8 +243,8 @@ final class PreviewView: NSView {
         link = nil
     }
 
-    @MainActor @objc private func tick(_ link: CADisplayLink) {
-        world.advance(to: link.targetTimestamp)
+    @MainActor private func tick(_ tick: FrameClock.Tick) {
+        world.advance(to: tick.targetTimestamp)
         guard let drawable = metal.metalLayer.nextDrawable(), let commands = gpu.queue.makeCommandBuffer() else { return }
         renderer.encode(world: world, into: drawable.texture, commandBuffer: commands)
         commands.present(drawable)

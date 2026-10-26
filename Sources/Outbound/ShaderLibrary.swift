@@ -52,7 +52,11 @@ final class ShaderLibrary {
 
     private static func build(device: MTLDevice, source: String) throws -> Pipelines {
         let options = MTLCompileOptions()
-        options.mathMode = .fast
+        if #available(macOS 15, *) {
+            options.mathMode = .fast
+        } else {
+            options.fastMathEnabled = true
+        }
         let library = try device.makeLibrary(source: source, options: options)
 
         func pipeline(_ fragment: String, vertex: String = "fullscreen", formats: [MTLPixelFormat],

@@ -51,7 +51,7 @@ item="    <item>
       <description><![CDATA[<p>$notes</p>]]></description>
       <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:minimumSystemVersion>$(plutil -extract LSMinimumSystemVersion raw Configuration/Info.plist)</sparkle:minimumSystemVersion>
       <enclosure url=\"https://github.com/kewonit/outbound/releases/download/v$version/Outbound-v$version.dmg\" type=\"application/octet-stream\" $signature/>
     </item>"
 ITEM="$item" awk '{ print } /<language>/ && !done { print ENVIRON["ITEM"]; done = 1 }' "$appcast" > "$appcast.new"

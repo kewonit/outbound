@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import OutboundCore
 import SwiftUI
 
@@ -34,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var stillTaken = Date.distantPast
     private var stillsWereOn = false
     private var signals: [DispatchSourceSignal] = []
+    private var preferencesChanged: AnyCancellable?
     /// Links from the thank-you page that arrived before launch finished.
     private var earlyLinks: [ActivationLink] = []
 
@@ -110,11 +112,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         earlyLinks.forEach(handle)
         earlyLinks = []
         #if DEBUG
-        // OUTBOUND_MEASURE=1 keeps it flying for the frame statistics: nobody touches the Mac meanwhile, so it must
-        // not rest.
+        if ProcessInfo.processInfo.environment["OUTBOUND_EXERCISE"] != nil { exercise() }
+        #endif
+    }
+
+    /// OUTBOUND_MEASURE=1 or OUTBOUND_EXERCISE=1 keeps it flying for the frame statistics in development builds:
+    /// nobody touches the Mac meanwhile, so it must not rest.
+    private var measuring: Bool {
+        #if DEBUG
         let environment = ProcessInfo.processInfo.environment
-        if environment["OUTBOUND_MEASURE"] != nil || environment["OUTBOUND_EXERCISE"] != nil { displays.rest.after = nil }
-        if environment["OUTBOUND_EXERCISE"] != nil { exercise() }
+        return environment["OUTBOUND_MEASURE"] != nil || environment["OUTBOUND_EXERCISE"] != nil
+        #else
+        false
         #endif
     }
 
@@ -244,14 +253,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Preferences
 
     private func observePreferences() {
-        withObservationTracking {
-            _ = (preferences.light, preferences.followsCalendar, preferences.pace, preferences.stay,
-                 preferences.batteryMode, preferences.matchingStill, preferences.restsWhenAway)
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                self?.applyPreferences()
-                self?.observePreferences()
-            }
+        // Told just before a preference changes, so applied once it has.
+        preferencesChanged = preferences.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor in self?.applyPreferences() }
         }
     }
 
@@ -266,7 +270,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if journey.speed != preferences.pace.speed { journey.setSpeed(preferences.pace.speed, at: world.time) }
         journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
         displays.power.batteryMode = preferences.batteryMode
-        displays.rest.after = preferences.restsWhenAway ? 300 : nil
+        displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
         if stills != nil && preferences.matchingStill != stillsWereOn {
             if preferences.matchingStill { refreshStill(force: true) } else { stills.restore() }
         }
@@ -422,8 +426,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             window.center()
             settingsWindow = window
         }
-        NSApp.activate()
+        NSApp.comeForward()
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+}
+
+extension NSApplication {
+    /// Brings Outbound's windows to the front, the way each version of macOS asks for it.
+    func comeForward() {
+        if #available(macOS 14, *) {
+            activate()
+        } else {
+            activate(ignoringOtherApps: true)
+        }
     }
 }
 

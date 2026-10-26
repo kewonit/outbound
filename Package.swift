@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Outbound",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v13)],
     dependencies: [
         // Sparkle keeps copies up to date: signed updates, checked daily, installed while the Mac is idle.
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.1")

@@ -220,7 +220,11 @@ final class Bench {
             .map { try String(contentsOf: folder.appending(path: $0), encoding: .utf8) }
             .joined(separator: "\n")
         let options = MTLCompileOptions()
-        options.mathMode = .fast
+        if #available(macOS 15, *) {
+            options.mathMode = .fast
+        } else {
+            options.fastMathEnabled = true
+        }
         return try device.makeLibrary(source: source + "\n" + probes, options: options)
     }
 

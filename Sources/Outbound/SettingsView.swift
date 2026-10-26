@@ -4,8 +4,8 @@ import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
-    @Bindable var preferences: Preferences
-    let license: LicenseController
+    @ObservedObject var preferences: Preferences
+    @ObservedObject var license: LicenseController
     @State private var opensAtLogin = LoginItem.isOn
 
     var body: some View {

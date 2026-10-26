@@ -82,16 +82,18 @@ final class Wallpaper: NSObject {
     private let label = CaptionView(frame: .zero)
     /// The bird's own small layer, so following the cursor smoothly never means redrawing the whole landscape.
     private let birdView: MetalView
-    private var birdLink: CADisplayLink?
+    private var birdLink: FrameClock?
     /// Counts hand-overs between the landscape and the bird's layer, so only the latest one takes effect.
     private var birdHandOvers = 0
     private static let birdBox = 120.0
     var birdFramesPerSecond: Float = 60 {
-        didSet { if birdFramesPerSecond != oldValue { birdLink?.preferredFrameRateRange = Self.range(birdFramesPerSecond) } }
+        didSet { birdLink?.rate = birdFramesPerSecond }
     }
     private var captionUpdated = -TimeInterval.infinity
     private var hasDrawn = false
-    private var link: CADisplayLink?
+    private var link: FrameClock?
+    /// How long one refresh of this display lasts, as of the last frame.
+    private var refresh = 1.0 / 60
     private(set) var holds: Set<Hold> = []
     private var observers: [NSObjectProtocol] = []
     /// A line under the caption, for development builds and licensing.
@@ -122,9 +124,7 @@ final class Wallpaper: NSObject {
         applyScale(on: screen)
         window.orderFrontRegardless()
 
-        let link = view.displayLink(target: self, selector: #selector(tick(_:)))
-        link.add(to: .main, forMode: .common)
-        self.link = link
+        link = FrameClock(view: view, display: displayID) { [weak self] tick in self?.tick(tick) }
         applyFrameRate()
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
@@ -221,13 +221,7 @@ final class Wallpaper: NSObject {
     var onOcclusionChange: () -> Void = {}
 
     private func applyFrameRate() {
-        link?.preferredFrameRateRange = Self.range(framesPerSecond)
-    }
-
-    /// Asks for `rate`, with a ceiling a hair above it so a display a hair off its round refresh still gets the right
-    /// fraction of it, and room to go down to 80% when something else limits the display.
-    private static func range(_ rate: Float) -> CAFrameRateRange {
-        CAFrameRateRange(minimum: rate * 0.8, maximum: rate * 1.01, preferred: rate)
+        link?.rate = framesPerSecond
     }
 
     /// Whether the bird belongs on this display's own layer at `time`: chasing the cursor, and near this display.
@@ -260,7 +254,7 @@ final class Wallpaper: NSObject {
             #endif
             if wantsLayer {
                 startBirdLink()
-                drawBird(at: world.renderTime(for: presentTime + (link?.duration ?? 0)))
+                drawBird(at: world.renderTime(for: presentTime + refresh))
             } else {
                 birdLink?.invalidate()
                 birdLink = nil
@@ -274,9 +268,8 @@ final class Wallpaper: NSObject {
 
     private func startBirdLink() {
         guard birdLink == nil else { return }
-        let link = birdView.displayLink(target: self, selector: #selector(birdTick(_:)))
-        link.preferredFrameRateRange = Self.range(birdFramesPerSecond)
-        link.add(to: .main, forMode: .common)
+        let link = FrameClock(view: birdView, display: displayID) { [weak self] tick in self?.birdTick(tick) }
+        link.rate = birdFramesPerSecond
         birdLink = link
     }
 
@@ -311,12 +304,13 @@ final class Wallpaper: NSObject {
         CATransaction.commit()
     }
 
-    @objc private func birdTick(_ link: CADisplayLink) {
-        world.advance(to: link.targetTimestamp)
-        drawBird(at: world.renderTime(for: link.targetTimestamp))
+    private func birdTick(_ tick: FrameClock.Tick) {
+        world.advance(to: tick.targetTimestamp)
+        drawBird(at: world.renderTime(for: tick.targetTimestamp))
     }
 
-    @objc private func tick(_ link: CADisplayLink) {
+    private func tick(_ tick: FrameClock.Tick) {
+        refresh = tick.duration
         #if DEBUG
         let entered = CACurrentMediaTime()
         #endif
@@ -325,29 +319,29 @@ final class Wallpaper: NSObject {
         // target, a frame reaches the screen one refresh after it, every time, so each frame shows the moment it is on
         // screen. Asking for a time the display could refresh at (ProMotion can every quarter of a refresh) leaves it
         // to rounding which side of it a frame lands.
-        var presentTime = link.targetTimestamp - link.duration * 0.75
-        var onScreen = link.targetTimestamp + link.duration
+        var presentTime = tick.targetTimestamp - tick.duration * 0.75
+        var onScreen = tick.targetTimestamp + tick.duration
         #if DEBUG
         // OUTBOUND_PRESENT=half, refresh, target or now tries other ways of putting frames up, to compare.
         switch ProcessInfo.processInfo.environment["OUTBOUND_PRESENT"] {
-        case "half": presentTime = link.targetTimestamp - link.duration / 2
-        case "refresh": presentTime = link.targetTimestamp - link.duration; onScreen = link.targetTimestamp
-        case "target": presentTime = link.targetTimestamp; onScreen = link.targetTimestamp + link.duration
-        case "now": presentTime = .nan; onScreen = link.targetTimestamp
+        case "half": presentTime = tick.targetTimestamp - tick.duration / 2
+        case "refresh": presentTime = tick.targetTimestamp - tick.duration; onScreen = tick.targetTimestamp
+        case "target": presentTime = tick.targetTimestamp; onScreen = tick.targetTimestamp + tick.duration
+        case "now": presentTime = .nan; onScreen = tick.targetTimestamp
         default: break
         }
         #endif
         world.advance(to: onScreen)
         let moment = world.renderTime(for: onScreen)
         handOverBird(at: moment, presenting: presentTime)
-        if link.targetTimestamp - captionUpdated > 0.5 {
-            captionUpdated = link.targetTimestamp
+        if tick.targetTimestamp - captionUpdated > 0.5 {
+            captionUpdated = tick.targetTimestamp
             updateCaption()
         }
         draw(at: moment, showing: onScreen, presentAt: presentTime)
         #if DEBUG
-        stats.ticked(late: entered - link.timestamp, took: CACurrentMediaTime() - entered, waited: drawableWait)
-        stats.reportIfDue(rate: Double(framesPerSecond), refresh: link.duration)
+        stats.ticked(late: entered - tick.timestamp, took: CACurrentMediaTime() - entered, waited: drawableWait)
+        stats.reportIfDue(rate: Double(framesPerSecond), refresh: tick.duration)
         #endif
     }
 

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import OutboundCore
 
 /// Whether this copy may fly. Release builds need a license key bought from the store; builds made for
@@ -8,14 +9,13 @@ import OutboundCore
 /// browser, and watches for the purchase, unlocking itself once the key exists. Buying on the site ends on a
 /// thank-you page whose button hands the checkout to the app the same way.
 @MainActor
-@Observable
-final class LicenseController {
-    private(set) var record: LicenseRecord?
-    private(set) var status: LicenseStatus
-    private(set) var busy = false
-    private(set) var message: String?
+final class LicenseController: ObservableObject {
+    @Published private(set) var record: LicenseRecord?
+    @Published private(set) var status: LicenseStatus
+    @Published private(set) var busy = false
+    @Published private(set) var message: String?
     /// A purchase started from the app is being watched for.
-    private(set) var waitingForPurchase = false
+    @Published private(set) var waitingForPurchase = false
     var onChange: (Bool) -> Void = { _ in }
 
     static var isGated: Bool {
