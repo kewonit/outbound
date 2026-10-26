@@ -204,6 +204,11 @@ final class Wallpaper: NSObject {
         set { renderer.halfRateClouds = newValue }
     }
 
+    var paperEdge: Bool {
+        get { renderer.paperEdge }
+        set { renderer.paperEdge = newValue }
+    }
+
     var economical = false {
         didSet {
             guard economical != oldValue,

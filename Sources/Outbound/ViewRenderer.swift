@@ -99,6 +99,10 @@ final class ViewRenderer {
     var halfRateClouds = false
     /// Paper grain and edge strength.
     var finish = SIMD4<Float>(1, 0.3, 0, 0)
+    /// The pale dry-brush border round the painting, which can be turned off.
+    var paperEdge = true {
+        didSet { finish.y = paperEdge ? 0.3 : 0 }
+    }
     /// Half the bird's wingspan, in points.
     var birdSize = 27.0
     /// Draw the bird into the frame, for stills and exports; live it has a layer of its own.

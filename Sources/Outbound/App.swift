@@ -271,6 +271,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
+        let edgeChanged = displays.paperEdge != preferences.paperEdge
+        displays.paperEdge = preferences.paperEdge
+        if stills != nil {
+            stills.paperEdge = preferences.paperEdge
+            if edgeChanged { refreshStill(force: true) }
+        }
         if stills != nil && preferences.matchingStill != stillsWereOn {
             if preferences.matchingStill { refreshStill(force: true) } else { stills.restore() }
         }
@@ -363,6 +369,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         })
         menu.addItem(choices("Seasons", [("What is growing there today", true), ("Each place at its best", false)],
                              current: preferences.followsCalendar) { preferences.followsCalendar = $0 })
+        let border = NSMenuItem(title: "Painted Border", action: #selector(toggleBorder), keyEquivalent: "")
+        border.target = self
+        border.state = preferences.paperEdge ? .on : .off
+        menu.addItem(border)
         menu.addItem(.separator())
 
         // How it flies.
@@ -423,6 +433,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
             self?.refreshStill(force: true)
         }
+    }
+
+    @objc private func toggleBorder() {
+        preferences.paperEdge.toggle()
     }
 
     @objc private func checkForUpdates() {

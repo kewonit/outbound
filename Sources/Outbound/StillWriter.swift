@@ -16,6 +16,8 @@ final class StillWriter {
     /// The latest painting of each display, ready to show the moment the Mac locks.
     private var ready: [CGDirectDisplayID: URL] = [:]
     private static let originalsKey = "originalDesktopPictures"
+    /// Whether the paintings have their pale border, as the live ones do.
+    var paperEdge = true
 
     init(gpu: GPU, defaults: UserDefaults = .standard) {
         self.gpu = gpu
@@ -45,6 +47,7 @@ final class StillWriter {
             let url = folder.appending(path: "lock-\(id)-\(stamp).jpg")
             let renderer = ViewRenderer(gpu: gpu)
             renderer.configure(frame: screen.frame, scale: 1)
+            renderer.paperEdge = paperEdge
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
                                                                       width: width, height: height, mipmapped: false)
             descriptor.usage = [.renderTarget, .shaderRead]
