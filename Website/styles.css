@@ -316,6 +316,27 @@ kbd {
 }
 .tier.featured { background: var(--panel-2); }
 .tier-side .tier-desc { margin-bottom: 1.5rem; }
+/* What it runs on, just under the price and outside its card. */
+.tier-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: -0.75rem 0 0;
+  padding: 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--ink-mute);
+}
+.tier-needs span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.tier-needs svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .btn-star { gap: 0.4rem; }
 .btn-star svg { flex: none; color: var(--ink-mute); transition: color 0.15s ease; }
 .btn-star path { fill: transparent; transition: fill 0.15s ease; }
@@ -429,18 +450,17 @@ kbd {
   .demo-card { grid-template-columns: 1fr 1.2fr; margin-top: 4rem; }
   .demo-panel { border-top: 0; border-left: 1px solid var(--line); }
   .mini-grid { grid-template-columns: repeat(3, 1fr); max-width: none; margin-top: 4rem; }
-  /* Download first, source as a narrower card on the side. */
+  /* The price, with the download as a narrower card beside it in one box, and what it runs on below the box. */
   .price-grid {
     grid-template-columns: 1.6fr 1fr;
     gap: 0;
     margin-top: 4rem;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    overflow: hidden;
   }
-  .tier { border: 0; border-radius: 0; }
-  .tier-side { background: transparent; border-left: 1px solid var(--line); }
+  .tier.featured { grid-area: 1 / 1; border-right: 0; border-radius: 12px 0 0 12px; }
+  .tier-side { grid-area: 1 / 2; background: transparent; border-radius: 0 12px 12px 0; }
+  .tier-needs { grid-area: 2 / 1; margin-top: 1rem; }
   .price-grid:has(> [hidden]) { grid-template-columns: 1fr; }
+  .price-grid:has(> [hidden]) .tier.featured { border-right: 1px solid var(--line); border-radius: 12px; }
   .wrap-wide { padding: 0 1rem; }
 }
 
