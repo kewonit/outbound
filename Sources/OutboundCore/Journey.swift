@@ -71,6 +71,16 @@ public final class Journey {
         legs.last { $0.start <= y } ?? legs[0]
     }
 
+    /// The place painted at world y as far as anyone looking can tell. A Fly To's new place starts below the view
+    /// and sweeps over it, so until it is halfway across, the place on screen is still the one it is replacing.
+    public func placeShown(at y: Double, time: TimeInterval) -> Place {
+        let leg = leg(at: y)
+        if let start = leg.sweepStart, time - start < Self.sweepDuration * 0.5, let previous = self.leg(before: leg) {
+            return previous.place
+        }
+        return leg.place
+    }
+
     /// The leg before the given one, which it is still turning out of.
     public func leg(before leg: Leg) -> Leg? {
         guard let i = legs.firstIndex(where: { $0.index == leg.index }), i > 0 else { return nil }

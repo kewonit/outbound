@@ -199,7 +199,7 @@ enum Exporter {
             if caption || cursor {
                 let centre = world.camera.y + Double(frame.midY) * World.metresPerPoint
                 overlay(&bytes, width: width, height: height, scale: scale,
-                        caption: caption ? world.journey.leg(at: centre).place.name : nil, dock: dock,
+                        caption: caption ? world.journey.placeShown(at: centre, time: world.time).name : nil, dock: dock,
                         cursor: cursor ? cursorPoint(at: clockTime, in: frame) : nil)
             }
             return (commands.gpuEndTime - commands.gpuStartTime) * 1000

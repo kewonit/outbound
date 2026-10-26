@@ -578,6 +578,14 @@ kbd {
   .demos { grid-template-columns: minmax(0, 1fr); }
   .day { gap: 0.75rem; }
 }
+/* On wide screens the four moments sit in one row, reaching out past the text column on both sides. */
+@media (min-width: 1024px) {
+  .day {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: min(68rem, 100vw - 3rem);
+    margin-inline: calc((100% - min(68rem, 100vw - 3rem)) / 2);
+  }
+}
 
 /* ---------- A Dock over the hero clip, so it reads as a Mac's desktop ---------- */
 /* A picture of a Mac, so it never mirrors on a right-to-left page. */
@@ -701,16 +709,6 @@ kbd {
 
 
 /* ---------- Leaner landing page ---------- */
-.facts-section { padding-top: 0; padding-bottom: 0; }
-.facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
-.facts li {
-  padding: 0.45rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--ink);
-  font-size: 0.95rem;
-}
 .demo figcaption, .places figcaption { margin-top: 0.55rem; }
 
 [hidden] { display: none !important; }

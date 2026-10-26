@@ -162,7 +162,7 @@ final class Wallpaper: NSObject {
 
     private func updateCaption() {
         let centre = world.camera.y + Double(window.frame.midY) * World.metresPerPoint
-        label.update(place: world.journey.leg(at: centre).place.name, note: note)
+        label.update(place: world.journey.placeShown(at: centre, time: world.time).name, note: note)
     }
 
     func close() {

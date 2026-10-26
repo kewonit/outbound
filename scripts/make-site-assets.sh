@@ -42,8 +42,8 @@ video "$assets/demos/follow.mp4" 640 400 12 --place normandy --best --time 30 --
 video "$assets/demos/night.mp4" 640 400 12 --place niigata --best --hour 21.5 --time 1490 --caption
 video "$assets/demos/train.mp4" 640 400 12 --place niigata --best --time 30 --find train --after 34 --caption
 video "$assets/demos/flock.mp4" 640 400 14 --place lisse --date 2026-04-12 --time 30 --find flock --after 10 --caption
-video "$assets/demos/fly.mp4" 640 400 12 --place punjab --best --time 30 --pace 11 \
-    --fly-to lapland,niigata,lisse,pampa --fly-at 2,4.5,7,9.5 --caption
+video "$assets/demos/fly.mp4" 640 400 17.5 --place kansas --best --time 30 --pace 11 \
+    --fly-to lisse,punjab,niigata,serengeti,normandy,lapland,pampa --fly-at 2,4.2,6.4,8.6,10.8,13,15.2 --caption
 
 # A village in Normandy through one April day, from morning to night.
 for moment in morning:8 noon:13 evening:18.2 night:21.3; do
