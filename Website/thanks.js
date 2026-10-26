@@ -3,6 +3,12 @@
 (function () {
   "use strict";
 
+  // Words the script writes itself. A translated page carries them in its own language in OUTBOUND_I18N.
+  var WORDS = window.OUTBOUND_I18N || {};
+  function word(key, english) {
+    return WORDS[key] || english;
+  }
+
   var id = window.OUTBOUND_CHECKOUT;
   var status = document.getElementById("status");
   var activate = document.getElementById("activate");
@@ -17,7 +23,7 @@
   }
 
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
-    say("Your key is in your customer portal below.");
+    say(word("js.portal", "Your key is in your customer portal below."));
     return;
   }
 
@@ -50,24 +56,24 @@
         }
         if (answer.status === "open" || answer.status === "confirmed" || answer.status === "pending" || !answer.status) {
           if (Date.now() - started < 90000) {
-            say("Finding your key…");
+            say(word("js.finding", "Finding your key…"));
             setTimeout(poll, 2000);
           } else {
-            say("Taking longer than usual. Try Activate, or check your customer portal in a minute.");
+            say(word("js.slow", "Taking longer than usual. Try Activate, or check your customer portal in a minute."));
           }
           return;
         }
         if (answer.status === "refunded") {
-          say("This purchase was refunded.");
+          say(word("js.refunded", "This purchase was refunded."));
         } else {
-          say("This checkout didn't finish.");
+          say(word("js.unfinished", "This checkout didn't finish."));
         }
       })
       .catch(function () {
         if (Date.now() - started < 90000) {
           setTimeout(poll, 3000);
         } else {
-          say("Couldn't reach the store. Try Activate, or check your customer portal.");
+          say(word("js.offline", "Couldn't reach the store. Try Activate, or check your customer portal."));
         }
       });
   }
@@ -81,7 +87,7 @@
     var selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
-    say("Press ⌘C to copy your key.");
+    say(word("js.pressCopy", "Press ⌘C to copy your key."));
   }
 
   copy.addEventListener("click", function () {
@@ -92,8 +98,8 @@
       return;
     }
     navigator.clipboard.writeText(text).then(function () {
-      copy.textContent = "Copied";
-      setTimeout(function () { copy.textContent = "Copy"; }, 1600);
+      copy.textContent = word("js.copied", "Copied");
+      setTimeout(function () { copy.textContent = word("js.copy", "Copy"); }, 1600);
     }, selectKey);
   });
 })();

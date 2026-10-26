@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
-<title>Thank you · Outbound</title>
+<title data-i18n="thanks.metaTitle">Thank you · Outbound</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
-<link rel="stylesheet" href="/styles.css?v=13">
+<link rel="stylesheet" href="/styles.css?v=14">
 <script>
 // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
 // stay out of history, bookmarks and screenshots. The id lives on in this tab only.
@@ -29,49 +29,70 @@
 
 <header class="topbar">
   <div class="wrap topbar-inner">
-    <a class="mark-logo" href="/" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <a class="mark-logo" href="/" aria-label="Outbound home" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
   </div>
 </header>
 
 <main class="page">
   <div class="wrap-narrow prose thanks">
-    <h1>Thank you.</h1>
-    <p class="lede">Outbound is yours. Use it on up to 3 Macs.</p>
+    <h1 data-i18n="thanks.title">Thank you.</h1>
+    <p class="lede" data-i18n="thanks.lede">Outbound is yours. Use it on up to 3 Macs.</p>
 
     <ol class="steps">
       <li data-needs="download">
-        <strong>Download Outbound.</strong>
-        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a></div>
+        <strong data-i18n="thanks.step1">Download Outbound.</strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a></div>
       </li>
       <li>
-        <strong>Open Outbound, then click Activate.</strong> Your browser will ask to open Outbound. Allow it.
-        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true">Activate</a></div>
+        <strong data-i18n="thanks.step2">Open Outbound, then click Activate.</strong> <span data-i18n="thanks.step2Detail">Your browser will ask to open Outbound. Allow it.</span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">Activate</a></div>
       </li>
     </ol>
 
     <div class="license" id="license" hidden>
-      <h2>Your key</h2>
+      <h2 data-i18n="thanks.key">Your key</h2>
       <div class="key-row">
         <code id="key"></code>
-        <button class="btn btn-dark btn-sm" id="copy" type="button">Copy</button>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" data-i18n="js.copy">Copy</button>
       </div>
-      <p class="muted">Or paste it into Outbound. <span id="email"></span></p>
+      <p class="muted"><span data-i18n="thanks.orPaste">Or paste it into Outbound.</span> <span id="email"></span></p>
     </div>
 
-    <p id="city" hidden>We have your city. We'll paint it in and email you when it's in Outbound, usually within a week.</p>
-    <p class="muted" id="status" role="status">Finding your key…</p>
-    <p class="muted">Lost your key? It's in your <a href="https://polar.sh/edbnme/portal">customer portal</a>.</p>
-    <p class="muted">Need help? Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>.</p>
+    <p id="city" hidden data-i18n="thanks.city">We have your city. We'll paint it in and email you when it's in Outbound, usually within a week.</p>
+    <p class="muted" id="status" role="status" data-i18n="js.finding">Finding your key…</p>
+    <p class="muted" data-i18n="thanks.lost">Lost your key? It's in your <a href="https://polar.sh/edbnme/portal">customer portal</a>.</p>
+    <p class="muted" data-i18n="thanks.help">Need help? Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>.</p>
   </div>
 </main>
 
 <footer class="footer">
   <div class="wrap-narrow">
-    <p class="foot-base"><span>Needs a Mac with Apple silicon and macOS 13 or newer</span><span><a href="/">outbound.edbn.me</a></span></p>
+    <p class="foot-base"><span data-i18n="footer.needs">Needs a Mac with Apple silicon and macOS 13 or newer</span><span><a href="/">outbound.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Language</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
   </div>
 </footer>
 
-<script src="/app.js?v=11"></script>
-<script src="/thanks.js?v=5"></script>
+<script src="/app.js?v=12"></script>
+<script src="/thanks.js?v=6"></script>
 </body>
 </html>

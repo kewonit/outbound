@@ -11,6 +11,24 @@
     github: "https://github.com/kewonit/outbound"
   };
 
+  // Words the script writes itself. A translated page carries them in its own language in OUTBOUND_I18N.
+  var WORDS = window.OUTBOUND_I18N || {};
+  function word(key, english) {
+    return WORDS[key] || english;
+  }
+
+  // The language picker in the footer. The choice is remembered, and the site keeps to it rather than the
+  // browser's languages, then the same page opens in that language.
+  var LANGUAGES = /^\/(es|fr|de|it|pt-br|nl|ru|tr|pl|ja|ko|zh-hans|zh-hant|hi|ar)(?=\/|$)/;
+  document.querySelectorAll("select[data-lang-picker]").forEach(function (picker) {
+    picker.addEventListener("change", function () {
+      var language = picker.value;
+      document.cookie = "lang=" + language + "; path=/; max-age=31536000; samesite=lax";
+      var path = location.pathname.replace(LANGUAGES, "") || "/";
+      location.href = (language === "en" ? "" : "/" + language) + path + location.hash;
+    });
+  });
+
   // Enables collapsible FAQ only when JS runs (no-JS keeps answers visible).
   document.documentElement.classList.add("js");
 
@@ -59,19 +77,19 @@
         var button = document.createElement("button");
         button.type = "button";
         button.className = "btn btn-light key-button" + (small ? " btn-sm" : "");
-        button.title = "Copy your key";
+        button.title = word("js.copyKeyTitle", "Copy your key");
         if (!small) {
           var code = document.createElement("code");
           code.textContent = saved.key;
           button.appendChild(code);
         }
         var label = document.createElement("span");
-        label.textContent = small ? "Copy key" : "Copy";
+        label.textContent = small ? word("js.copyKey", "Copy key") : word("js.copy", "Copy");
         button.appendChild(label);
         button.addEventListener("click", function () {
           navigator.clipboard.writeText(saved.key).then(function () {
             var was = label.textContent;
-            label.textContent = "Copied";
+            label.textContent = word("js.copied", "Copied");
             setTimeout(function () { label.textContent = was; }, 1600);
           });
         });

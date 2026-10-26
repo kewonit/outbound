@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="thanks.metaTitle">谢谢 · Outbound</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=14">
+<script>
+// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
+// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
+(function () {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("checkout_id");
+  try {
+    if (id) sessionStorage.setItem("outbound-checkout", id);
+  } catch (error) {}
+  window.OUTBOUND_CHECKOUT = id || (function () {
+    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
+  })();
+  if (location.search) history.replaceState(null, "", location.pathname);
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/zh-hans/" aria-label="Outbound 首页" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1 data-i18n="thanks.title">谢谢你。</h1>
+    <p class="lede" data-i18n="thanks.lede">Outbound 现在是你的了。最多可在 3 台 Mac 上使用。</p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong data-i18n="thanks.step1">下载 Outbound。</strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下载 Mac 版</a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step2">打开 Outbound，然后点击“激活”。</strong> <span data-i18n="thanks.step2Detail">浏览器会询问是否打开 Outbound，请选择允许。</span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">激活</a></div>
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2 data-i18n="thanks.key">你的激活码</h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" data-i18n="js.copy">复制</button>
+      </div>
+      <p class="muted"><span data-i18n="thanks.orPaste">或者把它粘贴到 Outbound 中。</span> <span id="email"></span></p>
+    </div>
+
+    <p id="city" hidden data-i18n="thanks.city">我们已收到你的城市。画好并加入 Outbound 后，我们会发邮件通知你，通常在一周内。</p>
+    <p class="muted" id="status" role="status" data-i18n="js.finding">正在查找你的激活码…</p>
+    <p class="muted" data-i18n="thanks.lost">激活码丢了？它在你的<a href="https://polar.sh/edbnme/portal">客户中心</a>里。</p>
+    <p class="muted" data-i18n="thanks.help">需要帮助？发邮件至 <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>。</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <p class="foot-base"><span data-i18n="footer.needs">需要搭载 Apple silicon、运行 macOS 13 或更高版本的 Mac</span><span><a href="/zh-hans/">outbound.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">语言</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans" selected>简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"已复制","js.copy":"复制","js.copyKey":"复制激活码","js.copyKeyTitle":"复制你的激活码","js.finding":"正在查找你的激活码…","js.offline":"无法连接商店。试试点击“激活”，或查看你的客户中心。","js.portal":"你的激活码在下方的客户中心里。","js.pressCopy":"按 ⌘C 复制你的激活码。","js.refunded":"这笔购买已退款。","js.slow":"比平时花的时间长。试试点击“激活”，或过一分钟再查看你的客户中心。","js.unfinished":"这次付款没有完成。"};</script>
+<script src="/app.js?v=12"></script>
+<script src="/thanks.js?v=6"></script>
+</body>
+</html>

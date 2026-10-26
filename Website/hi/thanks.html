@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="thanks.metaTitle">धन्यवाद · Outbound</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=14">
+<script>
+// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
+// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
+(function () {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("checkout_id");
+  try {
+    if (id) sessionStorage.setItem("outbound-checkout", id);
+  } catch (error) {}
+  window.OUTBOUND_CHECKOUT = id || (function () {
+    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
+  })();
+  if (location.search) history.replaceState(null, "", location.pathname);
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/hi/" aria-label="Outbound होम" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1 data-i18n="thanks.title">धन्यवाद।</h1>
+    <p class="lede" data-i18n="thanks.lede">Outbound अब आपका है। इसे 3 Mac तक पर इस्तेमाल करें।</p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong data-i18n="thanks.step1">Outbound डाउनलोड करें।</strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Mac के लिए डाउनलोड करें</a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step2">Outbound खोलें, फिर “सक्रिय करें” पर क्लिक करें।</strong> <span data-i18n="thanks.step2Detail">आपका ब्राउज़र Outbound खोलने की अनुमति माँगेगा। अनुमति दें।</span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">सक्रिय करें</a></div>
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2 data-i18n="thanks.key">आपकी कुंजी</h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" data-i18n="js.copy">कॉपी करें</button>
+      </div>
+      <p class="muted"><span data-i18n="thanks.orPaste">या इसे Outbound में पेस्ट करें।</span> <span id="email"></span></p>
+    </div>
+
+    <p id="city" hidden data-i18n="thanks.city">आपके शहर की जानकारी हमें मिल गई है। हम इसे पेंट करेंगे और Outbound में जुड़ते ही आपको ईमेल करेंगे, आमतौर पर एक हफ़्ते के भीतर।</p>
+    <p class="muted" id="status" role="status" data-i18n="js.finding">आपकी कुंजी खोजी जा रही है…</p>
+    <p class="muted" data-i18n="thanks.lost">कुंजी खो गई? यह आपके <a href="https://polar.sh/edbnme/portal">कस्टमर पोर्टल</a> में है।</p>
+    <p class="muted" data-i18n="thanks.help">मदद चाहिए? <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> पर ईमेल करें।</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <p class="foot-base"><span data-i18n="footer.needs">Apple silicon और macOS 13 या उससे नए वर्ज़न वाला Mac ज़रूरी है</span><span><a href="/hi/">outbound.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">भाषा</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi" selected>हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"कॉपी हो गया","js.copy":"कॉपी करें","js.copyKey":"कुंजी कॉपी करें","js.copyKeyTitle":"अपनी कुंजी कॉपी करें","js.finding":"आपकी कुंजी खोजी जा रही है…","js.offline":"स्टोर से कनेक्ट नहीं हो सका। “सक्रिय करें” आज़माएँ, या अपना कस्टमर पोर्टल देखें।","js.portal":"आपकी कुंजी नीचे आपके कस्टमर पोर्टल में है।","js.pressCopy":"अपनी कुंजी कॉपी करने के लिए ⌘C दबाएँ।","js.refunded":"इस ख़रीदारी का रिफ़ंड हो चुका है।","js.slow":"सामान्य से ज़्यादा समय लग रहा है। “सक्रिय करें” आज़माएँ, या एक मिनट बाद अपना कस्टमर पोर्टल देखें।","js.unfinished":"यह चेकआउट पूरा नहीं हुआ।"};</script>
+<script src="/app.js?v=12"></script>
+<script src="/thanks.js?v=6"></script>
+</body>
+</html>

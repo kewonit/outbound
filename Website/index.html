@@ -8,30 +8,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Outbound · Painted live wallpaper for Mac</title>
-<meta name="description" content="A live wallpaper for Mac, painted as it flies over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor.">
+<title data-i18n="meta.title">Outbound · Painted live wallpaper for Mac</title>
+<meta name="description" content="A live wallpaper for Mac, painted as it flies over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor." data-i18n-attr="content=meta.description">
 <link rel="canonical" href="https://outbound.edbn.me/">
+<!-- languages -->
+<link rel="alternate" hreflang="en" href="https://outbound.edbn.me/">
+<link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/">
+<link rel="alternate" hreflang="fr" href="https://outbound.edbn.me/fr/">
+<link rel="alternate" hreflang="de" href="https://outbound.edbn.me/de/">
+<link rel="alternate" hreflang="it" href="https://outbound.edbn.me/it/">
+<link rel="alternate" hreflang="pt-BR" href="https://outbound.edbn.me/pt-br/">
+<link rel="alternate" hreflang="nl" href="https://outbound.edbn.me/nl/">
+<link rel="alternate" hreflang="ru" href="https://outbound.edbn.me/ru/">
+<link rel="alternate" hreflang="tr" href="https://outbound.edbn.me/tr/">
+<link rel="alternate" hreflang="pl" href="https://outbound.edbn.me/pl/">
+<link rel="alternate" hreflang="ja" href="https://outbound.edbn.me/ja/">
+<link rel="alternate" hreflang="ko" href="https://outbound.edbn.me/ko/">
+<link rel="alternate" hreflang="zh-Hans" href="https://outbound.edbn.me/zh-hans/">
+<link rel="alternate" hreflang="zh-Hant" href="https://outbound.edbn.me/zh-hant/">
+<link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/">
+<link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/">
+<link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/">
+<!-- /languages -->
 <meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
 <meta name="theme-color" content="#000000">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://outbound.edbn.me/">
 <meta property="og:locale" content="en_US">
-<meta property="og:title" content="Outbound · A painted world behind your desktop">
-<meta property="og:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
+<meta property="og:title" content="Outbound · A painted world behind your desktop" data-i18n-attr="content=meta.shareTitle">
+<meta property="og:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop." data-i18n-attr="content=meta.shareDescription">
 <meta property="og:image" content="https://outbound.edbn.me/assets/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Outbound: a painted world, flying by behind your desktop. For Mac, $7 plus tax.">
+<meta property="og:image:alt" content="Outbound: a painted world, flying by behind your desktop. For Mac, $7 plus tax." data-i18n-attr="content=meta.imageAlt">
 <meta property="og:site_name" content="Outbound">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Outbound · A painted world behind your desktop">
-<meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
+<meta name="twitter:title" content="Outbound · A painted world behind your desktop" data-i18n-attr="content=meta.shareTitle">
+<meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop." data-i18n-attr="content=meta.shareDescription">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png?v=2">
-<meta name="twitter:image:alt" content="Outbound: a painted world, flying by behind your desktop. For Mac, $7 plus tax.">
+<meta name="twitter:image:alt" content="Outbound: a painted world, flying by behind your desktop. For Mac, $7 plus tax." data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preload" as="image" href="assets/poster.jpg?v=4" fetchpriority="high">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 <!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
      both together. -->
 <script type="application/ld+json">
@@ -209,10 +228,10 @@
 
 <header class="topbar">
   <div class="wrap topbar-inner">
-    <a class="mark-logo" href="#top" aria-label="Outbound home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <a class="mark-logo" href="#top" aria-label="Outbound home" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
     <div class="topbar-actions">
       <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
-      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $7</a>
     </div>
   </div>
 </header>
@@ -223,24 +242,24 @@
   <section class="hero">
     <div class="wrap-narrow">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
-      <h1>A painted world,<br>flying by behind your desktop.</h1>
-      <p class="lede">A live wallpaper for Mac. A little bird follows your cursor.</p>
+      <h1 data-i18n="hero.title">A painted world,<br>flying by behind your desktop.</h1>
+      <p class="lede" data-i18n="hero.lede">A live wallpaper for Mac. A little bird follows your cursor.</p>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
       </div>
       <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
            where Buy was. -->
-      <p class="your-key muted" id="your-key" hidden>That's your key. Paste it into Outbound to unlock it. <button class="text-button" id="your-key-forget" type="button">Forget</button></p>
+      <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">That's your key. Paste it into Outbound to unlock it.</span> <button class="text-button" id="your-key-forget" type="button" data-i18n="key.forget">Forget</button></p>
     </div>
   </section>
 
   <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
-  <section class="visual-bleed" aria-label="Outbound flying over Kansas">
+  <section class="visual-bleed" aria-label="Outbound flying over Kansas" data-i18n-attr="aria-label=visual.label">
     <div class="wrap-wide">
       <figure class="desktop">
         <video src="assets/flight.mp4?v=4" poster="assets/poster.jpg?v=4" autoplay muted loop playsinline preload="metadata"
-               width="1600" height="1000" aria-label="A Mac desktop: round fields of corn and wheat in Kansas drift past behind the Dock while the white bird follows the cursor"></video>
+               width="1600" height="1000" aria-label="A Mac desktop: round fields of corn and wheat in Kansas drift past behind the Dock while the white bird follows the cursor" data-i18n-attr="aria-label=visual.video"></video>
         <!-- A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
              from one strip of icons. -->
         <div class="dock" aria-hidden="true">
@@ -267,45 +286,45 @@
   <!-- ============ DEMOS: short clips, each drawn by the app's own renderer ============ -->
   <section class="section" id="demos">
     <div class="wrap-narrow">
-      <h2>Something new every minute.</h2>
+      <h2 data-i18n="demos.title">Something new every minute.</h2>
       <div class="demos">
         <figure class="demo demo-wide">
           <video data-src="assets/demos/follow.mp4?v=2" poster="assets/demos/follow.jpg?v=2" muted loop playsinline preload="none"
-                 width="1280" height="800" aria-label="The gull following the cursor over rice paddies in Niigata"></video>
-          <figcaption><strong>Follows your cursor</strong></figcaption>
+                 width="1280" height="800" aria-label="The gull following the cursor over rice paddies in Niigata" data-i18n-attr="aria-label=demos.followVideo"></video>
+          <figcaption><strong data-i18n="demos.follow">Follows your cursor</strong></figcaption>
         </figure>
         <figure class="demo">
           <video data-src="assets/demos/night.mp4?v=2" poster="assets/demos/night.jpg?v=2" muted loop playsinline preload="none"
-                 width="1280" height="800" aria-label="A Normandy village at night, with lit windows and street lamps along the road"></video>
-          <figcaption><strong>Lights at night</strong></figcaption>
+                 width="1280" height="800" aria-label="A Normandy village at night, with lit windows and street lamps along the road" data-i18n-attr="aria-label=demos.nightVideo"></video>
+          <figcaption><strong data-i18n="demos.night">Lights at night</strong></figcaption>
         </figure>
         <figure class="demo">
           <video data-src="assets/demos/train.mp4?v=2" poster="assets/demos/train.jpg?v=2" muted loop playsinline preload="none"
-                 width="1280" height="800" aria-label="A white train with a yellow stripe crossing rice paddies in Niigata"></video>
-          <figcaption><strong>Trains pass by</strong></figcaption>
+                 width="1280" height="800" aria-label="A white train with a yellow stripe crossing rice paddies in Niigata" data-i18n-attr="aria-label=demos.trainVideo"></video>
+          <figcaption><strong data-i18n="demos.train">Trains pass by</strong></figcaption>
         </figure>
         <figure class="demo">
           <video data-src="assets/demos/flock.mp4?v=2" poster="assets/demos/flock.jpg?v=2" muted loop playsinline preload="none"
-                 width="1280" height="800" aria-label="A skein of geese flying over tulip fields in Lisse"></video>
-          <figcaption><strong>Birds fly over</strong></figcaption>
+                 width="1280" height="800" aria-label="A skein of geese flying over tulip fields in Lisse" data-i18n-attr="aria-label=demos.flockVideo"></video>
+          <figcaption><strong data-i18n="demos.flock">Birds fly over</strong></figcaption>
         </figure>
         <figure class="demo">
           <video data-src="assets/demos/fly.mp4?v=3" poster="assets/demos/fly.jpg?v=3" muted loop playsinline preload="none"
-                 width="1280" height="800" aria-label="Mustard fields in Punjab turning into tulip fields in Lisse"></video>
-          <figcaption><strong>Fly anywhere</strong></figcaption>
+                 width="1280" height="800" aria-label="Mustard fields in Punjab turning into tulip fields in Lisse" data-i18n-attr="aria-label=demos.flyVideo"></video>
+          <figcaption><strong data-i18n="demos.fly">Fly anywhere</strong></figcaption>
         </figure>
       </div>
     </div>
   </section>
 
   <!-- ============ FACTS ============ -->
-  <section class="section facts-section" aria-label="What else">
+  <section class="section facts-section" aria-label="What else" data-i18n-attr="aria-label=facts.label">
     <div class="wrap-narrow">
       <ul class="facts">
-        <li>Real seasons</li>
-        <li>Every display</li>
-        <li>Easy on battery</li>
-        <li>Updates itself</li>
+        <li data-i18n="facts.seasons">Real seasons</li>
+        <li data-i18n="facts.displays">Every display</li>
+        <li data-i18n="facts.battery">Easy on battery</li>
+        <li data-i18n="facts.updates">Updates itself</li>
       </ul>
     </div>
   </section>
@@ -313,12 +332,12 @@
   <!-- ============ LIGHT: one village through a day ============ -->
   <section class="section" id="light">
     <div class="wrap-narrow">
-      <h2>The light follows your clock.</h2>
+      <h2 data-i18n="light.title">The light follows your clock.</h2>
       <div class="day">
-        <figure><img src="assets/day/morning.jpg?v=2" alt="The village in soft morning light" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Morning</figcaption></figure>
-        <figure><img src="assets/day/noon.jpg?v=2" alt="The village at midday with short shadows" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Noon</figcaption></figure>
-        <figure><img src="assets/day/evening.jpg?v=2" alt="The village in warm evening light with long shadows" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Evening</figcaption></figure>
-        <figure><img src="assets/day/night.jpg?v=2" alt="The village at night with lit windows and street lamps" width="1200" height="800" loading="lazy" decoding="async"><figcaption>Night</figcaption></figure>
+        <figure><img src="assets/day/morning.jpg?v=2" alt="The village in soft morning light" data-i18n-attr="alt=light.morningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.morning">Morning</figcaption></figure>
+        <figure><img src="assets/day/noon.jpg?v=2" alt="The village at midday with short shadows" data-i18n-attr="alt=light.noonAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.noon">Noon</figcaption></figure>
+        <figure><img src="assets/day/evening.jpg?v=2" alt="The village in warm evening light with long shadows" data-i18n-attr="alt=light.eveningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.evening">Evening</figcaption></figure>
+        <figure><img src="assets/day/night.jpg?v=2" alt="The village at night with lit windows and street lamps" data-i18n-attr="alt=light.nightAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.night">Night</figcaption></figure>
       </div>
     </div>
   </section>
@@ -326,16 +345,16 @@
   <!-- ============ PLACES ============ -->
   <section class="section" id="places">
     <div class="wrap-narrow">
-      <h2>Eight real places.</h2>
+      <h2 data-i18n="places.title">Eight real places.</h2>
       <div class="places">
-        <figure><img src="assets/places/niigata.jpg?v=2" alt="Flooded rice paddies and sakura in Niigata" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong></figcaption></figure>
-        <figure><img src="assets/places/punjab.jpg?v=2" alt="Mustard fields between dark hedgerows in Punjab" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong></figcaption></figure>
-        <figure><img src="assets/places/lisse.jpg?v=2" alt="Stripes of red, yellow, pink and purple tulips in Lisse" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong></figcaption></figure>
-        <figure><img src="assets/places/serengeti.jpg?v=2" alt="Golden grass and zebras in the Serengeti" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong></figcaption></figure>
-        <figure><img src="assets/places/normandy.jpg?v=2" alt="Hedged fields and apple blossom in Normandy" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong></figcaption></figure>
-        <figure><img src="assets/places/kansas.jpg?v=2" alt="Circles of corn under centre pivots in Kansas" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong></figcaption></figure>
-        <figure><img src="assets/places/lapland.jpg?v=2" alt="Pine and spruce forest, pale lichen heath and a patterned bog in Lapland" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong></figcaption></figure>
-        <figure><img src="assets/places/pampa.jpg?v=2" alt="Paddocks, an estancia in its eucalyptus and a winding creek in La Pampa" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong></figcaption></figure>
+        <figure><img src="assets/places/niigata.jpg?v=2" alt="Flooded rice paddies and sakura in Niigata" data-i18n-attr="alt=places.niigataAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong></figcaption></figure>
+        <figure><img src="assets/places/punjab.jpg?v=2" alt="Mustard fields between dark hedgerows in Punjab" data-i18n-attr="alt=places.punjabAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong></figcaption></figure>
+        <figure><img src="assets/places/lisse.jpg?v=2" alt="Stripes of red, yellow, pink and purple tulips in Lisse" data-i18n-attr="alt=places.lisseAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong></figcaption></figure>
+        <figure><img src="assets/places/serengeti.jpg?v=2" alt="Golden grass and zebras in the Serengeti" data-i18n-attr="alt=places.serengetiAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong></figcaption></figure>
+        <figure><img src="assets/places/normandy.jpg?v=2" alt="Hedged fields and apple blossom in Normandy" data-i18n-attr="alt=places.normandyAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong></figcaption></figure>
+        <figure><img src="assets/places/kansas.jpg?v=2" alt="Circles of corn under centre pivots in Kansas" data-i18n-attr="alt=places.kansasAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong></figcaption></figure>
+        <figure><img src="assets/places/lapland.jpg?v=2" alt="Pine and spruce forest, pale lichen heath and a patterned bog in Lapland" data-i18n-attr="alt=places.laplandAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong></figcaption></figure>
+        <figure><img src="assets/places/pampa.jpg?v=2" alt="Paddocks, an estancia in its eucalyptus and a winding creek in La Pampa" data-i18n-attr="alt=places.pampaAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong></figcaption></figure>
       </div>
     </div>
   </section>
@@ -343,23 +362,23 @@
   <!-- ============ BUY ============ -->
   <section class="section" id="buy">
     <div class="wrap-narrow">
-      <h2>Get Outbound.</h2>
+      <h2 data-i18n="buy.title">Get Outbound.</h2>
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price">$7<span class="per"> + tax, once</span></p>
-          <p class="tier-desc">Up to 3 Macs. No subscription.</p>
-          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
+          <p class="tier-price">$7<span class="per" data-i18n="buy.per"> + tax, once</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">Up to 3 Macs. No subscription.</p>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $7</a>
         </article>
         <p class="tier-needs">
-          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>macOS 13 Ventura or later</span>
-          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg>Apple silicon</span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura or later</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
         </p>
         <article class="tier tier-side" data-needs="download">
-          <h3 class="tier-name">Already bought it?</h3>
-          <p class="tier-price">Download</p>
-          <p class="tier-desc">Open it and paste your key.</p>
-          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
+          <h3 class="tier-name" data-i18n="buy.already">Already bought it?</h3>
+          <p class="tier-price" data-i18n="buy.download">Download</p>
+          <p class="tier-desc" data-i18n="buy.paste">Open it and paste your key.</p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
         </article>
       </div>
     </div>
@@ -368,51 +387,51 @@
   <!-- ============ FAQ ============ -->
   <section class="section" id="faq">
     <div class="wrap-narrow">
-      <h2>FAQ</h2>
+      <h2 data-i18n="faq.title">FAQ</h2>
       <div class="faq">
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">What do I need?</button>
-          <div class="faq-a"><p>A Mac with Apple silicon and macOS 13 Ventura or newer.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">What do I need?</button>
+          <div class="faq-a"><p data-i18n="faq.a1">A Mac with Apple silicon and macOS 13 Ventura or newer.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Is it a video on a loop?</button>
-          <div class="faq-a"><p>No. Your Mac paints it live as it flies, so it never loops.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Is it a video on a loop?</button>
+          <div class="faq-a"><p data-i18n="faq.a2">No. Your Mac paints it live as it flies, so it never loops.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Can I choose where it flies?</button>
-          <div class="faq-a"><p>Yes. Pick any of the eight places from the menu bar, and how long it stays over each, from six minutes to an hour, or keep it over one.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Can I choose where it flies?</button>
+          <div class="faq-a"><p data-i18n="faq.a3">Yes. Pick any of the eight places from the menu bar, and how long it stays over each, from six minutes to an hour, or keep it over one.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Will it slow my Mac or drain the battery?</button>
-          <div class="faq-a"><p>No. It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Will it slow my Mac or drain the battery?</button>
+          <div class="faq-a"><p data-i18n="faq.a4">No. It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Does it work with more than one display?</button>
-          <div class="faq-a"><p>Yes. One landscape runs across all of them.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Does it work with more than one display?</button>
+          <div class="faq-a"><p data-i18n="faq.a5">Yes. One landscape runs across all of them.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">What happens to my own wallpaper?</button>
-          <div class="faq-a"><p>It comes back when you quit Outbound.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">What happens to my own wallpaper?</button>
+          <div class="faq-a"><p data-i18n="faq.a6">It comes back when you quit Outbound.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Where do I find my key?</button>
-          <div class="faq-a"><p>It shows right after you pay, and stays in your <a href="https://polar.sh/edbnme/portal">customer portal</a>. Buy from inside the app and it unlocks by itself.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Where do I find my key?</button>
+          <div class="faq-a"><p data-i18n="faq.a7">It shows right after you pay, and stays in your <a href="https://polar.sh/edbnme/portal">customer portal</a>. Buy from inside the app and it unlocks by itself.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">How many Macs can I use?</button>
-          <div class="faq-a"><p>Three at once. Move it to a new Mac from Settings or your customer portal.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">How many Macs can I use?</button>
+          <div class="faq-a"><p data-i18n="faq.a8">Three at once. Move it to a new Mac from Settings or your customer portal.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Are updates free?</button>
-          <div class="faq-a"><p>Yes. They install themselves while you're away.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">Are updates free?</button>
+          <div class="faq-a"><p data-i18n="faq.a9">Yes. They install themselves while you're away.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">The code is on GitHub. Is it free?</button>
-          <div class="faq-a"><p>The code is open to read. Using the app needs a <a href="/license">license</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">The code is on GitHub. Is it free?</button>
+          <div class="faq-a"><p data-i18n="faq.a10">The code is open to read. Using the app needs a <a href="/license">license</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Need help?</button>
-          <div class="faq-a"><p>Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, or see <a href="/support">Support</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Need help?</button>
+          <div class="faq-a"><p data-i18n="faq.a11">Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, or see <a href="/support">Support</a>.</p></div>
         </div>
       </div>
     </div>
@@ -421,17 +440,17 @@
   <!-- ============ YOUR CITY ============ -->
   <section class="section" id="your-city" data-needs="city">
     <div class="wrap-narrow">
-      <h2>Your city, painted in.</h2>
+      <h2 data-i18n="city.title">Your city, painted in.</h2>
       <article class="tier tier-city">
-        <h3 class="tier-name">Your City in Outbound</h3>
-        <p class="tier-price">$99<span class="per"> + tax, once</span></p>
-        <p class="tier-desc">We paint your town or city into Outbound as one of its Extended Places: its fields and streets, its river and roads, its trees and rooftops, in its own seasons and light.</p>
+        <h3 class="tier-name" data-i18n="city.name">Your City in Outbound</h3>
+        <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
+        <p class="tier-desc" data-i18n="city.desc">We paint your town or city into Outbound as one of its Extended Places: its fields and streets, its river and roads, its trees and rooftops, in its own seasons and light.</p>
         <ul>
-          <li>Tell us where at checkout, and what makes it home.</li>
-          <li>Ready in about a week. We email you when it's in.</li>
-          <li>Includes Outbound for up to 3 Macs.</li>
+          <li data-i18n="city.where">Tell us where at checkout, and what makes it home.</li>
+          <li data-i18n="city.week">Ready in about a week. We email you when it's in.</li>
+          <li data-i18n="city.includes">Includes Outbound for up to 3 Macs.</li>
         </ul>
-        <a class="btn btn-light" href="#your-city" data-url="city" data-soon="">Add your city for $99</a>
+        <a class="btn btn-light" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Add your city for $99</a>
       </article>
     </div>
   </section>
@@ -441,38 +460,59 @@
   <div class="wrap-narrow">
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
-      <h2>Somewhere better to look.<span class="caret" aria-hidden="true"></span></h2>
+      <h2><span data-i18n="footer.tagline">Somewhere better to look.</span><span class="caret" aria-hidden="true"></span></h2>
       <div class="cta-row">
-        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon">Buy for $7</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="">Download for Mac</a>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
       </div>
     </div>
-    <nav class="foot-cols" aria-label="Footer">
+    <nav class="foot-cols" aria-label="Footer" data-i18n-attr="aria-label=footer.label">
       <div>
-        <h3>Product</h3>
-        <a href="#demos">See it</a>
-        <a href="#places">Places</a>
-        <a href="#buy">Buy</a>
-        <a href="#faq">FAQ</a>
-        <a href="#your-city">Your city</a>
-        <a href="/support">Support</a>
+        <h3 data-i18n="footer.product">Product</h3>
+        <a href="#demos" data-i18n="footer.see">See it</a>
+        <a href="#places" data-i18n="footer.places">Places</a>
+        <a href="#buy" data-i18n="footer.buy">Buy</a>
+        <a href="#faq" data-i18n="faq.title">FAQ</a>
+        <a href="#your-city" data-i18n="footer.city">Your city</a>
+        <a href="/support" data-i18n="footer.support">Support</a>
       </div>
       <div>
-        <h3>Source</h3>
+        <h3 data-i18n="footer.source">Source</h3>
         <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
-        <a href="https://github.com/kewonit/outbound/releases">Releases</a>
-        <a href="https://github.com/kewonit/outbound/issues">Issues</a>
+        <a href="https://github.com/kewonit/outbound/releases" data-i18n="footer.releases">Releases</a>
+        <a href="https://github.com/kewonit/outbound/issues" data-i18n="footer.issues">Issues</a>
       </div>
       <div>
-        <h3>Legal</h3>
-        <a href="/privacy">Privacy</a>
-        <a href="/license">License</a>
+        <h3 data-i18n="footer.legal">Legal</h3>
+        <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
+        <a href="/license" data-i18n="footer.license">License</a>
       </div>
     </nav>
-    <p class="foot-base"><span>Needs a Mac with Apple silicon and macOS 13 or newer</span><span>Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+    <p class="foot-base"><span data-i18n="footer.needs">Needs a Mac with Apple silicon and macOS 13 or newer</span><span data-i18n="footer.built">Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Language</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
   </div>
 </footer>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

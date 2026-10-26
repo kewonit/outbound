@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="thanks.metaTitle">ありがとうございます · Outbound</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=14">
+<script>
+// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
+// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
+(function () {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("checkout_id");
+  try {
+    if (id) sessionStorage.setItem("outbound-checkout", id);
+  } catch (error) {}
+  window.OUTBOUND_CHECKOUT = id || (function () {
+    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
+  })();
+  if (location.search) history.replaceState(null, "", location.pathname);
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/ja/" aria-label="Outboundホーム" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1 data-i18n="thanks.title">ありがとうございます。</h1>
+    <p class="lede" data-i18n="thanks.lede">Outboundはあなたのものです。Mac 3台まで使えます。</p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong data-i18n="thanks.step1">Outboundをダウンロードします。</strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Mac版をダウンロード</a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step2">Outboundを開いてから、「有効にする」をクリックします。</strong> <span data-i18n="thanks.step2Detail">Outboundを開いてよいかブラウザに確認されるので、許可してください。</span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">有効にする</a></div>
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2 data-i18n="thanks.key">あなたのライセンスキー</h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" data-i18n="js.copy">コピー</button>
+      </div>
+      <p class="muted"><span data-i18n="thanks.orPaste">または、Outboundにペーストしてください。</span> <span id="email"></span></p>
+    </div>
+
+    <p id="city" hidden data-i18n="thanks.city">あなたの街のご依頼を受け付けました。描き込んでOutboundに追加したら、メールでお知らせします。通常1週間ほどです。</p>
+    <p class="muted" id="status" role="status" data-i18n="js.finding">ライセンスキーを探しています…</p>
+    <p class="muted" data-i18n="thanks.lost">キーをなくしましたか？<a href="https://polar.sh/edbnme/portal">カスタマーポータル</a>にあります。</p>
+    <p class="muted" data-i18n="thanks.help">お困りですか？<a href="mailto:outbound@edbn.me">outbound@edbn.me</a>までメールしてください。</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <p class="foot-base"><span data-i18n="footer.needs">Apple silicon搭載、macOS 13以降のMacが必要です</span><span><a href="/ja/">outbound.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">言語</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja" selected>日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"コピーしました","js.copy":"コピー","js.copyKey":"キーをコピー","js.copyKeyTitle":"ライセンスキーをコピー","js.finding":"ライセンスキーを探しています…","js.offline":"ストアに接続できませんでした。「有効にする」をお試しいただくか、カスタマーポータルをご確認ください。","js.portal":"ライセンスキーは、下のカスタマーポータルにあります。","js.pressCopy":"⌘Cを押して、キーをコピーしてください。","js.refunded":"この購入は返金されています。","js.slow":"いつもより時間がかかっています。「有効にする」をお試しいただくか、少ししてからカスタマーポータルをご確認ください。","js.unfinished":"このお支払いは完了していません。"};</script>
+<script src="/app.js?v=12"></script>
+<script src="/thanks.js?v=6"></script>
+</body>
+</html>

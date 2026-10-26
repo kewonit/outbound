@@ -1,6 +1,8 @@
 // The site's small API. Everything outside /api/ is a static file from Website/, served before this
 // script ever runs.
 //
+//   GET  /, /support, /thanks          The page in the visitor's language: their pick in the footer if they made
+//                                      one, else the first of their browser's languages the site speaks.
 //   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
 //   POST /api/checkout                 A new Polar checkout for Outbound: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
@@ -15,11 +17,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CLAIM_WINDOW = 30 * 24 * 3600 * 1000;
 // Pinned here, where it is easy to move on, rather than in the app.
 const POLAR_VERSION = "2026-10";
+// The languages the site is translated into, by their folder. English is the site's own root.
+const LANGUAGES = ["es", "fr", "de", "it", "pt-br", "nl", "ru", "tr", "pl", "ja", "ko", "zh-hans", "zh-hant", "hi", "ar"];
+const TRANSLATED = new Set(["/", "/support", "/thanks"]);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/download") return download(request, env);
+    if (TRANSLATED.has(url.pathname)) return page(request, env, url);
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
     try {
@@ -43,6 +49,49 @@ async function download(request, env) {
     status: 302,
     headers: { Location: match ? match[1] : "https://github.com/kewonit/outbound/releases/latest", "Cache-Control": "no-store" },
   });
+}
+
+// An English page, or a redirect to the same page in the visitor's language. Search engines, which send no
+// languages, get English and find the others through the pages' hreflang links.
+async function page(request, env, url) {
+  const language = preferredLanguage(request);
+  if (language) {
+    const path = url.pathname === "/" ? "/" : url.pathname;
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/${language}${path}${url.search}`, Vary: "Accept-Language, Cookie", "Cache-Control": "private, no-store" },
+    });
+  }
+  const response = await env.ASSETS.fetch(request);
+  const answer = new Response(response.body, response);
+  answer.headers.append("Vary", "Accept-Language, Cookie");
+  return answer;
+}
+
+// The folder of the language to show, or null for English: the footer's pick, kept in a cookie, wins; then the
+// browser's languages in order of preference, the first the site speaks (English included) deciding.
+function preferredLanguage(request) {
+  const picked = /(?:^|;\s*)lang=([\w-]+)/.exec(request.headers.get("Cookie") ?? "")?.[1]?.toLowerCase();
+  if (picked) return LANGUAGES.includes(picked) ? picked : null;
+  const wanted = (request.headers.get("Accept-Language") ?? "")
+    .split(",")
+    .map((part, i) => {
+      const [tag, ...params] = part.trim().toLowerCase().split(";");
+      const q = Number(params.find((p) => p.trim().startsWith("q="))?.trim().slice(2) ?? 1);
+      return { tag, q: Number.isFinite(q) ? q : 0, i };
+    })
+    .filter(({ tag, q }) => tag && q > 0)
+    .sort((a, b) => b.q - a.q || a.i - b.i);
+  for (const { tag } of wanted) {
+    const [base, ...rest] = tag.split("-");
+    if (base === "en") return null;
+    if (base === "zh") {
+      return rest.some((part) => ["hant", "tw", "hk", "mo"].includes(part)) ? "zh-hant" : "zh-hans";
+    }
+    if (base === "pt") return "pt-br";
+    if (LANGUAGES.includes(base)) return base;
+  }
+  return null;
 }
 
 async function checkout(request, env, origin) {

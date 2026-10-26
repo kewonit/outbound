@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<!--
+  Site URLs (download, buy, github) live once, at the top of app.js.
+  Link previews need absolute URLs, so og:image and twitter:image point at
+  the live site.
+-->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="meta.title">Outbound · 即時繪製的 Mac 動態桌布</title>
+<meta name="description" content="Mac 動態桌布，飛越 8 個真實地點時即時繪製。光線跟著你的時鐘變化，季節是真實的，還有一隻小鳥跟著你的游標。" data-i18n-attr="content=meta.description">
+<link rel="canonical" href="https://outbound.edbn.me/zh-hant/">
+<!-- languages -->
+<link rel="alternate" hreflang="en" href="https://outbound.edbn.me/">
+<link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/">
+<link rel="alternate" hreflang="fr" href="https://outbound.edbn.me/fr/">
+<link rel="alternate" hreflang="de" href="https://outbound.edbn.me/de/">
+<link rel="alternate" hreflang="it" href="https://outbound.edbn.me/it/">
+<link rel="alternate" hreflang="pt-BR" href="https://outbound.edbn.me/pt-br/">
+<link rel="alternate" hreflang="nl" href="https://outbound.edbn.me/nl/">
+<link rel="alternate" hreflang="ru" href="https://outbound.edbn.me/ru/">
+<link rel="alternate" hreflang="tr" href="https://outbound.edbn.me/tr/">
+<link rel="alternate" hreflang="pl" href="https://outbound.edbn.me/pl/">
+<link rel="alternate" hreflang="ja" href="https://outbound.edbn.me/ja/">
+<link rel="alternate" hreflang="ko" href="https://outbound.edbn.me/ko/">
+<link rel="alternate" hreflang="zh-Hans" href="https://outbound.edbn.me/zh-hans/">
+<link rel="alternate" hreflang="zh-Hant" href="https://outbound.edbn.me/zh-hant/">
+<link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/">
+<link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/">
+<link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/">
+<!-- /languages -->
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/zh-hant/">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="Outbound · 桌面後方的如畫世界" data-i18n-attr="content=meta.shareTitle">
+<meta property="og:description" content="飛越 Niigata、Punjab、Serengeti 等地，在你的 Mac 桌面後方即時繪製。" data-i18n-attr="content=meta.shareDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound：如畫的世界，在你的桌面後方飛過。適用於 Mac，$7 + 稅。" data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Outbound · 桌面後方的如畫世界" data-i18n-attr="content=meta.shareTitle">
+<meta name="twitter:description" content="飛越 Niigata、Punjab、Serengeti 等地，在你的 Mac 桌面後方即時繪製。" data-i18n-attr="content=meta.shareDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta name="twitter:image:alt" content="Outbound：如畫的世界，在你的桌面後方飛過。適用於 Mac，$7 + 稅。" data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
+<link rel="stylesheet" href="/styles.css?v=14">
+<!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
+     both together. -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://outbound.edbn.me/#website",
+   "url": "https://outbound.edbn.me/",
+   "name": "Outbound",
+   "description": "Mac 動態桌布，飛越 8 個真實地點時即時繪製。光線跟著你的時鐘變化，季節是真實的，還有一隻小鳥跟著你的游標。",
+   "inLanguage": "zh-Hant",
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   }
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://outbound.edbn.me/#organization",
+   "name": "Outbound",
+   "url": "https://outbound.edbn.me/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://outbound.edbn.me/assets/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "email": "outbound@edbn.me",
+   "sameAs": [
+    "https://github.com/kewonit/outbound"
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://outbound.edbn.me/#app",
+   "name": "Outbound",
+   "description": "Mac 動態桌布，飛越 8 個真實地點時即時繪製。光線跟著你的時鐘變化，季節是真實的，還有一隻小鳥跟著你的游標。",
+   "url": "https://outbound.edbn.me/zh-hant/",
+   "applicationCategory": "DesktopEnhancementApplication",
+   "operatingSystem": "macOS 13 Ventura 或以上版本",
+   "processorRequirements": "Apple silicon",
+   "image": "https://outbound.edbn.me/assets/icon-512.png",
+   "screenshot": [
+    "https://outbound.edbn.me/assets/poster.jpg",
+    "https://outbound.edbn.me/assets/places/niigata.jpg",
+    "https://outbound.edbn.me/assets/places/lisse.jpg",
+    "https://outbound.edbn.me/assets/day/night.jpg"
+   ],
+   "downloadUrl": "https://outbound.edbn.me/download",
+   "isAccessibleForFree": false,
+   "offers": {
+    "@type": "Offer",
+    "price": "7.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "url": "https://outbound.edbn.me/zh-hant/#buy"
+   },
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   },
+   "video": {
+    "@id": "https://outbound.edbn.me/#video"
+   }
+  },
+  {
+   "@type": "VideoObject",
+   "@id": "https://outbound.edbn.me/#video",
+   "name": "Outbound 飛越 Kansas",
+   "description": "Mac 桌面：Kansas 圓形的玉米田和麥田從 Dock 後方緩緩飄過，白色的鳥跟著游標飛。",
+   "thumbnailUrl": "https://outbound.edbn.me/assets/poster.jpg",
+   "contentUrl": "https://outbound.edbn.me/assets/flight.mp4",
+   "uploadDate": "2026-10-27T01:33:53+05:30",
+   "duration": "PT16S"
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://outbound.edbn.me/zh-hant/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "需要什麼配備？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "一台搭載 Apple silicon、執行 macOS 13 Ventura 或以上版本的 Mac。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "是循環播放的影片嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "不是。畫面是你的 Mac 在飛行時即時繪製的，所以永遠不會重複。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "可以選擇要飛去哪裡嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "可以。從選單列的 8 個地點中任選一個，還能設定在每個地點停留多久，從 6 分鐘到 1 小時，也可以一直停在同一處。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "會拖慢 Mac 或很耗電嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "不會。桌面被遮住、螢幕進入睡眠或低耗電模式開啟時，它就會暫停。使用電池時，也可以改為定格成一幅靜止的畫。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "可以用在多台顯示器上嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "可以。一整片風景會橫跨所有顯示器。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "我原本的桌布會怎樣？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "結束 Outbound 後就會換回來。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "在哪裡可以找到我的授權碼？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "付款後會立即顯示，也會一直保存在你的客戶中心。在 App 內購買的話，會自動解鎖。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "可以在幾台 Mac 上使用？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "可同時用於 3 台。可以在設定或客戶中心把它移到新的 Mac。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "更新是免費的嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "是的。會在你離開時自動安裝。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "程式碼在 GitHub 上，那是免費的嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "程式碼公開可讀。使用這個 App 需要授權。"
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "需要協助嗎？",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "寄電子郵件到 outbound@edbn.me，或參閱支援頁面。"
+     }
+    }
+   ],
+   "inLanguage": "zh-Hant"
+  }
+ ]
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="#top" aria-label="Outbound 首頁" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7 購買</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1 data-i18n="hero.title">如畫的世界，<br>在你的桌面後方緩緩飛過。</h1>
+      <p class="lede" data-i18n="hero.lede">Mac 動態桌布。一隻小鳥會跟著你的游標飛。</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7 購買</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下載 Mac 版</a>
+      </div>
+      <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
+           where Buy was. -->
+      <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">這是你的授權碼。貼到 Outbound 即可解鎖。</span> <button class="text-button" id="your-key-forget" type="button" data-i18n="key.forget">清除</button></p>
+    </div>
+  </section>
+
+  <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
+  <section class="visual-bleed" aria-label="Outbound 飛越 Kansas" data-i18n-attr="aria-label=visual.label">
+    <div class="wrap-wide">
+      <figure class="desktop">
+        <video src="/assets/flight.mp4?v=4" poster="/assets/poster.jpg?v=4" autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label="Mac 桌面：Kansas 圓形的玉米田和麥田從 Dock 後方緩緩飄過，白色的鳥跟著游標飛" data-i18n-attr="aria-label=visual.video"></video>
+        <!-- A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
+             from one strip of icons. -->
+        <div class="dock" aria-hidden="true">
+          <span class="dock-item open" style="--i: 0"></span>
+          <span class="dock-item" style="--i: 1"></span>
+          <span class="dock-item open" style="--i: 2"></span>
+          <span class="dock-item open" style="--i: 3"></span>
+          <span class="dock-item" style="--i: 4"></span>
+          <span class="dock-item" style="--i: 5"></span>
+          <span class="dock-item" style="--i: 6"></span>
+          <span class="dock-item" style="--i: 7"></span>
+          <span class="dock-item" style="--i: 8"></span>
+          <span class="dock-item open" style="--i: 9"></span>
+          <span class="dock-item" style="--i: 10"></span>
+          <span class="dock-item" style="--i: 11"></span>
+          <span class="dock-divider"></span>
+          <span class="dock-item" style="--i: 12"></span>
+          <span class="dock-item" style="--i: 13"></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ DEMOS: short clips, each drawn by the app's own renderer ============ -->
+  <section class="section" id="demos">
+    <div class="wrap-narrow">
+      <h2 data-i18n="demos.title">每分鐘都有新發現。</h2>
+      <div class="demos">
+        <figure class="demo demo-wide">
+          <video data-src="/assets/demos/follow.mp4?v=2" poster="/assets/demos/follow.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="海鷗在 Niigata 的稻田上空跟著游標飛" data-i18n-attr="aria-label=demos.followVideo"></video>
+          <figcaption><strong data-i18n="demos.follow">跟著你的游標</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/night.mp4?v=2" poster="/assets/demos/night.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="夜晚的 Normandy 村莊，窗戶亮著燈，路邊的路燈排成一列" data-i18n-attr="aria-label=demos.nightVideo"></video>
+          <figcaption><strong data-i18n="demos.night">夜晚燈火</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/train.mp4?v=2" poster="/assets/demos/train.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="一列有黃色條紋的白色列車駛過 Niigata 的稻田" data-i18n-attr="aria-label=demos.trainVideo"></video>
+          <figcaption><strong data-i18n="demos.train">火車駛過</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/flock.mp4?v=2" poster="/assets/demos/flock.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="一群雁飛過 Lisse 的鬱金香田" data-i18n-attr="aria-label=demos.flockVideo"></video>
+          <figcaption><strong data-i18n="demos.flock">鳥群飛過</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/fly.mp4?v=3" poster="/assets/demos/fly.jpg?v=3" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Punjab 的芥菜花田漸漸變成 Lisse 的鬱金香田" data-i18n-attr="aria-label=demos.flyVideo"></video>
+          <figcaption><strong data-i18n="demos.fly">想去哪就飛去哪</strong></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FACTS ============ -->
+  <section class="section facts-section" aria-label="更多特色" data-i18n-attr="aria-label=facts.label">
+    <div class="wrap-narrow">
+      <ul class="facts">
+        <li data-i18n="facts.seasons">真實的季節</li>
+        <li data-i18n="facts.displays">支援所有顯示器</li>
+        <li data-i18n="facts.battery">省電</li>
+        <li data-i18n="facts.updates">自動更新</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ LIGHT: one village through a day ============ -->
+  <section class="section" id="light">
+    <div class="wrap-narrow">
+      <h2 data-i18n="light.title">光線跟著你的時鐘變化。</h2>
+      <div class="day">
+        <figure><img src="/assets/day/morning.jpg?v=2" alt="柔和晨光中的村莊" data-i18n-attr="alt=light.morningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.morning">清晨</figcaption></figure>
+        <figure><img src="/assets/day/noon.jpg?v=2" alt="正午的村莊，影子很短" data-i18n-attr="alt=light.noonAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.noon">正午</figcaption></figure>
+        <figure><img src="/assets/day/evening.jpg?v=2" alt="溫暖傍晚光線下的村莊，影子拉得長長的" data-i18n-attr="alt=light.eveningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.evening">傍晚</figcaption></figure>
+        <figure><img src="/assets/day/night.jpg?v=2" alt="夜晚的村莊，窗戶和路燈都亮著" data-i18n-attr="alt=light.nightAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.night">夜晚</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACES ============ -->
+  <section class="section" id="places">
+    <div class="wrap-narrow">
+      <h2 data-i18n="places.title">8 個真實地點。</h2>
+      <div class="places">
+        <figure><img src="/assets/places/niigata.jpg?v=2" alt="Niigata 灌滿水的稻田與櫻花" data-i18n-attr="alt=places.niigataAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong></figcaption></figure>
+        <figure><img src="/assets/places/punjab.jpg?v=2" alt="Punjab 深色樹籬間的芥菜花田" data-i18n-attr="alt=places.punjabAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong></figcaption></figure>
+        <figure><img src="/assets/places/lisse.jpg?v=2" alt="Lisse 紅、黃、粉、紫相間的鬱金香花帶" data-i18n-attr="alt=places.lisseAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong></figcaption></figure>
+        <figure><img src="/assets/places/serengeti.jpg?v=2" alt="Serengeti 的金黃草原與斑馬" data-i18n-attr="alt=places.serengetiAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong></figcaption></figure>
+        <figure><img src="/assets/places/normandy.jpg?v=2" alt="Normandy 樹籬環繞的田野與蘋果花" data-i18n-attr="alt=places.normandyAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong></figcaption></figure>
+        <figure><img src="/assets/places/kansas.jpg?v=2" alt="Kansas 中央樞軸灌溉下的圓形玉米田" data-i18n-attr="alt=places.kansasAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong></figcaption></figure>
+        <figure><img src="/assets/places/lapland.jpg?v=2" alt="Lapland 的松樹與雲杉林、淺色的地衣荒原和紋路分明的沼澤" data-i18n-attr="alt=places.laplandAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong></figcaption></figure>
+        <figure><img src="/assets/places/pampa.jpg?v=2" alt="La Pampa 的牧場、尤加利樹環繞的莊園和蜿蜒的小溪" data-i18n-attr="alt=places.pampaAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUY ============ -->
+  <section class="section" id="buy">
+    <div class="wrap-narrow">
+      <h2 data-i18n="buy.title">取得 Outbound。</h2>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">$7<span class="per" data-i18n="buy.per"> + 稅，一次買斷</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">最多 3 台 Mac。不必訂閱。</p>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7 購買</a>
+        </article>
+        <p class="tier-needs">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura 或以上版本</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
+        </p>
+        <article class="tier tier-side" data-needs="download">
+          <h3 class="tier-name" data-i18n="buy.already">已經購買了嗎？</h3>
+          <p class="tier-price" data-i18n="buy.download">下載</p>
+          <p class="tier-desc" data-i18n="buy.paste">打開 Outbound，貼上你的授權碼。</p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下載 Mac 版</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2 data-i18n="faq.title">常見問題</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">需要什麼配備？</button>
+          <div class="faq-a"><p data-i18n="faq.a1">一台搭載 Apple silicon、執行 macOS 13 Ventura 或以上版本的 Mac。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">是循環播放的影片嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a2">不是。畫面是你的 Mac 在飛行時即時繪製的，所以永遠不會重複。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">可以選擇要飛去哪裡嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a3">可以。從選單列的 8 個地點中任選一個，還能設定在每個地點停留多久，從 6 分鐘到 1 小時，也可以一直停在同一處。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">會拖慢 Mac 或很耗電嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a4">不會。桌面被遮住、螢幕進入睡眠或低耗電模式開啟時，它就會暫停。使用電池時，也可以改為定格成一幅靜止的畫。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">可以用在多台顯示器上嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a5">可以。一整片風景會橫跨所有顯示器。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">我原本的桌布會怎樣？</button>
+          <div class="faq-a"><p data-i18n="faq.a6">結束 Outbound 後就會換回來。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">在哪裡可以找到我的授權碼？</button>
+          <div class="faq-a"><p data-i18n="faq.a7">付款後會立即顯示，也會一直保存在你的<a href="https://polar.sh/edbnme/portal">客戶中心</a>。在 App 內購買的話，會自動解鎖。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">可以在幾台 Mac 上使用？</button>
+          <div class="faq-a"><p data-i18n="faq.a8">可同時用於 3 台。可以在設定或客戶中心把它移到新的 Mac。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">更新是免費的嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a9">是的。會在你離開時自動安裝。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">程式碼在 GitHub 上，那是免費的嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a10">程式碼公開可讀。使用這個 App 需要<a href="/license">授權</a>。</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">需要協助嗎？</button>
+          <div class="faq-a"><p data-i18n="faq.a11">寄電子郵件到 <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>，或參閱<a href="/zh-hant/support">支援</a>頁面。</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR CITY ============ -->
+  <section class="section" id="your-city" data-needs="city">
+    <div class="wrap-narrow">
+      <h2 data-i18n="city.title">把你的城市畫進來。</h2>
+      <article class="tier tier-city">
+        <h3 class="tier-name" data-i18n="city.name">你的城市，在 Outbound 裡</h3>
+        <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + 稅，一次買斷</span></p>
+        <p class="tier-desc" data-i18n="city.desc">我們會把你的小鎮或城市畫進 Outbound，成為擴充地點之一：田野與街道、河流與道路、樹木與屋頂，都有屬於它的季節與光線。</p>
+        <ul>
+          <li data-i18n="city.where">結帳時告訴我們是哪裡，以及那裡對你的意義。</li>
+          <li data-i18n="city.week">大約一週完成。畫好後我們會寄電子郵件通知你。</li>
+          <li data-i18n="city.includes">包含可用於最多 3 台 Mac 的 Outbound。</li>
+        </ul>
+        <a class="btn btn-light" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99 加入你的城市</a>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2><span data-i18n="footer.tagline">讓目光有個更好的去處。</span><span class="caret" aria-hidden="true"></span></h2>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7 購買</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下載 Mac 版</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="頁尾" data-i18n-attr="aria-label=footer.label">
+      <div>
+        <h3 data-i18n="footer.product">產品</h3>
+        <a href="#demos" data-i18n="footer.see">看看效果</a>
+        <a href="#places" data-i18n="footer.places">地點</a>
+        <a href="#buy" data-i18n="footer.buy">購買</a>
+        <a href="#faq" data-i18n="faq.title">常見問題</a>
+        <a href="#your-city" data-i18n="footer.city">你的城市</a>
+        <a href="/zh-hant/support" data-i18n="footer.support">支援</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.source">原始碼</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases" data-i18n="footer.releases">版本發布</a>
+        <a href="https://github.com/kewonit/outbound/issues" data-i18n="footer.issues">問題回報</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.legal">法律資訊</h3>
+        <a href="/privacy" data-i18n="footer.privacy">隱私權政策（英文）</a>
+        <a href="/license" data-i18n="footer.license">授權條款（英文）</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span data-i18n="footer.needs">需要搭載 Apple silicon、執行 macOS 13 或以上版本的 Mac</span><span data-i18n="footer.built">由 <a href="https://kew.edbn.me">kew.edbn.me</a> 打造</span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">語言</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant" selected>繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"已複製","js.copy":"複製","js.copyKey":"複製授權碼","js.copyKeyTitle":"複製你的授權碼","js.finding":"正在尋找你的授權碼…","js.offline":"無法連上商店。試試按「啟用」，或查看你的客戶中心。","js.portal":"你的授權碼在下方的客戶中心裡。","js.pressCopy":"按 ⌘C 複製你的授權碼。","js.refunded":"這筆購買已經退款。","js.slow":"比平常久了一點。試試按「啟用」，或過一分鐘再查看你的客戶中心。","js.unfinished":"這次結帳沒有完成。"};</script>
+<script src="/app.js?v=12"></script>
+</body>
+</html>

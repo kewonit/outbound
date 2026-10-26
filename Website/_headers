@@ -18,5 +18,17 @@
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex
 
+/*/thanks
+  ! Referrer-Policy
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex
+
+/*/thanks.html
+  ! Referrer-Policy
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex
+
 /appcast.xml
   Cache-Control: no-cache

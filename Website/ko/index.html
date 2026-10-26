@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<!--
+  Site URLs (download, buy, github) live once, at the top of app.js.
+  Link previews need absolute URLs, so og:image and twitter:image point at
+  the live site.
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="meta.title">Outbound · 실시간으로 그려지는 Mac 라이브 배경화면</title>
+<meta name="description" content="실제 장소 8곳 위를 날며 실시간으로 그려지는 Mac용 라이브 배경화면. 빛은 내 시계를 따르고, 계절은 실제와 같으며, 작은 새가 커서를 따라다닙니다." data-i18n-attr="content=meta.description">
+<link rel="canonical" href="https://outbound.edbn.me/ko/">
+<!-- languages -->
+<link rel="alternate" hreflang="en" href="https://outbound.edbn.me/">
+<link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/">
+<link rel="alternate" hreflang="fr" href="https://outbound.edbn.me/fr/">
+<link rel="alternate" hreflang="de" href="https://outbound.edbn.me/de/">
+<link rel="alternate" hreflang="it" href="https://outbound.edbn.me/it/">
+<link rel="alternate" hreflang="pt-BR" href="https://outbound.edbn.me/pt-br/">
+<link rel="alternate" hreflang="nl" href="https://outbound.edbn.me/nl/">
+<link rel="alternate" hreflang="ru" href="https://outbound.edbn.me/ru/">
+<link rel="alternate" hreflang="tr" href="https://outbound.edbn.me/tr/">
+<link rel="alternate" hreflang="pl" href="https://outbound.edbn.me/pl/">
+<link rel="alternate" hreflang="ja" href="https://outbound.edbn.me/ja/">
+<link rel="alternate" hreflang="ko" href="https://outbound.edbn.me/ko/">
+<link rel="alternate" hreflang="zh-Hans" href="https://outbound.edbn.me/zh-hans/">
+<link rel="alternate" hreflang="zh-Hant" href="https://outbound.edbn.me/zh-hant/">
+<link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/">
+<link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/">
+<link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/">
+<!-- /languages -->
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/ko/">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="Outbound · 데스크탑 뒤의 그림 속 세상" data-i18n-attr="content=meta.shareTitle">
+<meta property="og:description" content="Niigata, Punjab, Serengeti 등의 하늘을 날아 보세요. Mac 데스크탑 뒤에서 실시간으로 그려집니다." data-i18n-attr="content=meta.shareDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound: 데스크탑 뒤로 흘러가는 그림 속 세상. Mac용, $7(세금 별도)." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Outbound · 데스크탑 뒤의 그림 속 세상" data-i18n-attr="content=meta.shareTitle">
+<meta name="twitter:description" content="Niigata, Punjab, Serengeti 등의 하늘을 날아 보세요. Mac 데스크탑 뒤에서 실시간으로 그려집니다." data-i18n-attr="content=meta.shareDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta name="twitter:image:alt" content="Outbound: 데스크탑 뒤로 흘러가는 그림 속 세상. Mac용, $7(세금 별도)." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
+<link rel="stylesheet" href="/styles.css?v=14">
+<!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
+     both together. -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://outbound.edbn.me/#website",
+   "url": "https://outbound.edbn.me/",
+   "name": "Outbound",
+   "description": "실제 장소 8곳 위를 날며 실시간으로 그려지는 Mac용 라이브 배경화면. 빛은 내 시계를 따르고, 계절은 실제와 같으며, 작은 새가 커서를 따라다닙니다.",
+   "inLanguage": "ko",
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   }
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://outbound.edbn.me/#organization",
+   "name": "Outbound",
+   "url": "https://outbound.edbn.me/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://outbound.edbn.me/assets/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "email": "outbound@edbn.me",
+   "sameAs": [
+    "https://github.com/kewonit/outbound"
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://outbound.edbn.me/#app",
+   "name": "Outbound",
+   "description": "실제 장소 8곳 위를 날며 실시간으로 그려지는 Mac용 라이브 배경화면. 빛은 내 시계를 따르고, 계절은 실제와 같으며, 작은 새가 커서를 따라다닙니다.",
+   "url": "https://outbound.edbn.me/ko/",
+   "applicationCategory": "DesktopEnhancementApplication",
+   "operatingSystem": "macOS 13 Ventura 이상",
+   "processorRequirements": "Apple silicon",
+   "image": "https://outbound.edbn.me/assets/icon-512.png",
+   "screenshot": [
+    "https://outbound.edbn.me/assets/poster.jpg",
+    "https://outbound.edbn.me/assets/places/niigata.jpg",
+    "https://outbound.edbn.me/assets/places/lisse.jpg",
+    "https://outbound.edbn.me/assets/day/night.jpg"
+   ],
+   "downloadUrl": "https://outbound.edbn.me/download",
+   "isAccessibleForFree": false,
+   "offers": {
+    "@type": "Offer",
+    "price": "7.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "url": "https://outbound.edbn.me/ko/#buy"
+   },
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   },
+   "video": {
+    "@id": "https://outbound.edbn.me/#video"
+   }
+  },
+  {
+   "@type": "VideoObject",
+   "@id": "https://outbound.edbn.me/#video",
+   "name": "Kansas 위를 날아가는 Outbound",
+   "description": "Mac 데스크탑. Kansas의 둥근 옥수수밭과 밀밭이 Dock 뒤로 흘러가고, 하얀 새가 커서를 따라갑니다.",
+   "thumbnailUrl": "https://outbound.edbn.me/assets/poster.jpg",
+   "contentUrl": "https://outbound.edbn.me/assets/flight.mp4",
+   "uploadDate": "2026-10-27T01:33:53+05:30",
+   "duration": "PT16S"
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://outbound.edbn.me/ko/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "무엇이 필요한가요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Apple silicon이 탑재되고 macOS 13 Ventura 이상이 설치된 Mac."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "반복 재생되는 동영상인가요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "아니요. Mac이 날아가면서 실시간으로 그리기 때문에 같은 장면이 반복되지 않습니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "날아갈 곳을 고를 수 있나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "네. 메뉴 막대에서 8곳 중 어디든 고를 수 있고, 각 장소에 머무는 시간도 6분에서 1시간까지 정하거나 한 곳에 계속 머물게 할 수 있습니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Mac이 느려지거나 배터리가 빨리 닳지 않나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "아니요. 데스크탑이 가려져 있거나, 화면이 잠자기 상태이거나, 저전력 모드가 켜져 있으면 일시 정지합니다. 배터리 사용 시에는 대신 멈춘 그림으로 둘 수도 있습니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "디스플레이가 여러 대여도 되나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "네. 하나의 풍경이 모든 디스플레이에 걸쳐 이어집니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "원래 배경화면은 어떻게 되나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Outbound를 종료하면 다시 돌아옵니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "키는 어디서 찾나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "결제 직후 바로 표시되며, 고객 포털에도 보관됩니다. 앱 안에서 구입하면 자동으로 잠금 해제됩니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Mac 몇 대에서 쓸 수 있나요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "동시에 3대까지. 설정이나 고객 포털에서 새 Mac으로 옮길 수 있습니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "업데이트는 무료인가요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "네. 자리를 비운 사이에 알아서 설치됩니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "코드가 GitHub에 있던데, 무료인가요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "코드는 누구나 읽을 수 있습니다. 앱을 사용하려면 라이선스가 필요합니다."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "도움이 필요하신가요?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "outbound@edbn.me로 이메일을 보내거나 지원 페이지를 확인하세요."
+     }
+    }
+   ],
+   "inLanguage": "ko"
+  }
+ ]
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="#top" aria-label="Outbound 홈" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7에 구입하기</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1 data-i18n="hero.title">그림 속 세상이<br>데스크탑 뒤로 흘러갑니다.</h1>
+      <p class="lede" data-i18n="hero.lede">Mac을 위한 라이브 배경화면. 작은 새가 커서를 따라다닙니다.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7에 구입하기</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Mac용 다운로드</a>
+      </div>
+      <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
+           where Buy was. -->
+      <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">구입하신 키입니다. Outbound에 붙여넣어 잠금 해제하세요.</span> <button class="text-button" id="your-key-forget" type="button" data-i18n="key.forget">지우기</button></p>
+    </div>
+  </section>
+
+  <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
+  <section class="visual-bleed" aria-label="Kansas 위를 날아가는 Outbound" data-i18n-attr="aria-label=visual.label">
+    <div class="wrap-wide">
+      <figure class="desktop">
+        <video src="/assets/flight.mp4?v=4" poster="/assets/poster.jpg?v=4" autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label="Mac 데스크탑. Kansas의 둥근 옥수수밭과 밀밭이 Dock 뒤로 흘러가고, 하얀 새가 커서를 따라갑니다" data-i18n-attr="aria-label=visual.video"></video>
+        <!-- A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
+             from one strip of icons. -->
+        <div class="dock" aria-hidden="true">
+          <span class="dock-item open" style="--i: 0"></span>
+          <span class="dock-item" style="--i: 1"></span>
+          <span class="dock-item open" style="--i: 2"></span>
+          <span class="dock-item open" style="--i: 3"></span>
+          <span class="dock-item" style="--i: 4"></span>
+          <span class="dock-item" style="--i: 5"></span>
+          <span class="dock-item" style="--i: 6"></span>
+          <span class="dock-item" style="--i: 7"></span>
+          <span class="dock-item" style="--i: 8"></span>
+          <span class="dock-item open" style="--i: 9"></span>
+          <span class="dock-item" style="--i: 10"></span>
+          <span class="dock-item" style="--i: 11"></span>
+          <span class="dock-divider"></span>
+          <span class="dock-item" style="--i: 12"></span>
+          <span class="dock-item" style="--i: 13"></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ DEMOS: short clips, each drawn by the app's own renderer ============ -->
+  <section class="section" id="demos">
+    <div class="wrap-narrow">
+      <h2 data-i18n="demos.title">1분마다 새로운 풍경.</h2>
+      <div class="demos">
+        <figure class="demo demo-wide">
+          <video data-src="/assets/demos/follow.mp4?v=2" poster="/assets/demos/follow.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Niigata의 논 위에서 커서를 따라가는 갈매기" data-i18n-attr="aria-label=demos.followVideo"></video>
+          <figcaption><strong data-i18n="demos.follow">커서를 따라다니는 새</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/night.mp4?v=2" poster="/assets/demos/night.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="밤의 Normandy 마을. 창문마다 불이 켜지고 길을 따라 가로등이 늘어서 있습니다" data-i18n-attr="aria-label=demos.nightVideo"></video>
+          <figcaption><strong data-i18n="demos.night">밤을 밝히는 불빛</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/train.mp4?v=2" poster="/assets/demos/train.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Niigata의 논을 가로지르는 노란 줄무늬의 하얀 기차" data-i18n-attr="aria-label=demos.trainVideo"></video>
+          <figcaption><strong data-i18n="demos.train">지나가는 기차</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/flock.mp4?v=2" poster="/assets/demos/flock.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Lisse의 튤립밭 위를 날아가는 기러기 떼" data-i18n-attr="aria-label=demos.flockVideo"></video>
+          <figcaption><strong data-i18n="demos.flock">날아가는 새 떼</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/fly.mp4?v=3" poster="/assets/demos/fly.jpg?v=3" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Punjab의 겨자밭이 Lisse의 튤립밭으로 바뀌는 모습" data-i18n-attr="aria-label=demos.flyVideo"></video>
+          <figcaption><strong data-i18n="demos.fly">어디로든 날아가기</strong></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FACTS ============ -->
+  <section class="section facts-section" aria-label="그 밖의 특징" data-i18n-attr="aria-label=facts.label">
+    <div class="wrap-narrow">
+      <ul class="facts">
+        <li data-i18n="facts.seasons">실제 계절</li>
+        <li data-i18n="facts.displays">모든 디스플레이 지원</li>
+        <li data-i18n="facts.battery">배터리 부담 없이</li>
+        <li data-i18n="facts.updates">자동 업데이트</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ LIGHT: one village through a day ============ -->
+  <section class="section" id="light">
+    <div class="wrap-narrow">
+      <h2 data-i18n="light.title">빛은 내 시계를 따라갑니다.</h2>
+      <div class="day">
+        <figure><img src="/assets/day/morning.jpg?v=2" alt="부드러운 아침 햇살 속의 마을" data-i18n-attr="alt=light.morningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.morning">아침</figcaption></figure>
+        <figure><img src="/assets/day/noon.jpg?v=2" alt="그림자가 짧은 한낮의 마을" data-i18n-attr="alt=light.noonAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.noon">한낮</figcaption></figure>
+        <figure><img src="/assets/day/evening.jpg?v=2" alt="긴 그림자가 드리운 따스한 저녁 빛 속의 마을" data-i18n-attr="alt=light.eveningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.evening">저녁</figcaption></figure>
+        <figure><img src="/assets/day/night.jpg?v=2" alt="창문과 가로등에 불이 켜진 밤의 마을" data-i18n-attr="alt=light.nightAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.night">밤</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACES ============ -->
+  <section class="section" id="places">
+    <div class="wrap-narrow">
+      <h2 data-i18n="places.title">실제 장소 8곳.</h2>
+      <div class="places">
+        <figure><img src="/assets/places/niigata.jpg?v=2" alt="Niigata의 물 댄 논과 벚꽃" data-i18n-attr="alt=places.niigataAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong></figcaption></figure>
+        <figure><img src="/assets/places/punjab.jpg?v=2" alt="Punjab의 짙은 산울타리 사이로 펼쳐진 겨자밭" data-i18n-attr="alt=places.punjabAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong></figcaption></figure>
+        <figure><img src="/assets/places/lisse.jpg?v=2" alt="Lisse의 빨강, 노랑, 분홍, 보라 튤립 줄무늬" data-i18n-attr="alt=places.lisseAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong></figcaption></figure>
+        <figure><img src="/assets/places/serengeti.jpg?v=2" alt="Serengeti의 황금빛 초원과 얼룩말" data-i18n-attr="alt=places.serengetiAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong></figcaption></figure>
+        <figure><img src="/assets/places/normandy.jpg?v=2" alt="Normandy의 산울타리로 둘러싸인 들판과 사과꽃" data-i18n-attr="alt=places.normandyAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong></figcaption></figure>
+        <figure><img src="/assets/places/kansas.jpg?v=2" alt="Kansas의 센터 피벗 관개로 둥글게 펼쳐진 옥수수밭" data-i18n-attr="alt=places.kansasAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong></figcaption></figure>
+        <figure><img src="/assets/places/lapland.jpg?v=2" alt="Lapland의 소나무와 가문비나무 숲, 연한 빛깔의 지의류 황야, 무늬진 습지" data-i18n-attr="alt=places.laplandAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong></figcaption></figure>
+        <figure><img src="/assets/places/pampa.jpg?v=2" alt="La Pampa의 방목지, 유칼립투스에 둘러싸인 에스탄시아, 굽이치는 개울" data-i18n-attr="alt=places.pampaAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUY ============ -->
+  <section class="section" id="buy">
+    <div class="wrap-narrow">
+      <h2 data-i18n="buy.title">Outbound 구입하기.</h2>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">$7<span class="per" data-i18n="buy.per">(세금 별도), 한 번만 결제</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">Mac 최대 3대. 구독 없음.</p>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7에 구입하기</a>
+        </article>
+        <p class="tier-needs">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura 이상</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
+        </p>
+        <article class="tier tier-side" data-needs="download">
+          <h3 class="tier-name" data-i18n="buy.already">이미 구입하셨나요?</h3>
+          <p class="tier-price" data-i18n="buy.download">다운로드</p>
+          <p class="tier-desc" data-i18n="buy.paste">Outbound를 열고 키를 붙여넣으세요.</p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Mac용 다운로드</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2 data-i18n="faq.title">자주 묻는 질문</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">무엇이 필요한가요?</button>
+          <div class="faq-a"><p data-i18n="faq.a1">Apple silicon이 탑재되고 macOS 13 Ventura 이상이 설치된 Mac.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">반복 재생되는 동영상인가요?</button>
+          <div class="faq-a"><p data-i18n="faq.a2">아니요. Mac이 날아가면서 실시간으로 그리기 때문에 같은 장면이 반복되지 않습니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">날아갈 곳을 고를 수 있나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a3">네. 메뉴 막대에서 8곳 중 어디든 고를 수 있고, 각 장소에 머무는 시간도 6분에서 1시간까지 정하거나 한 곳에 계속 머물게 할 수 있습니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Mac이 느려지거나 배터리가 빨리 닳지 않나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a4">아니요. 데스크탑이 가려져 있거나, 화면이 잠자기 상태이거나, 저전력 모드가 켜져 있으면 일시 정지합니다. 배터리 사용 시에는 대신 멈춘 그림으로 둘 수도 있습니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">디스플레이가 여러 대여도 되나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a5">네. 하나의 풍경이 모든 디스플레이에 걸쳐 이어집니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">원래 배경화면은 어떻게 되나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a6">Outbound를 종료하면 다시 돌아옵니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">키는 어디서 찾나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a7">결제 직후 바로 표시되며, <a href="https://polar.sh/edbnme/portal">고객 포털</a>에도 보관됩니다. 앱 안에서 구입하면 자동으로 잠금 해제됩니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">Mac 몇 대에서 쓸 수 있나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a8">동시에 3대까지. 설정이나 고객 포털에서 새 Mac으로 옮길 수 있습니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">업데이트는 무료인가요?</button>
+          <div class="faq-a"><p data-i18n="faq.a9">네. 자리를 비운 사이에 알아서 설치됩니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">코드가 GitHub에 있던데, 무료인가요?</button>
+          <div class="faq-a"><p data-i18n="faq.a10">코드는 누구나 읽을 수 있습니다. 앱을 사용하려면 <a href="/license">라이선스</a>가 필요합니다.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">도움이 필요하신가요?</button>
+          <div class="faq-a"><p data-i18n="faq.a11"><a href="mailto:outbound@edbn.me">outbound@edbn.me</a>로 이메일을 보내거나 <a href="/ko/support">지원</a> 페이지를 확인하세요.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR CITY ============ -->
+  <section class="section" id="your-city" data-needs="city">
+    <div class="wrap-narrow">
+      <h2 data-i18n="city.title">내 도시를 그려 넣어 드립니다.</h2>
+      <article class="tier tier-city">
+        <h3 class="tier-name" data-i18n="city.name">Outbound 속 내 도시</h3>
+        <p class="tier-price">$99<span class="per" data-i18n="buy.per">(세금 별도), 한 번만 결제</span></p>
+        <p class="tier-desc" data-i18n="city.desc">사는 동네나 도시를 Outbound의 추가 장소 중 하나로 그려 넣어 드립니다. 들판과 거리, 강과 길, 나무와 지붕까지, 그곳만의 계절과 빛으로.</p>
+        <ul>
+          <li data-i18n="city.where">결제할 때 장소와 그곳이 특별한 이유를 알려 주세요.</li>
+          <li data-i18n="city.week">약 1주일이면 완성됩니다. 추가되면 이메일로 알려 드립니다.</li>
+          <li data-i18n="city.includes">Mac 최대 3대에서 쓸 수 있는 Outbound가 포함됩니다.</li>
+        </ul>
+        <a class="btn btn-light" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99에 내 도시 추가하기</a>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2><span data-i18n="footer.tagline">시선이 머물 더 좋은 곳.</span><span class="caret" aria-hidden="true"></span></h2>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7에 구입하기</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Mac용 다운로드</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="바닥글" data-i18n-attr="aria-label=footer.label">
+      <div>
+        <h3 data-i18n="footer.product">제품</h3>
+        <a href="#demos" data-i18n="footer.see">둘러보기</a>
+        <a href="#places" data-i18n="footer.places">장소</a>
+        <a href="#buy" data-i18n="footer.buy">구입</a>
+        <a href="#faq" data-i18n="faq.title">자주 묻는 질문</a>
+        <a href="#your-city" data-i18n="footer.city">내 도시</a>
+        <a href="/ko/support" data-i18n="footer.support">지원</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.source">소스 코드</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases" data-i18n="footer.releases">릴리스</a>
+        <a href="https://github.com/kewonit/outbound/issues" data-i18n="footer.issues">문제 신고</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.legal">법적 고지</h3>
+        <a href="/privacy" data-i18n="footer.privacy">개인정보 처리방침(영문)</a>
+        <a href="/license" data-i18n="footer.license">라이선스(영문)</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span data-i18n="footer.needs">Apple silicon 및 macOS 13 이상이 설치된 Mac 필요</span><span data-i18n="footer.built">만든 사람: <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">언어</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko" selected>한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"복사됨","js.copy":"복사","js.copyKey":"키 복사","js.copyKeyTitle":"내 키 복사하기","js.finding":"키를 찾는 중…","js.offline":"스토어에 연결하지 못했습니다. ‘활성화’를 눌러 보거나 고객 포털을 확인하세요.","js.portal":"키는 아래 고객 포털에서 확인할 수 있습니다.","js.pressCopy":"⌘C를 눌러 키를 복사하세요.","js.refunded":"환불된 구입입니다.","js.slow":"평소보다 오래 걸리고 있습니다. ‘활성화’를 눌러 보거나 잠시 후 고객 포털을 확인하세요.","js.unfinished":"결제가 완료되지 않았습니다."};</script>
+<script src="/app.js?v=12"></script>
+</body>
+</html>

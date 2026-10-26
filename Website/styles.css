@@ -151,7 +151,7 @@ figure { margin: 0; }
   display: inline-block;
   width: 2px;
   height: 20px;
-  margin-left: 1px;
+  margin-inline-start: 1px;
   border-radius: 1px;
   background: var(--select);
   animation: blink 1.1s steps(1) infinite;
@@ -369,7 +369,7 @@ kbd {
   font-weight: 550;
   font-size: 1.05rem;
   color: var(--ink);
-  text-align: left;
+  text-align: start;
 }
 .faq-q::after {
   content: "⌄";
@@ -396,11 +396,11 @@ kbd {
   gap: 0.5rem;
   color: var(--ink-mute);
 }
-.prose li { padding-left: 1.25rem; position: relative; }
+.prose li { padding-inline-start: 1.25rem; position: relative; }
 .prose li::before {
   content: "";
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 0.8em;
   width: 0.7rem;
   height: 1px;
@@ -413,7 +413,7 @@ kbd {
 .footer { padding: 4rem 0 3rem; }
 .foot-cta { padding-bottom: 4.5rem; }
 .foot-cta p:first-child { margin: 0 0 2rem; line-height: 0; }
-.foot-cta .caret { width: 3px; height: 0.95em; margin-left: 3px; vertical-align: -0.12em; }
+.foot-cta .caret { width: 3px; height: 0.95em; margin-inline-start: 3px; vertical-align: -0.12em; }
 .foot-cols {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -441,6 +441,18 @@ kbd {
   font-size: 0.85rem;
 }
 .foot-base a { color: var(--ink-mute); text-decoration: none; }
+/* The language picker, at the foot of every page. */
+.lang-picker { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem; color: var(--ink-faint); font-size: 0.85rem; }
+.lang-picker select {
+  font: inherit;
+  color: var(--ink-mute);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+}
+.lang-picker select:hover { color: var(--ink); }
+.footer-plain { padding-top: 0; }
 .foot-base a:hover { color: var(--ink); }
 
 /* ---------- Responsive ---------- */
@@ -450,7 +462,7 @@ kbd {
   .section { padding: 3rem 0; }
   .feature-grid { grid-template-columns: 1fr 1fr; row-gap: 4rem; margin-top: 4rem; }
   .demo-card { grid-template-columns: 1fr 1.2fr; margin-top: 4rem; }
-  .demo-panel { border-top: 0; border-left: 1px solid var(--line); }
+  .demo-panel { border-top: 0; border-inline-start: 1px solid var(--line); }
   .mini-grid { grid-template-columns: repeat(3, 1fr); max-width: none; margin-top: 4rem; }
   /* The price, with the download as a narrower card beside it in one box, and what it runs on below the box. */
   .price-grid {
@@ -458,12 +470,12 @@ kbd {
     gap: 0;
     margin-top: 4rem;
   }
-  .tier.featured { grid-area: 1 / 1; border-right: 0; border-radius: 12px 0 0 12px; }
-  .tier-side { grid-area: 1 / 2; background: transparent; border-radius: 0 12px 12px 0; }
+  .tier.featured { grid-area: 1 / 1; border-inline-end: 0; border-radius: 0; border-start-start-radius: 12px; border-end-start-radius: 12px; }
+  .tier-side { grid-area: 1 / 2; background: transparent; border-radius: 0; border-start-end-radius: 12px; border-end-end-radius: 12px; }
   .tier-needs { grid-area: 2 / 1; margin-top: 1rem; }
   .tier-city { margin-top: 4rem; }
   .price-grid:has(> [hidden]) { grid-template-columns: 1fr; }
-  .price-grid:has(> [hidden]) .tier.featured { border-right: 1px solid var(--line); border-radius: 12px; }
+  .price-grid:has(> [hidden]) .tier.featured { border-inline-end: 1px solid var(--line); border-radius: 12px; }
   .wrap-wide { padding: 0 1rem; }
 }
 
@@ -567,7 +579,8 @@ kbd {
 }
 
 /* ---------- A Dock over the hero clip, so it reads as a Mac's desktop ---------- */
-.visual-bleed figure.desktop { position: relative; container-type: inline-size; }
+/* A picture of a Mac, so it never mirrors on a right-to-left page. */
+.visual-bleed figure.desktop { position: relative; container-type: inline-size; direction: ltr; }
 .dock {
   position: absolute;
   left: 50%;
@@ -636,12 +649,12 @@ kbd {
 .muted { color: var(--ink-mute); }
 .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
 .thanks .steps { list-style: none; counter-reset: step; margin: 2rem 0 0; padding: 0; display: grid; gap: 1.75rem; }
-.thanks .steps li { counter-increment: step; padding-left: 2.4rem; position: relative; line-height: 1.5; color: var(--ink-mute); }
+.thanks .steps li { counter-increment: step; padding-inline-start: 2.4rem; position: relative; line-height: 1.5; color: var(--ink-mute); }
 .thanks .steps li strong { color: var(--ink); font-weight: 600; }
 .thanks .steps li::before {
   content: counter(step);
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 0.05rem;
   width: 1.55rem;
   height: 1.55rem;
@@ -680,7 +693,7 @@ kbd {
   font-size: 0.8rem;
   color: #3d3d3d;
 }
-.key-button code + span { padding-left: 0.65rem; border-left: 1px solid rgba(0, 0, 0, 0.15); }
+.key-button code + span { padding-inline-start: 0.65rem; border-inline-start: 1px solid rgba(0, 0, 0, 0.15); }
 .hero .your-key { margin: 0.9rem 0 0; font-size: 0.92rem; }
 .text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .thanks #status:empty { display: none; }

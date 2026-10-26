@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title data-i18n="thanks.metaTitle">Bedankt · Outbound</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="stylesheet" href="/styles.css?v=14">
+<script>
+// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
+// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
+(function () {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("checkout_id");
+  try {
+    if (id) sessionStorage.setItem("outbound-checkout", id);
+  } catch (error) {}
+  window.OUTBOUND_CHECKOUT = id || (function () {
+    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
+  })();
+  if (location.search) history.replaceState(null, "", location.pathname);
+})();
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/nl/" aria-label="Outbound-startpagina" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1 data-i18n="thanks.title">Bedankt.</h1>
+    <p class="lede" data-i18n="thanks.lede">Outbound is van jou. Gebruik het op maximaal 3 Macs.</p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong data-i18n="thanks.step1">Download Outbound.</strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download voor Mac</a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step2">Open Outbound en klik dan op Activeer.</strong> <span data-i18n="thanks.step2Detail">Je browser vraagt of Outbound mag openen. Sta dat toe.</span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">Activeer</a></div>
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2 data-i18n="thanks.key">Je sleutel</h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" data-i18n="js.copy">Kopieer</button>
+      </div>
+      <p class="muted"><span data-i18n="thanks.orPaste">Of plak hem in Outbound.</span> <span id="email"></span></p>
+    </div>
+
+    <p id="city" hidden data-i18n="thanks.city">We hebben je stad binnen. We schilderen hem erbij en mailen je zodra hij in Outbound staat, meestal binnen een week.</p>
+    <p class="muted" id="status" role="status" data-i18n="js.finding">Je sleutel wordt opgehaald…</p>
+    <p class="muted" data-i18n="thanks.lost">Sleutel kwijt? Die staat in je <a href="https://polar.sh/edbnme/portal">klantportaal</a>.</p>
+    <p class="muted" data-i18n="thanks.help">Hulp nodig? Mail naar <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>.</p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <p class="foot-base"><span data-i18n="footer.needs">Vereist een Mac met Apple silicon en macOS 13 of nieuwer</span><span><a href="/nl/">outbound.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Taal</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl" selected>Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"Gekopieerd","js.copy":"Kopieer","js.copyKey":"Kopieer sleutel","js.copyKeyTitle":"Kopieer je sleutel","js.finding":"Je sleutel wordt opgehaald…","js.offline":"Kan de winkel niet bereiken. Klik op Activeer, of kijk in je klantportaal.","js.portal":"Je sleutel staat hieronder in je klantportaal.","js.pressCopy":"Druk op ⌘C om je sleutel te kopiëren.","js.refunded":"Deze aankoop is terugbetaald.","js.slow":"Dit duurt langer dan normaal. Klik op Activeer, of kijk over een minuut in je klantportaal.","js.unfinished":"Deze betaling is niet afgerond."};</script>
+<script src="/app.js?v=12"></script>
+<script src="/thanks.js?v=6"></script>
+</body>
+</html>

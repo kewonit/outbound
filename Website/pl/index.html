@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<!--
+  Site URLs (download, buy, github) live once, at the top of app.js.
+  Link previews need absolute URLs, so og:image and twitter:image point at
+  the live site.
+-->
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="meta.title">Outbound · Malowana żywa tapeta na Maca</title>
+<meta name="description" content="Żywa tapeta na Maca, malowana w locie nad ośmioma prawdziwymi miejscami. Światło zmienia się według Twojego zegara, pory roku są prawdziwe, a mały ptaszek leci za kursorem." data-i18n-attr="content=meta.description">
+<link rel="canonical" href="https://outbound.edbn.me/pl/">
+<!-- languages -->
+<link rel="alternate" hreflang="en" href="https://outbound.edbn.me/">
+<link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/">
+<link rel="alternate" hreflang="fr" href="https://outbound.edbn.me/fr/">
+<link rel="alternate" hreflang="de" href="https://outbound.edbn.me/de/">
+<link rel="alternate" hreflang="it" href="https://outbound.edbn.me/it/">
+<link rel="alternate" hreflang="pt-BR" href="https://outbound.edbn.me/pt-br/">
+<link rel="alternate" hreflang="nl" href="https://outbound.edbn.me/nl/">
+<link rel="alternate" hreflang="ru" href="https://outbound.edbn.me/ru/">
+<link rel="alternate" hreflang="tr" href="https://outbound.edbn.me/tr/">
+<link rel="alternate" hreflang="pl" href="https://outbound.edbn.me/pl/">
+<link rel="alternate" hreflang="ja" href="https://outbound.edbn.me/ja/">
+<link rel="alternate" hreflang="ko" href="https://outbound.edbn.me/ko/">
+<link rel="alternate" hreflang="zh-Hans" href="https://outbound.edbn.me/zh-hans/">
+<link rel="alternate" hreflang="zh-Hant" href="https://outbound.edbn.me/zh-hant/">
+<link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/">
+<link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/">
+<link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/">
+<!-- /languages -->
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/pl/">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:title" content="Outbound · Malowany świat w tle Twojego biurka" data-i18n-attr="content=meta.shareTitle">
+<meta property="og:description" content="Leć nad Niigata, Punjab, Serengeti i innymi miejscami, malowanymi na żywo w tle biurka Twojego Maca." data-i18n-attr="content=meta.shareDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound: malowany świat przelatujący w tle biurka. Na Maca, $7 plus podatek." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Outbound · Malowany świat w tle Twojego biurka" data-i18n-attr="content=meta.shareTitle">
+<meta name="twitter:description" content="Leć nad Niigata, Punjab, Serengeti i innymi miejscami, malowanymi na żywo w tle biurka Twojego Maca." data-i18n-attr="content=meta.shareDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png?v=2">
+<meta name="twitter:image:alt" content="Outbound: malowany świat przelatujący w tle biurka. Na Maca, $7 plus podatek." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
+<link rel="stylesheet" href="/styles.css?v=14">
+<!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
+     both together. -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://outbound.edbn.me/#website",
+   "url": "https://outbound.edbn.me/",
+   "name": "Outbound",
+   "description": "Żywa tapeta na Maca, malowana w locie nad ośmioma prawdziwymi miejscami. Światło zmienia się według Twojego zegara, pory roku są prawdziwe, a mały ptaszek leci za kursorem.",
+   "inLanguage": "pl",
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   }
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://outbound.edbn.me/#organization",
+   "name": "Outbound",
+   "url": "https://outbound.edbn.me/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://outbound.edbn.me/assets/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "email": "outbound@edbn.me",
+   "sameAs": [
+    "https://github.com/kewonit/outbound"
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://outbound.edbn.me/#app",
+   "name": "Outbound",
+   "description": "Żywa tapeta na Maca, malowana w locie nad ośmioma prawdziwymi miejscami. Światło zmienia się według Twojego zegara, pory roku są prawdziwe, a mały ptaszek leci za kursorem.",
+   "url": "https://outbound.edbn.me/pl/",
+   "applicationCategory": "DesktopEnhancementApplication",
+   "operatingSystem": "macOS 13 Ventura lub nowszy",
+   "processorRequirements": "Apple silicon",
+   "image": "https://outbound.edbn.me/assets/icon-512.png",
+   "screenshot": [
+    "https://outbound.edbn.me/assets/poster.jpg",
+    "https://outbound.edbn.me/assets/places/niigata.jpg",
+    "https://outbound.edbn.me/assets/places/lisse.jpg",
+    "https://outbound.edbn.me/assets/day/night.jpg"
+   ],
+   "downloadUrl": "https://outbound.edbn.me/download",
+   "isAccessibleForFree": false,
+   "offers": {
+    "@type": "Offer",
+    "price": "7.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "url": "https://outbound.edbn.me/pl/#buy"
+   },
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   },
+   "video": {
+    "@id": "https://outbound.edbn.me/#video"
+   }
+  },
+  {
+   "@type": "VideoObject",
+   "@id": "https://outbound.edbn.me/#video",
+   "name": "Outbound nad Kansas",
+   "description": "Biurko Maca: okrągłe pola kukurydzy i pszenicy w Kansas przesuwają się za Dockiem, a biały ptak leci za kursorem.",
+   "thumbnailUrl": "https://outbound.edbn.me/assets/poster.jpg",
+   "contentUrl": "https://outbound.edbn.me/assets/flight.mp4",
+   "uploadDate": "2026-10-27T01:33:53+05:30",
+   "duration": "PT16S"
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://outbound.edbn.me/pl/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Czego potrzebuję?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Mac z Apple silicon i systemem macOS 13 Ventura lub nowszym."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Czy to zapętlone wideo?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Nie. Twój Mac maluje krajobraz na żywo w trakcie lotu, więc nic się nie powtarza."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Czy mogę wybrać, dokąd leci?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Tak. Wybierz na pasku menu dowolne z ośmiu miejsc i to, jak długo ma zostać nad każdym, od sześciu minut do godziny. Możesz też zatrzymać go nad jednym."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Czy spowolni mojego Maca albo rozładuje baterię?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Nie. Wstrzymuje się, gdy biurko jest zasłonięte, ekran śpi lub włączony jest tryb niskiego zużycia energii. Na baterii może zamiast tego pokazywać nieruchomy obraz."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Czy działa z więcej niż jednym ekranem?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Tak. Jeden krajobraz rozciąga się na wszystkie."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Co z moją tapetą?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Wraca, gdy zakończysz Outbound."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Gdzie znajdę klucz?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Pojawia się zaraz po zapłacie i zostaje w Twoim portalu klienta. Jeśli kupisz w aplikacji, Outbound odblokuje się sam."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Na ilu Macach mogę go używać?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Na trzech jednocześnie. Na nowego Maca przeniesiesz licencję w Ustawieniach lub w portalu klienta."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Czy aktualizacje są bezpłatne?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Tak. Instalują się same, gdy Cię nie ma."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Kod jest na GitHubie. Czy to za darmo?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Kod jest otwarty do wglądu. Do korzystania z aplikacji potrzebna jest licencja."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Potrzebujesz pomocy?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Napisz na outbound@edbn.me lub zajrzyj do Pomocy."
+     }
+    }
+   ],
+   "inLanguage": "pl"
+  }
+ ]
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="#top" aria-label="Outbound, strona główna" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="#buy" data-url="buy" data-soon="Wkrótce" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Kup za $7</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1 data-i18n="hero.title">Malowany świat<br>przelatuje w tle Twojego biurka.</h1>
+      <p class="lede" data-i18n="hero.lede">Żywa tapeta na Maca. Mały ptaszek podąża za kursorem.</p>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Wkrótce" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Kup za $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Pobierz na Maca</a>
+      </div>
+      <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
+           where Buy was. -->
+      <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">To Twój klucz. Wklej go w Outbound, aby odblokować aplikację.</span> <button class="text-button" id="your-key-forget" type="button" data-i18n="key.forget">Zapomnij</button></p>
+    </div>
+  </section>
+
+  <!-- ============ HERO VISUAL: the wallpaper itself, rendered by the app ============ -->
+  <section class="visual-bleed" aria-label="Outbound nad Kansas" data-i18n-attr="aria-label=visual.label">
+    <div class="wrap-wide">
+      <figure class="desktop">
+        <video src="/assets/flight.mp4?v=4" poster="/assets/poster.jpg?v=4" autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label="Biurko Maca: okrągłe pola kukurydzy i pszenicy w Kansas przesuwają się za Dockiem, a biały ptak leci za kursorem" data-i18n-attr="aria-label=visual.video"></video>
+        <!-- A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
+             from one strip of icons. -->
+        <div class="dock" aria-hidden="true">
+          <span class="dock-item open" style="--i: 0"></span>
+          <span class="dock-item" style="--i: 1"></span>
+          <span class="dock-item open" style="--i: 2"></span>
+          <span class="dock-item open" style="--i: 3"></span>
+          <span class="dock-item" style="--i: 4"></span>
+          <span class="dock-item" style="--i: 5"></span>
+          <span class="dock-item" style="--i: 6"></span>
+          <span class="dock-item" style="--i: 7"></span>
+          <span class="dock-item" style="--i: 8"></span>
+          <span class="dock-item open" style="--i: 9"></span>
+          <span class="dock-item" style="--i: 10"></span>
+          <span class="dock-item" style="--i: 11"></span>
+          <span class="dock-divider"></span>
+          <span class="dock-item" style="--i: 12"></span>
+          <span class="dock-item" style="--i: 13"></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ DEMOS: short clips, each drawn by the app's own renderer ============ -->
+  <section class="section" id="demos">
+    <div class="wrap-narrow">
+      <h2 data-i18n="demos.title">Co minutę coś nowego.</h2>
+      <div class="demos">
+        <figure class="demo demo-wide">
+          <video data-src="/assets/demos/follow.mp4?v=2" poster="/assets/demos/follow.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Mewa lecąca za kursorem nad polami ryżowymi w Niigata" data-i18n-attr="aria-label=demos.followVideo"></video>
+          <figcaption><strong data-i18n="demos.follow">Leci za kursorem</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/night.mp4?v=2" poster="/assets/demos/night.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Wioska w Normandy nocą, z oświetlonymi oknami i latarniami wzdłuż drogi" data-i18n-attr="aria-label=demos.nightVideo"></video>
+          <figcaption><strong data-i18n="demos.night">Światła nocą</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/train.mp4?v=2" poster="/assets/demos/train.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Biały pociąg z żółtym paskiem jadący przez pola ryżowe w Niigata" data-i18n-attr="aria-label=demos.trainVideo"></video>
+          <figcaption><strong data-i18n="demos.train">Przejeżdżają pociągi</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/flock.mp4?v=2" poster="/assets/demos/flock.jpg?v=2" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Klucz gęsi nad polami tulipanów w Lisse" data-i18n-attr="aria-label=demos.flockVideo"></video>
+          <figcaption><strong data-i18n="demos.flock">Przelatują ptaki</strong></figcaption>
+        </figure>
+        <figure class="demo">
+          <video data-src="/assets/demos/fly.mp4?v=3" poster="/assets/demos/fly.jpg?v=3" muted loop playsinline preload="none"
+                 width="1280" height="800" aria-label="Pola gorczycy w Punjab przechodzą w pola tulipanów w Lisse" data-i18n-attr="aria-label=demos.flyVideo"></video>
+          <figcaption><strong data-i18n="demos.fly">Leć, dokąd chcesz</strong></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FACTS ============ -->
+  <section class="section facts-section" aria-label="Co jeszcze" data-i18n-attr="aria-label=facts.label">
+    <div class="wrap-narrow">
+      <ul class="facts">
+        <li data-i18n="facts.seasons">Prawdziwe pory roku</li>
+        <li data-i18n="facts.displays">Na każdym ekranie</li>
+        <li data-i18n="facts.battery">Oszczędza baterię</li>
+        <li data-i18n="facts.updates">Sam się aktualizuje</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ LIGHT: one village through a day ============ -->
+  <section class="section" id="light">
+    <div class="wrap-narrow">
+      <h2 data-i18n="light.title">Światło zmienia się według Twojego zegara.</h2>
+      <div class="day">
+        <figure><img src="/assets/day/morning.jpg?v=2" alt="Wioska w łagodnym porannym świetle" data-i18n-attr="alt=light.morningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.morning">Poranek</figcaption></figure>
+        <figure><img src="/assets/day/noon.jpg?v=2" alt="Wioska w południe, z krótkimi cieniami" data-i18n-attr="alt=light.noonAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.noon">Południe</figcaption></figure>
+        <figure><img src="/assets/day/evening.jpg?v=2" alt="Wioska w ciepłym wieczornym świetle, z długimi cieniami" data-i18n-attr="alt=light.eveningAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.evening">Wieczór</figcaption></figure>
+        <figure><img src="/assets/day/night.jpg?v=2" alt="Wioska nocą, z oświetlonymi oknami i latarniami" data-i18n-attr="alt=light.nightAlt" width="1200" height="800" loading="lazy" decoding="async"><figcaption data-i18n="light.night">Noc</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACES ============ -->
+  <section class="section" id="places">
+    <div class="wrap-narrow">
+      <h2 data-i18n="places.title">Osiem prawdziwych miejsc.</h2>
+      <div class="places">
+        <figure><img src="/assets/places/niigata.jpg?v=2" alt="Zalane pola ryżowe i sakura w Niigata" data-i18n-attr="alt=places.niigataAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Niigata, Japan</strong></figcaption></figure>
+        <figure><img src="/assets/places/punjab.jpg?v=2" alt="Pola gorczycy między ciemnymi żywopłotami w Punjab" data-i18n-attr="alt=places.punjabAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Punjab, India</strong></figcaption></figure>
+        <figure><img src="/assets/places/lisse.jpg?v=2" alt="Pasy czerwonych, żółtych, różowych i fioletowych tulipanów w Lisse" data-i18n-attr="alt=places.lisseAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lisse, Netherlands</strong></figcaption></figure>
+        <figure><img src="/assets/places/serengeti.jpg?v=2" alt="Złota trawa i zebry w Serengeti" data-i18n-attr="alt=places.serengetiAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Serengeti, Tanzania</strong></figcaption></figure>
+        <figure><img src="/assets/places/normandy.jpg?v=2" alt="Pola otoczone żywopłotami i kwitnące jabłonie w Normandy" data-i18n-attr="alt=places.normandyAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Normandy, France</strong></figcaption></figure>
+        <figure><img src="/assets/places/kansas.jpg?v=2" alt="Kręgi kukurydzy pod obrotowymi deszczowniami w Kansas" data-i18n-attr="alt=places.kansasAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Kansas, United States</strong></figcaption></figure>
+        <figure><img src="/assets/places/lapland.jpg?v=2" alt="Las sosnowo-świerkowy, jasne wrzosowisko porostów i wzorzyste torfowisko w Lapland" data-i18n-attr="alt=places.laplandAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>Lapland, Finland</strong></figcaption></figure>
+        <figure><img src="/assets/places/pampa.jpg?v=2" alt="Pastwiska, estancja wśród eukaliptusów i kręty strumień w La Pampa" data-i18n-attr="alt=places.pampaAlt" width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>La Pampa, Argentina</strong></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUY ============ -->
+  <section class="section" id="buy">
+    <div class="wrap-narrow">
+      <h2 data-i18n="buy.title">Kup Outbound.</h2>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">$7<span class="per" data-i18n="buy.per"> + podatek, jednorazowo</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">Do 3 komputerów Mac. Bez subskrypcji.</p>
+          <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Wkrótce" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Kup za $7</a>
+        </article>
+        <p class="tier-needs">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura lub nowszy</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
+        </p>
+        <article class="tier tier-side" data-needs="download">
+          <h3 class="tier-name" data-i18n="buy.already">Już kupione?</h3>
+          <p class="tier-price" data-i18n="buy.download">Pobierz</p>
+          <p class="tier-desc" data-i18n="buy.paste">Otwórz i wklej klucz.</p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Pobierz na Maca</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2 data-i18n="faq.title">Częste pytania</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">Czego potrzebuję?</button>
+          <div class="faq-a"><p data-i18n="faq.a1">Mac z Apple silicon i systemem macOS 13 Ventura lub nowszym.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Czy to zapętlone wideo?</button>
+          <div class="faq-a"><p data-i18n="faq.a2">Nie. Twój Mac maluje krajobraz na żywo w trakcie lotu, więc nic się nie powtarza.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Czy mogę wybrać, dokąd leci?</button>
+          <div class="faq-a"><p data-i18n="faq.a3">Tak. Wybierz na pasku menu dowolne z ośmiu miejsc i to, jak długo ma zostać nad każdym, od sześciu minut do godziny. Możesz też zatrzymać go nad jednym.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Czy spowolni mojego Maca albo rozładuje baterię?</button>
+          <div class="faq-a"><p data-i18n="faq.a4">Nie. Wstrzymuje się, gdy biurko jest zasłonięte, ekran śpi lub włączony jest tryb niskiego zużycia energii. Na baterii może zamiast tego pokazywać nieruchomy obraz.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Czy działa z więcej niż jednym ekranem?</button>
+          <div class="faq-a"><p data-i18n="faq.a5">Tak. Jeden krajobraz rozciąga się na wszystkie.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Co z moją tapetą?</button>
+          <div class="faq-a"><p data-i18n="faq.a6">Wraca, gdy zakończysz Outbound.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Gdzie znajdę klucz?</button>
+          <div class="faq-a"><p data-i18n="faq.a7">Pojawia się zaraz po zapłacie i zostaje w Twoim <a href="https://polar.sh/edbnme/portal">portalu klienta</a>. Jeśli kupisz w aplikacji, Outbound odblokuje się sam.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">Na ilu Macach mogę go używać?</button>
+          <div class="faq-a"><p data-i18n="faq.a8">Na trzech jednocześnie. Na nowego Maca przeniesiesz licencję w Ustawieniach lub w portalu klienta.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">Czy aktualizacje są bezpłatne?</button>
+          <div class="faq-a"><p data-i18n="faq.a9">Tak. Instalują się same, gdy Cię nie ma.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">Kod jest na GitHubie. Czy to za darmo?</button>
+          <div class="faq-a"><p data-i18n="faq.a10">Kod jest otwarty do wglądu. Do korzystania z aplikacji potrzebna jest <a href="/license">licencja</a>.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Potrzebujesz pomocy?</button>
+          <div class="faq-a"><p data-i18n="faq.a11">Napisz na <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> lub zajrzyj do <a href="/pl/support">Pomocy</a>.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR CITY ============ -->
+  <section class="section" id="your-city" data-needs="city">
+    <div class="wrap-narrow">
+      <h2 data-i18n="city.title">Twoje miasto na obrazie.</h2>
+      <article class="tier tier-city">
+        <h3 class="tier-name" data-i18n="city.name">Twoje miasto w Outbound</h3>
+        <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + podatek, jednorazowo</span></p>
+        <p class="tier-desc" data-i18n="city.desc">Namalujemy Twoje miasto lub miasteczko w Outbound jako jedno z dodatkowych miejsc: z polami i ulicami, rzeką i drogami, drzewami i dachami, w jego własnych porach roku i świetle.</p>
+        <ul>
+          <li data-i18n="city.where">Przy płatności napisz, gdzie to jest i co sprawia, że to Twój dom.</li>
+          <li data-i18n="city.week">Gotowe mniej więcej w tydzień. Napiszemy do Ciebie, gdy już się pojawi.</li>
+          <li data-i18n="city.includes">W cenie Outbound do 3 komputerów Mac.</li>
+        </ul>
+        <a class="btn btn-light" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Dodaj swoje miasto za $99</a>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2><span data-i18n="footer.tagline">Lepsze miejsce, by zawiesić wzrok.</span><span class="caret" aria-hidden="true"></span></h2>
+      <div class="cta-row">
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Wkrótce" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Kup za $7</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Pobierz na Maca</a>
+      </div>
+    </div>
+    <nav class="foot-cols" aria-label="Stopka" data-i18n-attr="aria-label=footer.label">
+      <div>
+        <h3 data-i18n="footer.product">Produkt</h3>
+        <a href="#demos" data-i18n="footer.see">Zobacz</a>
+        <a href="#places" data-i18n="footer.places">Miejsca</a>
+        <a href="#buy" data-i18n="footer.buy">Kup</a>
+        <a href="#faq" data-i18n="faq.title">Częste pytania</a>
+        <a href="#your-city" data-i18n="footer.city">Twoje miasto</a>
+        <a href="/pl/support" data-i18n="footer.support">Pomoc</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.source">Kod źródłowy</h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="https://github.com/kewonit/outbound/releases" data-i18n="footer.releases">Wydania</a>
+        <a href="https://github.com/kewonit/outbound/issues" data-i18n="footer.issues">Zgłoszenia</a>
+      </div>
+      <div>
+        <h3 data-i18n="footer.legal">Informacje prawne</h3>
+        <a href="/privacy" data-i18n="footer.privacy">Prywatność (po angielsku)</a>
+        <a href="/license" data-i18n="footer.license">Licencja (po angielsku)</a>
+      </div>
+    </nav>
+    <p class="foot-base"><span data-i18n="footer.needs">Wymaga Maca z Apple silicon i macOS 13 lub nowszego</span><span data-i18n="footer.built">Autor: <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Język</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl" selected>Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"Skopiowano","js.copy":"Kopiuj","js.copyKey":"Kopiuj klucz","js.copyKeyTitle":"Skopiuj swój klucz","js.finding":"Szukamy Twojego klucza…","js.offline":"Nie udało się połączyć ze sklepem. Kliknij Aktywuj lub zajrzyj do portalu klienta.","js.portal":"Twój klucz jest w portalu klienta poniżej.","js.pressCopy":"Naciśnij ⌘C, aby skopiować klucz.","js.refunded":"Za ten zakup zwrócono pieniądze.","js.slow":"Trwa to dłużej niż zwykle. Kliknij Aktywuj lub zajrzyj za minutę do portalu klienta.","js.unfinished":"Ta płatność nie została dokończona."};</script>
+<script src="/app.js?v=12"></script>
+</body>
+</html>
