@@ -51,7 +51,10 @@ final class DisplayManager {
         let distributed = DistributedNotificationCenter.default()
         for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
             distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.set(.locked, on) }
+                MainActor.assumeIsolated {
+                    self?.set(.locked, on)
+                    self?.onLockChange(on)
+                }
             }
         }
 
@@ -90,6 +93,9 @@ final class DisplayManager {
 
     /// Called as a quiet moment begins, a good time to install an update.
     var onQuiet: () -> Void = {}
+
+    /// Called as the Mac locks (true) and unlocks (false).
+    var onLockChange: (Bool) -> Void = { _ in }
 
     var isPaused: Bool {
         get { globalHolds.contains(.user) }

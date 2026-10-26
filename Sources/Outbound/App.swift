@@ -73,12 +73,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !LicenseController.isGated { displays.note = "Development build" }
         displays.running = license.unlocks
         displays.start()
-        // A painting left behind by a crash, or by a license that has since lapsed, goes back to the user's own.
-        if !(preferences.matchingStill && license.unlocks) { stills.restore() }
+        // A painting left behind by a crash or an older version goes back to the user's own picture.
+        stills.restore()
+        displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
+        // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
+                                                          object: nil, queue: .main) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                MainActor.assumeIsolated { self?.stills.restore() }
+            }
+        }
         installStatusItem()
         observePreferences()
 
-        // Keep the real desktop picture close to what is on screen, checking twice a minute for a new place.
+        // Keep a painting of the view ready for the lock screen, checking twice a minute for a new place.
         stillTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshStill(force: false) }
         }
@@ -100,6 +108,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         earlyLinks.forEach(handle)
         earlyLinks = []
+    }
+
+    /// The painting is the desktop picture only while the Mac is locked, so it always comes off the desktop it
+    /// went on: nobody can move to another one in between.
+    private func lockChanged(_ locked: Bool) {
+        if locked, preferences.matchingStill, license.unlocks {
+            stills.show()
+        } else if !locked {
+            stills.restore()
+        }
     }
 
     private func licenseChanged(_ unlocked: Bool) {
@@ -213,7 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard force || leg != stillLeg || Date.now.timeIntervalSince(stillTaken) > 600 else { return }
         stillLeg = leg
         stillTaken = .now
-        stills.capture(world: world)
+        stills.prepare(world: world)
     }
 
     // MARK: - Menu

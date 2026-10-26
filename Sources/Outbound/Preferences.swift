@@ -30,7 +30,7 @@ final class Preferences {
     var pace: Pace { didSet { save() } }
     var stay: Stay { didSet { save() } }
     var batteryMode: PowerState.BatteryMode { didSet { save() } }
-    /// Keep the desktop picture set to a painting of the current view, for the lock screen and menu bar.
+    /// Show a painting of the current view on the lock screen, as the desktop picture while the Mac is locked.
     var matchingStill: Bool { didSet { save() } }
     /// Hold still after five minutes without anyone at the Mac.
     var restsWhenAway: Bool { didSet { save() } }
