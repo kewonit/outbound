@@ -107,4 +107,65 @@ public struct Bird: Sendable {
     private func cross(_ a: SIMD2<Double>, _ b: SIMD2<Double>) -> Double {
         a.x * b.y - a.y * b.x
     }
+
+    /// Where the bird is and how it holds itself, which is all a picture of it needs.
+    public struct Pose: Equatable, Sendable {
+        public var position: SIMD2<Double>
+        public var heading: Double
+        public var bank: Double
+        public var wings: Double
+
+        public init(position: SIMD2<Double>, heading: Double, bank: Double, wings: Double) {
+            self.position = position
+            self.heading = heading
+            self.bank = bank
+            self.wings = wings
+        }
+
+        /// The pose a fraction of the way from `a` to `b`, turning the short way round.
+        public static func between(_ a: Pose, _ b: Pose, _ f: Double) -> Pose {
+            let turn = atan2(sin(b.heading - a.heading), cos(b.heading - a.heading))
+            return Pose(position: a.position + (b.position - a.position) * f, heading: a.heading + turn * f,
+                        bank: a.bank + (b.bank - a.bank) * f, wings: a.wings + (b.wings - a.wings) * f)
+        }
+    }
+
+    public var pose: Pose {
+        Pose(position: position, heading: heading, bank: bank, wings: wings)
+    }
+}
+
+/// The bird's last few poses, so every display and the bird's own layer can each draw it at the moment they show,
+/// though it is stepped by whichever of them asks first.
+public struct BirdTrail: Sendable {
+    private var poses: [(time: Double, pose: Bird.Pose)]
+    private static let kept = 12
+
+    public init(_ pose: Bird.Pose, at time: Double) {
+        poses = [(time, pose)]
+    }
+
+    /// Adds the bird as it is at `time`, which never goes back.
+    public mutating func record(_ pose: Bird.Pose, at time: Double) {
+        if let last = poses.last, time <= last.time {
+            poses[poses.count - 1] = (last.time, pose)
+        } else {
+            poses.append((time, pose))
+        }
+        if poses.count > Self.kept { poses.removeFirst(poses.count - Self.kept) }
+    }
+
+    /// Starts again from a pose, as when the bird is placed for a picture.
+    public mutating func reset(to pose: Bird.Pose, at time: Double) {
+        poses = [(time, pose)]
+    }
+
+    /// The bird at `time`, between the poses either side, or the nearest one beyond the trail's ends.
+    public func pose(at time: Double) -> Bird.Pose {
+        guard let last = poses.last else { fatalError("A trail always has a pose") }
+        if time >= last.time { return last.pose }
+        guard let after = poses.firstIndex(where: { $0.time > time }), after > 0 else { return poses[0].pose }
+        let a = poses[after - 1], b = poses[after]
+        return Bird.Pose.between(a.pose, b.pose, (time - a.time) / (b.time - a.time))
+    }
 }

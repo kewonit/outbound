@@ -133,7 +133,10 @@ enum Exporter {
             }
         }
         let renderer = ViewRenderer(gpu: gpu)
-        renderer.configure(frame: frame, scale: scale)
+        // --density sets ground texels per point and --ground-filter how they are read, as the app does on displays
+        // that aren't Retina.
+        renderer.configure(frame: frame, scale: scale, density: options["density"].flatMap(Double.init))
+        renderer.groundFilter = ["bilinear": 0, "box": 1, "bspline": 2, "bspline-y": 3][options["ground-filter"] ?? ""] ?? 0
 
         let width = Int(size[0] * scale), height = Int(size[1] * scale)
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
@@ -142,22 +145,43 @@ enum Exporter {
         descriptor.storageMode = .shared
         guard let target = gpu.device.makeTexture(descriptor: descriptor) else { throw Failure(description: "No GPU") }
 
-        // With --bench, fly for a while and report GPU time per frame, without writing anything.
+        // With --bench, fly for a while and report GPU time per frame, without writing anything. --fly-to and
+        // --fly-at pick a place partway, and --repaint-at moves the light on, to time those frames too.
         if let seconds = options["bench"].flatMap(Double.init) {
             let fps = Double(options["fps"] ?? "30") ?? 30
+            let destination = options["fly-to"].flatMap(Place.named)
+            var flyAt = destination == nil ? Double.infinity : Double(options["fly-at"] ?? "3") ?? 3
+            var repaintAt = Double(options["repaint-at"] ?? "") ?? .infinity
             var times: [Double] = []
+            var worst = (milliseconds: 0.0, second: 0.0, texels: 0)
             for frame in 0..<Int(seconds * fps) {
-                world.advance(to: time + Double(frame) / fps)
+                let elapsed = Double(frame) / fps
+                world.advance(to: time + elapsed)
+                if let destination, elapsed >= flyAt {
+                    let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
+                    world.journey.fly(to: destination, from: bottom, time: world.time)
+                    flyAt = .infinity
+                }
+                if elapsed >= repaintAt {
+                    world.repaint()
+                    repaintAt = .infinity
+                }
                 guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
                 renderer.encode(world: world, into: target, commandBuffer: commands)
                 commands.commit()
                 commands.waitUntilCompleted()
-                if frame > 2 { times.append((commands.gpuEndTime - commands.gpuStartTime) * 1000) }
+                let milliseconds = (commands.gpuEndTime - commands.gpuStartTime) * 1000
+                // Learns what painting costs here, as the app does; exports don't, so they come out the same each time.
+                renderer.finished(gpu: milliseconds, painted: renderer.paintedTexels)
+                guard frame > 2 else { continue }
+                times.append(milliseconds)
+                if milliseconds > worst.milliseconds { worst = (milliseconds, elapsed, renderer.paintedTexels) }
             }
             times.sort()
             let mean = times.reduce(0, +) / Double(max(times.count, 1))
-            print(String(format: "%@ %dx%d: median %.3f ms, mean %.3f ms, p95 %.3f ms over %d frames", place.id,
-                         width, height, times[times.count / 2], mean, times[times.count * 95 / 100], times.count))
+            print(String(format: "%@ %dx%d: median %.3f ms, mean %.3f ms, p95 %.3f ms, max %.3f ms at %.2f s (%.2f MP painted) over %d frames",
+                         place.id, width, height, times[times.count / 2], mean, times[times.count * 95 / 100],
+                         worst.milliseconds, worst.second, Double(worst.texels) / 1e6, times.count))
             return
         }
 

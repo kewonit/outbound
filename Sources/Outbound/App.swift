@@ -109,7 +109,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         earlyLinks.forEach(handle)
         earlyLinks = []
+        #if DEBUG
+        // OUTBOUND_MEASURE=1 keeps it flying for the frame statistics: nobody touches the Mac meanwhile, so it must
+        // not rest.
+        let environment = ProcessInfo.processInfo.environment
+        if environment["OUTBOUND_MEASURE"] != nil || environment["OUTBOUND_EXERCISE"] != nil { displays.rest.after = nil }
+        if environment["OUTBOUND_EXERCISE"] != nil { exercise() }
+        #endif
     }
+
+    #if DEBUG
+    /// OUTBOUND_EXERCISE=1 brings on the heavy moments while the frame statistics run: the light moving on (a repaint
+    /// wave), a lock-screen still and a Fly To, twenty seconds apart after twenty-five seconds of plain flying, then
+    /// the bird chasing a pretend cursor for fifteen seconds and gliding off again.
+    private func exercise() {
+        let moments: [(TimeInterval, String, () -> Void)] = [
+            (25, "repaint wave", { [weak self] in self?.world.repaint() }),
+            (45, "still", { [weak self] in guard let self else { return }; stills.prepare(world: world) }),
+            (65, "Fly To", { [weak self] in
+                guard let self else { return }
+                let here = world.journey.leg(at: world.camera.y).place
+                let next = Place.all[((Place.all.firstIndex { $0.id == here.id } ?? 0) + 1) % Place.all.count]
+                fly(to: next)
+            }),
+            (85, "the bird chases", { [weak self] in
+                guard let self else { return }
+                let home = world.home, start = CACurrentMediaTime()
+                world.isDesktop = { _ in true }
+                world.pointer = {
+                    let t = CACurrentMediaTime() - start
+                    return CGPoint(x: home.midX + cos(t * 1.3) * home.width * 0.3, y: home.midY + sin(t * 1.7) * home.height * 0.3)
+                }
+            }),
+            (100, "the bird glides", { [weak self] in
+                self?.world.pointer = { NSEvent.mouseLocation }
+                self?.world.isDesktop = { World.desktopIsUnder($0) }
+            }),
+        ]
+        for (delay, name, action) in moments {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                Log.render.info("Exercise: \(name, privacy: .public)")
+                action()
+            }
+        }
+    }
+    #endif
 
     /// The painting is the desktop picture only while the Mac is locked, so it always comes off the desktop it
     /// went on: nobody can move to another one in between.
@@ -336,6 +380,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func fly(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, let place = Place.named(id) else { return }
+        fly(to: place)
+    }
+
+    private func fly(to place: Place) {
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
         world.journey.fly(to: place, from: bottom, time: world.time)
         preferences.lastPlace = place.id

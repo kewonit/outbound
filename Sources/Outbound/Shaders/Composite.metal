@@ -285,6 +285,40 @@ inline float3 boats(float3 c, float2 world, float water, constant Biome &b, cons
     return result;
 }
 
+// The ground's colour at a cache texel position. As the ground pans, each pixel lands at a different fraction of a
+// texel every frame, and one bilinear tap blurs it by a different amount each time, so fine detail pulses as it
+// moves; on a Retina display the pixels are too small to see it. The other filters blur by nearly the same amount
+// at any fraction: 1, a box over the pixel's footprint; 2, a cubic B-spline from four bilinear taps; 3, a B-spline
+// down the direction of flight only, from two.
+inline float3 groundColorAt(texture2d<float> ground, sampler wrap, float2 texel, float2 size, float filter,
+                            float footprint) {
+    if (filter < 0.5) return ground.sample(wrap, texel / size).rgb;
+    if (filter < 1.5) {
+        float q = footprint * 0.25;
+        return 0.25 * (ground.sample(wrap, (texel + float2(-q, -q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(q, -q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(-q, q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(q, q)) / size).rgb);
+    }
+    // The B-spline's weights for the four texels either side, folded into two bilinear taps per axis.
+    float2 t = texel - 0.5;
+    float2 i = floor(t), f = t - i;
+    float2 w0 = (1.0 - f) * (1.0 - f) * (1.0 - f) / 6.0;
+    float2 w1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0;
+    float2 w2 = (1.0 + 3.0 * f + 3.0 * f * f - 3.0 * f * f * f) / 6.0;
+    float2 w3 = f * f * f / 6.0;
+    float2 g0 = w0 + w1, g1 = w2 + w3;
+    float2 h0 = i - 0.5 + w1 / g0, h1 = i + 1.5 + w3 / g1;
+    if (filter < 2.5) {
+        return g0.y * (g0.x * ground.sample(wrap, float2(h0.x, h0.y) / size).rgb
+                     + g1.x * ground.sample(wrap, float2(h1.x, h0.y) / size).rgb)
+             + g1.y * (g0.x * ground.sample(wrap, float2(h0.x, h1.y) / size).rgb
+                     + g1.x * ground.sample(wrap, float2(h1.x, h1.y) / size).rgb);
+    }
+    return g0.y * ground.sample(wrap, float2(texel.x, h0.y) / size).rgb
+         + g1.y * ground.sample(wrap, float2(texel.x, h1.y) / size).rgb;
+}
+
 fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             constant CompositeParams &params [[buffer(0)]],
                             constant Scene &scene [[buffer(1)]],
@@ -292,6 +326,8 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             texture2d<float> groundNight [[texture(1)]],
                             texture2d<float> cloudTexture [[texture(2)]],
                             texture2d<float> noise [[texture(4)]],
+                            texture2d<float> incomingColor [[texture(5)]],
+                            texture2d<float> incomingNight [[texture(6)]],
                             sampler wrap [[sampler(0)]],
                             sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -300,10 +336,19 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float2 world = params.world.xy + pixel * mpp;
 
     float2 texel = params.cache.xy + pixel * params.view.w;
-    float3 c = groundColor.sample(wrap, texel / params.cache.zw).rgb;
+    float3 c = groundColorAt(groundColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
     float2 wrapped = texel - floor(texel / params.cache.zw) * params.cache.zw;
     uint2 nearest = uint2(min(wrapped, params.cache.zw - 1.0));
-    Mask mask = unpack(groundColor.read(nearest).a);
+    // While a Fly To sweeps, the new place is painted into a cache of its own and blended in here, with a darker
+    // tide line where the two paints meet.
+    float turned = sweepBlend(world, scene);
+    if (turned > 0.0) {
+        float3 next = groundColorAt(incomingColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
+        c = mix(c, next, turned) * (1.0 - 0.12 * (1.0 - abs(turned * 2.0 - 1.0)));
+    }
+    texture2d<float> landColor = turned > 0.5 ? incomingColor : groundColor;
+    texture2d<float> landNight = turned > 0.5 ? incomingNight : groundNight;
+    Mask mask = unpack(landColor.read(nearest).a);
     float water = mask.water;
     float3 light = 0.0;
 
@@ -345,7 +390,10 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.
     float night = scene.time.w;
-    float2 lamp = night > 0.0 ? groundNight.read(nearest).rg : 0.0;
+    float2 lamp = night > 0.0 ? landNight.read(nearest).rg : 0.0;
+    // Smoothed ground gets smoothed lamplight too, or the pools step a whole texel at a time; the lamp's id stays
+    // the nearest texel's.
+    if (night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
     if (lamp.x > 0.004) {
         float id = lamp.y;
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
@@ -393,7 +441,8 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
                               constant Leg &leg [[buffer(1)]],
                               constant Scene &scene [[buffer(2)]],
                               constant CompositeParams &params [[buffer(3)]],
-                              texture2d<float> groundColor [[texture(0)]]) {
+                              texture2d<float> groundColor [[texture(0)]],
+                              texture2d<float> incomingColor [[texture(1)]]) {
     AnimalOut out;
     out.position = float4(2.0, 2.0, 0.0, 1.0);
     out.offset = 0.0;
@@ -425,8 +474,9 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float2 local = cellCenter + jitter + walk + p.drift.xy;
     float2 world = float2(local.x, local.y + p.leg.x);
     if (world.y < p.leg.y || world.y >= p.leg.z) return out;
-    // Only where the ground says animals belong.
-    if (!unpack(groundColor.read(cacheTexel(world, params)).a).herd) return out;
+    // Only where the ground says animals belong, in whichever painting it has turned to during a Fly To.
+    texture2d<float> land = sweepBlend(world, scene) > 0.5 ? incomingColor : groundColor;
+    if (!unpack(land.read(cacheTexel(world, params)).a).herd) return out;
 
     float heading = hash21(cell, seed + 124u) * 6.283 + 0.6 * sin(strides * 0.9 + h * 9.0);
     // Drawn larger than life so they read from this height, as in a painted map.

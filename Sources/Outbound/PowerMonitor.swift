@@ -35,11 +35,6 @@ final class PowerMonitor {
         set { update { $0.batteryMode = newValue } }
     }
 
-    var birdEngaged: Bool {
-        get { state.birdEngaged }
-        set { if newValue != state.birdEngaged { update { $0.birdEngaged = newValue } } }
-    }
-
     private func read() {
         update { state in
             state.lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -53,6 +48,10 @@ final class PowerMonitor {
             let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue()
             let source = info.flatMap { IOPSGetProvidingPowerSourceType($0)?.takeUnretainedValue() as String? }
             state.onBattery = source == kIOPSBatteryPowerValue
+            #if DEBUG
+            // OUTBOUND_POWER=ac or battery tries either tier whatever the Mac is running on.
+            if let forced = ProcessInfo.processInfo.environment["OUTBOUND_POWER"] { state.onBattery = forced == "battery" }
+            #endif
         }
     }
 

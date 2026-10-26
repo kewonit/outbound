@@ -83,11 +83,11 @@ final class Wallpaper: NSObject {
     /// The bird's own small layer, so following the cursor smoothly never means redrawing the whole landscape.
     private let birdView: MetalView
     private var birdLink: CADisplayLink?
+    /// Counts hand-overs between the landscape and the bird's layer, so only the latest one takes effect.
+    private var birdHandOvers = 0
     private static let birdBox = 120.0
     var birdFramesPerSecond: Float = 60 {
-        didSet { birdLink?.preferredFrameRateRange = CAFrameRateRange(minimum: birdFramesPerSecond * 0.8,
-                                                                      maximum: birdFramesPerSecond,
-                                                                      preferred: birdFramesPerSecond) }
+        didSet { if birdFramesPerSecond != oldValue { birdLink?.preferredFrameRateRange = Self.range(birdFramesPerSecond) } }
     }
     private var captionUpdated = -TimeInterval.infinity
     private var hasDrawn = false
@@ -97,7 +97,7 @@ final class Wallpaper: NSObject {
     /// A line under the caption, for development builds and licensing.
     var note: String?
     var framesPerSecond: Float = 30 {
-        didSet { applyFrameRate() }
+        didSet { if framesPerSecond != oldValue { applyFrameRate() } }
     }
 
     init(screen: NSScreen, displayID: CGDirectDisplayID, world: World, gpu: GPU) {
@@ -108,6 +108,7 @@ final class Wallpaper: NSObject {
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
         birdView = MetalView(device: gpu.device, opaque: false)
+        birdView.metalLayer.presentsWithTransaction = true
         super.init()
         let container = NSView()
         view.autoresizingMask = [.width, .height]
@@ -144,7 +145,12 @@ final class Wallpaper: NSObject {
         let backing = Double(screen.backingScaleFactor)
         let scale = economical && backing > 1.5 ? 1.5 : backing
         view.renderScale = scale == backing ? nil : scale
-        renderer.configure(frame: screen.frame, scale: scale)
+        // On a display that isn't Retina each ground texel is a whole pixel, and the panning painting shimmers as
+        // each frame lands it at a different fraction of one. Painted with half as many texels again and read through
+        // a box the size of a pixel, it holds steady and stays as sharp.
+        let steadies = backing < 1.75
+        renderer.groundFilter = steadies ? 1 : 0
+        renderer.configure(frame: screen.frame, scale: scale, density: steadies ? scale * 1.5 : scale)
     }
 
     /// Keeps the label in the corner of the usable area, clear of the Dock.
@@ -174,6 +180,10 @@ final class Wallpaper: NSObject {
         let paused = !holds.isEmpty
         if link?.isPaused != paused {
             link?.isPaused = paused
+            if !paused, !renderer.drawsBird {
+                // The bird was on its own layer when the display was held; it carries on there.
+                startBirdLink()
+            }
             if paused {
                 birdLink?.invalidate()
                 birdLink = nil
@@ -204,65 +214,141 @@ final class Wallpaper: NSObject {
 
     private func occlusionChanged() {
         set(.occluded, !window.occlusionState.contains(.visible))
+        onOcclusionChange()
     }
+
+    /// Called when this wallpaper is covered or uncovered.
+    var onOcclusionChange: () -> Void = {}
 
     private func applyFrameRate() {
-        link?.preferredFrameRateRange = CAFrameRateRange(minimum: framesPerSecond * 0.8, maximum: framesPerSecond,
-                                                         preferred: framesPerSecond)
+        link?.preferredFrameRateRange = Self.range(framesPerSecond)
     }
 
-    /// Moves and repaints the bird's layer. While the bird chases the cursor over this display it gets a display link
-    /// of its own; otherwise it rides along with the landscape's frames.
-    private func updateBird(at time: TimeInterval) {
+    /// Asks for `rate`, with a ceiling a hair above it so a display a hair off its round refresh still gets the right
+    /// fraction of it, and room to go down to 80% when something else limits the display.
+    private static func range(_ rate: Float) -> CAFrameRateRange {
+        CAFrameRateRange(minimum: rate * 0.8, maximum: rate * 1.01, preferred: rate)
+    }
+
+    /// Whether the bird belongs on this display's own layer at `time`: chasing the cursor, and near this display.
+    private func birdWantsLayer(at time: TimeInterval) -> Bool {
+        guard world.chasing, link?.isPaused == false else { return false }
         let frame = window.frame
-        let point = world.bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
+        let point = world.birdPose(at: time).position - SIMD2(Double(frame.minX), Double(frame.minY))
         let box = Self.birdBox
-        let visible = point.x > -box && point.y > -box && point.x < Double(frame.width) + box
-            && point.y < Double(frame.height) + box && link?.isPaused == false
-        // Gliding on its own, the bird is drawn with the landscape at no extra cost. Chasing the cursor, it moves
-        // to its own layer so it can follow smoothly without the whole landscape redrawing to keep up.
-        let chasing = visible && world.chasing
-        renderer.drawsBird = !chasing
+        return point.x > -box && point.y > -box && point.x < Double(frame.width) + box
+            && point.y < Double(frame.height) + box
+    }
+
+    /// Gliding on its own, the bird is painted with the landscape at no extra cost. Chasing the cursor, it moves to a
+    /// layer of its own with a display link of its own, so it follows smoothly without the whole landscape redrawing
+    /// to keep up. The hand-over waits for the landscape frame that stops or starts painting it, which reaches the
+    /// screen at `presentTime`, so the bird never blinks out or shows twice.
+    private func handOverBird(at moment: TimeInterval, presenting presentTime: TimeInterval) {
+        let wantsLayer = birdWantsLayer(at: moment)
+        guard wantsLayer == renderer.drawsBird else { return }
+        renderer.drawsBird = !wantsLayer
+        birdHandOvers += 1
+        let handOver = birdHandOvers
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(presentTime - CACurrentMediaTime(), 0)) { [weak self] in
+            guard let self, birdHandOvers == handOver else { return }
+            // Held meanwhile: resuming starts the bird's layer instead.
+            if wantsLayer, link?.isPaused != false { return }
+            #if DEBUG
+            let late = (CACurrentMediaTime() - presentTime) * 1000
+            stats.note(String(format: "bird to %@ %.0f ms late", wantsLayer ? "layer" : "landscape", late.rounded()))
+            #endif
+            if wantsLayer {
+                startBirdLink()
+                drawBird(at: world.renderTime(for: presentTime + (link?.duration ?? 0)))
+            } else {
+                birdLink?.invalidate()
+                birdLink = nil
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                birdView.isHidden = true
+                CATransaction.commit()
+            }
+        }
+    }
+
+    private func startBirdLink() {
+        guard birdLink == nil else { return }
+        let link = birdView.displayLink(target: self, selector: #selector(birdTick(_:)))
+        link.preferredFrameRateRange = Self.range(birdFramesPerSecond)
+        link.add(to: .main, forMode: .common)
+        birdLink = link
+    }
+
+    /// Moves the bird's layer and paints the bird in it as it is at `time`, both in one transaction, so the picture
+    /// and its place always change together.
+    private func drawBird(at time: TimeInterval) {
+        let frame = window.frame
+        let pose = world.birdPose(at: time)
+        let point = pose.position - SIMD2(Double(frame.minX), Double(frame.minY))
+        let box = Self.birdBox
+        let scale = Double(window.backingScaleFactor)
+        let size = CGSize(width: box * scale, height: box * scale)
+        let layer = birdView.metalLayer
+        if layer.drawableSize != size || layer.contentsScale != CGFloat(scale) {
+            layer.contentsScale = CGFloat(scale)
+            layer.drawableSize = size
+        }
+        guard let drawable = layer.nextDrawable(), let commands = gpu.birdQueue.makeCommandBuffer() else { return }
+        renderer.encodeBird(world: world, at: time, into: drawable.texture, commandBuffer: commands, size: box,
+                            scale: scale)
+        commands.commit()
+        commands.waitUntilScheduled()
+        #if DEBUG
+        if pose.position == lastBirdDrawn { stats.birdStalls += 1 } else { stats.birdMoves += 1 }
+        lastBirdDrawn = pose.position
+        #endif
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        birdView.isHidden = !chasing
-        if chasing {
-            birdView.frame = CGRect(x: point.x - box / 2, y: point.y - box / 2, width: box, height: box)
-        }
+        birdView.frame = CGRect(x: point.x - box / 2, y: point.y - box / 2, width: box, height: box)
+        if birdView.isHidden { birdView.isHidden = false }
+        drawable.present()
         CATransaction.commit()
-        if chasing && birdLink == nil {
-            let link = birdView.displayLink(target: self, selector: #selector(birdTick(_:)))
-            link.preferredFrameRateRange = CAFrameRateRange(minimum: birdFramesPerSecond * 0.8, maximum: birdFramesPerSecond,
-                                                            preferred: birdFramesPerSecond)
-            link.add(to: .main, forMode: .common)
-            birdLink = link
-        } else if !chasing, let link = birdLink {
-            link.invalidate()
-            birdLink = nil
-        }
-        guard chasing else { return }
-        let scale = Double(window.backingScaleFactor)
-        birdView.metalLayer.contentsScale = CGFloat(scale)
-        birdView.metalLayer.drawableSize = CGSize(width: box * scale, height: box * scale)
-        guard let drawable = birdView.metalLayer.nextDrawable(), let commands = gpu.queue.makeCommandBuffer() else { return }
-        renderer.encodeBird(world: world, into: drawable.texture, commandBuffer: commands, size: box, scale: scale)
-        commands.present(drawable)
-        commands.commit()
     }
 
     @objc private func birdTick(_ link: CADisplayLink) {
         world.advance(to: link.targetTimestamp)
-        updateBird(at: link.targetTimestamp)
+        drawBird(at: world.renderTime(for: link.targetTimestamp))
     }
 
     @objc private func tick(_ link: CADisplayLink) {
-        world.advance(to: link.targetTimestamp)
-        if birdLink == nil { updateBird(at: link.targetTimestamp) }
+        #if DEBUG
+        let entered = CACurrentMediaTime()
+        #endif
+        // Frames go up at a set time. Going up whenever they are ready puts them on screen a refresh early or late at
+        // random, which reads as judder however fast they are drawn. Asked for three quarters of a refresh before the
+        // target, a frame reaches the screen one refresh after it, every time, so each frame shows the moment it is on
+        // screen. Asking for a time the display could refresh at (ProMotion can every quarter of a refresh) leaves it
+        // to rounding which side of it a frame lands.
+        var presentTime = link.targetTimestamp - link.duration * 0.75
+        var onScreen = link.targetTimestamp + link.duration
+        #if DEBUG
+        // OUTBOUND_PRESENT=half, refresh, target or now tries other ways of putting frames up, to compare.
+        switch ProcessInfo.processInfo.environment["OUTBOUND_PRESENT"] {
+        case "half": presentTime = link.targetTimestamp - link.duration / 2
+        case "refresh": presentTime = link.targetTimestamp - link.duration; onScreen = link.targetTimestamp
+        case "target": presentTime = link.targetTimestamp; onScreen = link.targetTimestamp + link.duration
+        case "now": presentTime = .nan; onScreen = link.targetTimestamp
+        default: break
+        }
+        #endif
+        world.advance(to: onScreen)
+        let moment = world.renderTime(for: onScreen)
+        handOverBird(at: moment, presenting: presentTime)
         if link.targetTimestamp - captionUpdated > 0.5 {
             captionUpdated = link.targetTimestamp
             updateCaption()
         }
-        draw()
+        draw(at: moment, showing: onScreen, presentAt: presentTime)
+        #if DEBUG
+        stats.ticked(late: entered - link.timestamp, took: CACurrentMediaTime() - entered, waited: drawableWait)
+        stats.reportIfDue(rate: Double(framesPerSecond), refresh: link.duration)
+        #endif
     }
 
     /// One frame for a wallpaper that was held before it ever drew.
@@ -270,39 +356,45 @@ final class Wallpaper: NSObject {
         guard !hasDrawn, link != nil else { return }
         view.layoutSubtreeIfNeeded()
         updateCaption()
-        draw()
+        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
     }
 
-    private func draw() {
+    /// Draws the world as it is at `moment`, for a frame meant to be on screen at `display` time, going up at
+    /// `presentAt`, or as soon as it is ready.
+    private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?) {
+        #if DEBUG
+        let asked = CACurrentMediaTime()
+        #endif
         guard let drawable = view.metalLayer.nextDrawable(),
               let commands = gpu.queue.makeCommandBuffer() else { return }
-        renderer.encode(world: world, into: drawable.texture, commandBuffer: commands)
-        commands.present(drawable)
-        hasDrawn = true
         #if DEBUG
+        drawableWait = CACurrentMediaTime() - asked
+        #endif
+        renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands)
+        let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
             let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
-            DispatchQueue.main.async { self?.record(milliseconds) }
+            DispatchQueue.main.async { self?.renderer.finished(gpu: milliseconds, painted: painted) }
+        }
+        #if DEBUG
+        renderer.events.forEach { stats.note($0) }
+        drawable.addPresentedHandler { [weak self] drawable in
+            let time = drawable.presentedTime
+            DispatchQueue.main.async { self?.stats.presented(at: time, showing: display) }
+        }
+        commands.addCompletedHandler { [weak self] buffer in
+            let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
+            DispatchQueue.main.async { self?.stats.finished(gpu: milliseconds, painted: painted) }
         }
         #endif
+        if let presentAt, !presentAt.isNaN { commands.present(drawable, atTime: presentAt) } else { commands.present(drawable) }
+        hasDrawn = true
         commands.commit()
     }
 
     #if DEBUG
-    private var statsStart = CACurrentMediaTime()
-    private var statsFrames = 0
-    private var statsGPU = 0.0
-
-    /// Logs frames per second and GPU time every ten seconds while developing.
-    private func record(_ milliseconds: Double) {
-        statsFrames += 1
-        statsGPU += milliseconds
-        let elapsed = CACurrentMediaTime() - statsStart
-        guard elapsed > 10 else { return }
-        Log.render.info("Display \(self.displayID): \(Double(self.statsFrames) / elapsed, format: .fixed(precision: 1)) fps, \(self.statsGPU / Double(self.statsFrames), format: .fixed(precision: 2)) ms GPU")
-        statsStart = CACurrentMediaTime()
-        statsFrames = 0
-        statsGPU = 0
-    }
+    private lazy var stats = FrameStats(display: displayID)
+    private var drawableWait = 0.0
+    private var lastBirdDrawn: SIMD2<Double>?
     #endif
 }

@@ -31,8 +31,9 @@ final class StillWriter {
         url.isFileURL && url.standardizedFileURL.path.hasPrefix(folder.standardizedFileURL.path)
     }
 
-    /// Paints each display's view, ready for the lock screen, off the main thread's back: the GPU paints and a
-    /// background queue encodes the JPEG. At 1x, so it never stalls a frame. Nothing on screen changes.
+    /// Paints each display's view, ready for the lock screen, off the main thread's back: the GPU paints on a queue of
+    /// its own, so live frames never wait behind it, and a background queue encodes the JPEG. At 1x, to keep it light.
+    /// Nothing on screen changes.
     func prepare(world: World) {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // The system caches desktop pictures by URL, so every painting gets a name of its own.
@@ -49,11 +50,14 @@ final class StillWriter {
             descriptor.usage = [.renderTarget, .shaderRead]
             descriptor.storageMode = .shared
             guard let target = gpu.device.makeTexture(descriptor: descriptor),
-                  let commands = gpu.queue.makeCommandBuffer() else { continue }
+                  let commands = gpu.stillQueue.makeCommandBuffer() else { continue }
             renderer.encode(world: world, into: target, commandBuffer: commands)
-            commands.addCompletedHandler { buffer in
-                guard buffer.status == .completed, (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
-                DispatchQueue.main.async { [weak self] in self?.paintingReady(url, for: id) }
+            commands.addCompletedHandler { [weak self] buffer in
+                guard buffer.status == .completed else { return }
+                DispatchQueue.global(qos: .utility).async {
+                    guard (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
+                    DispatchQueue.main.async { self?.paintingReady(url, for: id) }
+                }
             }
             commands.commit()
         }

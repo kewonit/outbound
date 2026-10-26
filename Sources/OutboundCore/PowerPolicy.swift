@@ -1,14 +1,19 @@
 import Foundation
 
 public enum FramePacing {
-    /// The frame rate nearest `target` that the display can show evenly. Fixed-rate panels only show whole
-    /// fractions of their refresh: 24 or 30 on a 75 Hz panel would alternate between refreshes per frame and
-    /// judder, while 25 is exactly every third. Variable-rate panels, like ProMotion, pace any rate themselves.
-    public static func rate(target: Double, refresh: Double, variable: Bool = false) -> Double {
-        guard refresh > 0, target > 0 else { return target }
-        if variable { return min(target, refresh) }
-        let divisor = (refresh / target).rounded()
-        return refresh / max(divisor, 1)
+    /// A frame rate near `target` that a display shows evenly. A panel that refreshes at `fastest` shows only whole
+    /// fractions of it evenly: 24 on a 60 Hz panel would alternate two and three refreshes a frame and judder. So
+    /// this is the lowest fraction at or above the target (60 Hz: 30, 75 Hz: 37.5), unless that is more than half as
+    /// much again, then the highest below it (50 Hz: 25). `slowest` is given for a panel that can refresh at any rate
+    /// down to it for this window, like ProMotion, which then shows the target as it is.
+    public static func rate(target: Double, fastest: Double, slowest: Double? = nil) -> Double {
+        guard target > 0, fastest.isFinite, fastest >= 20 else { return target }
+        // Panels at 59.94 or 119.88 Hz are a hair under their round rates.
+        let floor = target * (1 - 1.0 / 128)
+        if let slowest, slowest < fastest, target >= slowest * (1 - 1.0 / 128) { return min(target, fastest) }
+        let fractions = (1...Int((fastest / target).rounded(.up)) + 1).map { fastest / Double($0) }
+        if let above = fractions.last(where: { $0 >= floor }), above <= target * 1.5 { return above }
+        return fractions.first { $0 < floor } ?? fastest
     }
 }
 
@@ -22,8 +27,6 @@ public struct PowerState: Equatable, Sendable {
     public var onBattery = false
     public var lowPower = false
     public var thermal = Thermal.nominal
-    /// The bird is chasing the cursor, which wants smoother motion for a while.
-    public var birdEngaged = false
     /// The user's choice for running on battery.
     public var batteryMode = BatteryMode.gentle
 
@@ -54,11 +57,66 @@ public struct PowerTier: Equatable, Sendable {
         if state.onBattery && state.batteryMode == .still {
             return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
         }
-        // A slow pan moves about a pixel a frame at 24, which bilinear sampling keeps smooth. The bird chasing the
-        // cursor wants more, but it has its own small layer, so only that runs faster.
-        var fps: Double = state.onBattery ? 15 : 24
-        if state.thermal == .fair { fps = state.onBattery ? 12 : 20 }
+        // An even 30 a second, as the site's videos run, keeps the slow pan smooth; on battery 24, which the
+        // built-in display also shows evenly. The bird chasing the cursor wants more, but it has its own small
+        // layer, so only that runs faster.
+        var fps: Double = state.onBattery ? 24 : 30
+        if state.thermal == .fair { fps = state.onBattery ? 20 : 24 }
         return PowerTier(framesPerSecond: fps, frozen: false, halfRateClouds: state.onBattery,
                          birdFramesPerSecond: state.onBattery || state.thermal == .fair ? 30 : 60)
+    }
+}
+
+/// How much ground painting that can wait, like a repaint wave, every display together may do. Painting is the heavy
+/// part of a frame, and all displays share one GPU; what it costs is learned from frames as they finish, so a slow
+/// GPU spreads the same work over more frames instead of missing them.
+public struct PaintBudget: Sendable {
+    /// GPU time per thirtieth of a second that painting which can wait may take.
+    public var milliseconds: Double
+    /// What painting a million texels costs on this GPU, in milliseconds.
+    public private(set) var costPerMillion: Double
+    private var saved = 0.0
+    private var savedAt: Double?
+
+    public init(milliseconds: Double = 4, costPerMillion: Double = 15) {
+        self.milliseconds = milliseconds
+        self.costPerMillion = costPerMillion
+    }
+
+    /// Texels per second.
+    private var rate: Double { milliseconds * 30 / costPerMillion * 1e6 }
+
+    /// Up to `wanted` texels to paint now, at `time` in seconds. What isn't taken is kept, but never more than one
+    /// thirtieth of a second's worth, so it can't build up into a burst.
+    public mutating func take(_ wanted: Int, at time: Double) -> Int {
+        refill(at: time)
+        let granted = min(Double(max(wanted, 0)), max(saved, 0))
+        saved -= granted
+        return Int(granted)
+    }
+
+    /// Painting that couldn't wait, like newly revealed rows, still counts against what can.
+    public mutating func spend(_ texels: Int, at time: Double) {
+        refill(at: time)
+        saved = max(saved - Double(texels), -rate / 30)
+    }
+
+    /// A frame finished: `milliseconds` of its GPU time went on painting `texels`.
+    public mutating func learn(milliseconds: Double, painted texels: Int) {
+        guard texels >= 50_000, milliseconds.isFinite else { return }
+        let sample = min(max(milliseconds / (Double(texels) / 1e6), 1), 400)
+        costPerMillion += (sample - costPerMillion) * 0.25
+    }
+
+    /// Displays a moment apart may ask in any order, so time only ever moves the budget forward.
+    private mutating func refill(at time: Double) {
+        guard let savedAt else {
+            saved = rate / 30
+            savedAt = time
+            return
+        }
+        guard time > savedAt else { return }
+        saved = min(saved + (time - savedAt) * rate, rate / 30)
+        self.savedAt = time
     }
 }

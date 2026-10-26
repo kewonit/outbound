@@ -30,12 +30,11 @@ final class World {
     let journey: Journey
     private(set) var time: TimeInterval
     private(set) var bird: Bird
+    /// The bird's last few poses, so each display draws it at the moment that display shows.
+    private var birdTrail: BirdTrail
     private(set) var sun = Sun.fair
     /// The bird follows the cursor for a while after it last moved.
-    private(set) var chasing = false {
-        didSet { if chasing != oldValue { onChasingChange(chasing) } }
-    }
-    var onChasingChange: (Bool) -> Void = { _ in }
+    private(set) var chasing = false
     var light = Light.yourTime {
         didSet { if light != oldValue { updateSun(force: true) } }
     }
@@ -65,7 +64,20 @@ final class World {
         self.light = light
         journey = Journey(start: place, time: time, date: date, speed: 6.5, legLength: 6.5 * 60 * 12)
         bird = Bird(at: Bird.wander(in: home, time: time))
+        birdTrail = BirdTrail(bird.pose, at: time)
         updateSun(force: true)
+    }
+
+    /// The moment a display showing at `displayTime` should draw: its own time, less the time spent held still.
+    /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
+    /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
+    func renderTime(for displayTime: TimeInterval) -> TimeInterval {
+        heldSince == nil ? displayTime - heldFor : time
+    }
+
+    /// The bird as it was, or is, at `t`.
+    func birdPose(at t: TimeInterval) -> Bird.Pose {
+        birdTrail.pose(at: t)
     }
 
     /// Time spent held still (asleep, locked, resting), taken off the clock so the flight carries on from where
@@ -106,6 +118,7 @@ final class World {
         chasing = t - pointerMoved < 6
         let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
         bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t))
+        birdTrail.record(bird.pose, at: t)
         if t - sunUpdated > 20 { updateSun(force: false) }
     }
 
@@ -160,6 +173,7 @@ final class World {
     /// Holds the bird still for a picture.
     func poseBird(at point: CGPoint, heading: Double) {
         bird.pose(at: SIMD2(Double(point.x), Double(point.y)), heading: heading)
+        birdTrail.reset(to: bird.pose, at: time)
     }
 
     /// The window a click at the point would reach. Wallpaper windows ignore the mouse, so over the desktop
@@ -173,12 +187,20 @@ final class World {
     }
 
     var camera: SIMD2<Double> {
-        SIMD2(journey.cameraX(at: time), journey.cameraY(at: time))
+        camera(at: time)
+    }
+
+    func camera(at t: TimeInterval) -> SIMD2<Double> {
+        SIMD2(journey.cameraX(at: t), journey.cameraY(at: t))
     }
 
     /// The ground under a global desktop point.
     func ground(at point: CGPoint) -> SIMD2<Double> {
-        SIMD2(Double(point.x), Double(point.y)) * Self.metresPerPoint + camera
+        ground(at: point, time: time)
+    }
+
+    func ground(at point: CGPoint, time t: TimeInterval) -> SIMD2<Double> {
+        SIMD2(Double(point.x), Double(point.y)) * Self.metresPerPoint + camera(at: t)
     }
 
     /// Places the river a little right of centre on the given display, like the reference.
@@ -198,7 +220,11 @@ final class World {
 
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
     func frame(bottom: Double, top: Double) -> Frame {
-        let reference = (camera.y / 2048).rounded(.down) * 2048
+        frame(bottom: bottom, top: top, at: time)
+    }
+
+    func frame(bottom: Double, top: Double, at t: TimeInterval) -> Frame {
+        let reference = (camera(at: t).y / 2048).rounded(.down) * 2048
         let topLeg = journey.leg(at: top)
         var legA = topLeg
         if let previous = journey.leg(before: topLeg), topLeg.start + Journey.morphLength > bottom - 200 {
@@ -213,7 +239,7 @@ final class World {
         if legA.index != legB.index {
             boundary = legB.start - reference
             if let start = legB.sweepStart {
-                let progress = (time - start) / Journey.sweepDuration
+                let progress = (t - start) / Journey.sweepDuration
                 if progress < 1 {
                     sweep = max(progress, 0)
                     sweepFront = legB.start + sweep * (top - legB.start + 400)
@@ -238,12 +264,12 @@ final class World {
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
             morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
-            time: SIMD4(Float(time.truncatingRemainder(dividingBy: 3600)),
-                        Float(time.truncatingRemainder(dividingBy: 7200)),
-                        Float((time * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
+            time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
+                        Float(t.truncatingRemainder(dividingBy: 7200)),
+                        Float((t * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset),
-                         Float((time * Self.boatSpeed / 700).truncatingRemainder(dividingBy: 1)), 0),
-            train: train(reference: reference),
+                         Float((t * Self.boatSpeed / 700).truncatingRemainder(dividingBy: 1)), 0),
+            train: train(reference: reference, at: t),
             legA: gpu(legA, reference: reference),
             legB: gpu(legB, reference: reference))
         return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
@@ -279,9 +305,9 @@ final class World {
         return line
     }
 
-    /// The train passing the middle of the main display, if one is.
-    private func train(reference: Double) -> TrainGPU {
-        let centre = ground(at: CGPoint(x: home.midX, y: home.midY))
+    /// The train passing the middle of the main display at `t`, if one is.
+    private func train(reference: Double, at t: TimeInterval) -> TrainGPU {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
         // When the middle of the main display passes over the line, following the camera's real path.
@@ -290,10 +316,10 @@ final class World {
             SIMD2(journey.cameraX(at: t), journey.cameraY(at: t) - leg.start) + offset
         }
         if trainCrossing?.leg != leg.index {
-            trainCrossing = line.crossing(near: time, path: path).map { (leg.index, $0.time, $0.along) }
+            trainCrossing = line.crossing(near: t, path: path).map { (leg.index, $0.time, $0.along) }
         }
         guard let crossing = trainCrossing,
-              let run = line.train(at: time, crossing: crossing.time, middle: crossing.along, railway: railway,
+              let run = line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway,
                                    seed: leg.index) else { return .none }
         func color(_ c: SIMD3<Float>) -> SIMD4<Float> { SIMD4(c, 1) }
         return TrainGPU(
@@ -307,16 +333,20 @@ final class World {
 
     /// Whether a train is passing the middle of the main display.
     var trainPassing: Bool {
-        train(reference: 0).rail.w > 0
+        train(reference: 0, at: time).rail.w > 0
     }
 
     /// The flock in the sky over the desktop right now, if any, and what kind of birds they are.
     var flock: (Flock, FlockSighting)? {
-        let centre = ground(at: CGPoint(x: home.midX, y: home.midY))
+        flock(at: time)
+    }
+
+    func flock(at t: TimeInterval) -> (Flock, FlockSighting)? {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
         let month = Calendar.current.component(.month, from: now())
         guard let flock = Flock.of(leg.place, month: month),
-              let sighting = flock.sighting(at: time, area: desktop,
+              let sighting = flock.sighting(at: t, area: desktop,
                                              seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff)
         else { return nil }
         return (flock, sighting)
@@ -324,14 +354,14 @@ final class World {
 
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being
     /// nearer the camera, slide past a little faster than the ground.
-    func cloudSpace(_ metres: SIMD2<Double>) -> SIMD2<Double> {
-        let p = metres + camera * 1.15 - Self.wind * time
+    func cloudSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
+        let p = metres + camera(at: t) * 1.15 - Self.wind * t
         return SIMD2(p.x.positiveRemainder(16384), p.y.positiveRemainder(16384))
     }
 
     /// Space for the gusts rolling over the crops, which travel with the wind across the ground.
-    func gustSpace(_ metres: SIMD2<Double>) -> SIMD2<Double> {
-        let p = metres + camera - Self.wind * 2.2 * time
+    func gustSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
+        let p = metres + camera(at: t) - Self.wind * 2.2 * t
         return SIMD2(p.x.positiveRemainder(160 * 1024), p.y.positiveRemainder(55 * 1024))
     }
 }

@@ -67,7 +67,7 @@ struct CompositeParams {
     float4 cache;  // origin texel xy, size wh
     float4 bird;   // px xy, heading, bank
     float4 wings;  // spread, altitude, scale px, visible
-    float4 finish; // grain, vignette, debug
+    float4 finish; // grain, vignette, bird drawn here, ground filter (see groundColorAt)
     float4 clouds; // cloud-space offset of the view from the cloud texture's corner (xy), metres per cloud pixel
     float4 flock;      // leader px xy, heading, visible
     float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
@@ -152,6 +152,20 @@ inline float fbm(float2 p, int octaves, uint seed) {
         p = octave * p;
     }
     return sum / norm;
+}
+
+// How far the land at `world` (metres, relative to the scene's reference) has turned into the next place while a
+// Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
+// creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
+// new one exactly where the ground would have.
+inline float sweepBlend(float2 world, constant Scene &scene) {
+    float boundary = scene.morph.x;
+    if (scene.morph.z < 0.0 || world.y < boundary) return 0.0;
+    float m = saturate((scene.morph.z * (scene.morph.w + 400.0) - (world.y - boundary)) / 400.0);
+    if (m <= 0.0) return 0.0;
+    float2 localB = float2(world.x, world.y - scene.legB.info.x);
+    float threshold = 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
+    return smoothstep(threshold - 0.05, threshold + 0.05, m);
 }
 
 // MARK: - Shapes

@@ -9,6 +9,16 @@ final class DisplayManager {
     let power: PowerMonitor
     private var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
+    /// Every display's wallpaper is covered, by full-screen apps say. Nobody can see the flight, so it waits, as it
+    /// does while the Mac is locked: coming back shows the same place, with the ground each display cached still good,
+    /// rather than the whole view repainted at once.
+    private var everyOccluded = false {
+        didSet {
+            guard everyOccluded != oldValue else { return }
+            world.hold(!globalHolds.isEmpty || everyOccluded)
+            Log.display.info("\(self.everyOccluded ? "Every display is covered: holding still" : "A display is in view again", privacy: .public)")
+        }
+    }
     private(set) var tier = PowerTier.choose(PowerState())
     private var started = false
     /// Wallpapers only exist while running; before Outbound is unlocked it is not.
@@ -59,7 +69,6 @@ final class DisplayManager {
         }
 
         gpu.shaders.onReload = { [weak self] in self?.repaint() }
-        world.onChasingChange = { [weak self] chasing in self?.power.birdEngaged = chasing }
         rest.onChange = { [weak self] resting in
             self?.set(.resting, resting)
             Log.power.info("\(resting ? "Resting: nobody is around" : "Awake", privacy: .public)")
@@ -105,7 +114,7 @@ final class DisplayManager {
     func set(_ hold: Wallpaper.Hold, _ on: Bool) {
         if on { globalHolds.insert(hold) } else { globalHolds.remove(hold) }
         wallpapers.values.forEach { $0.set(hold, on) }
-        world.hold(!globalHolds.isEmpty)
+        world.hold(!globalHolds.isEmpty || everyOccluded)
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
     }
 
@@ -125,6 +134,7 @@ final class DisplayManager {
                 wallpaper.note = note
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
+                wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
                 wallpapers[id] = wallpaper
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")
             }
@@ -134,6 +144,7 @@ final class DisplayManager {
             wallpapers[id] = nil
             Log.display.info("Removed display \(id)")
         }
+        checkOcclusion()
         world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
         if let main = NSScreen.screens.first {
             world.home = main.frame
@@ -142,17 +153,25 @@ final class DisplayManager {
         refreshRates()
     }
 
-    /// The tier's frame rate, or the nearest below it that divides the display's refresh evenly.
+    private func checkOcclusion() {
+        everyOccluded = !wallpapers.isEmpty && wallpapers.values.allSatisfy { $0.holds.contains(.occluded) }
+    }
+
+    /// The tier's frame rates, as each display can show them evenly.
     private func refreshRates() {
         guard tier.framesPerSecond > 0 else { return }
         for screen in NSScreen.screens {
             guard let id = screen.displayID, let wallpaper = wallpapers[id] else { continue }
-            let refresh = Double(screen.maximumFramesPerSecond)
-            let variable = screen.minimumRefreshInterval < screen.maximumRefreshInterval - 0.0005
-            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, refresh: refresh,
-                                                               variable: variable))
-            wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, refresh: refresh,
-                                                                   variable: variable))
+            let fastest = screen.minimumRefreshInterval > 0 ? 1 / screen.minimumRefreshInterval
+                : Double(screen.maximumFramesPerSecond)
+            // Only the built-in panel paces a desktop window at any rate in its range; external adaptive-sync
+            // panels vary their refresh only for full-screen apps, so a window behind everything gets a fixed rate.
+            let ranged = screen.maximumRefreshInterval > screen.minimumRefreshInterval + 0.0005
+            let slowest = CGDisplayIsBuiltin(id) != 0 && ranged ? 1 / screen.maximumRefreshInterval : nil
+            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, fastest: fastest,
+                                                               slowest: slowest))
+            wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, fastest: fastest,
+                                                                   slowest: slowest))
             wallpaper.halfRateClouds = tier.halfRateClouds
         }
     }
