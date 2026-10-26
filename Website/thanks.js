@@ -22,8 +22,24 @@
     status.textContent = text;
   }
 
+  function show(key, address) {
+    keyText.textContent = key;
+    email.textContent = address ? "(" + address + ")" : "";
+    panel.hidden = false;
+    say("");
+  }
+
+  // Without a checkout to look up, the key this browser kept after paying shows again, as on the homepage.
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
-    say(word("js.portal", "Your key is in your customer portal below."));
+    var saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem("outbound-license") || "null");
+    } catch (error) {}
+    if (saved && typeof saved.key === "string" && Date.now() - saved.saved < 365 * 24 * 3600 * 1000) {
+      show(saved.key);
+    } else {
+      say(word("js.portal", "Your key is in your customer portal below."));
+    }
     return;
   }
 
@@ -48,10 +64,7 @@
           try {
             localStorage.setItem("outbound-license", JSON.stringify({ key: answer.key, saved: Date.now() }));
           } catch (error) {}
-          keyText.textContent = answer.key;
-          email.textContent = answer.email ? "(" + answer.email + ")" : "";
-          panel.hidden = false;
-          say("");
+          show(answer.key, answer.email);
           return;
         }
         if (answer.status === "open" || answer.status === "confirmed" || answer.status === "pending" || !answer.status) {

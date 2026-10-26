@@ -70,7 +70,6 @@
     saved = null;
   }
   if (saved) {
-    var swapped = [];
     document.querySelectorAll('.topbar a[data-url="buy"], .hero a[data-url="buy"], .foot-cta a[data-url="buy"]')
       .forEach(function (buy) {
         var small = buy.classList.contains("btn-sm");
@@ -95,22 +94,9 @@
         });
         buy.hidden = true;
         buy.parentNode.insertBefore(button, buy.nextSibling);
-        swapped.push({ buy: buy, button: button });
       });
     var yourKey = document.getElementById("your-key");
-    if (yourKey) {
-      yourKey.hidden = false;
-      document.getElementById("your-key-forget").addEventListener("click", function () {
-        try {
-          localStorage.removeItem("outbound-license");
-        } catch (error) {}
-        yourKey.hidden = true;
-        swapped.forEach(function (pair) {
-          pair.buy.hidden = false;
-          pair.button.remove();
-        });
-      });
-    }
+    if (yourKey) yourKey.hidden = false;
   }
 
   // Demo clips load and play only while on screen, so the page stays light.

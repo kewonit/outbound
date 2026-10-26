@@ -16,7 +16,8 @@ import UniformTypeIdentifiers
 /// For the website: --caption adds the place name in the corner as on the desktop, and --dock 58 leaves that
 /// many points for a Dock along the bottom, so the caption sits above it as it does on a Mac. --cursor flies a
 /// pointer across the frame for the bird to chase, and --fly-to lisse --fly-at 3 picks Lisse from the menu
-/// after three seconds. --pace sets metres per second over the ground.
+/// after three seconds; --fly-to lapland,niigata --fly-at 2,5 flies on to each in turn. --pace sets metres per
+/// second over the ground.
 ///
 /// Without --hour the light is always fair daytime; with it the sun stands where it would at that hour.
 @MainActor
@@ -207,16 +208,20 @@ enum Exporter {
         // With --seconds, stream raw BGRA frames to standard output for ffmpeg, flying on between them.
         if let seconds = options["seconds"].flatMap(Double.init) {
             let fps = Double(options["fps"] ?? "30") ?? 30
-            let destination = options["fly-to"].flatMap(Place.named)
-            var flyAt = Double(options["fly-at"] ?? "3") ?? 3
+            let places = (options["fly-to"] ?? "").split(separator: ",").compactMap { Place.named(String($0)) }
+            let times = (options["fly-at"] ?? "3").split(separator: ",").compactMap { Double($0) }
+            // Each place at its own moment; any without one follows three seconds after the last.
+            var flights = places.enumerated().map { i, place in
+                (place, i < times.count ? times[i] : (times.last ?? 0) + 3 * Double(i - times.count + 1))
+            }
             let out = FileHandle.standardOutput
             for frame in 0..<Int(seconds * fps) {
                 clockTime = time + Double(frame) / fps
                 world.advance(to: clockTime)
-                if let destination, Double(frame) / fps >= flyAt {
+                if let (place, at) = flights.first, Double(frame) / fps >= at {
                     let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-                    world.journey.fly(to: destination, from: bottom, time: world.time)
-                    flyAt = .infinity
+                    world.journey.fly(to: place, from: bottom, time: world.time)
+                    flights.removeFirst()
                 }
                 _ = try paintFrame()
                 out.write(Data(bytes))
