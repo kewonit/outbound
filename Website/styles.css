@@ -317,6 +317,7 @@ kbd {
 .tier.featured { background: var(--panel-2); }
 /* The city, its own card below the FAQ. */
 .tier-city { margin-top: 2.5rem; }
+.tier-city .tier-desc { margin-bottom: 1.5rem; }
 .tier-side .tier-desc { margin-bottom: 1.5rem; }
 /* What it runs on, just under the price and outside its card. */
 .tier-needs {
