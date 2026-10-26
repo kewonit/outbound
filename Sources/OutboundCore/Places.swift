@@ -31,6 +31,9 @@ extension Place {
     /// In flying order, so neighbours look different from each other.
     public static let all: [Place] = [punjab, niigata, serengeti, normandy, lisse, pampa, lapland, kansas]
 
+    /// Where a new install starts flying: Kansas, as on the website.
+    public static let first = kansas
+
     public static func named(_ id: String) -> Place? {
         all.first { $0.id == id }
     }

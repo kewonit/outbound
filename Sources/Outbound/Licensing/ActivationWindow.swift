@@ -34,6 +34,7 @@ final class ActivationWindow {
         window.title = "Unlock Outbound"
         window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
+        window.opensWhereTheUserIs()
         window.isReleasedWhenClosed = false
         window.center()
         observer = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window,
@@ -46,8 +47,7 @@ final class ActivationWindow {
         // Locked again, say after a refund, while the thank-you was still up.
         state.unlocked = false
         preview.start()
-        NSApp.comeForward()
-        window.makeKeyAndOrderFront(nil)
+        window.bringForward()
     }
 
     /// Says thank you and where to find Outbound, and stays until the buyer is done reading. Someone who closed
@@ -160,7 +160,7 @@ private struct ActivationView: View {
         Label("Unlocked. Thank you!", systemImage: "checkmark.circle.fill")
             .font(.title3)
             .foregroundStyle(.green)
-        Text("Outbound is flying behind your windows now. It lives in the menu bar, under \(Image(systemName: "bird")).")
+        Text("Outbound is flying behind your windows now. It lives in the menu bar, under \(Image(nsImage: .outboundGullInline).renderingMode(.template)).")
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         Divider().padding(.vertical, 4)

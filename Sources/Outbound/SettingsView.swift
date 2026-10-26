@@ -8,37 +8,31 @@ struct SettingsView: View {
     @ObservedObject var license: LicenseController
     @State private var opensAtLogin = LoginItem.isOn
 
+    private static let website = URL(string: "https://outbound.edbn.me")!
+    private static let support = URL(string: "https://outbound.edbn.me/support")!
+
     var body: some View {
         Form {
             Section {
-                Picker("Light", selection: $preferences.light) {
-                    ForEach(World.Light.allCases, id: \.self) { Text($0.title).tag($0) }
+                Toggle(isOn: $preferences.restsWhenAway) {
+                    Described("Hold still while I'm away", "Rests after five minutes with nobody at the Mac.")
                 }
-                Picker("Seasons", selection: $preferences.followsCalendar) {
-                    Text("What is growing there today").tag(true)
-                    Text("Each place at its best").tag(false)
+                Toggle(isOn: $preferences.matchingStill) {
+                    Described("Show the painting on the lock screen", "A still of the current view, while the Mac is locked.")
                 }
-                Picker("Pace", selection: $preferences.pace) {
-                    ForEach(Preferences.Pace.allCases) { Text($0.title).tag($0) }
-                }
-                Picker("Stay over each place", selection: $preferences.stay) {
-                    ForEach(Preferences.Stay.allCases) { Text($0.title).tag($0) }
-                }
-            }
-            Section {
-                Picker("On battery", selection: $preferences.batteryMode) {
-                    Text("Keep flying, gently").tag(PowerState.BatteryMode.gentle)
-                    Text("Hold a still painting").tag(PowerState.BatteryMode.still)
-                }
-                Toggle("Hold still while I'm away", isOn: $preferences.restsWhenAway)
-                Toggle("Show the painting on the lock screen", isOn: $preferences.matchingStill)
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
+            } footer: {
+                Text("Light, seasons, pace and the rest of the choices are in the menu bar, under the gull.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section {
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
                 if !LicenseController.isGated {
                     LabeledContent("License", value: "Development build")
-                } else if license.record != nil {
+                } else if license.record == nil {
+                    LabeledContent("License", value: "Not active on this Mac")
+                } else {
                     LabeledContent("License") {
                         HStack {
                             Text("Active on \(license.macName)").foregroundStyle(.secondary)
@@ -54,9 +48,7 @@ struct SettingsView: View {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
             } footer: {
-                Text("Outbound pauses whenever the desktop is hidden, the screen sleeps or Low Power Mode is on, and rests after five minutes with nobody at the Mac. Quitting it puts your own desktop picture back.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                about
             }
         }
         .formStyle(.grouped)
@@ -64,9 +56,57 @@ struct SettingsView: View {
         .fixedSize()
     }
 
+    /// Which Outbound this is, what it does by itself, and where to find more.
+    private var about: some View {
+        VStack(spacing: 6) {
+            Image(nsImage: .outboundGull)
+                .renderingMode(.template)
+                .resizable()
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
+            Text("Outbound \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                .font(.callout.weight(.medium))
+            VStack(spacing: 2) {
+                Text("It pauses by itself whenever you can't see it.")
+                Text("Quit it and your own desktop picture comes back.")
+            }
+            HStack(spacing: 6) {
+                Link("Website", destination: Self.website)
+                Text("·").accessibilityHidden(true)
+                Link("Support", destination: Self.support)
+            }
+            .padding(.top, 2)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
+    }
+
     private func setOpensAtLogin(_ on: Bool) {
         LoginItem.set(on)
         opensAtLogin = LoginItem.isOn
+    }
+}
+
+/// A setting's name with a line under it saying what it does.
+private struct Described: View {
+    let title: String
+    let detail: String
+
+    init(_ title: String, _ detail: String) {
+        self.title = title
+        self.detail = detail
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

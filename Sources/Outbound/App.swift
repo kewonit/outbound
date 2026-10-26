@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
-        let place = Place.named(preferences.lastPlace) ?? Place.all[0]
+        let place = Place.named(preferences.lastPlace) ?? .first
         let world = World(place: place, time: CACurrentMediaTime(), light: preferences.light)
         displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         stills = StillWriter(gpu: gpu)
@@ -312,7 +312,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func installStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "bird", accessibilityDescription: "Outbound")
+        statusItem.button?.image = .outboundGull
         let menu = NSMenu()
         menu.delegate = self
         // Items say for themselves whether they can be used, as Check for Updates does in development builds.
@@ -350,29 +350,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             places.addItem(item)
         }
         menu.addItem(submenu("Fly To", places))
-
-        let lights = NSMenu()
-        for light in World.Light.allCases {
-            let item = NSMenuItem(title: light.title, action: #selector(setLight(_:)), keyEquivalent: "")
-            item.representedObject = light.rawValue
-            item.target = self
-            item.state = light == preferences.light ? .on : .off
-            lights.addItem(item)
-        }
-        menu.addItem(submenu("Light", lights))
-
         let pause = NSMenuItem(title: displays.isPaused ? "Resume" : "Pause", action: #selector(togglePause),
                                keyEquivalent: "")
         pause.target = self
         menu.addItem(pause)
         menu.addItem(.separator())
+
+        // How the painting looks.
+        let preferences = preferences
+        menu.addItem(choices("Light", World.Light.allCases.map { ($0.title, $0) }, current: preferences.light) {
+            preferences.light = $0
+        })
+        menu.addItem(choices("Seasons", [("What is growing there today", true), ("Each place at its best", false)],
+                             current: preferences.followsCalendar) { preferences.followsCalendar = $0 })
+        menu.addItem(.separator())
+
+        // How it flies.
+        menu.addItem(choices("Pace", Preferences.Pace.allCases.map { ($0.title, $0) }, current: preferences.pace) {
+            preferences.pace = $0
+        })
+        menu.addItem(choices("Time at Each Place", Preferences.Stay.allCases.map { ($0.title, $0) },
+                             current: preferences.stay) { preferences.stay = $0 })
+        menu.addItem(choices("On Battery", PowerState.BatteryMode.allCases.map { ($0.title, $0) },
+                             current: preferences.batteryMode) { preferences.batteryMode = $0 })
+        menu.addItem(.separator())
+
+        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
         let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         check.target = self
         check.isEnabled = updates.canCheck
         menu.addItem(check)
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
@@ -380,6 +390,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = submenu
         return item
+    }
+
+    /// A submenu of choices, with a check on the current one.
+    private func choices<Value: Equatable>(_ title: String, _ options: [(String, Value)], current: Value,
+                                           choose: @escaping @MainActor (Value) -> Void) -> NSMenuItem {
+        let menu = NSMenu()
+        for (name, value) in options {
+            let item = NSMenuItem(title: name, action: #selector(pick(_:)), keyEquivalent: "")
+            item.target = self
+            item.state = value == current ? .on : .off
+            item.representedObject = Choice { choose(value) }
+            menu.addItem(item)
+        }
+        return submenu(title, menu)
+    }
+
+    @objc private func pick(_ sender: NSMenuItem) {
+        (sender.representedObject as? Choice)?.apply()
     }
 
     @objc private func fly(_ sender: NSMenuItem) {
@@ -397,11 +425,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    @objc private func setLight(_ sender: NSMenuItem) {
-        guard let raw = sender.representedObject as? String, let light = World.Light(rawValue: raw) else { return }
-        preferences.light = light
-    }
-
     @objc private func checkForUpdates() {
         updates.checkNow()
     }
@@ -412,6 +435,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func togglePause() {
         displays.isPaused.toggle()
+        // The gull greys out while the world is paused.
+        statusItem.button?.appearsDisabled = displays.isPaused
         if displays.isPaused { refreshStill(force: true) }
     }
 
@@ -422,12 +447,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             window.title = "Outbound Settings"
             window.styleMask = [.titled, .closable]
             window.showsOnlyCloseButton()
+            window.opensWhereTheUserIs()
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window
         }
-        NSApp.comeForward()
-        settingsWindow?.makeKeyAndOrderFront(nil)
+        // Once the menu it was chosen from has closed.
+        DispatchQueue.main.async { [weak self] in self?.settingsWindow?.bringForward() }
+    }
+}
+
+/// A menu item's choice, run when it is picked.
+@MainActor
+private final class Choice: NSObject {
+    let apply: @MainActor () -> Void
+
+    init(_ apply: @escaping @MainActor () -> Void) {
+        self.apply = apply
     }
 }
 
@@ -439,6 +475,23 @@ extension NSApplication {
         } else {
             activate(ignoringOtherApps: true)
         }
+    }
+}
+
+extension NSWindow {
+    /// Shows the window in front of every other app's windows. Outbound has no Dock icon, and since macOS 14
+    /// the system can turn down its request to become the active app, which would leave the window behind the
+    /// app in front; it comes to the front anyway, and takes the keyboard once Outbound is active.
+    func bringForward() {
+        NSApp.comeForward()
+        makeKeyAndOrderFront(nil)
+        orderFrontRegardless()
+    }
+
+    /// Opens on the desktop the user is looking at, even beside a full-screen app, rather than switching back to
+    /// the one it was last open on.
+    func opensWhereTheUserIs() {
+        collectionBehavior.formUnion([.moveToActiveSpace, .fullScreenAuxiliary])
     }
 }
 

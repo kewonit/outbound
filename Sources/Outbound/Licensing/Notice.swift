@@ -30,6 +30,7 @@ private final class NoticePanel {
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
         panel.level = .floating
+        panel.opensWhereTheUserIs()
         panel.showsOnlyCloseButton()
         let view = NoticeView(title: title, detail: detail, buttons: buttons) { [self] index in finish(index) }
         panel.contentViewController = NSHostingController(rootView: view)
@@ -41,8 +42,7 @@ private final class NoticePanel {
             MainActor.assumeIsolated { finish(nil) }
         }
         panel.center()
-        NSApp.comeForward()
-        panel.makeKeyAndOrderFront(nil)
+        panel.bringForward()
     }
 
     private func finish(_ index: Int?) {

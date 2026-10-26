@@ -48,7 +48,7 @@ final class Preferences: ObservableObject {
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
-        lastPlace = defaults.string(forKey: "lastPlace") ?? Place.all[0].id
+        lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
     }
 
     private func save() {
@@ -69,6 +69,15 @@ extension World.Light {
         case .yourTime: "Follows your clock"
         case .placeTime: "The place's own time"
         case .alwaysDay: "Always daytime"
+        }
+    }
+}
+
+extension PowerState.BatteryMode {
+    var title: String {
+        switch self {
+        case .gentle: "Keep flying, gently"
+        case .still: "Hold a still painting"
         }
     }
 }
