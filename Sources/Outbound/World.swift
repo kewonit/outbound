@@ -101,8 +101,9 @@ final class World {
         let dt = t - time
         time = t
         let camera = self.camera
-        journey.extend(through: camera.y + Double(desktop.maxY) * Self.metresPerPoint + 1500,
-                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500)
+        let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        journey.extend(through: top + 1500, behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500,
+                       notBefore: top + 200)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {

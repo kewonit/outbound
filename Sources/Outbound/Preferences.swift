@@ -19,10 +19,17 @@ final class Preferences: ObservableObject {
         }
     }
 
+    /// Minutes over each place, or none to stay over the one in view.
     enum Stay: Int, CaseIterable, Identifiable {
-        case short = 6, medium = 12, long = 30, hour = 60
+        case short = 6, medium = 12, long = 30, hour = 60, forever = 0
         var id: Self { self }
-        var title: String { self == .hour ? "An hour" : "\(rawValue) minutes" }
+        var title: String {
+            switch self {
+            case .hour: "An hour"
+            case .forever: "Do not change"
+            default: "\(rawValue) minutes"
+            }
+        }
     }
 
     @Published var light: World.Light { didSet { save() } }
@@ -46,7 +53,7 @@ final class Preferences: ObservableObject {
         light = World.Light(rawValue: defaults.string(forKey: "light") ?? "") ?? .alwaysDay
         followsCalendar = defaults.object(forKey: "followsCalendar") as? Bool ?? false
         pace = Pace(rawValue: defaults.string(forKey: "pace") ?? "") ?? .gentle
-        stay = Stay(rawValue: defaults.integer(forKey: "stay")) ?? .medium
+        stay = (defaults.object(forKey: "stay") as? Int).flatMap(Stay.init(rawValue:)) ?? .medium
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true

@@ -268,7 +268,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             world.repaint()
         }
         if journey.speed != preferences.pace.speed { journey.setSpeed(preferences.pace.speed, at: world.time) }
-        journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed
+        journey.staysPut = preferences.stay == .forever
+        if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
         let edgeChanged = displays.paperEdge != preferences.paperEdge

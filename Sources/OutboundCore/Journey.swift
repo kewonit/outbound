@@ -28,6 +28,8 @@ public final class Journey {
     /// Metres flown over one place before moving on to the next.
     public var legLength: Double
     public var followsCalendar: Bool
+    /// Stays over the place in view rather than moving on to the next one. A Fly To still goes somewhere new.
+    public var staysPut = false
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
@@ -75,11 +77,14 @@ public final class Journey {
         return legs[i - 1]
     }
 
-    /// Appends legs so the land up to world y is decided, and forgets legs far behind.
-    public func extend(through y: Double, behind: Double, date: Date = .now) {
-        while let last = legs.last, last.start + legLength < y {
+    /// Appends legs so the land up to world y is decided, and forgets legs far behind. A new place begins no
+    /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
+    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
+    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
+        while !staysPut, let last = legs.last, last.start + legLength < y {
             let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
-            append(Place.all[(i + 1) % Place.all.count], start: last.start + legLength, sweep: nil, date: date)
+            let start = max(last.start + legLength, notBefore)
+            append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
         }
         while legs.count > 2, legs[1].start + Self.morphLength < behind {
             legs.removeFirst()
