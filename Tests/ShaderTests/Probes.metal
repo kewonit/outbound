@@ -418,12 +418,12 @@ kernel void probeRailway(device float4 *out [[buffer(0)]], constant Scene &scene
 
 // MARK: - Things that move
 
-// Street lights through an evening: warming up, on, and the odd one failing.
+// Street lights through an evening: warming up, then on.
 kernel void probeStreetLight(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                              uint id [[thread_position_in_grid]]) {
     float value = float(id % probeSide) / float(probeSide - 1);
     float hour = 17.0 + 10.0 * float(id / probeSide) / float(probeSide - 1);
-    float3 c = streetLight(probeBase, value, probeRandom(id, 15u), 1.0, hour, scene.legB.biome, 1800.0);
+    float3 c = streetLight(probeBase, value, probeRandom(id, 15u), 1.0, hour, scene.legB.biome);
     out[id] = float4(c, hour);
 }
 

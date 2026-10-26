@@ -154,9 +154,7 @@ figure { margin: 0; }
   margin-inline-start: 1px;
   border-radius: 1px;
   background: var(--select);
-  animation: blink 1.1s steps(1) infinite;
 }
-@keyframes blink { 50% { opacity: 0; } }
 
 /* ---------- App frame ---------- */
 .app-frame {
@@ -547,7 +545,6 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .btn, .faq-q::after, .btn-star svg, .btn-star path { transition: none; }
-  .caret { animation: none; }
 }
 
 /* ---------- The flight: a video of the wallpaper itself ---------- */

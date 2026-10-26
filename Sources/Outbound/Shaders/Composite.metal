@@ -63,9 +63,9 @@ inline float houseOn(float id, float hour, float sunset) {
 // One street lamp's light on the ground. `value` is the baked pool below 0.8 and the glowing head above it;
 // `lamp` tells lamps apart, 0 to 1. Photocells switch lamps on a few at a time through dusk. Older sodium
 // lamps glow a dim pinkish red for their first minutes before reaching their orange, newer LED lamps come
-// on at once in the place's own white. Now and then one is failing and stutters. Some villages, as in much
+// on at once in the place's own white. Every lamp shines steadily; none flickers. Some villages, as in much
 // of rural France, switch their lamps off from midnight until five.
-inline float3 streetLight(float3 c, float value, float lamp, float night, float hour, constant Biome &b, float time) {
+inline float3 streetLight(float3 c, float value, float lamp, float night, float hour, constant Biome &b) {
     float h1 = fract(lamp * 7.13 + 0.31), h2 = fract(lamp * 17.9 + 0.57);
     float start = 0.08 + 0.14 * h1;
     float on = smoothstep(start, start + 0.02, night);
@@ -76,11 +76,6 @@ inline float3 streetLight(float3 c, float value, float lamp, float night, float 
         float warm = saturate((night - start) / 0.12);
         tint = mix(float3(0.95, 0.45, 0.32), float3(1.0, 0.6, 0.22), warm);
         on *= mix(0.35, 1.0, warm);
-    }
-    if (fract(lamp * 31.7) > 0.955) {
-        float tick = floor(time * 9.0);
-        float burst = step(0.82, fract(sin(floor(time / 6.0) * 12.9898 + lamp * 78.2) * 43758.5));
-        on *= 1.0 - burst * step(0.45, fract(sin(tick * 12.9898 + lamp * 4.1) * 43758.5)) * 0.85;
     }
     if (on <= 0.0) return 0.0;
     float pool = min(value, 0.8) / 0.8;
@@ -418,23 +413,12 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         }
     }
 
-    // Water mirrors the sky: clouds overhead brighten it, and the sun glints off ripples.
+    // Water mirrors the sky: clouds overhead brighten it.
     if (water > 0.01) {
         float2 cloudPx = (params.clouds.xy + pixel * mpp) / params.clouds.z;
         float2 cloudSize = float2(cloudTexture.get_width(), cloudTexture.get_height());
         float overhead = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudSize.y - cloudPx.y) / cloudSize).x;
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
-        if (water > 0.99) {
-            float2 gcell = floor(world / 2.4);
-            float gh = hash21(int2(gcell), 160u);
-            if (gh > 0.9) {
-                float2 gpos = (gcell + 0.2 + 0.6 * hash22(int2(gcell), 161u)) * 2.4;
-                float sparkle = fill(length(world - gpos) - 0.22, mpp * 1.2);
-                float wave = saturate(sin(scene.time.x * (1.2 + gh * 1.8) + gh * 40.0));
-                wave *= wave; wave *= wave; wave *= wave; wave *= wave;
-                c = mix(c, float3(1.0, 1.0, 0.97), wave * sparkle * 0.8 * (1.0 - overhead));
-            }
-        }
     }
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.
@@ -447,13 +431,13 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         float id = lamp.y;
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
         if (id > 0.895) {
-            light += streetLight(c, lamp.x, (id - 0.9) * 10.0, night, hour, leg.biome, scene.time.x);
+            light += streetLight(c, lamp.x, (id - 0.9) * 10.0, night, hour, leg.biome);
         } else {
             float on = houseOn(id, scene.clock.x, scene.clock.y);
             float3 tint = float3(1.0, 0.68, 0.35);
-            // About one lit house in ten has a television on in the evening: cool and restless.
+            // About one lit house in ten has a television on in the evening: a cool, steady glow.
             if (fract(id * 41.3) > 0.9 && hour > 20.5 && hour < 23.6) {
-                tint = float3(0.62, 0.72, 1.0) * (0.75 + 0.25 * sin(scene.time.x * 3.1 + id * 90.0));
+                tint = float3(0.62, 0.72, 1.0) * 0.85;
             }
             float pool = lamp.x * on;
             // Lit ground shows its own colour warmed, over a little of the lamp's own colour so it never turns olive.
