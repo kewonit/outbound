@@ -3,10 +3,10 @@
   "use strict";
 
   // The only place site URLs live. Emptying buy or download turns its buttons into
-  // "Coming soon", or hides them.
+  // "Coming soon", or hides them. Buy makes a checkout in the visitor's own money (worker/index.js).
   var URLS = {
     download: "/download",
-    buy: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA",
+    buy: "/buy",
     city: "https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b",
     github: "https://github.com/kewonit/outbound"
   };

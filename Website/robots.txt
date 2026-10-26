@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# Each visit starts a checkout.
+Disallow: /buy
 
 Sitemap: https://outbound.edbn.me/sitemap.xml

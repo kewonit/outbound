@@ -3,8 +3,10 @@
 //
 //   GET  /, /support, /thanks          The page in the visitor's language: their pick in the footer if they made
 //                                      one, else the first of their browser's languages the site speaks.
+//                                      Every page shows Outbound's price in the visitor's own money (PRICES).
+//   GET  /buy[?currency=usd]           On to a new Polar checkout for Outbound, in that money, or in dollars.
 //   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
-//   POST /api/checkout                 A new Polar checkout for Outbound: { id, url, expires_at }.
+//   POST /api/checkout                 A new Polar checkout for Outbound, in the buyer's money: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
 //                                      { status: "ready", key, email } or { status: "pending" | "open" | ... },
 //                                      with city: true when it bought a city painted in as well.
@@ -20,16 +22,50 @@ const POLAR_VERSION = "2026-10";
 // The languages the site is translated into, by their folder. English is the site's own root.
 const LANGUAGES = ["es", "fr", "de", "it", "pt-br", "nl", "ru", "tr", "pl", "ja", "ko", "zh-hans", "zh-hant", "hi", "ar"];
 const TRANSLATED = new Set(["/", "/support", "/thanks"]);
+// Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
+// the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
+// of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $7. The city is $99
+// everywhere. Turkish pages say "$7'a", which suits a lira price ending in 9 (dokuz).
+const priceIn = (currency, label) => ({ currency, label });
+const EURO = [
+  "AD", "AT", "AX", "BE", "BG", "CY", "DE", "EE", "ES", "FI", "FR", "GF", "GP", "GR", "HR", "IT", "LT", "LU", "LV",
+  "MC", "ME", "MQ", "PT", "RE", "SI", "SK", "SM", "VA", "XK", "YT",
+];
+const PRICES = {
+  ...Object.fromEntries(EURO.map((country) => [country, priceIn("eur", "6\u00a0€")])),
+  IE: priceIn("eur", "€6"), MT: priceIn("eur", "€6"), NL: priceIn("eur", "€6"),
+  ...Object.fromEntries(["GB", "GG", "IM", "JE"].map((country) => [country, priceIn("gbp", "£5")])),
+  CH: priceIn("chf", "CHF\u00a06"), LI: priceIn("chf", "CHF\u00a06"),
+  SE: priceIn("sek", "69\u00a0kr"),
+  CA: priceIn("cad", "CA$9"),
+  AU: priceIn("aud", "A$10"),
+  SG: priceIn("sgd", "S$9"),
+  HK: priceIn("hkd", "HK$50"),
+  JP: priceIn("jpy", "¥1,000"),
+  KR: priceIn("krw", "₩9,000"),
+  TW: priceIn("twd", "NT$150"),
+  CN: priceIn("cny", "¥29"),
+  SA: priceIn("sar", "SAR\u00a025"),
+  AE: priceIn("aed", "AED\u00a025"),
+  PL: priceIn("pln", "19\u00a0zł"),
+  MX: priceIn("mxn", "MX$79"),
+  BR: priceIn("brl", "R$15"),
+  TR: priceIn("try", "₺149"),
+  IN: priceIn("inr", "₹279"),
+};
+// On a page, its $7, and the link to pay in dollars, which stays hidden where $7 is the price anyway.
+const PRICE_OR_DOLLARS = /(<a\b[^>]*\sdata-dollars\b[^>]*>)([\s\S]*?<\/a>)|\$7(?![\d.,])/g;
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/download") return download(request, env);
+    if (url.pathname === "/buy") return buy(request, env, url);
     if (TRANSLATED.has(url.pathname)) return page(request, env, url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/")) return priced(request, env);
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
     try {
-      if (url.pathname === "/api/checkout") return await checkout(request, env, url.origin);
+      if (url.pathname === "/api/checkout") return await checkout(request, env);
       if (url.pathname === "/api/license") return await license(request, env);
       return reply({ error: "Not found." }, 404);
     } catch (error) {
@@ -62,9 +98,28 @@ async function page(request, env, url) {
       headers: { Location: `/${language}${path}${url.search}`, Vary: "Accept-Language, Cookie", "Cache-Control": "private, no-store" },
     });
   }
-  const response = await env.ASSETS.fetch(request);
+  const response = await priced(request, env);
   const answer = new Response(response.body, response);
   answer.headers.append("Vary", "Accept-Language, Cookie");
+  return answer;
+}
+
+// A page with its $7 in the visitor's own money, where PRICES has one, and the offer to pay in dollars shown. The
+// page is always fetched in full, so a copy the browser kept from before, in dollars, can't be confirmed as current,
+// and the answer is cached only in that browser, never somewhere a visitor from another country could be handed it.
+async function priced(request, env) {
+  const price = PRICES[request.cf?.country];
+  if (!price) return env.ASSETS.fetch(request);
+  const headers = new Headers(request.headers);
+  headers.delete("If-None-Match");
+  headers.delete("If-Modified-Since");
+  const response = await env.ASSETS.fetch(new Request(request, { headers }));
+  if (!response.ok || !response.headers.get("Content-Type")?.startsWith("text/html")) return response;
+  const html = (await response.text()).replace(PRICE_OR_DOLLARS, (match, link, rest) =>
+    link ? link.replace(/\shidden(?=[\s>])/, "") + rest : price.label);
+  const answer = new Response(html, response);
+  for (const name of ["ETag", "Last-Modified", "Content-Length"]) answer.headers.delete(name);
+  if (!answer.headers.get("Cache-Control")?.includes("no-store")) answer.headers.set("Cache-Control", "private, no-cache");
   return answer;
 }
 
@@ -94,19 +149,56 @@ function preferredLanguage(request) {
   return null;
 }
 
-async function checkout(request, env, origin) {
+// The site's Buy: a new checkout, in the money the page showed, or in dollars when the visitor asked for that. Should
+// the store be busy or unreachable, Polar's own checkout link instead, which picks the money from the address itself.
+async function buy(request, env, url) {
+  try {
+    if (await allowed(env.CHECKOUTS, request.headers.get("CF-Connecting-IP") ?? "unknown")) {
+      const session = await newCheckout(request, env, url.searchParams.get("currency") === "usd", {
+        return_url: `${url.origin}/`,
+        metadata: { source: "site" },
+      });
+      return redirect(session.url);
+    }
+  } catch (error) {
+    console.error(error.message);
+  }
+  return redirect(env.POLAR_CHECKOUT_LINK);
+}
+
+// The app's Buy.
+async function checkout(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   if (!(await allowed(env.CHECKOUTS, ip))) return reply({ error: "Too many checkouts. Wait a minute." }, 429);
-  const session = await polar(env, "/v1/checkouts/", {
-    method: "POST",
-    body: JSON.stringify({
-      products: [env.POLAR_PRODUCT_ID],
-      success_url: `${origin}/thanks?checkout_id={CHECKOUT_ID}`,
-      metadata: { source: "app" },
-    }),
-  });
-  if (!session) throw new Error("Polar POST /v1/checkouts/ found no product");
+  const session = await newCheckout(request, env, false, { metadata: { source: "app" } });
   return reply({ id: session.id, url: session.url, expires_at: session.expires_at });
+}
+
+// A Polar checkout for Outbound in the visitor's money, or in dollars, as well when Polar won't take that money. It
+// comes back to the thank-you page. The visitor's address fills in their country.
+async function newCheckout(request, env, dollars, fields) {
+  const origin = new URL(request.url).origin;
+  const local = dollars ? null : PRICES[request.cf?.country]?.currency;
+  const currencies = local ? [local, "usd"] : ["usd"];
+  for (const [i, currency] of currencies.entries()) {
+    try {
+      const session = await polar(env, "/v1/checkouts/", {
+        method: "POST",
+        body: JSON.stringify({
+          products: [env.POLAR_PRODUCT_ID],
+          currency,
+          customer_ip_address: request.headers.get("CF-Connecting-IP") ?? undefined,
+          success_url: `${origin}/thanks?checkout_id={CHECKOUT_ID}`,
+          ...fields,
+        }),
+      });
+      if (session) return session;
+    } catch (error) {
+      if (i === currencies.length - 1) throw error;
+      console.error(error.message);
+    }
+  }
+  throw new Error("Polar POST /v1/checkouts/ found no product");
 }
 
 async function license(request, env) {
@@ -169,6 +261,10 @@ function mask(email) {
   if (typeof email !== "string" || !email.includes("@")) return null;
   const [name, domain] = email.split("@");
   return `${name.slice(0, 1)}•••@${domain}`;
+}
+
+function redirect(location) {
+  return new Response(null, { status: 302, headers: { Location: location, "Cache-Control": "no-store" } });
 }
 
 function reply(body, status = 200) {
