@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://outbound.edbn.me/sitemap.xml

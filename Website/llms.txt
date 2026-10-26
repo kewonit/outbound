@@ -1,0 +1,22 @@
+# Outbound
+
+> A live wallpaper for Mac. A painted landscape flies by behind your desktop, over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor. $7 plus tax, once, for up to 3 Macs. Needs a Mac with Apple silicon and macOS 13 Ventura or later.
+
+- Your Mac paints it live with Metal as it flies, so it never loops.
+- The places: Punjab (India), Niigata (Japan), the Serengeti (Tanzania), Normandy (France), Lisse (Netherlands), La Pampa (Argentina), Lapland (Finland) and Kansas (United States).
+- It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.
+- One landscape runs across every display. Your own wallpaper comes back when you quit.
+- Updates are free and install themselves. No account and no analytics.
+
+## Pages
+
+- [Home](https://outbound.edbn.me/): what it looks like, the places, the price and the FAQ
+- [Support](https://outbound.edbn.me/support): your key, moving to a new Mac, and help
+- [Privacy](https://outbound.edbn.me/privacy): what the app sends and what it keeps on your Mac
+- [License](https://outbound.edbn.me/license): the source is public to read; using the app needs a license
+
+## Links
+
+- [Buy Outbound](https://outbound.edbn.me/#buy)
+- [Download for Mac](https://outbound.edbn.me/download)
+- [Source on GitHub](https://github.com/kewonit/outbound)

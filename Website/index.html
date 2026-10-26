@@ -8,10 +8,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Outbound · A painted world behind your desktop</title>
-<meta name="description" content="A live wallpaper for Mac: a painted world drifts by behind your desktop, and a little bird follows your cursor.">
+<title>Outbound · Painted live wallpaper for Mac</title>
+<meta name="description" content="A live wallpaper for Mac, painted as it flies over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor.">
+<link rel="canonical" href="https://outbound.edbn.me/">
+<meta name="robots" content="index, follow, max-image-preview:large, max-video-preview:-1">
 <meta name="theme-color" content="#000000">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content="Outbound · A painted world behind your desktop">
 <meta property="og:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta property="og:image" content="https://outbound.edbn.me/assets/og.png">
@@ -23,8 +27,183 @@
 <meta name="twitter:title" content="Outbound · A painted world behind your desktop">
 <meta name="twitter:description" content="Fly over Niigata, Punjab, the Serengeti and more, painted live behind your Mac's desktop.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og.png">
+<meta name="twitter:image:alt" content="Outbound: a painted world, flying by behind your desktop. For Mac, $7 plus tax.">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preload" as="image" href="assets/poster.jpg?v=3" fetchpriority="high">
 <link rel="stylesheet" href="styles.css?v=12">
+<!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
+     both together. -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://outbound.edbn.me/#website",
+   "url": "https://outbound.edbn.me/",
+   "name": "Outbound",
+   "description": "A live wallpaper for Mac, painted as it flies over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor.",
+   "inLanguage": "en",
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   }
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://outbound.edbn.me/#organization",
+   "name": "Outbound",
+   "url": "https://outbound.edbn.me/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://outbound.edbn.me/assets/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "email": "outbound@edbn.me",
+   "sameAs": [
+    "https://github.com/kewonit/outbound"
+   ]
+  },
+  {
+   "@type": "SoftwareApplication",
+   "@id": "https://outbound.edbn.me/#app",
+   "name": "Outbound",
+   "description": "A live wallpaper for Mac, painted as it flies over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor.",
+   "url": "https://outbound.edbn.me/",
+   "applicationCategory": "DesktopEnhancementApplication",
+   "operatingSystem": "macOS 13 Ventura or later",
+   "processorRequirements": "Apple silicon",
+   "image": "https://outbound.edbn.me/assets/icon-512.png",
+   "screenshot": [
+    "https://outbound.edbn.me/assets/poster.jpg",
+    "https://outbound.edbn.me/assets/places/niigata.jpg",
+    "https://outbound.edbn.me/assets/places/lisse.jpg",
+    "https://outbound.edbn.me/assets/day/night.jpg"
+   ],
+   "downloadUrl": "https://outbound.edbn.me/download",
+   "isAccessibleForFree": false,
+   "offers": {
+    "@type": "Offer",
+    "price": "7.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "url": "https://outbound.edbn.me/#buy"
+   },
+   "publisher": {
+    "@id": "https://outbound.edbn.me/#organization"
+   },
+   "video": {
+    "@id": "https://outbound.edbn.me/#video"
+   }
+  },
+  {
+   "@type": "VideoObject",
+   "@id": "https://outbound.edbn.me/#video",
+   "name": "Outbound flying over Kansas",
+   "description": "A Mac desktop: round fields of corn and wheat in Kansas drift past behind the Dock while the white bird follows the cursor.",
+   "thumbnailUrl": "https://outbound.edbn.me/assets/poster.jpg",
+   "contentUrl": "https://outbound.edbn.me/assets/flight.mp4",
+   "uploadDate": "2026-10-26T04:48:32+05:30",
+   "duration": "PT16S"
+  },
+  {
+   "@type": "FAQPage",
+   "@id": "https://outbound.edbn.me/#faq",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What do I need?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A Mac with Apple silicon and macOS 13 Ventura or newer."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it a video on a loop?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Your Mac paints it live as it flies, so it never loops."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I choose where it flies?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Pick any of the eight places from the menu bar, and how long it stays over each, from six minutes to an hour."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will it slow my Mac or drain the battery?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it work with more than one display?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. One landscape runs across all of them."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What happens to my own wallpaper?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It comes back when you quit Outbound."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Where do I find my key?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It shows right after you pay, and stays in your customer portal. Buy from inside the app and it unlocks by itself."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How many Macs can I use?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Three at once. Move it to a new Mac from Settings or your customer portal."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Are updates free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. They install themselves while you're away."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "The code is on GitHub. Is it free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The code is open to read. Using the app needs a license."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Need help?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Email outbound@edbn.me, or see Support."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
 </head>
 <body>
 
@@ -194,6 +373,14 @@
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">What do I need?</button>
           <div class="faq-a"><p>A Mac with Apple silicon and macOS 13 Ventura or newer.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Is it a video on a loop?</button>
+          <div class="faq-a"><p>No. Your Mac paints it live as it flies, so it never loops.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">Can I choose where it flies?</button>
+          <div class="faq-a"><p>Yes. Pick any of the eight places from the menu bar, and how long it stays over each, from six minutes to an hour.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false">Will it slow my Mac or drain the battery?</button>
