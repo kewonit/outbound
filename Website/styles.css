@@ -292,7 +292,7 @@ kbd {
 .tier.featured .tier-name { color: var(--accent-soft); }
 .tier-price { margin: 0; font-size: 1.875rem; font-weight: 500; }
 /* One piece, so where it doesn't fit beside a long price it moves below it whole, its leading space kept. */
-.tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 1.125rem; font-weight: 500; color: var(--ink-mute); }
+.tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 0.9375rem; font-weight: 500; color: var(--ink-mute); }
 .tier-desc { margin: 0; font-size: 1.125rem; color: var(--ink-soft); }
 .tier ul {
   list-style: none;
@@ -334,10 +334,20 @@ kbd {
   transition: color 0.15s ease;
 }
 .tier-dollars:hover { color: var(--ink); }
-/* The city, below Outbound in the same box: a quieter price, and a button that doesn't compete with Buy. */
-.tier-city .tier-price { font-size: 1.5rem; }
-.tier-city .tier-price .per { font-size: 1rem; }
-.tier-city .tier-desc { margin-bottom: 1rem; font-size: 1rem; }
+/* The city, below Outbound in the same box and kept small: its name and price on one line, a short note under
+   them, and a quiet button. */
+.tier-city {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 1rem 1.25rem;
+}
+.tier-city .tier-name { font-size: 1rem; }
+.tier-city .tier-price { font-size: 1.125rem; }
+.tier-city .tier-price .per { font-size: 0.8125rem; }
+.tier-city .tier-desc { flex-basis: 100%; font-size: 0.875rem; color: var(--ink-mute); }
+.tier-city .btn { margin-top: 0.5rem; }
 .tier-side .tier-desc { margin-bottom: 1.5rem; }
 /* What it runs on, just under the price and outside its card. */
 .tier-needs {
@@ -498,16 +508,19 @@ kbd {
     grid-row: 2;
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: 2rem;
-    align-items: center;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "name price button" "desc desc button";
+    align-items: baseline;
+    gap: 0.125rem 0.75rem;
+    padding: 1rem 1.5rem;
     background: transparent;
     border-top: 0;
     border-radius: 0 0 12px 12px;
   }
-  .tier-city > :not(.btn) { grid-column: 1; }
-  .tier-city .tier-desc { margin-bottom: 0; }
-  .tier-city .btn { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin-top: 0; }
+  .tier-city .tier-name { grid-area: name; }
+  .tier-city .tier-price { grid-area: price; }
+  .tier-city .tier-desc { grid-area: desc; }
+  .tier-city .btn { grid-area: button; align-self: center; margin: 0; margin-inline-start: 1rem; }
   .tier-needs { grid-area: 3 / 1; margin-top: 1rem; }
   /* Without the download or the city, the box closes around what's left. */
   .price-grid:has(> .tier-side[hidden]) { grid-template-columns: 1fr; }
