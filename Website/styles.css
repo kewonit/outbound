@@ -314,12 +314,12 @@ kbd {
   margin-top: 2.5rem;
 }
 .tier.featured { background: var(--panel-2); }
-/* Buy, and beside it where the price is in the visitor's own money, the same purchase in dollars. */
+/* Buy, and under it where the price is in the visitor's own money, the same purchase in dollars. */
 .tier-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1.25rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
   margin-top: auto;
 }
 .tier-actions .btn { margin-top: 0; }
@@ -345,6 +345,8 @@ kbd {
 .tier-city .tier-price { font-size: 1.125rem; }
 .tier-city .tier-price .per { font-size: 0.8125rem; }
 .tier-city .tier-desc { flex-basis: 100%; font-size: 0.875rem; color: var(--ink-mute); }
+/* Its note breaks before "in about a week" where the row is wide; on a phone it just wraps. */
+.tier-city .tier-desc br { display: none; }
 .tier-city .btn { margin-top: 0.5rem; }
 .tier-side .tier-desc { margin-bottom: 1.5rem; }
 /* What it runs on, just under the price and outside its card. */
@@ -518,6 +520,7 @@ kbd {
   .tier-city .tier-name { grid-area: name; }
   .tier-city .tier-price { grid-area: price; }
   .tier-city .tier-desc { grid-area: desc; }
+  .tier-city .tier-desc br { display: inline; }
   .tier-city .btn { grid-area: button; align-self: center; margin: 0; margin-inline-start: 1rem; }
   .tier-needs { grid-area: 3 / 1; margin-top: 1rem; }
   /* Without the download or the city, the box closes around what's left. */
