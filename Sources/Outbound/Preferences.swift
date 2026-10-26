@@ -8,7 +8,13 @@ final class Preferences: ObservableObject {
     enum Pace: String, CaseIterable, Identifiable {
         case slow, gentle, brisk
         var id: Self { self }
-        var title: String { rawValue.capitalized }
+        var title: String {
+            switch self {
+            case .slow: String(localized: "Slow")
+            case .gentle: String(localized: "Gentle")
+            case .brisk: String(localized: "Brisk")
+            }
+        }
         /// Metres per second over the ground.
         var speed: Double {
             switch self {
@@ -25,9 +31,9 @@ final class Preferences: ObservableObject {
         var id: Self { self }
         var title: String {
             switch self {
-            case .hour: "An hour"
-            case .forever: "Do not change"
-            default: "\(rawValue) minutes"
+            case .hour: String(localized: "An hour")
+            case .forever: String(localized: "Do not change")
+            default: String(localized: "\(rawValue) minutes")
             }
         }
     }
@@ -77,9 +83,9 @@ final class Preferences: ObservableObject {
 extension World.Light {
     var title: String {
         switch self {
-        case .yourTime: "Follows your clock"
-        case .placeTime: "The place's own time"
-        case .alwaysDay: "Always daytime"
+        case .yourTime: String(localized: "Follows your clock")
+        case .placeTime: String(localized: "The place's own time")
+        case .alwaysDay: String(localized: "Always daytime")
         }
     }
 }
@@ -87,8 +93,8 @@ extension World.Light {
 extension PowerState.BatteryMode {
     var title: String {
         switch self {
-        case .gentle: "Keep flying, gently"
-        case .still: "Hold a still painting"
+        case .gentle: String(localized: "Keep flying, gently")
+        case .still: String(localized: "Hold a still painting")
         }
     }
 }

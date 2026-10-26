@@ -70,13 +70,13 @@ struct Polar {
 
         var errorDescription: String? {
             switch self {
-            case .unknownKey: "That key wasn't recognised. Check it against the one on your thank-you page or in your customer portal."
-            case .noLongerActive: "That key is no longer active, perhaps because the purchase was refunded."
-            case .tooManyMacs: "This key is already in use on three Macs. Free one up in Outbound's settings on that Mac, or in your customer portal, then try again."
-            case .malformed: "That doesn't look like an Outbound license key."
-            case .busy: "Too many tries in a row. Wait a moment, then try again."
-            case .offline: "Outbound couldn't reach the store. Check your connection and try again."
-            case .server(let code): "The store had a problem (\(code)). Please try again in a moment."
+            case .unknownKey: String(localized: "That key wasn't recognised. Check it against the one on your thank-you page or in your customer portal.")
+            case .noLongerActive: String(localized: "That key is no longer active, perhaps because the purchase was refunded.")
+            case .tooManyMacs: String(localized: "This key is already in use on three Macs. Free one up in Outbound's settings on that Mac, or in your customer portal, then try again.")
+            case .malformed: String(localized: "That doesn't look like an Outbound license key.")
+            case .busy: String(localized: "Too many tries in a row. Wait a moment, then try again.")
+            case .offline: String(localized: "Outbound couldn't reach the store. Check your connection and try again.")
+            case .server(let code): String(localized: "The store had a problem (\(code)). Please try again in a moment.")
             }
         }
     }

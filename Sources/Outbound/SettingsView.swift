@@ -29,9 +29,9 @@ struct SettingsView: View {
             }
             Section {
                 if !LicenseController.isGated {
-                    LabeledContent("License", value: "Development build")
+                    LabeledContent("License", value: String(localized: "Development build"))
                 } else if license.record == nil {
-                    LabeledContent("License", value: "Not active on this Mac")
+                    LabeledContent("License", value: String(localized: "Not active on this Mac"))
                 } else {
                     LabeledContent("License") {
                         HStack {
@@ -92,20 +92,23 @@ struct SettingsView: View {
 
 /// A setting's name with a line under it saying what it does.
 private struct Described: View {
-    let title: String
-    let detail: String
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
 
-    init(_ title: String, _ detail: String) {
+    init(_ title: LocalizedStringKey, _ detail: LocalizedStringKey) {
         self.title = title
         self.detail = detail
     }
 
     var body: some View {
+        // Longer languages wrap rather than cut the words off.
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
+                .fixedSize(horizontal: false, vertical: true)
             Text(detail)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

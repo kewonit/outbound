@@ -23,6 +23,10 @@ cp Configuration/Info.plist "$app/Contents/"
 [[ "$configuration" == debug ]] && plutil -replace CFBundleURLTypes.0.CFBundleURLSchemes.0 -string outbound-dev \
     "$app/Contents/Info.plist"
 cp Configuration/AppIcon.icns "$app/Contents/Resources/"
+# The interface in each language Outbound speaks, checked, then compiled into the app's own Resources, where AppKit,
+# SwiftUI and Sparkle all look for it. scripts/strings.sh brings the catalog up to date with the code.
+python3 scripts/check-strings.py
+xcrun xcstringstool compile Configuration/Localizable.xcstrings --output-directory "$app/Contents/Resources"
 for bundle in "$bin"/*.bundle; do
     [[ -d "$bundle" ]] && cp -R "$bundle" "$app/Contents/Resources/"
 done

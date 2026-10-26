@@ -170,7 +170,7 @@ final class LicenseController: ObservableObject {
         case .waiting:
             return .waiting
         case .closed:
-            message = "That purchase didn't finish, or was refunded."
+            message = String(localized: "That purchase didn't finish, or was refunded.")
             return .failed
         case .ready(let key, let email):
             if let record, record.key == key, unlocks {
@@ -215,9 +215,9 @@ final class LicenseController: ObservableObject {
             var revoked = record
             revoked.revokedAt = .now
             store(revoked, keepMessage: true)
-            message = "Your license is no longer active."
+            message = String(localized: "Your license is no longer active.")
         } catch {
-            if status == .lapsed { message = "Connect to the internet so Outbound can check your license." }
+            if status == .lapsed { message = String(localized: "Connect to the internet so Outbound can check your license.") }
         }
     }
 
@@ -238,7 +238,7 @@ final class LicenseController: ObservableObject {
         let saved = LicenseKeychain.save(record)
         if !keepMessage {
             message = saved ? nil
-                : "Couldn't save your license. You may be asked for it again."
+                : String(localized: "Couldn't save your license. You may be asked for it again.")
         }
         update(LicenseStatus(record))
     }

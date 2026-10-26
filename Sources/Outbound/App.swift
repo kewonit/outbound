@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             gpu = try GPU()
         } catch {
             let alert = NSAlert(error: error)
-            alert.messageText = "Outbound could not start its renderer."
+            alert.messageText = String(localized: "Outbound could not start its renderer.")
             alert.runModal()
             NSApp.terminate(nil)
             return
@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.onQuiet = { [weak self] in self?.updates.installIfQuiet() }
         stillsWereOn = preferences.matchingStill
         applyPreferences()
-        if !LicenseController.isGated { displays.note = "Development build" }
+        if !LicenseController.isGated { displays.note = String(localized: "Development build") }
         displays.running = license.unlocks
         displays.start()
         // A painting left behind by a crash or an older version goes back to the user's own picture.
@@ -221,17 +221,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !wasUnlocked { showActivation() }
         Task {
             let result = await license.claim(link.checkout) { email in
-                await Notice.show("Use your new key?",
-                                  detail: "Outbound is already unlocked here\(email.map { " with another key. The new one was bought with \($0)" } ?? "").",
-                                  buttons: ["Use New Key", "Keep Current"]) == 0
+                let detail = email.map {
+                    String(localized: "Outbound is already unlocked here with another key. The new one was bought with \($0).")
+                } ?? String(localized: "Outbound is already unlocked here with another key.")
+                return await Notice.show(String(localized: "Use your new key?"), detail: detail,
+                                         buttons: [String(localized: "Use New Key"), String(localized: "Keep Current")]) == 0
             }
             Log.license.info("Activation link: \(String(describing: result), privacy: .public)")
             guard wasUnlocked || result == .alreadyActive else { return }
             switch result {
-            case .alreadyActive: await Notice.show("Outbound is already unlocked.", detail: "")
-            case .activated: await Notice.show("Outbound now uses your new key.", detail: "")
-            case .failed: await Notice.show("That purchase didn't unlock Outbound.", detail: license.message ?? "")
-            case .waiting: await Notice.show("Still processing your purchase.", detail: "Try again in a minute.")
+            case .alreadyActive: await Notice.show(String(localized: "Outbound is already unlocked."), detail: "")
+            case .activated: await Notice.show(String(localized: "Outbound now uses your new key."), detail: "")
+            case .failed: await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "")
+            case .waiting:
+                await Notice.show(String(localized: "Still processing your purchase."), detail: String(localized: "Try again in a minute."))
             case .declined: break
             }
         }
@@ -299,17 +302,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// menu: without an Edit menu, Command-V does nothing in the key field.
     private func installMainMenu() {
         let app = NSMenu()
-        app.addItem(withTitle: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        let edit = NSMenu(title: "Edit")
-        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
-        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        app.addItem(withTitle: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let edit = NSMenu(title: String(localized: "Edit"))
+        edit.addItem(withTitle: String(localized: "Undo"), action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: String(localized: "Redo"), action: Selector(("redo:")), keyEquivalent: "Z")
         edit.addItem(.separator())
-        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-        let window = NSMenu(title: "Window")
-        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        edit.addItem(withTitle: String(localized: "Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: String(localized: "Copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: String(localized: "Paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: String(localized: "Select All"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        let window = NSMenu(title: String(localized: "Window"))
+        window.addItem(withTitle: String(localized: "Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         let main = NSMenu()
         for menu in [app, edit, window] {
             main.addItem(submenu(menu.title, menu))
@@ -330,11 +333,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         guard license.unlocks else {
-            let unlock = NSMenuItem(title: "Unlock Outbound…", action: #selector(openActivation), keyEquivalent: "")
+            let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
             unlock.target = self
             menu.addItem(unlock)
             menu.addItem(.separator())
-            menu.addItem(NSMenuItem(title: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+            menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
         }
         let leg = world.journey.leg(at: world.camera.y)
@@ -359,13 +362,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Place.all.forEach { places.addItem(destination($0)) }
         if !Place.extended.isEmpty {
             places.addItem(.separator())
-            let heading = NSMenuItem(title: "Extended Places", action: nil, keyEquivalent: "")
+            let heading = NSMenuItem(title: String(localized: "Extended Places"), action: nil, keyEquivalent: "")
             heading.isEnabled = false
             places.addItem(heading)
             Place.extended.forEach { places.addItem(destination($0)) }
         }
-        menu.addItem(submenu("Fly To", places))
-        let pause = NSMenuItem(title: displays.isPaused ? "Resume" : "Pause", action: #selector(togglePause),
+        menu.addItem(submenu(String(localized: "Fly To"), places))
+        let pause = NSMenuItem(title: displays.isPaused ? String(localized: "Resume") : String(localized: "Pause"), action: #selector(togglePause),
                                keyEquivalent: "")
         pause.target = self
         menu.addItem(pause)
@@ -373,36 +376,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // How the painting looks.
         let preferences = preferences
-        menu.addItem(choices("Light", World.Light.allCases.map { ($0.title, $0) }, current: preferences.light) {
+        menu.addItem(choices(String(localized: "Light"), World.Light.allCases.map { ($0.title, $0) }, current: preferences.light) {
             preferences.light = $0
         })
-        menu.addItem(choices("Seasons", [("What is growing there today", true), ("Each place at its best", false)],
+        menu.addItem(choices(String(localized: "Seasons"), [(String(localized: "What is growing there today"), true),
+                                                        (String(localized: "Each place at its best"), false)],
                              current: preferences.followsCalendar) { preferences.followsCalendar = $0 })
-        let border = NSMenuItem(title: "Painted Border", action: #selector(toggleBorder), keyEquivalent: "")
+        let border = NSMenuItem(title: String(localized: "Painted Border"), action: #selector(toggleBorder), keyEquivalent: "")
         border.target = self
         border.state = preferences.paperEdge ? .on : .off
         menu.addItem(border)
         menu.addItem(.separator())
 
         // How it flies.
-        menu.addItem(choices("Pace", Preferences.Pace.allCases.map { ($0.title, $0) }, current: preferences.pace) {
+        menu.addItem(choices(String(localized: "Pace"), Preferences.Pace.allCases.map { ($0.title, $0) }, current: preferences.pace) {
             preferences.pace = $0
         })
-        menu.addItem(choices("Time at Each Place", Preferences.Stay.allCases.map { ($0.title, $0) },
+        menu.addItem(choices(String(localized: "Time at Each Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
                              current: preferences.stay) { preferences.stay = $0 })
-        menu.addItem(choices("On Battery", PowerState.BatteryMode.allCases.map { ($0.title, $0) },
+        menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
                              current: preferences.batteryMode) { preferences.batteryMode = $0 })
         menu.addItem(.separator())
 
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
-        let check = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         check.target = self
         check.isEnabled = updates.canCheck
         menu.addItem(check)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
@@ -467,7 +471,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             let view = SettingsView(preferences: preferences, license: license)
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-            window.title = "Outbound Settings"
+            window.title = String(localized: "Outbound Settings")
             window.styleMask = [.titled, .closable]
             window.showsOnlyCloseButton()
             window.opensWhereTheUserIs()

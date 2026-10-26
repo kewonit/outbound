@@ -31,7 +31,7 @@ final class ActivationWindow {
         window.contentViewController = hosting
         // The content is a fixed size, whatever it is offered.
         window.setFrame(CGRect(origin: .zero, size: hosting.sizeThatFits(in: .zero)), display: false)
-        window.title = "Unlock Outbound"
+        window.title = String(localized: "Unlock Outbound")
         window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
         window.opensWhereTheUserIs()
@@ -136,6 +136,7 @@ private struct ActivationView: View {
         HStack {
             Text("Already bought it? Paste your key.")
                 .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Link("Find my key", destination: Store.portalURL)
                 .font(.callout)

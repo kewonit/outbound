@@ -7,7 +7,7 @@ import SwiftUI
 enum Notice {
     /// Shows the notice and returns the index of the button clicked, or nil if it was closed.
     @discardableResult
-    static func show(_ title: String, detail: String, buttons: [String] = ["OK"]) async -> Int? {
+    static func show(_ title: String, detail: String, buttons: [String] = [String(localized: "OK")]) async -> Int? {
         await withCheckedContinuation { continuation in
             NoticePanel(title: title, detail: detail, buttons: buttons, answer: continuation).present()
         }
@@ -65,7 +65,9 @@ private struct NoticeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.headline)
+            Text(title)
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
             if !detail.isEmpty {
                 Text(detail)
                     .foregroundStyle(.secondary)
