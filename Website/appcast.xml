@@ -7,6 +7,15 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.1</title>
+      <pubDate>Mon, 26 Oct 2026 11:00:23 +0000</pubDate>
+      <description><![CDATA[<p>Smoother on every display: frames reach the screen at an even 30 a second, the bird keeps up with the cursor, and Fly To no longer stutters. Pasting a license key works, and Outbound now runs on macOS 13 Ventura and later.</p>]]></description>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.1/Outbound-v1.1.dmg" type="application/octet-stream" sparkle:edSignature="uPAWSscIbgVmCvS3tOPdZik1NDguz4cG2vsyERMqL7wpmTUCgDc2J/G9TP+s3KyDLxJpTywdzoH3TnqJQMh3CA==" length="5519014"/>
+    </item>
+    <item>
       <title>Outbound v1.0</title>
       <pubDate>Sun, 25 Oct 2026 22:47:01 +0000</pubDate>
       <description><![CDATA[<p>The first release of Outbound. It keeps itself up to date from here on.</p>]]></description>
