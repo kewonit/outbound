@@ -98,57 +98,68 @@ inline float3 streetLight(float3 c, float value, float lamp, float night, float 
     return light * on;
 }
 
-inline float3 cars(float3 c, float2 world, constant Biome &b, constant Scene &scene, float mpp,
-                   thread float3 &light) {
-    float density = b.g.y;
-    if (density <= 0.0) return c;
-    float wander = b.d.w;
-    float width = b.e.x;
+// Cars ride slots along the road, northbound on one side and southbound on the other, each pointing along the road
+// and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
+// is, so a car is never cut in two where one place turns into the next.
+inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light) {
     float night = scene.time.w;
-    bool keepLeft = b.h.x > 0.5;
+    constant Biome &a = scene.legA.biome;
+    constant Biome &b = scene.legB.biome;
     float3 result = c;
     for (int lane = 0; lane < 2; lane++) {
         float dir = lane == 0 ? 1.0 : -1.0;
-        float slot = 150.0;
-        float phase = lane == 0 ? scene.time.z : -scene.time.z;
-        float i = floor(world.y / slot - phase);
-        float pick = hash11(int(i) * 2 + lane, 140u);
-        if (pick > min(density * 1.6, 0.75)) continue;
-        float y = (i + phase + 0.5) * slot;
-        float s = riverSlope(y, scene, wander);
-        float2 axis = normalize(float2(1.0, s));
+        Slot slot = slotAt(world.y, carSlot, dir, scene.time.z, lane == 0 ? scene.traffic.x : scene.traffic.y);
+        // A car and its shadow reach a few metres from its slot's middle; most of the road is empty.
+        if (abs(world.y - slot.y) > 8.0) continue;
+        int id = slot.id * 2 + lane;
+        float m = landTurn(slot.y, scene);
+        if (hash11(id, 140u) > min(mix(a.g.y, b.g.y, m) * 1.6, 0.75)) continue;
+        float2 wander = course(scene, m);
+        float width = mix(a.e.x, b.e.x, m);
         // Northbound traffic keeps to its side of the road: the west side where traffic keeps left.
-        float side = keepLeft ? -dir : dir;
-        float2 center = float2(roadX(y, scene, wander) + side * width * 0.22, y);
+        float keepLeft = mix(a.h.x, b.h.x, smoothstep(0.3, 0.7, m));
+        float side = mix(dir, -dir, keepLeft);
+        float2 along = normalize(float2(roadSlope(slot.y, scene, wander), 1.0));
+        float2 across = float2(along.y, -along.x);
+        float2 center = float2(roadX(slot.y, scene, wander), slot.y) + across * side * width * 0.25;
         float2 rel = world - center;
-        float2 d = float2(dot(rel, float2(axis.x, -axis.y)), dot(rel, float2(axis.y, axis.x)));
-        float2 size = float2(1.05, 2.3);
-        float2 shadowOff = -scene.sun.xy * scene.sun.z * 1.3;
-        float2 shadowD = float2(dot(rel - shadowOff, float2(axis.x, -axis.y)), dot(rel - shadowOff, float2(axis.y, axis.x)));
-        result = shade(result, fill(sdBox(shadowD, size) - 0.3, mpp) * 0.75, scene);
-        float k = hash11(int(i) * 2 + lane, 141u);
+        // Car-local metres: x across to its right, y forward.
+        float2 q = float2(dot(rel, across), dot(rel, along)) * dir;
+        if (dot(q, q) > 140.0) continue;
+        float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
+
+        // A car stands about 1.5 m tall; its shadow stays attached however low the sun.
+        float2 size = float2(0.85, 2.15);
+        float2 shadowOff = -sun * min(scene.sun.z, 1.6) * 1.5;
+        result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, mpp) * 0.7, scene);
+        float k = hash11(id, 141u);
         float3 paint = k < 0.3 ? float3(0.95, 0.95, 0.93) : k < 0.45 ? float3(0.82, 0.18, 0.16)
                      : k < 0.6 ? float3(0.20, 0.34, 0.62) : k < 0.75 ? float3(0.16, 0.16, 0.18)
                      : k < 0.88 ? float3(0.70, 0.71, 0.72) : float3(0.93, 0.74, 0.18);
-        float body = sdBox(d, size) - 0.3;
-        float roof = sdBox(d - float2(0.0, -0.15 * dir), size * float2(0.75, 0.45)) - 0.2;
-        result = mix(result, paint, fill(body, mpp * 0.7));
-        result = mix(result, paint * 0.75 + 0.12, fill(roof, mpp * 0.7));
+        // From above: bonnet, windscreen, roof, rear window and boot, the sunward edge of the roof catching light.
+        float body = sdBox(q, size) - 0.25;
+        float cabin = sdBox(q - float2(0.0, -0.1), float2(0.72, 1.2)) - 0.12;
+        float roof = sdBox(q - float2(0.0, -0.2), float2(0.64, 0.68)) - 0.1;
+        float3 glass = mix(float3(0.10, 0.12, 0.15), float3(0.42, 0.47, 0.55), 0.25 * saturate(0.5 + 0.5 * sun.y));
+        float3 top = paint * (0.9 + 0.12 * saturate(dot(normalize(q + 1e-4), sun)));
+        result = mix(result, paint * 0.92, fill(body, mpp * 0.7));
+        result = mix(result, glass, fill(cabin, mpp * 0.6));
+        result = mix(result, top, fill(roof, mpp * 0.6));
 
         if (night > 0.01) {
             // From straight above, headlights only show where they land: a soft wedge on the tarmac, reaching
             // further on the kerb side, hot dots at the front corners and red ones at the back.
-            float fwd = d.y * dir - 2.6;
-            float lat = d.x * dir;
-            float kerb = keepLeft ? -lat : lat;
+            float fwd = q.y - 2.6;
+            float lat = q.x;
+            float kerb = keepLeft > 0.5 ? -lat : lat;
             float halfW = 0.95 + fwd * (kerb > 0.0 ? 0.24 : 0.17);
             float wedge = fill(abs(lat) - halfW, 0.5 + fwd * 0.08) * smoothstep(-0.3, 1.2, fwd);
             float reach = exp(-max(fwd, 0.0) / (kerb > 0.0 ? 10.0 : 7.5));
             float3 beam = k < 0.6 ? float3(1.0, 0.93, 0.84) : float3(1.0, 0.80, 0.58);
             light += (c * 0.8 + 0.12) * beam * wedge * reach * 0.45;
-            float2 lamp = float2(abs(d.x) - 0.72, fwd + 0.15);
+            float2 lamp = float2(abs(q.x) - 0.65, fwd + 0.25);
             light += beam * (1.0 / (1.0 + dot(lamp, lamp) / 0.05)) * 0.9;
-            float2 tail = float2(abs(d.x) - 0.78, d.y * dir + 2.65);
+            float2 tail = float2(abs(q.x) - 0.7, q.y + 2.35);
             light += float3(1.0, 0.10, 0.06) * (1.0 / (1.0 + dot(tail, tail) / 0.03)) * 0.8;
         }
     }
@@ -223,27 +234,34 @@ inline float3 boatPaint(float h) {
 }
 
 // Boats ride slots along the river, up and down stream, each with a Kelvin wake: two bright arms at 19.5
-// degrees either side of its track, crest lines across them, and churned water straight behind.
-inline float3 boats(float3 c, float2 world, float water, constant Biome &b, constant Scene &scene, float mpp,
-                    float t, thread float3 &light) {
-    if (b.h.z <= 0.0) return c;
-    float wander = b.d.w, width = b.d.z;
-    bool hippos = b.h.w > 1.5;
-    float slot = 700.0;
-    float phase = scene.clock.z;
+// degrees either side of its track, crest lines across them, and churned water straight behind. The wake is laid
+// out along the river rather than straight back, so it follows the boat round a bend.
+inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
+                    thread float3 &light) {
     float3 result = c;
     for (int lane = 0; lane < 2; lane++) {
         float dir = lane == 0 ? 1.0 : -1.0;
-        float p = lane == 0 ? phase : -phase;
-        float i = floor(world.y / slot - p);
-        int id = int(i) * 2 + lane;
-        if (hash11(id, 600u) > b.h.z * 0.6) continue;
+        Slot slot = slotAt(world.y, boatSlot, dir, scene.clock.z, lane == 0 ? scene.traffic.z : scene.traffic.w);
+        // Along the river is never shorter than along y, so a point this far from the bow is clear of boat and wake.
+        float ahead = (slot.y - world.y) * dir;
+        if (ahead < -10.0 || ahead > 80.0) continue;
+        int id = slot.id * 2 + lane;
+        float m = landTurn(slot.y, scene);
+        constant Biome &b = m < 0.5 ? scene.legA.biome : scene.legB.biome;
+        if (b.h.z <= 0.0 || hash11(id, 600u) > b.h.z * 0.6) continue;
+        float2 wander = course(scene, m);
+        float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
+        bool hippos = b.h.w > 1.5;
         float speed = hippos ? 0.0 : 2.0 + 3.0 * hash11(id, 603u);
-        float yBow = (i + p + 0.5) * slot;
-        float lane0 = width * (0.1 + 0.15 * hash11(id, 601u)) * (lane == 0 ? 1.0 : -1.0);
-        float u = (yBow - world.y) * dir;
-        float v = world.x - (riverX(world.y, scene, wander) + lane0);
+        float slope = riverSlope(world.y, scene, wander);
+        float stretch = sqrt(1.0 + slope * slope);
+        // u runs back from the bow along the river, v across it from the boat's line.
+        float u = (slot.y - world.y) * dir * stretch;
+        float v = (world.x - riverX(world.y, scene, wander)) / stretch - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
         if (u < -10.0 || u > 80.0) continue;
+        float2 along = float2(slope, 1.0) / stretch;
+        float2 across = float2(along.y, -along.x);
+        float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
         if (hippos) {
             // A pod of backs in the water, each with slow ripple rings.
             for (int h = 0; h < 4; h++) {
@@ -273,7 +291,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Biome &b, cons
         // Hull: pointed bow, rounded stern, a little shadow, someone aboard.
         float2 hp = float2(v * dir, -u + L * 0.5);
         float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
-        float2 hs = hp + float2(scene.sun.x * dir, scene.sun.y * dir) * scene.sun.z * 0.5;
+        float2 hs = hp + sun * scene.sun.z * 0.5;
         float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
         result = shade(result, fill(hullShadow, 0.3) * 0.6, scene);
         float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
@@ -291,6 +309,40 @@ inline float3 boats(float3 c, float2 world, float water, constant Biome &b, cons
     return result;
 }
 
+// The ground's colour at a cache texel position. As the ground pans, each pixel lands at a different fraction of a
+// texel every frame, and one bilinear tap blurs it by a different amount each time, so fine detail pulses as it
+// moves; on a Retina display the pixels are too small to see it. The other filters blur by nearly the same amount
+// at any fraction: 1, a box over the pixel's footprint; 2, a cubic B-spline from four bilinear taps; 3, a B-spline
+// down the direction of flight only, from two.
+inline float3 groundColorAt(texture2d<float> ground, sampler wrap, float2 texel, float2 size, float filter,
+                            float footprint) {
+    if (filter < 0.5) return ground.sample(wrap, texel / size).rgb;
+    if (filter < 1.5) {
+        float q = footprint * 0.25;
+        return 0.25 * (ground.sample(wrap, (texel + float2(-q, -q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(q, -q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(-q, q)) / size).rgb
+                     + ground.sample(wrap, (texel + float2(q, q)) / size).rgb);
+    }
+    // The B-spline's weights for the four texels either side, folded into two bilinear taps per axis.
+    float2 t = texel - 0.5;
+    float2 i = floor(t), f = t - i;
+    float2 w0 = (1.0 - f) * (1.0 - f) * (1.0 - f) / 6.0;
+    float2 w1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0;
+    float2 w2 = (1.0 + 3.0 * f + 3.0 * f * f - 3.0 * f * f * f) / 6.0;
+    float2 w3 = f * f * f / 6.0;
+    float2 g0 = w0 + w1, g1 = w2 + w3;
+    float2 h0 = i - 0.5 + w1 / g0, h1 = i + 1.5 + w3 / g1;
+    if (filter < 2.5) {
+        return g0.y * (g0.x * ground.sample(wrap, float2(h0.x, h0.y) / size).rgb
+                     + g1.x * ground.sample(wrap, float2(h1.x, h0.y) / size).rgb)
+             + g1.y * (g0.x * ground.sample(wrap, float2(h0.x, h1.y) / size).rgb
+                     + g1.x * ground.sample(wrap, float2(h1.x, h1.y) / size).rgb);
+    }
+    return g0.y * ground.sample(wrap, float2(texel.x, h0.y) / size).rgb
+         + g1.y * ground.sample(wrap, float2(texel.x, h1.y) / size).rgb;
+}
+
 fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             constant CompositeParams &params [[buffer(0)]],
                             constant Scene &scene [[buffer(1)]],
@@ -298,6 +350,8 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             texture2d<float> groundNight [[texture(1)]],
                             texture2d<float> cloudTexture [[texture(2)]],
                             texture2d<float> noise [[texture(4)]],
+                            texture2d<float> incomingColor [[texture(5)]],
+                            texture2d<float> incomingNight [[texture(6)]],
                             sampler wrap [[sampler(0)]],
                             sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -306,10 +360,19 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float2 world = params.world.xy + pixel * mpp;
 
     float2 texel = params.cache.xy + pixel * params.view.w;
-    float3 c = groundColor.sample(wrap, texel / params.cache.zw).rgb;
+    float3 c = groundColorAt(groundColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
     float2 wrapped = texel - floor(texel / params.cache.zw) * params.cache.zw;
     uint2 nearest = uint2(min(wrapped, params.cache.zw - 1.0));
-    Mask mask = unpack(groundColor.read(nearest).a);
+    // While a Fly To sweeps, the new place is painted into a cache of its own and blended in here, with a darker
+    // tide line where the two paints meet.
+    float turned = sweepBlend(world, scene);
+    if (turned > 0.0) {
+        float3 next = groundColorAt(incomingColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
+        c = mix(c, next, turned) * (1.0 - 0.12 * (1.0 - abs(turned * 2.0 - 1.0)));
+    }
+    texture2d<float> landColor = turned > 0.5 ? incomingColor : groundColor;
+    texture2d<float> landNight = turned > 0.5 ? incomingNight : groundNight;
+    Mask mask = unpack(landColor.read(nearest).a);
     float water = mask.water;
     float3 light = 0.0;
 
@@ -319,10 +382,9 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c *= 1.0 + mask.sway * 0.09 * (latticeNoise(noise, wrap, gp) - 0.45);
     }
 
-    bool inB = world.y > scene.morph.x + scene.morph.y * 0.5;
-    constant Leg &leg = inB ? scene.legB : scene.legA;
-    if (mask.road) c = cars(c, world, leg.biome, scene, mpp, light);
-    if (water > 0.99) c = boats(c, world, water, leg.biome, scene, mpp, scene.time.x, light);
+    constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
+    if (mask.road) c = cars(c, world, scene, mpp, light);
+    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light);
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
@@ -351,7 +413,10 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.
     float night = scene.time.w;
-    float2 lamp = night > 0.0 ? groundNight.read(nearest).rg : 0.0;
+    float2 lamp = night > 0.0 ? landNight.read(nearest).rg : 0.0;
+    // Smoothed ground gets smoothed lamplight too, or the pools step a whole texel at a time; the lamp's id stays
+    // the nearest texel's.
+    if (night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
     if (lamp.x > 0.004) {
         float id = lamp.y;
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
@@ -399,7 +464,8 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
                               constant Leg &leg [[buffer(1)]],
                               constant Scene &scene [[buffer(2)]],
                               constant CompositeParams &params [[buffer(3)]],
-                              texture2d<float> groundColor [[texture(0)]]) {
+                              texture2d<float> groundColor [[texture(0)]],
+                              texture2d<float> incomingColor [[texture(1)]]) {
     AnimalOut out;
     out.position = float4(2.0, 2.0, 0.0, 1.0);
     out.offset = 0.0;
@@ -431,8 +497,9 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float2 local = cellCenter + jitter + walk + p.drift.xy;
     float2 world = float2(local.x, local.y + p.leg.x);
     if (world.y < p.leg.y || world.y >= p.leg.z) return out;
-    // Only where the ground says animals belong.
-    if (!unpack(groundColor.read(cacheTexel(world, params)).a).herd) return out;
+    // Only where the ground says animals belong, in whichever painting it has turned to during a Fly To.
+    texture2d<float> land = sweepBlend(world, scene) > 0.5 ? incomingColor : groundColor;
+    if (!unpack(land.read(cacheTexel(world, params)).a).herd) return out;
 
     float heading = hash21(cell, seed + 124u) * 6.283 + 0.6 * sin(strides * 0.9 + h * 9.0);
     // Drawn larger than life so they read from this height, as in a painted map.

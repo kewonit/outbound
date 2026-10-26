@@ -29,10 +29,12 @@ struct BiomeGPU {
     var i: SIMD4<Float>
     /// first landmark, its density, second landmark, its density
     var j: SIMD4<Float>
-    /// sodium lamps, lamps off late, unused, unused
+    /// sodium lamps, lamps off late, river bends, pond size
     var k: SIMD4<Float>
     /// Orchard trees in flower, shaded (w is 1 when only orchards flower) and lit.
     var blossom, blossomLight: SIMD4<Float>
+    /// evergreen gardens, unused, unused, unused
+    var l: SIMD4<Float>
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
@@ -54,10 +56,11 @@ struct BiomeGPU {
         animalPatches = SIMD4(b.animalPatches ?? .zero, b.animalPatches == nil ? 0 : 1)
         i = SIMD4(b.villages, b.roadTrees, b.flatRoofs ? 1 : 0, b.levees)
         j = SIMD4(Float(b.landmarks.0.rawValue), b.landmarks.1, Float(b.landmarks.2.rawValue), b.landmarks.3)
-        k = SIMD4(b.sodiumLamps, b.lampsOffLate ? 1 : 0, 0, 0)
+        k = SIMD4(b.sodiumLamps, b.lampsOffLate ? 1 : 0, b.riverBends, b.pondSize)
         let flowers = b.blossom ?? (b.canopy, b.canopyLight)
         blossom = SIMD4(flowers.0, b.blossom == nil ? 0 : 1)
         blossomLight = c(flowers.1)
+        l = SIMD4(b.evergreenGardens ? 1 : 0, 0, 0, 0)
     }
 }
 
@@ -103,6 +106,10 @@ struct SceneGPU {
     var time: SIMD4<Float>
     /// hour of the day where the scene is, the hour the sun sets there, boat phase 0...1, unused
     var clock: SIMD4<Float>
+    /// slots passed by northbound and southbound cars, then by boats going up and down stream (see slotAt)
+    var traffic: SIMD4<Float>
+    /// phases of the river's own bends at the reference y
+    var bends: SIMD4<Float>
     var train: TrainGPU
     var legA: LegGPU
     var legB: LegGPU

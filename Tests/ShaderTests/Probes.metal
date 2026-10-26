@@ -43,12 +43,14 @@ kernel void layouts(device uint *out [[buffer(0)]], uint id [[thread_position_in
     out[i++] = __builtin_offsetof(Biome, i);
     out[i++] = __builtin_offsetof(Biome, k);
     out[i++] = __builtin_offsetof(Biome, blossomLight);
+    out[i++] = __builtin_offsetof(Biome, l);
     out[i++] = __builtin_offsetof(Leg, info);
     out[i++] = __builtin_offsetof(Leg, railShape);
     out[i++] = __builtin_offsetof(Train, run);
     out[i++] = __builtin_offsetof(Train, locomotive);
     out[i++] = __builtin_offsetof(Scene, time);
     out[i++] = __builtin_offsetof(Scene, clock);
+    out[i++] = __builtin_offsetof(Scene, traffic);
     out[i++] = __builtin_offsetof(Scene, train);
     out[i++] = __builtin_offsetof(Scene, legA);
     out[i++] = __builtin_offsetof(Scene, legB);
@@ -154,7 +156,7 @@ kernel void probeRoofs(device float4 *out [[buffer(0)]], constant Scene &scene [
 kernel void probeRiverRoad(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                            uint id [[thread_position_in_grid]]) {
     float y = (float(id) - 2048.0) * 3.7;
-    float wander = scene.legB.biome.d.w;
+    float2 wander = course(scene, 1.0);
     float x = riverX(y, scene, wander);
     float measured = riverX(y + 0.5, scene, wander) - riverX(y - 0.5, scene, wander);
     out[id] = float4(riverSlope(y, scene, wander) - measured, riverDistance(float2(x, y), scene, wander),
@@ -165,7 +167,7 @@ kernel void probeRiverRoad(device float4 *out [[buffer(0)]], constant Scene &sce
 kernel void probeClearance(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                            uint id [[thread_position_in_grid]]) {
     constant Leg &leg = scene.legB;
-    float wander = leg.biome.d.w;
+    float2 wander = course(scene, 1.0);
     float riverHalf = leg.biome.d.z * 0.5;
     float2 local = probePoint(id, 6.0, float2(scene.road.x, 300.0));
     float2 world = float2(local.x, local.y + leg.info.x);
@@ -200,7 +202,7 @@ struct ProbeSpot {
     float2 world;
     float2 local;
     uint seed;
-    float wander;
+    float2 wander;
     float riverHalf;
 };
 
@@ -210,7 +212,7 @@ inline ProbeSpot probeSpot(uint id, float step, constant Scene &scene) {
     spot.world = probePoint(id, step, float2(scene.road.x, leg.info.x + 400.0));
     spot.local = float2(spot.world.x, spot.world.y - leg.info.x);
     spot.seed = uint(leg.info.y);
-    spot.wander = leg.biome.d.w;
+    spot.wander = course(scene, 1.0);
     spot.riverHalf = leg.biome.d.z < 0.5 ? 0.0 : leg.biome.d.z * 0.5;
     return spot;
 }
@@ -249,7 +251,7 @@ kernel void probeGrassland(device float4 *out [[buffer(0)]], constant Scene &sce
 kernel void probeFieldLayout(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                              uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 5.0, scene);
-    Land l = fields(spot.local, scene.legB.biome, scene, spot.seed);
+    Land l = fields(spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.riverHalf, spot.wander);
     out[id] = float4(l.color, l.sway);
 }
 
@@ -277,8 +279,10 @@ kernel void probePivots(device float4 *out [[buffer(0)]], constant Scene &scene 
 kernel void probeTaiga(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 5.0, scene);
-    Land l = taiga(spot.local, scene.legB.biome, scene, spot.seed);
-    out[id] = float4(l.color, l.forest);
+    Canopy trees = canopy(11.0);
+    Land l = taiga(spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.riverHalf, spot.wander, trees);
+    float cover = 0.0;
+    out[id] = float4(grow(trees, l.color, spot.local, scene.legB.biome, scene, spot.seed, cover), l.water);
 }
 
 // Jittered field edges stay within half the jitter of their cell, and the boats' paint covers its palette.
@@ -290,12 +294,16 @@ kernel void probeEdgesAndPaint(device float4 *out [[buffer(0)]], constant Scene 
 
 // MARK: - On the land
 
-// One tree seen from above around its trunk, with the shade it casts, and how much it covers.
+// A broadleaf, a spruce and a pine seen from above round their trunks, a third of the grid each, with the shade
+// they cast, and how much of each point they cover.
 kernel void probeTree(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                       uint id [[thread_position_in_grid]]) {
-    float2 d = probePoint(id, 0.25, float2(0.0));
+    float2 p = probePoint(id, 0.4, float2(0.0));
+    int kind = int(id * 3u / probeCount);
+    Canopy trees = canopy(18.0);
+    plant(trees, p, float2(0.0), 3.0, kind == broadleaf ? 8.0 : 13.0, kind, 0.4, kind == spruce ? conifer : leaves, scene);
     float cover = 0.0;
-    float3 c = tree(probeBase, d, 4.0, d + 300.0, scene.legB.biome, scene, 17u, cover);
+    float3 c = grow(trees, probeBase, p, scene.legB.biome, scene, 17u, cover);
     out[id] = float4(c, cover);
 }
 
@@ -303,9 +311,11 @@ kernel void probeTree(device float4 *out [[buffer(0)]], constant Scene &scene [[
 kernel void probeTrees(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 3.0, scene);
+    Canopy trees = canopy(18.0);
+    float3 c = probeBase;
+    plantTrees(trees, c, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.riverHalf, spot.wander);
     float cover = 0.0;
-    float3 c = trees(probeBase, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.riverHalf,
-                     spot.wander, cover);
+    c = grow(trees, c, spot.local, scene.legB.biome, scene, spot.seed, cover);
     out[id] = float4(c, cover);
 }
 
@@ -323,8 +333,10 @@ kernel void probeHouses(device float4 *out [[buffer(0)]], constant Scene &scene 
                         uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 4.0, scene);
     float cover = 0.0, light = 0.0, lightID = 0.0;
-    float3 c = houses(probeBase, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.wander, cover,
-                      light, lightID);
+    Canopy trees = canopy(18.0);
+    float3 c = houses(probeBase, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.wander, trees,
+                      cover, light, lightID);
+    c = grow(trees, c, spot.local, scene.legB.biome, scene, spot.seed, cover);
     out[id] = float4(c, light);
 }
 
@@ -353,8 +365,10 @@ kernel void probeLandmarks(device float4 *out [[buffer(0)]], constant Scene &sce
     ProbeSpot spot = probeSpot(id, 6.0, scene);
     int kind = int(id * 13u / probeCount);
     float herd = 0.0, water = 0.0, cover = 0.0, light = 0.0, lightID = 0.0;
+    Canopy trees = canopy(18.0);
     float3 c = landmark(probeBase, kind, 1.0, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.wander,
-                        spot.riverHalf, herd, water, cover, light, lightID);
+                        spot.riverHalf, trees, herd, water, cover, light, lightID);
+    c = grow(trees, c, spot.local, scene.legB.biome, scene, spot.seed, cover);
     out[id] = float4(c, water + light);
 }
 
@@ -362,8 +376,8 @@ kernel void probeLandmarks(device float4 *out [[buffer(0)]], constant Scene &sce
 kernel void probePonds(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 12.0, scene);
-    float water = 0.0;
-    float3 c = ponds(probeBase, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.wander, water);
+    float water = 0.0, herd = 1.0;
+    float3 c = ponds(probeBase, spot.local, spot.world, scene.legB.biome, scene, spot.seed, spot.wander, water, herd);
     out[id] = float4(c, water);
 }
 
@@ -385,9 +399,9 @@ kernel void probeRoad(device float4 *out [[buffer(0)]], constant Scene &scene [[
     ProbeSpot spot = probeSpot(id, 1.0, scene);
     float y = scene.legB.info.x + 400.0;
     float2 world = probePoint(id, 1.0, float2(roadX(y, scene, spot.wander), y));
-    float onRoad = 0.0, water = 0.0, herd = 0.0;
+    float onRoad = 0.0, traffic = 0.0, water = 0.0, herd = 0.0;
     float3 c = road(probeBase, world, scene, scene.legA.biome, scene.legB.biome, 1.0, spot.riverHalf,
-                    spot.wander, onRoad, water, herd);
+                    spot.wander, onRoad, traffic, water, herd);
     out[id] = float4(c, onRoad);
 }
 
@@ -398,7 +412,7 @@ kernel void probeRailway(device float4 *out [[buffer(0)]], constant Scene &scene
     float2 onLine = leg.rail.xy + rotate(float2(0.0, leg.railShape.x * sin(leg.railShape.z)), leg.rail.z);
     float2 world = probePoint(id, 0.6, float2(onLine.x, onLine.y + leg.info.x));
     float herd = 0.0, water = 0.0;
-    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, leg.biome.d.w, herd, water);
+    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, course(scene, 1.0), herd, water);
     out[id] = float4(c, luma(railOverRoad(probeBase, world, leg, 1.0, 0.45)));
 }
 
@@ -417,9 +431,9 @@ kernel void probeStreetLight(device float4 *out [[buffer(0)]], constant Scene &s
 kernel void probeCars(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                       uint id [[thread_position_in_grid]]) {
     float y = scene.legB.info.x + 400.0 + (float(id / 8u) - 256.0) * 1.5;
-    float x = roadX(y, scene, scene.legB.biome.d.w) + (float(id % 8u) - 3.5) * 1.2;
+    float x = roadX(y, scene, course(scene, landTurn(y, scene))) + (float(id % 8u) - 3.5) * 1.2;
     float3 light = float3(0.0);
-    float3 c = cars(probeBase, float2(x, y), scene.legB.biome, scene, 0.45, light);
+    float3 c = cars(probeBase, float2(x, y), scene, 0.45, light);
     out[id] = float4(c, light.r + light.g + light.b);
 }
 
@@ -427,9 +441,9 @@ kernel void probeCars(device float4 *out [[buffer(0)]], constant Scene &scene [[
 kernel void probeBoats(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     float y = scene.legB.info.x + 400.0 + (float(id / 16u) - 128.0) * 3.0;
-    float x = riverX(y, scene, scene.legB.biome.d.w) + (float(id % 16u) - 7.5) * 1.5;
+    float x = riverX(y, scene, course(scene, landTurn(y, scene))) + (float(id % 16u) - 7.5) * 1.5;
     float3 light = float3(0.0);
-    float3 c = boats(probeBase, float2(x, y), 1.0, scene.legB.biome, scene, 0.45, scene.time.x, light);
+    float3 c = boats(probeBase, float2(x, y), 1.0, scene, 0.45, scene.time.x, light);
     out[id] = float4(c, light.r + light.g + light.b);
 }
 
@@ -620,18 +634,21 @@ kernel void promisePigment(device float4 *out [[buffer(0)]], constant Scene &sce
                      beyond(length(pigment(c, 0.5, 1.6) - c), 1e-5), outside(luma(painted), 0.0, 1.0));
 }
 
-// The river and road through the scene: each centre line sits at distance 0 from itself, the river's slope
-// agrees with the curve it describes, and riverX is riverShape laid out from the scene's river.
+// The river and road through the scene: each centre line sits at distance 0 from itself, each slope agrees with
+// the curve it describes, and riverX is riverShape laid out from the scene's river, with its own bends added.
 kernel void promiseCentreLines(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                                uint id [[thread_position_in_grid]]) {
     float y = (float(id) - 2048.0) * 3.7;
-    float wander = scene.legB.biome.d.w;
+    float2 wander = course(scene, 1.0);
     float x = riverX(y, scene, wander);
     float measured = riverX(y + 0.5, scene, wander) - riverX(y - 0.5, scene, wander);
-    out[id] = float4(beyond(riverSlope(y, scene, wander) - measured, 2e-3),
+    float road = roadX(y, scene, wander);
+    float roadMeasured = roadX(y + 0.5, scene, wander) - roadX(y - 0.5, scene, wander);
+    out[id] = float4(beyond(riverSlope(y, scene, wander) - measured, 2e-3)
+                         + beyond(roadSlope(y, scene, wander) - roadMeasured, 2e-3),
                      beyond(riverDistance(float2(x, y), scene, wander), 1e-2),
-                     beyond(roadDistance(float2(roadX(y, scene, wander), y), scene, wander), 1e-2),
-                     beyond(x - (scene.road.x + wander * riverShape(y, scene.river)), 1e-3));
+                     beyond(roadDistance(float2(road, y), scene, wander), 1e-2),
+                     beyond(x - (scene.road.x + wander.x * riverShape(y, scene.river) + riverBends(y, scene, wander.y).x), 1e-3));
 }
 
 // The ground's alpha byte keeps water to a third, sway to a fifteenth, and the road and herd bits exactly,
@@ -698,4 +715,44 @@ kernel void promiseFlock(device float4 *out [[buffer(0)]], constant Scene &scene
     float2 q = float2(0.0);
     float spread = 0.0;
     out[id] = float4(max(-flockDistance(pixel, view, view.flockLook.w, q, spread), 0.0), 0.0, 0.0, 0.0);
+}
+
+// A car or boat keeps its slot's number as the phase wraps past a whole slot, heading either way, so traffic never
+// swaps places from one frame to the next; and a slot's middle is never more than half a slot from the point asked.
+kernel void promiseSlots(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                         uint id [[thread_position_in_grid]]) {
+    float spacing = id & 1u ? carSlot : boatSlot;
+    float y = (probeRandom(id, 21u) - 0.5) * 3000.0;
+    float cycle = floor(probeRandom(id, 22u) * 4000.0);
+    // Northbound: just before the wrap at (phase 0.999, cycle) and just after it at (0.001, cycle + 1).
+    Slot before = slotAt(y, spacing, 1.0, 0.999, cycle);
+    Slot after = slotAt(before.y + 0.002 * spacing, spacing, 1.0, 0.001, cycle + 1.0);
+    // Southbound the slots move the other way, so the south cycle counts down as the north one counts up.
+    Slot south = slotAt(y, spacing, -1.0, 0.999, cycle);
+    Slot southAfter = slotAt(south.y - 0.002 * spacing, spacing, -1.0, 0.001, cycle - 1.0);
+    out[id] = float4(float(before.id != after.id), float(south.id != southAfter.id),
+                     outside(abs(before.y - y), 0.0, spacing * 0.5 + 1e-3), outside(abs(south.y - y), 0.0, spacing * 0.5 + 1e-3));
+}
+
+// A box swept along its shadow covers the box and the shadow's far end, and nothing nearer than either.
+kernel void promiseSweptBox(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                            uint id [[thread_position_in_grid]]) {
+    float2 p = probePoint(id, 0.2, float2(0.0));
+    float2 size = float2(1.5, 3.0);
+    float2 offset = float2(probeRandom(id, 23u) - 0.5, probeRandom(id, 24u) - 0.5) * 12.0;
+    float swept = sweptBox(p, size, offset);
+    out[id] = float4(max(swept - sdBox(p, size), 0.0), max(swept - sdBox(p - offset, size), 0.0),
+                     max(sweptBox(offset * probeRandom(id, 25u), size, offset), 0.0), 0.0);
+}
+
+// Noise laid along the river and road is the same a reference step further north, so rows painted either side of
+// a step agree.
+kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                              uint id [[thread_position_in_grid]]) {
+    float2 p = probePoint(id, 3.3, float2(17.0, -40.0));
+    float2 cell = float2(1.0 + 30.0 * probeRandom(id, 26u), 1.5 + 60.0 * probeRandom(id, 27u));
+    float n = alongNoise(p, cell, 31u);
+    out[id] = float4(beyond(n - alongNoise(p + float2(0.0, referenceStep), cell, 31u), 1e-4),
+                     beyond(fract(p.y / alongSpacing(7.0)) - fract((p.y + referenceStep) / alongSpacing(7.0)), 2e-3),
+                     outside(n, 0.0, 1.0), 0.0);
 }

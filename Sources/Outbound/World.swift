@@ -254,6 +254,11 @@ final class World {
         }
         let river = SIMD4<Float>(phase(Self.riverWaves.x, 0.3), phase(Self.riverWaves.y, 1.9),
                                  phase(Self.riverWaves.z, 4.1), phase(Self.riverWaves.w, 2.7))
+        let bends = SIMD4<Float>(phase(Self.bendWaves.x, 5.2), phase(Self.bendWaves.y, 0.7),
+                                 phase(Self.bendWaves.z, 3.3), 0)
+        // Traffic slots, counted from the world's origin so they survive the reference stepping on (see slotAt).
+        let cars = Self.slots(speed: Self.carSpeed, spacing: Self.carSlot, time: t, reference: reference)
+        let boats = Self.slots(speed: Self.boatSpeed, spacing: Self.boatSlot, time: t, reference: reference)
         let crossPhase = Float(reference.truncatingRemainder(dividingBy: Self.crossroadSpacing))
         let toSun = SIMD2<Float>(Float(sun.direction.x), Float(sun.direction.y))
         let light = sun.light
@@ -265,10 +270,10 @@ final class World {
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
             morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
-                        Float(t.truncatingRemainder(dividingBy: 7200)),
-                        Float((t * Self.carSpeed / 150).truncatingRemainder(dividingBy: 1)), Float(sun.night)),
-            clock: SIMD4(Float(clock.hour), Float(clock.sunset),
-                         Float((t * Self.boatSpeed / 700).truncatingRemainder(dividingBy: 1)), 0),
+                        Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
+            clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase, 0),
+            traffic: SIMD4(cars.north, cars.south, boats.north, boats.south),
+            bends: bends,
             train: train(reference: reference, at: t),
             legA: gpu(legA, reference: reference),
             legB: gpu(legB, reference: reference))
@@ -292,6 +297,21 @@ final class World {
     }
 
     static let boatSpeed = 2.5
+    /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
+    static let carSlot = 128.0
+    static let boatSlot = 512.0
+    static let bendWaves = SIMD3<Double>(95, 61, 151)
+
+    /// The fraction of a slot that traffic heading north has moved on, and how many slots traffic each way has
+    /// passed, measured from the reference. The counts wrap only after a million slots.
+    static func slots(speed: Double, spacing: Double, time t: TimeInterval, reference: Double)
+        -> (phase: Float, north: Float, south: Float) {
+        let north = (t * speed - reference) / spacing
+        let south = (-t * speed - reference) / spacing
+        let wrap = Double(1 << 20)
+        return (Float(north - north.rounded(.down)), Float(north.rounded(.down).positiveRemainder(wrap)),
+                Float(south.rounded(.down).positiveRemainder(wrap)))
+    }
     /// When the main display's middle passes over the current leg's railway, worked out once per leg.
     private var trainCrossing: (leg: Int, time: TimeInterval, along: Double)?
 

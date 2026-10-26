@@ -54,11 +54,11 @@ private extension Biome {
 private let punjabBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8fbf45), groundDark: rgb(0x5f9a35),
                   crops: (rgb(0xf3cf1d), rgb(0xf6dc3c), rgb(0xe9bd12), rgb(0x9cc845)), hedge: rgb(0x2f7c34),
-                  water: rgb(0x2e68c4), shallows: rgb(0x4f8fe0), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
+                  water: rgb(0x4a6f86), shallows: rgb(0x7f9488), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
                   canopyLight: rgb(0x3f8a45))
     b.fieldSize = 190; b.hedgeWidth = 9; b.warp = 0.55; b.fallow = 0.06; b.sway = 0.9; b.strokes = 0.6
     b.trees = 0.2; b.treeSize = 10; b.hedgeTrees = 0.35; b.clumping = 0.85; b.houses = 0.35; b.ponds = 0.25
-    b.riverWidth = 34; b.riverWander = 60; b.roadWidth = 12; b.paved = 1
+    b.riverWidth = 34; b.riverWander = 60; b.riverBends = 50; b.roadWidth = 12; b.paved = 1
     b.animal = .cattle; b.herds = 0.15; b.animalColor = rgb(0x3d3530); b.cars = 0.25
     // Smaller rounded fields between narrow bunds dotted with trees (few stand out in the crops), compact brick
     // villages with flat roofs and water tanks, tube-well huts and the odd brick kiln; traffic keeps left.
@@ -96,19 +96,20 @@ private let punjab = Place(
 // MARK: - Niigata: flooded rice paddies and sakura
 
 private let niigataBase: Biome = {
-    var b = Biome(layout: .paddies, ground: rgb(0x6fb08a), groundDark: rgb(0x4d9a78),
-                  crops: (rgb(0x5aa8e6), rgb(0x76bcf0), rgb(0x41a07c), rgb(0x5fbf8c)), hedge: rgb(0xdcd3b6),
-                  water: rgb(0x2b63b3), shallows: rgb(0x4686d2), sand: rgb(0xd8c79a), road: rgb(0xbfb9b0),
-                  canopy: rgb(0xf0a3b6), canopyLight: rgb(0xf9c8d5))
-    b.fieldSize = 34; b.hedgeWidth = 2.6; b.warp = 0.08; b.fallow = 0.05; b.flooded = 0.8; b.sway = 0.3
-    b.strokes = 0.35; b.trees = 0.11; b.treeSize = 13; b.hedgeTrees = 0; b.clumping = 0.15; b.petals = 0.8
-    b.riverWidth = 42; b.riverWander = 18; b.roadWidth = 8; b.paved = 1; b.houses = 0.15; b.ponds = 0.1
-    b.cars = 0.2
-    // Sakura along the lanes and dykes rather than in the fields, villages of dark tile and coloured metal roofs,
-    // a wide river between grassy dykes, white LED street lights; traffic keeps left.
-    b.trees = 0; b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18
+    // Flooded plots mirroring the sky, then newly planted ones with the seedlings showing green through the water.
+    var b = Biome(layout: .paddies, ground: rgb(0x8aa86a), groundDark: rgb(0x5f8a52),
+                  crops: (rgb(0x86a6b8), rgb(0x9cb4c2), rgb(0x86a487), rgb(0x95ae84)), hedge: rgb(0x8fa25e),
+                  water: rgb(0x4f7179), shallows: rgb(0x7e938a), sand: rgb(0xc7bfa6), road: rgb(0xbdb8ab),
+                  canopy: rgb(0xf0b7c4), canopyLight: rgb(0xfbdde4))
+    b.fieldSize = 30; b.hedgeWidth = 2.4; b.warp = 0.08; b.fallow = 0.2; b.flooded = 0.8; b.sway = 0.3
+    b.strokes = 0.35; b.trees = 0; b.treeSize = 13; b.hedgeTrees = 0; b.clumping = 0.15; b.petals = 0.8
+    b.riverWidth = 60; b.riverWander = 18; b.riverBends = 30; b.roadWidth = 7; b.paved = 1; b.houses = 0.15
+    b.ponds = 0.1; b.cars = 0.2
+    // Sakura along the lanes and dykes rather than in the fields, villages of dark tile and coloured metal roofs, each
+    // homestead in its windbreak of dark evergreens, a wide river between grassy dykes, white LED street lights;
+    // traffic keeps left.
+    b.roadTrees = 0.55; b.villages = 0.55; b.levees = 18; b.evergreenGardens = true
     b.roofs = (rgb(0x4a4e55), rgb(0x3e5a80), rgb(0x7a3a3a))
-    b.riverWidth = 60; b.roadWidth = 7
     b.drivesLeft = true; b.streetLights = 0.7; b.lampColor = rgb(0xeef2ff); b.sodiumLamps = 0.08
     b.boats = 0.25
     b.landmarks = (.glasshouse, 0.08, .none, 0)
@@ -120,17 +121,17 @@ private let niigata = Place(
     seasons: [
         Season(months: [4, 5], line: "Spring · sakura over flooded paddies", biome: niigataBase),
         Season(months: [6, 7, 8], line: "Summer · rice in full green", biome: niigataBase.with {
-            $0.crops = (rgb(0x4fa85a), rgb(0x67b95e), rgb(0x3f9a55), rgb(0x7cc76a))
+            $0.crops = (rgb(0x5fa64e), rgb(0x74b45a), rgb(0x55994a), rgb(0x86bf62)); $0.fallow = 0.03
             $0.flooded = 0.15; $0.canopy = rgb(0x2f6f3c); $0.canopyLight = rgb(0x4b9148); $0.petals = 0
             $0.sway = 0.7
         }),
         Season(months: [9, 10], line: "Autumn · rice harvest", biome: niigataBase.with {
-            $0.crops = (rgb(0xe0b84e), rgb(0xd3a640), rgb(0xb59a6a), rgb(0xe8c766))
+            $0.crops = (rgb(0xd9b452), rgb(0xcca444), rgb(0xb59a6a), rgb(0xe0c066)); $0.fallow = 0.15
             $0.flooded = 0.05; $0.canopy = rgb(0xc8693a); $0.canopyLight = rgb(0xe08a4a); $0.petals = 0
-            $0.hedge = rgb(0xcfc39e); $0.sway = 0.6
+            $0.hedge = rgb(0xa9a46a); $0.sway = 0.6
         }),
         Season(months: [11, 12, 1, 2, 3], line: "Winter · snow over the paddies", biome: niigataBase.with {
-            $0.crops = (rgb(0xeef2f6), rgb(0xe4eaf1), rgb(0xd9e2ec), rgb(0xf3f5f8))
+            $0.crops = (rgb(0xeef2f6), rgb(0xe4eaf1), rgb(0xd9e2ec), rgb(0xf3f5f8)); $0.fallow = 0.05
             $0.flooded = 0.1; $0.snowCover = 0.85; $0.canopy = rgb(0x6a5a52); $0.canopyLight = rgb(0x8a7a70)
             $0.petals = 0; $0.hedge = rgb(0xc9cdd2); $0.sway = 0; $0.cars = 0.1
         })
@@ -153,7 +154,7 @@ private let serengetiBase: Biome = {
     // Granite kopjes ringed with green, burn scars, olive-brown seasonal water with hippos, and through the dry
     // season mostly gazelles: the great herds are up north until December.
     b.animal = .gazelle; b.herds = 0.3; b.animalColor = rgb(0xc49a5c)
-    b.water = rgb(0x5f6b48); b.shallows = rgb(0x7a7a52); b.riverWidth = 16
+    b.water = rgb(0x5f6b48); b.shallows = rgb(0x7a7a52); b.riverWidth = 16; b.riverBends = 45
     b.canopy = rgb(0x5d7a36); b.canopyLight = rgb(0x7f9a48); b.treeSize = 16; b.trees = 0.045
     b.rock = rgb(0xb9ab98)
     b.landmarks = (.kopje, 0.4, .burn, 0.22)
@@ -186,21 +187,22 @@ private let serengeti = Place(
     ],
     signature: 0)
 
-// MARK: - La Pampa: endless grass, cattle and dirt roads
+// MARK: - La Pampa: paddocks of grass and wheat, estancias in eucalyptus, windmills and lagunas
 
 private let pampaBase: Biome = {
-    var b = Biome(layout: .grassland, ground: rgb(0x8cc43f), groundDark: rgb(0x6da634),
-                  crops: (rgb(0x86bf3c), rgb(0x9ccc48), rgb(0x76b236), rgb(0xa6d054)), hedge: rgb(0x5f9330),
-                  water: rgb(0x2e70c8), shallows: rgb(0x4e93e0), sand: rgb(0xd6c08e), road: rgb(0xb88b5c),
-                  canopy: rgb(0x2f6a33), canopyLight: rgb(0x4a8a3e))
-    b.patchiness = 0.6; b.strokes = 0.55; b.sway = 0.35; b.trees = 0.02; b.treeSize = 12; b.hedgeTrees = 0
-    b.clumping = 0.7; b.treeLines = 0.35
-    b.riverWidth = 32; b.riverWander = 22; b.roadWidth = 6; b.paved = 0; b.houses = 0.06; b.ponds = 0.12
-    b.animal = .cattle; b.herds = 0.6; b.animalColor = rgb(0x6b3e26); b.cars = 0.12
-    // Kilometre-wide paddocks, a windmill and round tank in each with cattle trails fanning out, estancias in
-    // dark eucalyptus groves, black Angus, and only a thin reedy creek for a river.
-    b.fieldSize = 900; b.animalColor = rgb(0x1e1b1a); b.herds = 0.48
-    b.riverWidth = 9; b.levees = 0
+    // Natural grass and tilled soil, then pasture, lusher pasture, wheat and stubble.
+    var b = Biome(layout: .grassland, ground: rgb(0xa2a865), groundDark: rgb(0x8e7556),
+                  crops: (rgb(0x8fae55), rgb(0x76a046), rgb(0xa4b54e), rgb(0xc8b98a)), hedge: rgb(0x5f9330),
+                  water: rgb(0x6c7e6a), shallows: rgb(0x8e9c7c), sand: rgb(0xcfc29a), road: rgb(0xcbb995),
+                  canopy: rgb(0x2f5a33), canopyLight: rgb(0x557a45))
+    b.patchiness = 0.5; b.strokes = 0.4; b.sway = 0.35; b.trees = 0.012; b.treeSize = 11; b.hedgeTrees = 0
+    b.clumping = 0.7; b.treeLines = 0.3
+    b.riverWidth = 9; b.riverWander = 22; b.riverBends = 32; b.levees = 0
+    b.roadWidth = 7; b.paved = 0; b.ponds = 0.35; b.pondSize = 3.2
+    // Paddocks of 30 to 60 hectares, a windmill and round tank in many with cattle trails fanning out, estancias in
+    // eucalyptus, black Angus, lagunas rimmed with salt, and only a thin winding creek for a river.
+    b.fieldSize = 340
+    b.animal = .cattle; b.herds = 0.45; b.animalColor = rgb(0x1e1b1a); b.cars = 0.12
     b.landmarks = (.waterPoint, 0.55, .grove, 0.3)
     b.villages = 0.05; b.houses = 0.03; b.streetLights = 0
     b.roofs = (rgb(0xc65a3e), rgb(0x9a9c9e), rgb(0xe6e2da))
@@ -212,42 +214,39 @@ private let pampa = Place(
     seasons: [
         Season(months: [9, 10, 11], line: "Spring · open grassland", biome: pampaBase),
         Season(months: [12, 1, 2], line: "Summer · sunflowers beside the pasture", biome: pampaBase.with {
-            $0.layout = .fields; $0.fieldSize = 420; $0.hedgeWidth = 4; $0.warp = 0.1; $0.fallow = 0.45
-            $0.crops = (rgb(0xf2c522), rgb(0x8cc43f), rgb(0xe9b81c), rgb(0x9ccc48)); $0.hedge = rgb(0x6e9a3a)
+            // Pasture, maize, sunflowers in flower, soy.
+            $0.crops = (rgb(0x9aa85a), rgb(0x5f8c38), rgb(0xe9bf2c), rgb(0x7ea145)); $0.ground = rgb(0xb2aa6a)
             $0.sway = 0.7
         }),
         Season(months: [3, 4, 5], line: "Autumn · golden pasture", biome: pampaBase.with {
-            $0.ground = rgb(0xc2b25a); $0.groundDark = rgb(0xa49548)
-            $0.crops = (rgb(0xc7b55e), rgb(0xd4c06a), rgb(0xb3a24f), rgb(0xa8b356))
+            $0.ground = rgb(0xc2b25a); $0.groundDark = rgb(0x8a6e52)
+            $0.crops = (rgb(0xb9b064), rgb(0xa3a85a), rgb(0xcfae5a), rgb(0xd2c08e))
         }),
         Season(months: [6, 7, 8], line: "Winter · frost on the pasture", biome: pampaBase.with {
-            $0.ground = rgb(0xa9b58f); $0.groundDark = rgb(0x8d9c78)
-            $0.crops = (rgb(0xb3bf9c), rgb(0xc4ccae), rgb(0x9fae86), rgb(0xd0d6c0)); $0.sway = 0.1
+            $0.ground = rgb(0xa9b58f); $0.groundDark = rgb(0x83705a)
+            $0.crops = (rgb(0xb3bf9c), rgb(0x9fb184), rgb(0x8fa868), rgb(0xc9c3a6)); $0.sway = 0.1
         })
     ],
     signature: 0,
     railway: Railway(kind: .freight, body: rgb(0xa6a29a), stripe: rgb(0x9c4a38), roof: rgb(0x9a968e), locomotive: rgb(0xb84d33),
                      cars: 40, carLength: 16, locomotives: 2, speed: 15, electrified: false, chance: 0.35))
 
-// MARK: - Lapland: fells, spruce and rocky outcrops
+// MARK: - Lapland: boreal forest, lichen heath, aapa mires and lakes
 
 private let laplandBase: Biome = {
-    var b = Biome(layout: .fields, ground: rgb(0x79b04a), groundDark: rgb(0x2f6a2e),
-                  crops: (rgb(0x86bd4f), rgb(0x9cc95c), rgb(0x6fa944), rgb(0xb4d06a)), hedge: rgb(0x2c662c),
-                  water: rgb(0x2a63b0), shallows: rgb(0x4a86d0), sand: rgb(0xcdbf98), road: rgb(0xb9b3a8),
-                  canopy: rgb(0x2b5a33), canopyLight: rgb(0x3f7a44), rock: rgb(0x9a9890))
-    b.fieldSize = 260; b.hedgeWidth = 26; b.warp = 0.8; b.fallow = 0.2; b.strokes = 0.5; b.sway = 0.25
-    b.trees = 0.22; b.treeSize = 8; b.hedgeTrees = 0.8; b.clumping = 0.9; b.houses = 0.05; b.ponds = 0.3
-    b.riverWidth = 40; b.riverWander = 40; b.roadWidth = 7; b.paved = 1
+    var b = Biome(layout: .taiga, ground: rgb(0x5f6b3e), groundDark: rgb(0x46522f),
+                  // Lichen, sedge, moss and heather, peat strings.
+                  crops: (rgb(0xc4c2a3), rgb(0x9e9a62), rgb(0x56633a), rgb(0x5e5434)), hedge: rgb(0x6c843e),
+                  water: rgb(0x34484f), shallows: rgb(0x55686a), sand: rgb(0xbdb295), road: rgb(0x9d9b96),
+                  canopy: rgb(0x3b5134), canopyLight: rgb(0x5f7444), rock: rgb(0x9a9890))
+    b.strokes = 0.5; b.sway = 0.25; b.trees = 0; b.treeSize = 8; b.houses = 0.05; b.ponds = 0.2
+    b.riverWidth = 46; b.riverWander = 60; b.riverBends = 90; b.roadWidth = 7; b.paved = 1
     b.animal = .reindeer; b.herds = 0.2; b.animalColor = rgb(0x6b5a4a); b.cars = 0.06
-    // Pine heath on pale reindeer lichen broken by patterned bogs, dark lakes, reindeer corrals, red houses with
-    // dark metal roofs, cold white lamps.
-    b.layout = .taiga
-    b.crops = (rgb(0xd6d4c0), rgb(0x8aaa5a), rgb(0x7a8a4a), rgb(0x9a8a5a))
-    b.canopy = rgb(0x3d5a3a); b.canopyLight = rgb(0x5a7a4a); b.hedgeTrees = 0.55; b.trees = 0.02
+    // Pine and spruce forest with birch about the wet ground, pale lichen heath, clear-cuts, patterned mires,
+    // dark lakes, reindeer corrals, red houses under dark metal roofs, cold white lamps.
     b.roofs = (rgb(0x3a3a3e), rgb(0x7a2a22), rgb(0x2a2a2e))
     b.villages = 0.1; b.streetLights = 0.6; b.lampColor = rgb(0xffdcb4); b.sodiumLamps = 0.35
-    b.landmarks = (.lake, 0.35, .corral, 0.15)
+    b.landmarks = (.lake, 0.45, .corral, 0.12)
     b.boats = 0.1
     return b
 }()
@@ -257,18 +256,18 @@ private let lapland = Place(
     seasons: [
         Season(months: [6, 7, 8], line: "Summer · midnight sun on the fells", biome: laplandBase),
         Season(months: [9], line: "Autumn · ruska colours on the fells", biome: laplandBase.with {
-            // Crimson ground layer, ochre bogs and gold birches against dark pine on pale lichen.
-            $0.crops = (rgb(0xd2cdb0), rgb(0xc88a3a), rgb(0xb8402a), rgb(0xc8702a))
-            $0.canopyLight = rgb(0xe0b040)
+            // Crimson ground layer, ochre mires and gold birches against dark pine on pale lichen.
+            $0.crops = (rgb(0xc9c0a0), rgb(0xc08f4c), rgb(0x8a4b30), rgb(0x6b4a2c))
+            $0.hedge = rgb(0xd9a33a); $0.canopyLight = rgb(0x66784a)
         }),
         Season(months: [10, 11, 12, 1, 2, 3, 4], line: "Winter · snow on the fells", biome: laplandBase.with {
             $0.crops = (rgb(0xf1f4f7), rgb(0xe6ecf2), rgb(0xdce4ec), rgb(0xd6dde6)); $0.ground = rgb(0xeef2f6)
-            $0.snowCover = 0.9; $0.frozen = 0.85; $0.sway = 0; $0.rock = rgb(0x8c8f96)
+            $0.snowCover = 0.9; $0.frozen = 0.85; $0.sway = 0; $0.rock = rgb(0x8c8f96); $0.hedge = rgb(0x8a8078)
             $0.herds = 0.35; $0.boats = 0
         }),
         Season(months: [5], line: "Spring · snowmelt on the fells", biome: laplandBase.with {
-            $0.crops = (rgb(0xb7b07a), rgb(0x9aa86a), rgb(0xe9edf1), rgb(0x8a7a5a)); $0.snowCover = 0.35
-            $0.frozen = 0.2
+            $0.crops = (rgb(0xbab38c), rgb(0x9a9062), rgb(0x6a6a48), rgb(0x5a5a40)); $0.snowCover = 0.35
+            $0.frozen = 0.2; $0.hedge = rgb(0x8a8a5a)
         })
     ],
     signature: 0,
@@ -280,7 +279,7 @@ private let lapland = Place(
 private let normandyBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8cc74e), groundDark: rgb(0x3f8a3a),
                   crops: (rgb(0x92cc52), rgb(0xb7d95e), rgb(0xd7d44a), rgb(0x7cbd4a)), hedge: rgb(0x2e6e34),
-                  water: rgb(0x2d64bd), shallows: rgb(0x4d8bd8), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
+                  water: rgb(0x3f6378), shallows: rgb(0x6c8a86), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
                   canopy: rgb(0x4f8a3a), canopyLight: rgb(0x7db04f))
     b.fieldSize = 150; b.hedgeWidth = 8; b.warp = 0.6; b.fallow = 0.1; b.sway = 0.5
     b.trees = 0.08; b.treeSize = 8; b.hedgeTrees = 0.6; b.clumping = 0.7; b.orchards = 0.22; b.petals = 0.4; b.houses = 0.3
@@ -291,7 +290,7 @@ private let normandyBase: Biome = {
     b.fieldSize = 210; b.hedgeTrees = 0.7; b.roadTrees = 0.3; b.villages = 0.35
     b.roofs = (rgb(0x5d636b), rgb(0x9a5a42), rgb(0x8a7a5a))
     b.animalColor = rgb(0xf0ebe2); b.animalPatches = rgb(0x8a4a2a); b.herds = 0.35
-    b.riverWidth = 22; b.streetLights = 0.5; b.lampColor = rgb(0xffd6a0); b.sodiumLamps = 0.45
+    b.riverWidth = 22; b.riverBends = 35; b.streetLights = 0.5; b.lampColor = rgb(0xffd6a0); b.sodiumLamps = 0.45
     b.lampsOffLate = true
     b.boats = 0.3
     return b
@@ -326,7 +325,7 @@ private let normandy = Place(
 private let lisseBase: Biome = {
     var b = Biome(layout: .stripes, ground: rgb(0x7fb352), groundDark: rgb(0x5c9443),
                   crops: (rgb(0xe3392f), rgb(0xf6cd2f), rgb(0xef7fa8), rgb(0x8f58b8)), hedge: rgb(0x6e9a4a),
-                  water: rgb(0x355f9c), shallows: rgb(0x4f7fbf), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
+                  water: rgb(0x3d5a6e), shallows: rgb(0x5e7a84), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
                   canopy: rgb(0x2f6635), canopyLight: rgb(0x4a8a44))
     b.fieldSize = 22; b.hedgeWidth = 3; b.warp = 0.03; b.fallow = 0.18; b.strokes = 0.3; b.sway = 0.4
     b.trees = 0.03; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
@@ -362,7 +361,7 @@ private let lisse = Place(
 private let kansasBase: Biome = {
     var b = Biome(layout: .pivots, ground: rgb(0xd6c08a), groundDark: rgb(0xc2aa72),
                   crops: (rgb(0x5f9e3e), rgb(0x76ad45), rgb(0xd9b24a), rgb(0x4e8f3a)), hedge: rgb(0xc8b893),
-                  water: rgb(0x3c6fae), shallows: rgb(0x5a8fcc), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
+                  water: rgb(0x5f7f86), shallows: rgb(0x8aa0a0), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
                   canopy: rgb(0x4a6e35), canopyLight: rgb(0x6a8f45))
     b.fieldSize = 270; b.hedgeWidth = 6; b.warp = 0; b.fallow = 0.12; b.strokes = 0.5; b.sway = 0.6
     b.trees = 0.015; b.treeSize = 10; b.hedgeTrees = 0.05; b.clumping = 0.95; b.houses = 0.08

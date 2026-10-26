@@ -66,9 +66,13 @@ public struct Biome: Sendable {
     /// Metres; 0 for a place with no river, where it narrows away as the land changes.
     public var riverWidth: Float = 34
     public var riverWander: Float = 90
+    /// How far, in metres, the river bends to either side within its valley. The road keeps to the valley.
+    public var riverBends: Float = 0
     public var roadWidth: Float = 9
     public var paved: Float = 1
     public var ponds: Float = 0.2
+    /// How big ponds grow: 1 for farm ponds; the pampa's lagunas are several times larger, with pale salty rims.
+    public var pondSize: Float = 1
     public var houses: Float = 0.3
     public var rocks: Float = 0
     public var snowCover: Float = 0
@@ -105,6 +109,8 @@ public struct Biome: Sendable {
     public var villages: Float = 0.3
     /// Avenues of trees along the road, 0 to 1.
     public var roadTrees: Float = 0
+    /// Homesteads stand in dark windbreaks of evergreens, as in rural Japan, rather than among the place's own trees.
+    public var evergreenGardens = false
     /// Grassy dykes either side of the river, in metres.
     public var levees: Float = 0
     /// Landmarks scattered across the land, with how many per square kilometre or so.
