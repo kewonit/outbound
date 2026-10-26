@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             source.resume()
             signals.append(source)
         }
+        installMainMenu()
         do {
             gpu = try GPU()
         } catch {
@@ -124,7 +125,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.running = unlocked
         if unlocked {
             activation?.finish()
-            activation = nil
             refreshStill(force: true)
         } else {
             stills.restore()
@@ -133,7 +133,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func showActivation() {
-        if activation == nil { activation = ActivationWindow(license: license, world: world, gpu: gpu) }
+        if activation == nil {
+            let window = ActivationWindow(license: license, world: world, gpu: gpu)
+            window.onDone = { [weak self] in self?.activation = nil }
+            activation = window
+        }
         activation?.show()
     }
 
@@ -235,6 +239,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // MARK: - Menu
+
+    /// Outbound shows no menu bar, but its windows still need the usual shortcuts, and they come from the main
+    /// menu: without an Edit menu, Command-V does nothing in the key field.
+    private func installMainMenu() {
+        let app = NSMenu()
+        app.addItem(withTitle: "Quit Outbound", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        let window = NSMenu(title: "Window")
+        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let main = NSMenu()
+        for menu in [app, edit, window] {
+            main.addItem(submenu(menu.title, menu))
+        }
+        NSApp.mainMenu = main
+    }
 
     private func installStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)

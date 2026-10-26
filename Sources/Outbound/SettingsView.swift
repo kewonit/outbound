@@ -6,7 +6,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var preferences: Preferences
     let license: LicenseController
-    @State private var opensAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var opensAtLogin = LoginItem.isOn
 
     var body: some View {
         Form {
@@ -65,11 +65,24 @@ struct SettingsView: View {
     }
 
     private func setOpensAtLogin(_ on: Bool) {
+        LoginItem.set(on)
+        opensAtLogin = LoginItem.isOn
+    }
+}
+
+/// Whether Outbound opens at login. macOS keeps this, not Outbound's preferences.
+@MainActor
+enum LoginItem {
+    static var isOn: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+
+    static func set(_ on: Bool) {
+        guard on != isOn else { return }
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
             NSAlert(error: error).runModal()
         }
-        opensAtLogin = SMAppService.mainApp.status == .enabled
     }
 }

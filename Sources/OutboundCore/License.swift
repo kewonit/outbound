@@ -55,8 +55,18 @@ public enum LicenseStatus: Equatable, Sendable {
         self == .valid || self == .needsCheck
     }
 
-    /// Keys are usually pasted from an email, often with stray spaces or a line break.
+    /// Keys are pasted from an email or a web page, and come with stray spaces, line breaks, invisible characters
+    /// or the words around them. Polar makes every key a prefix and a UUID in capitals, and only takes it exactly.
     public static func clean(_ key: String) -> String {
-        key.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visible = key.unicodeScalars.filter { $0.properties.generalCategory != .format }
+        // Rich text sometimes swaps hyphens for dashes that look the same.
+        let words = String(String.UnicodeScalarView(visible)).uppercased().replacing(/\p{Pd}/, with: "-")
+            .components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        // A key on its own among other words, or one broken across lines.
+        let shape = /(?:[A-Z0-9]+-)?[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}/
+        for text in words + [words.joined()] {
+            if let match = text.firstMatch(of: shape) { return String(match.output) }
+        }
+        return words.joined()
     }
 }

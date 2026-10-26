@@ -71,12 +71,27 @@
   }
   poll();
 
+  // If the browser won't write to the clipboard, the key is selected instead, so Command-C copies it and the
+  // buyer doesn't paste whatever was there before.
+  function selectKey() {
+    var range = document.createRange();
+    range.selectNodeContents(keyText);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    say("Press ⌘C to copy your key.");
+  }
+
   copy.addEventListener("click", function () {
     var text = keyText.textContent;
     if (!text) return;
+    if (!navigator.clipboard) {
+      selectKey();
+      return;
+    }
     navigator.clipboard.writeText(text).then(function () {
       copy.textContent = "Copied";
       setTimeout(function () { copy.textContent = "Copy"; }, 1600);
-    });
+    }, selectKey);
   });
 })();

@@ -15,7 +15,8 @@ enum Store {
 
     static var api: URL {
         #if DEBUG
-        // Test against Polar's sandbox with OUTBOUND_POLAR_SANDBOX=1.
+        // Test against Polar's sandbox with OUTBOUND_POLAR_SANDBOX=1, or a stand-in with OUTBOUND_POLAR_API.
+        if let url = ProcessInfo.processInfo.environment["OUTBOUND_POLAR_API"].flatMap(URL.init(string:)) { return url }
         if ProcessInfo.processInfo.environment["OUTBOUND_POLAR_SANDBOX"] != nil {
             return URL(string: "https://sandbox-api.polar.sh")!
         }

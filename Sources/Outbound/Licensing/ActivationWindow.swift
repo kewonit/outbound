@@ -3,46 +3,79 @@ import OutboundCore
 import SwiftUI
 
 /// The window shown before Outbound is unlocked: a live window onto the world, a way to buy it that unlocks
-/// by itself once paid, and a place to paste a key bought earlier.
+/// by itself once paid, and a place to paste a key bought earlier. Once unlocked it stays to say where Outbound
+/// lives now, and offers to open it at login.
 @MainActor
 final class ActivationWindow {
     private let window: NSWindow
     private let preview: PreviewView
     private let state = ActivationState()
+    private var observer: NSObjectProtocol?
+    /// Called once the window is closed after unlocking, when it is no longer needed.
+    var onDone: () -> Void = {}
 
     init(license: LicenseController, world: World, gpu: GPU) {
         let size = CGSize(width: 560, height: 300)
         preview = PreviewView(world: world, gpu: gpu, size: size)
-        let view = ActivationView(license: license, preview: preview, state: state)
-        window = NSWindow(contentViewController: NSHostingController(rootView: view))
+        window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .closable, .fullSizeContentView],
+                          backing: .buffered, defer: false)
+        let view = ActivationView(license: license, preview: preview, state: state) { [weak self] size in
+            self?.fit(size)
+        } done: { [weak self] in
+            self?.window.performClose(nil)
+        }
+        let hosting = NSHostingController(rootView: view)
+        // The window follows its content itself: AppKit only ever grows it, and adds the title bar the content
+        // already runs under.
+        hosting.sizingOptions = []
+        window.contentViewController = hosting
+        // The content is a fixed size, whatever it is offered.
+        window.setFrame(CGRect(origin: .zero, size: hosting.sizeThatFits(in: .zero)), display: false)
         window.title = "Unlock Outbound"
-        window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
         window.center()
+        observer = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window,
+                                                          queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.closed() }
+        }
     }
 
     func show() {
+        // Locked again, say after a refund, while the thank-you was still up.
+        state.unlocked = false
         preview.start()
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
 
-    func close() {
-        preview.stop()
-        window.close()
-    }
-
-    /// Says thank you for a moment, then gets out of the way of the wallpaper.
+    /// Says thank you and where to find Outbound, and stays until the buyer is done reading. Someone who closed
+    /// the window, or never saw it, isn't shown it again.
     func finish() {
         guard window.isVisible else {
-            close()
+            preview.stop()
+            onDone()
             return
         }
+        state.opensAtLogin = true
         state.unlocked = true
-        // Holds on to the window until it has closed; the app lets go of it straight away.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { self.close() }
+    }
+
+    /// Fits the window to its content as it changes, keeping the top edge where it is.
+    private func fit(_ size: CGSize) {
+        guard size.width > 0, size.height > 0, size != window.frame.size else { return }
+        window.setFrame(CGRect(x: window.frame.minX, y: window.frame.maxY - size.height, width: size.width,
+                               height: size.height), display: true, animate: window.isVisible)
+    }
+
+    private func closed() {
+        preview.stop()
+        guard state.unlocked else { return }
+        // What the box showed when the window went away, however it was closed.
+        LoginItem.set(state.opensAtLogin)
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+        onDone()
     }
 }
 
@@ -50,12 +83,15 @@ final class ActivationWindow {
 @Observable
 final class ActivationState {
     var unlocked = false
+    var opensAtLogin = true
 }
 
 private struct ActivationView: View {
     @Bindable var license: LicenseController
     let preview: PreviewView
-    let state: ActivationState
+    @Bindable var state: ActivationState
+    let resized: (CGSize) -> Void
+    let done: () -> Void
     @State private var key = ""
 
     var body: some View {
@@ -66,53 +102,76 @@ private struct ActivationView: View {
                 Text("Outbound")
                     .font(.system(size: 22, weight: .semibold))
                 if state.unlocked {
-                    Label("Unlocked. Enjoy!", systemImage: "checkmark.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.green)
-                } else if license.waitingForPurchase {
-                    waiting
+                    unlocked
                 } else {
-                    Text("A painted world behind your desktop, and a bird that follows your cursor.")
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 12) {
-                        Button("Buy for \(Store.price)", action: license.buy)
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .disabled(license.busy)
-                        Text("$7 + tax, once. Up to 3 Macs.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Divider().padding(.vertical, 4)
-                HStack {
-                    Text("Already bought it? Paste your key.")
-                        .font(.callout)
-                    Spacer()
-                    Link("Find my key", destination: Store.portalURL)
-                        .font(.callout)
-                }
-                HStack {
-                    TextField("OUTBOUND-…", text: $key)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit(unlock)
-                    Button("Unlock", action: unlock)
-                        .disabled(LicenseStatus.clean(key).isEmpty || license.busy)
-                    if license.busy { ProgressView().controlSize(.small) }
-                }
-                if let message = license.message {
-                    Text(message)
-                        .font(.callout)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    locked
                 }
             }
             .padding(22)
         }
         .frame(width: 560)
+        .fixedSize()
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { resized($0) }
         .ignoresSafeArea(edges: .top)
+    }
+
+    @ViewBuilder private var locked: some View {
+        if license.waitingForPurchase {
+            waiting
+        } else {
+            Text("A painted world behind your desktop, and a bird that follows your cursor.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Button("Buy for \(Store.price)", action: license.buy)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(license.busy)
+                Text("$7 + tax, once. Up to 3 Macs.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        Divider().padding(.vertical, 4)
+        HStack {
+            Text("Already bought it? Paste your key.")
+                .font(.callout)
+            Spacer()
+            Link("Find my key", destination: Store.portalURL)
+                .font(.callout)
+        }
+        HStack {
+            TextField("OUTBOUND-…", text: $key)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(unlock)
+            Button("Unlock", action: unlock)
+                .disabled(LicenseStatus.clean(key).isEmpty || license.busy)
+            if license.busy { ProgressView().controlSize(.small) }
+        }
+        if let message = license.message {
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.red)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var unlocked: some View {
+        Label("Unlocked. Thank you!", systemImage: "checkmark.circle.fill")
+            .font(.title3)
+            .foregroundStyle(.green)
+        Text("Outbound is flying behind your windows now. It lives in the menu bar, under \(Image(systemName: "bird")).")
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        Divider().padding(.vertical, 4)
+        HStack {
+            Toggle("Open Outbound at login", isOn: $state.opensAtLogin)
+            Spacer()
+            Button("Done", action: done)
+                .keyboardShortcut(.defaultAction)
+                .controlSize(.large)
+        }
     }
 
     private var waiting: some View {
