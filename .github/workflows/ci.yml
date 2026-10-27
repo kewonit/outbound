@@ -8,3 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: scripts/build-app.sh release
+      - run: scripts/build-app.sh appstore

@@ -5,11 +5,14 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var preferences: Preferences
+    #if !APPSTORE
     @ObservedObject var license: LicenseController
+    #endif
     @State private var opensAtLogin = LoginItem.isOn
 
     private static let website = URL(string: "https://outbound.edbn.me")!
     private static let support = URL(string: "https://outbound.edbn.me/support")!
+    private static let privacy = URL(string: "https://outbound.edbn.me/privacy")!
 
     var body: some View {
         Form {
@@ -28,6 +31,7 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section {
+                #if !APPSTORE
                 if !LicenseController.isGated {
                     LabeledContent("License", value: String(localized: "Development build"))
                 } else if license.record == nil {
@@ -47,6 +51,7 @@ struct SettingsView: View {
                 if let message = license.message {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
+                #endif
             } footer: {
                 about
             }
@@ -71,9 +76,14 @@ struct SettingsView: View {
                 Text("Quit it and your own desktop picture comes back.")
             }
             HStack(spacing: 6) {
+                // The website sells the direct download, which an App Store copy mustn't point to.
+                #if !APPSTORE
                 Link("Website", destination: Self.website)
                 Text("·").accessibilityHidden(true)
+                #endif
                 Link("Support", destination: Self.support)
+                Text("·").accessibilityHidden(true)
+                Link("Privacy", destination: Self.privacy)
             }
             .padding(.top, 2)
         }

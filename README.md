@@ -44,6 +44,8 @@ open build/Outbound.app
 
 Ship an update to everyone: `scripts/release.sh 1.1 "What's new."`
 
+The Mac App Store edition is the same code, sandboxed, without the updater or the license store: `scripts/build-app.sh appstore` builds it, and `scripts/appstore.sh` sends it to App Store Connect.
+
 ## License
 
 The code is open to read and improve. Using the app needs a license. See [LICENSE](LICENSE).
