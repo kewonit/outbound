@@ -507,14 +507,23 @@ enum Exporter {
         guard CGImageDestinationFinalize(destination) else { throw Failure(description: "Could not write \(url.path)") }
     }
 
-    private static func image(_ texture: MTLTexture) throws -> CGImage {
+    /// The texture's pixels as an image. They are read into pages of their own, which go back to the system as soon
+    /// as the image is done with: a whole display's worth in the heap, copied once more on the way, stayed with the app
+    /// as tens of megabytes long after each picture.
+    nonisolated private static func image(_ texture: MTLTexture) throws -> CGImage {
         let width = texture.width, height = texture.height
-        let rowBytes = width * 4
-        var bytes = [UInt8](repeating: 0, count: rowBytes * height)
-        texture.getBytes(&bytes, bytesPerRow: rowBytes, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        let rowBytes = width * 4, size = rowBytes * height
+        guard size > 0, let pixels = mmap(nil, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0),
+              pixels != MAP_FAILED else { throw Failure(description: "Could not read the frame back") }
+        texture.getBytes(pixels, bytesPerRow: rowBytes, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        guard let provider = CGDataProvider(dataInfo: nil, data: pixels, size: size, releaseData: { _, data, size in
+            munmap(UnsafeMutableRawPointer(mutating: data), size)
+        }) else {
+            munmap(pixels, size)
+            throw Failure(description: "Could not read the frame back")
+        }
         let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-        guard let provider = CGDataProvider(data: Data(bytes) as CFData),
-              let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+        guard let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
                                   bytesPerRow: rowBytes, space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                   bitmapInfo: info, provider: provider, decode: nil, shouldInterpolate: false,
                                   intent: .defaultIntent)
@@ -523,16 +532,7 @@ enum Exporter {
     }
 
     nonisolated static func write(_ texture: MTLTexture, to url: URL, type: UTType = .png) throws {
-        let width = texture.width, height = texture.height
-        let rowBytes = width * 4
-        var bytes = [UInt8](repeating: 0, count: rowBytes * height)
-        texture.getBytes(&bytes, bytesPerRow: rowBytes, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
-        let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-        guard let provider = CGDataProvider(data: Data(bytes) as CFData),
-              let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
-                                  bytesPerRow: rowBytes, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                                  bitmapInfo: info, provider: provider, decode: nil, shouldInterpolate: false,
-                                  intent: .defaultIntent),
+        guard let image = try? image(texture),
               let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)
         else { throw Failure(description: "Could not write \(url.path)") }
         CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
