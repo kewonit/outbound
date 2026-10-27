@@ -87,6 +87,8 @@ if [[ "$edition" == appstore ]]; then
     if [[ -n "${SIGN_IDENTITY:-}" ]]; then
         cp "${APPSTORE_PROFILE:?Set APPSTORE_PROFILE to the Mac App Store provisioning profile}" \
             "$app/Contents/embedded.provisionprofile"
+        # A profile downloaded in a browser carries the quarantine flag, which App Store Connect turns away.
+        xattr -cr "$app"
         codesign --force --options runtime --timestamp --entitlements "$entitlements" --sign "$SIGN_IDENTITY" "$app"
     else
         # Only the sandbox: the store's identifiers need the provisioning profile.
