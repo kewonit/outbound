@@ -72,7 +72,7 @@ final class World {
     /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
     /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
     func renderTime(for displayTime: TimeInterval) -> TimeInterval {
-        heldSince == nil ? displayTime - heldFor : time
+        heldSince == nil ? displayTime - heldFor - setOffLag(at: displayTime) : time
     }
 
     /// The bird as it was, or is, at `t`.
@@ -84,16 +84,29 @@ final class World {
     /// it stopped instead of leaping ahead.
     private var heldFor: TimeInterval = 0
     private var heldSince: TimeInterval?
+    /// When the flight last set off again after being held, in display time. It gathers speed over `setOffLength`
+    /// rather than going from still to full pace in one frame.
+    private var setOff: TimeInterval?
+    static let setOffLength = 0.8
 
     var isHeld: Bool { heldSince != nil }
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
+            // What setting off last time took off the clock stays taken off.
+            heldFor += setOffLag(at: now)
+            setOff = nil
             heldSince = now
         } else if !on, let since = heldSince {
             heldFor += now - since
             heldSince = nil
+            setOff = now
         }
+    }
+
+    /// How far behind its usual schedule gathering speed after a hold has left the flight.
+    private func setOffLag(at displayTime: TimeInterval) -> TimeInterval {
+        setOff.map { Easing.rampLag(elapsed: displayTime - $0, length: Self.setOffLength) } ?? 0
     }
 
     /// A moment of the flight to come back to: the one the painting on the desktop shows, which the wallpapers go back
@@ -144,7 +157,7 @@ final class World {
 
     func advance(to displayTime: TimeInterval) {
         guard heldSince == nil else { return }
-        let t = displayTime - heldFor
+        let t = displayTime - heldFor - setOffLag(at: displayTime)
         guard t > time else { return }
         let dt = t - time
         time = t

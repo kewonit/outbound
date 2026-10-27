@@ -783,3 +783,15 @@ fragment float4 birdSprite(VertexOut in [[stage_in]],
     c = mix(lit, moonlit, night);
     return float4(saturate(c) * alpha, alpha);
 }
+
+// What a display showed before it was hidden, laid over its first frames back and faded out, so coming back after the
+// flight has moved on dissolves to where it is now. At fade 1 it is exactly what the window showed meanwhile.
+fragment SkyOut parting(VertexOut in [[stage_in]],
+                        float4 below [[color(0)]],
+                        texture2d<float> was [[texture(7)]],
+                        constant float &fade [[buffer(2)]]) {
+    float4 then = was.read(uint2(in.position.xy));
+    SkyOut out;
+    out.color = fade >= 1 ? then : mix(below, then, fade);
+    return out;
+}

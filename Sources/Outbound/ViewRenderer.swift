@@ -183,8 +183,17 @@ final class ViewRenderer {
     }
 
     /// Draws the world as it is at `t`, the moment this frame will be on screen.
-    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
-        guard clouds != nil, let ground = updateGround(world: world, at: t, seen: true, commandBuffer: commandBuffer),
+    ///
+    /// `overlay` lays another picture of the same size over the frame, `fade` of the way to it, for the dissolve on coming
+    /// back to a display (see `Wallpaper`). `birdAt` paints the bird as it was at that moment even while it has a layer
+    /// of its own, and `paintsWaiting` false paints no ground that could wait: both are for painting again exactly what
+    /// a display last showed.
+    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer,
+                overlay: (texture: MTLTexture, fade: Float)? = nil, birdAt: TimeInterval? = nil,
+                paintsWaiting: Bool = true) {
+        guard clouds != nil,
+              let ground = updateGround(world: world, at: t, seen: true, paintsWaiting: paintsWaiting,
+                                        commandBuffer: commandBuffer),
               let color, let mask, let clouds else { return }
         let mpp = World.metresPerPoint
         let texel = mpp / density
@@ -247,12 +256,12 @@ final class ViewRenderer {
 
         // Composite into the target. The bird is drawn by whichever display it is over.
         let gust = world.gustSpace(origin, at: t)
-        let bird = world.birdPose(at: t)
+        let bird = world.birdPose(at: birdAt ?? t)
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
             && birdPoint.x < Double(frame.width) + 90 && birdPoint.y < Double(frame.height) + 90
         var finish = self.finish
-        finish.z = drawsBird ? 1 : 0
+        finish.z = drawsBird || birdAt != nil ? 1 : 0
         finish.w = groundFilter
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
@@ -321,6 +330,15 @@ final class ViewRenderer {
 
             encoder.setRenderPipelineState(pipelines.sky)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+
+            if let overlay, overlay.fade > 0, overlay.texture.width == target.width,
+               overlay.texture.height == target.height {
+                var fade = min(overlay.fade, 1)
+                encoder.setRenderPipelineState(pipelines.parting)
+                encoder.setFragmentTexture(overlay.texture, index: 7)
+                encoder.setFragmentBytes(&fade, length: MemoryLayout<Float>.stride, index: 2)
+                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            }
             encoder.endEncoding()
         }
     }
@@ -345,7 +363,8 @@ final class ViewRenderer {
     /// wave, and during a Fly To the new place ahead of its sweep. `seen` is false for a display nobody can see (see
     /// `keepUp`), which leaves the heavy parts for the first frame back. Nil when nothing was painted for a frame.
     @discardableResult
-    private func updateGround(world: World, at t: TimeInterval, seen: Bool, commandBuffer: MTLCommandBuffer) -> Ground? {
+    private func updateGround(world: World, at t: TimeInterval, seen: Bool, paintsWaiting: Bool = true,
+                              commandBuffer: MTLCommandBuffer) -> Ground? {
         let mpp = World.metresPerPoint
         let texel = mpp / density
         let camera = world.camera(at: t)
@@ -398,7 +417,7 @@ final class ViewRenderer {
         // Newly revealed ground can't wait; it still counts against the budget for what can.
         let revealed = rects
         gpu.paintBudget.spend(revealed.reduce(0) { $0 + $1.w * $1.h }, at: t)
-        if !full, let wave = repaintRow {
+        if !full, paintsWaiting, let wave = repaintRow {
             let row = min(wave, need.y + cacheHeight)
             let granted = gpu.paintBudget.take(max(cacheHeight / 12, 1) * cacheWidth, at: t)
             let low = max(row - max(granted / cacheWidth, 1), need.y)
@@ -410,7 +429,7 @@ final class ViewRenderer {
         var incomingRects: [Rect] = []
         if let front = worldFrame.sweepFront {
             incomingRects = sweepRects(front: front, need: need, revealed: revealed, texel: texel,
-                                       leg: worldFrame.legB.index, at: t)
+                                       leg: worldFrame.legB.index, at: t, paintsWaiting: paintsWaiting)
         }
         valid = need
         revision = world.revision
@@ -528,7 +547,7 @@ final class ViewRenderer {
     /// already holds, then rows upward from where it got to, always as far as the sweep's front, where the land starts
     /// to turn, and further as the budget allows, so it is ready before the front gets there.
     private func sweepRects(front: Double, need: (x: Int, y: Int), revealed: [Rect], texel: Double, leg: Int,
-                            at t: TimeInterval) -> [Rect] {
+                            at t: TimeInterval, paintsWaiting: Bool) -> [Rect] {
         if sweepLeg != leg {
             // A Fly To during another: settle what the first had turned so far by repainting the ground, then begin
             // the new place afresh.
@@ -554,7 +573,8 @@ final class ViewRenderer {
         let frontRow = min(Int((front / texel).rounded(.up)) + 2, topRow)
         let must = max(frontRow - filled, 0)
         gpu.paintBudget.spend(must * cacheWidth, at: t)
-        let extra = gpu.paintBudget.take(max(topRow - filled - must, 0) * cacheWidth, at: t) / cacheWidth
+        let extra = paintsWaiting
+            ? gpu.paintBudget.take(max(topRow - filled - must, 0) * cacheWidth, at: t) / cacheWidth : 0
         let reach = min(filled + must + extra, topRow)
         if reach > filled { out.append((need.x, filled, cacheWidth, reach - filled)) }
         incomingFilled = reach

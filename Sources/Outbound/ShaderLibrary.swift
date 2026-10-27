@@ -14,6 +14,8 @@ final class ShaderLibrary {
         let animals: MTLRenderPipelineState
         let sky: MTLRenderPipelineState
         let bird: MTLRenderPipelineState
+        /// The last draw of a frame while a display dissolves from what it showed before it was hidden.
+        let parting: MTLRenderPipelineState
     }
 
     static let files = ["Common.metal", "Ground.metal", "Clouds.metal", "Composite.metal"]
@@ -78,7 +80,8 @@ final class ShaderLibrary {
                          view: try pipeline("viewGround", formats: frame),
                          animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),
                          sky: try pipeline("sky", formats: frame, writes: 1),
-                         bird: try pipeline("birdSprite", formats: [viewFormat]))
+                         bird: try pipeline("birdSprite", formats: [viewFormat]),
+                         parting: try pipeline("parting", formats: frame, writes: 1))
     }
 
     private func watch() {
