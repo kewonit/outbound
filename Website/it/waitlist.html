@@ -45,7 +45,7 @@
 <meta name="twitter:image:alt" content="Outbound: un mondo dipinto che scorre dietro la tua scrivania." data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/styles.css?v=21">
+<link rel="stylesheet" href="/styles.css?v=22">
 <!-- Privacy-friendly analytics by Plausible -->
 <script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
 <script>
@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Non è ancora pronto. Lascia la tua email e riceverai una sola email quando lo sarà. Nient'altro.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Quale?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="La tua email" aria-label="La tua email" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Avvisami</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Il tuo indirizzo serve solo per quell'unica email, poi viene cancellato. <a href="/privacy">Privacy (in inglese)</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Il tuo indirizzo serve solo per quell'unica email, poi viene cancellato. <a href="/privacy">Privacy (in inglese)</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Lingua</label>
       <select id="language" data-lang-picker>
@@ -123,8 +123,8 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Copiata","js.copy":"Copia","js.copyKey":"Copia chiave","js.copyKeyTitle":"Copia la tua chiave","js.finding":"Cerco la tua chiave…","js.offline":"Impossibile raggiungere il negozio. Prova con Attiva o controlla il tuo portale clienti.","js.portal":"La tua chiave è nel portale clienti qui sotto.","js.pressCopy":"Premi ⌘C per copiare la chiave.","js.refunded":"Questo acquisto è stato rimborsato.","js.slow":"Ci vuole più del solito. Prova con Attiva o controlla il tuo portale clienti tra un minuto.","js.unfinished":"Questo pagamento non è stato completato.","js.waitlistBusy":"Troppi tentativi. Aspetta un minuto.","js.waitlistFailed":"Non è andata a buon fine. Riprova.","js.waitlistInvalid":"Questa email non sembra corretta.","js.waitlistIos":"Sei nella lista. Una sola email quando Outbound arriverà su iPhone.","js.waitlistWindows":"Sei nella lista. Una sola email quando Outbound arriverà su Windows."};</script>
-<script src="/app.js?v=14"></script>
-<script src="/waitlist.js?v=1"></script>
+<script>window.OUTBOUND_I18N = {"js.copied":"Copiata","js.copy":"Copia","js.copyKey":"Copia chiave","js.copyKeyTitle":"Copia la tua chiave","js.emailInvalid":"Questa email non sembra corretta.","js.feedbackEmpty":"Scrivi prima qualcosa.","js.feedbackLong":"Massimo 2000 caratteri.","js.feedbackSent":"Grazie. È in viaggio.","js.finding":"Cerco la tua chiave…","js.formBusy":"Troppi tentativi. Aspetta un minuto.","js.formFailed":"Non è andata a buon fine. Riprova.","js.offline":"Impossibile raggiungere il negozio. Prova con Attiva o controlla il tuo portale clienti.","js.portal":"La tua chiave è nel portale clienti qui sotto.","js.pressCopy":"Premi ⌘C per copiare la chiave.","js.refunded":"Questo acquisto è stato rimborsato.","js.slow":"Ci vuole più del solito. Prova con Attiva o controlla il tuo portale clienti tra un minuto.","js.unfinished":"Questo pagamento non è stato completato.","js.waitlistIos":"Sei nella lista. Una sola email quando Outbound arriverà su iPhone.","js.waitlistWindows":"Sei nella lista. Una sola email quando Outbound arriverà su Windows."};</script>
+<script src="/app.js?v=15"></script>
+<script src="/waitlist.js?v=2"></script>
 </body>
 </html>

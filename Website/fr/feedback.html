@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!-- Site URLs (download, buy, github) live once, at the top of app.js. The form is feedback.js, and worker/index.js keeps
+     what it sends. Not for search engines, so it has no other languages listed. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="feedback.metaTitle">Ton avis · Outbound</title>
+<meta name="description" content="Dis à la personne qui a créé Outbound ce qui marche, ce qui ne marche pas et ce que tu aimerais ensuite." data-i18n-attr="content=feedback.metaDescription">
+<link rel="canonical" href="https://outbound.edbn.me/fr/feedback">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/fr/feedback">
+<meta property="og:title" content="Ton avis · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta property="og:description" content="Dis à la personne qui a créé Outbound ce qui marche, ce qui ne marche pas et ce que tu aimerais ensuite." data-i18n-attr="content=feedback.metaDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound : un monde peint qui défile derrière ton bureau." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ton avis · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta name="twitter:description" content="Dis à la personne qui a créé Outbound ce qui marche, ce qui ne marche pas et ce que tu aimerais ensuite." data-i18n-attr="content=feedback.metaDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content="Outbound : un monde peint qui défile derrière ton bureau." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css?v=22">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body class="fill">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/fr/" aria-label="Accueil Outbound" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/fr/#buy" data-url="buy" data-soon="Bientôt disponible" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Acheter pour $7</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 data-i18n="feedback.title">Ton avis.</h1>
+    <p class="lede" data-i18n="feedback.lede">Ce qui marche, ce qui ne marche pas, ce que tu aimerais ensuite. Ça arrive directement à la personne qui a créé Outbound.</p>
+
+    <!-- Posts, so nothing written here ends up in a page's address. feedback.js sends it and answers in place. -->
+    <form class="page-form" id="feedback" action="/api/feedback" method="post" novalidate>
+      <textarea class="field" name="message" required maxlength="2000" rows="6" placeholder="Ton avis" aria-label="Ton avis"
+                data-i18n-attr="placeholder=feedback.message aria-label=feedback.message"></textarea>
+      <div class="form-row">
+        <input class="field" type="email" name="email" maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder="Ton e-mail (facultatif)" aria-label="Ton e-mail (facultatif)" data-i18n-attr="placeholder=feedback.email aria-label=feedback.email">
+        <button class="btn btn-light" type="submit" data-i18n="feedback.button">Envoyer</button>
+      </div>
+      <!-- Left empty by people, filled in by bots. -->
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="feedback-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="feedback-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<footer class="footer footer-plain">
+  <div class="wrap-narrow">
+    <p class="form-fine" data-i18n="feedback.fine">Seule la personne qui a créé Outbound le lit. Ton e-mail ne sert qu'à te répondre. <a href="/privacy">Confidentialité (en anglais)</a></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Langue</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr" selected>Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"Copiée","js.copy":"Copier","js.copyKey":"Copier la clé","js.copyKeyTitle":"Copie ta clé","js.emailInvalid":"Cet e-mail ne semble pas correct.","js.feedbackEmpty":"Écris quelque chose d'abord.","js.feedbackLong":"2000 caractères maximum.","js.feedbackSent":"Merci. C'est envoyé.","js.finding":"Recherche de ta clé…","js.formBusy":"Trop d'essais. Attends une minute.","js.formFailed":"Ça n'a pas marché. Réessaie.","js.offline":"Impossible de joindre la boutique. Essaie Activer, ou consulte ton espace client.","js.portal":"Ta clé se trouve dans ton espace client, ci-dessous.","js.pressCopy":"Appuie sur ⌘C pour copier ta clé.","js.refunded":"Cet achat a été remboursé.","js.slow":"C'est plus long que d'habitude. Essaie Activer, ou consulte ton espace client d'ici une minute.","js.unfinished":"Ce paiement n'a pas abouti.","js.waitlistIos":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur iPhone.","js.waitlistWindows":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur Windows."};</script>
+<script src="/app.js?v=15"></script>
+<script src="/feedback.js?v=1"></script>
+</body>
+</html>

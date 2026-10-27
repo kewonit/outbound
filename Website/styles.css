@@ -782,8 +782,8 @@ kbd {
 .thanks #status:empty { display: none; }
 
 
-/* ---------- Waitlist: one email when Outbound comes to Windows or iPhone ---------- */
-.waitlist-form { margin-top: 2.5rem; max-width: 30rem; }
+/* ---------- Forms: the waitlist and feedback ---------- */
+.page-form { margin-top: 2.5rem; max-width: 30rem; }
 /* Windows or iPhone, as one small segmented control. */
 .platforms {
   display: inline-flex;
@@ -821,10 +821,8 @@ kbd {
 .platform:hover span { color: var(--ink); }
 .platform input:checked + span { background: var(--btn-dark); color: var(--ink); }
 .platform input:focus-visible + span { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
-.waitlist-row { display: flex; gap: 0.5rem; }
-.waitlist-row input {
-  flex: 1;
-  min-width: 0;
+.form-row { display: flex; gap: 0.5rem; }
+.field {
   height: 2.5rem;
   padding: 0 0.9rem;
   border: 1px solid var(--line);
@@ -835,19 +833,30 @@ kbd {
   font-size: 0.9375rem;
   transition: border-color 0.15s ease;
 }
-.waitlist-row input::placeholder { color: var(--ink-faint); }
-.waitlist-row input:hover { border-color: #333333; }
-.waitlist-row input:focus { outline: none; border-color: #4a4a4a; }
-.waitlist-row input:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
-.waitlist-row .btn:disabled { opacity: 0.6; cursor: default; }
-.waitlist-status { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--ink-soft); }
-.waitlist-status:empty { display: none; }
+.form-row .field { flex: 1; min-width: 0; }
+textarea.field {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 9rem;
+  margin: 0 0 0.5rem;
+  padding: 0.7rem 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.field::placeholder { color: var(--ink-faint); }
+.field:hover { border-color: #333333; }
+.field:focus { outline: none; border-color: #4a4a4a; }
+.field:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.page-form .btn:disabled { opacity: 0.6; cursor: default; }
+.form-status { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--ink-soft); }
+.form-status:empty { display: none; }
 /* A short page keeps its footer, with the fine print, at the bottom of the window. */
 .fill { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
 .fill main { flex: 1; }
-.waitlist-fine { margin: 0; font-size: 0.875rem; color: var(--ink-mute); }
-.waitlist-done { margin: 2.5rem 0 0; font-size: 1.125rem; color: var(--ink); }
-.waitlist-done:focus { outline: none; }
+.form-fine { margin: 0; font-size: 0.875rem; color: var(--ink-mute); }
+.form-done { margin: 2.5rem 0 0; font-size: 1.125rem; color: var(--ink); }
+.form-done:focus { outline: none; }
 /* The bots' field, out of sight and out of reach, and clipped rather than moved off the page, which would let a
    right-to-left page scroll sideways to it. */
 .trap, .sr-only {

@@ -35,7 +35,7 @@
   }
 
   // The language picker in the footer. The choice is remembered, and the site keeps to it rather than the
-  // browser's languages, then the same page opens in that language.
+  // browser's languages, then the same page opens in that language, with what its address carried (?app=, ?for=).
   var LANGUAGES = /^\/(es|fr|de|it|pt-br|nl|ru|tr|pl|ja|ko|zh-hans|zh-hant|hi|ar)(?=\/|$)/;
   document.querySelectorAll("select[data-lang-picker]").forEach(function (picker) {
     picker.addEventListener("change", function () {
@@ -43,7 +43,7 @@
       track("Language", { to: language });
       document.cookie = "lang=" + language + "; path=/; max-age=31536000; samesite=lax";
       var path = location.pathname.replace(LANGUAGES, "") || "/";
-      location.href = (language === "en" ? "" : "/" + language) + path + location.hash;
+      location.href = (language === "en" ? "" : "/" + language) + path + location.search + location.hash;
     });
   });
 

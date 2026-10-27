@@ -433,6 +433,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
             unlock.target = self
             menu.addItem(unlock)
+            menu.addItem(feedbackItem())
             menu.addItem(.separator())
             menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
@@ -502,8 +503,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         check.target = self
         check.isEnabled = updates.canCheck
         menu.addItem(check)
+        menu.addItem(feedbackItem())
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
+    /// an outward arrow, set as a key equivalent with no modifiers so it sits on the right with ⌘, and ⌘Q. Nobody can
+    /// type it.
+    private func feedbackItem() -> NSMenuItem {
+        let item = NSMenuItem(title: String(localized: "Feedback"), action: #selector(openFeedback), keyEquivalent: "↗")
+        item.keyEquivalentModifierMask = []
+        item.target = self
+        return item
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
@@ -555,6 +567,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openActivation() {
         showActivation()
+    }
+
+    /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
+    /// message is about, and nothing else.
+    @objc private func openFeedback() {
+        let site = Store.shop.deletingLastPathComponent()
+        guard var page = URLComponents(url: site.appendingPathComponent("feedback"), resolvingAgainstBaseURL: false) else { return }
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            page.queryItems = [URLQueryItem(name: "app", value: version)]
+        }
+        if let url = page.url { NSWorkspace.shared.open(url) }
     }
 
     @objc private func togglePause() {

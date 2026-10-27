@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!-- Site URLs (download, buy, github) live once, at the top of app.js. The form is feedback.js, and worker/index.js keeps
+     what it sends. Not for search engines, so it has no other languages listed. -->
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="feedback.metaTitle">反馈 · Outbound</title>
+<meta name="description" content="告诉 Outbound 的开发者本人：哪里好用，哪里不好用，接下来想要什么。" data-i18n-attr="content=feedback.metaDescription">
+<link rel="canonical" href="https://outbound.edbn.me/zh-hans/feedback">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/zh-hans/feedback">
+<meta property="og:title" content="反馈 · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta property="og:description" content="告诉 Outbound 的开发者本人：哪里好用，哪里不好用，接下来想要什么。" data-i18n-attr="content=feedback.metaDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound：如画的世界，在你的桌面背后飞过。" data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="反馈 · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta name="twitter:description" content="告诉 Outbound 的开发者本人：哪里好用，哪里不好用，接下来想要什么。" data-i18n-attr="content=feedback.metaDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content="Outbound：如画的世界，在你的桌面背后飞过。" data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css?v=22">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body class="fill">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/zh-hans/" aria-label="Outbound 首页" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/zh-hans/#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7 购买</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 data-i18n="feedback.title">反馈。</h1>
+    <p class="lede" data-i18n="feedback.lede">哪里好用，哪里不好用，接下来想要什么。直接送到 Outbound 的开发者本人手里。</p>
+
+    <!-- Posts, so nothing written here ends up in a page's address. feedback.js sends it and answers in place. -->
+    <form class="page-form" id="feedback" action="/api/feedback" method="post" novalidate>
+      <textarea class="field" name="message" required maxlength="2000" rows="6" placeholder="你的反馈" aria-label="你的反馈"
+                data-i18n-attr="placeholder=feedback.message aria-label=feedback.message"></textarea>
+      <div class="form-row">
+        <input class="field" type="email" name="email" maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder="你的邮箱（可选）" aria-label="你的邮箱（可选）" data-i18n-attr="placeholder=feedback.email aria-label=feedback.email">
+        <button class="btn btn-light" type="submit" data-i18n="feedback.button">发送</button>
+      </div>
+      <!-- Left empty by people, filled in by bots. -->
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="feedback-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="feedback-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<footer class="footer footer-plain">
+  <div class="wrap-narrow">
+    <p class="form-fine" data-i18n="feedback.fine">只有 Outbound 的开发者本人会读。邮箱只用于回复你。<a href="/privacy">隐私政策（英文）</a></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">语言</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans" selected>简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"已复制","js.copy":"复制","js.copyKey":"复制激活码","js.copyKeyTitle":"复制你的激活码","js.emailInvalid":"这个邮箱地址看起来不对。","js.feedbackEmpty":"请先写点什么。","js.feedbackLong":"最多 2000 个字。","js.feedbackSent":"谢谢，已经发出。","js.finding":"正在查找你的激活码…","js.formBusy":"尝试次数过多，请等一分钟。","js.formFailed":"没有发送成功，请再试一次。","js.offline":"无法连接商店。试试点击“激活”，或查看你的客户中心。","js.portal":"你的激活码在下方的客户中心里。","js.pressCopy":"按 ⌘C 复制你的激活码。","js.refunded":"这笔购买已退款。","js.slow":"比平时花的时间长。试试点击“激活”，或过一分钟再查看你的客户中心。","js.unfinished":"这次付款没有完成。","js.waitlistIos":"已加入名单。Outbound 登陆 iPhone 时，只发一封邮件。","js.waitlistWindows":"已加入名单。Outbound 登陆 Windows 时，只发一封邮件。"};</script>
+<script src="/app.js?v=15"></script>
+<script src="/feedback.js?v=1"></script>
+</body>
+</html>
