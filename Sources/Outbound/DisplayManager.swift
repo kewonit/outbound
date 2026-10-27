@@ -111,6 +111,11 @@ final class DisplayManager {
         globalHolds.contains(.locked)
     }
 
+    /// The wallpapers up and in view, not covered by a full-screen app.
+    var wallpapersInView: [Wallpaper] {
+        wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) }
+    }
+
     private static var screenIsLocked: Bool {
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
