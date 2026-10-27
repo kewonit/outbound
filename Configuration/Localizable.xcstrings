@@ -2587,96 +2587,96 @@
         }
       }
     },
-    "Feedback…": {
+    "Feedback": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "ملاحظات…"
+            "value": "ملاحظات"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback …"
+            "value": "Feedback"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Comentarios…"
+            "value": "Comentarios"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Votre avis…"
+            "value": "Votre avis"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "फ़ीडबैक…"
+            "value": "फ़ीडबैक"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback…"
+            "value": "Feedback"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フィードバック…"
+            "value": "フィードバック"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "피드백…"
+            "value": "피드백"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback…"
+            "value": "Feedback"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opinie…"
+            "value": "Opinie"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback…"
+            "value": "Feedback"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отзыв…"
+            "value": "Отзыв"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Geri Bildirim…"
+            "value": "Geri Bildirim"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "反馈…"
+            "value": "反馈"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "意見回饋⋯"
+            "value": "意見回饋"
           }
         }
       }

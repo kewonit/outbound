@@ -508,9 +508,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
-    /// Just above Quit, whether or not Outbound is unlocked.
+    /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
+    /// an outward arrow, set as a key equivalent with no modifiers so it sits on the right with ⌘, and ⌘Q. Nobody can
+    /// type it.
     private func feedbackItem() -> NSMenuItem {
-        let item = NSMenuItem(title: String(localized: "Feedback…"), action: #selector(openFeedback), keyEquivalent: "")
+        let item = NSMenuItem(title: String(localized: "Feedback"), action: #selector(openFeedback), keyEquivalent: "↗")
+        item.keyEquivalentModifierMask = []
         item.target = self
         return item
     }
