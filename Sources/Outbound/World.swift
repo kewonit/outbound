@@ -94,6 +94,52 @@ final class World {
         }
     }
 
+    /// A moment of the flight to come back to: the one the painting on the desktop shows, which the wallpapers go back
+    /// to as the Mac locks, so the desktop comes back just as the lock screen left it.
+    struct Moment {
+        let time: TimeInterval
+        let bird: Bird
+        let revision: Int
+        let cameraY: Double
+    }
+
+    func moment() -> Moment {
+        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time))
+    }
+
+    /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.
+    static let reach = 4000.0
+
+    /// A Fly To is sweeping in a new place.
+    var isSweeping: Bool {
+        journey.legs.contains { $0.sweepStart.map { time - $0 < Journey.sweepDuration } ?? false }
+    }
+
+    /// Whether the world, held, can go back to `moment` and show just what it showed then: nothing baked into the
+    /// ground has changed since, nor the pace, no Fly To has swept in a place since or was sweeping then, and the
+    /// legs it showed are still kept.
+    func canRewind(to moment: Moment) -> Bool {
+        let bottom = moment.cameraY + Double(desktop.minY) * Self.metresPerPoint - Journey.morphLength
+        return heldSince != nil && moment.time <= time && moment.revision == revision
+            && abs(journey.cameraY(at: moment.time) - moment.cameraY) < 0.01
+            && !journey.legs.contains { ($0.sweepStart ?? -.infinity) > moment.time - Journey.sweepDuration }
+            && camera.y - moment.cameraY < Self.reach && journey.leg(at: bottom).start <= bottom
+    }
+
+    /// Goes back to `moment` while held, so the flight carries on from there once released. The ground and the sky
+    /// follow from the time alone; the bird goes back to where it was, and everything timed moves back with it.
+    func rewind(to moment: Moment) {
+        guard canRewind(to: moment) else { return }
+        let back = time - moment.time
+        time = moment.time
+        heldFor += back
+        pointerMoved -= back
+        desktopChecked -= back
+        sunUpdated -= back
+        bird = moment.bird
+        birdTrail.reset(to: bird.pose, at: time)
+    }
+
     func advance(to displayTime: TimeInterval) {
         guard heldSince == nil else { return }
         let t = displayTime - heldFor
@@ -102,7 +148,8 @@ final class World {
         time = t
         let camera = self.camera
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
-        journey.extend(through: top + 1500, behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500,
+        journey.extend(through: top + 1500,
+                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
                        notBefore: top + 200)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.

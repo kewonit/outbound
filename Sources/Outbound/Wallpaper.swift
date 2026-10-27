@@ -92,8 +92,6 @@ final class Wallpaper: NSObject {
         didSet { birdLink?.rate = birdFramesPerSecond }
     }
     private var captionUpdated = -TimeInterval.infinity
-    /// The moment the last frame showed, which a still for the lock screen paints again.
-    private var shownMoment: TimeInterval?
     private var link: FrameClock?
     /// How long one refresh of this display lasts, as of the last frame.
     private var refresh = 1.0 / 60
@@ -225,13 +223,21 @@ final class Wallpaper: NSObject {
     /// The pixels a still of this display has, the same as its frames.
     var stillSize: CGSize { view.metalLayer.drawableSize }
 
-    /// Paints the last frame again into `target`, for the lock screen: the same moment from the same ground, with the
-    /// bird in it even while it flies on a layer of its own. Encoded on the queue the frames use, so it follows them.
-    func encodeStill(into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
+    /// Paints the world as it is at `time` into `target`, for the desktop picture: from the same ground as the frames,
+    /// with the bird in it even while it flies on a layer of its own. Encoded on the queue the frames use, so it
+    /// follows them.
+    func encodeStill(at time: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
         let drawsBird = renderer.drawsBird
         renderer.drawsBird = true
-        renderer.encode(world: world, at: shownMoment ?? world.time, into: target, commandBuffer: commandBuffer)
+        renderer.encode(world: world, at: time, into: target, commandBuffer: commandBuffer)
         renderer.drawsBird = drawsBird
+    }
+
+    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen.
+    func redraw() {
+        updateCaption()
+        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
+        if !renderer.drawsBird { drawBird(at: world.time) }
     }
 
     var halfRateClouds: Bool {
@@ -399,7 +405,6 @@ final class Wallpaper: NSObject {
         drawableWait = CACurrentMediaTime() - asked
         #endif
         renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands)
-        shownMoment = moment
         let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
             let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000

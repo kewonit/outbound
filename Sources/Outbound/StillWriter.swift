@@ -19,6 +19,8 @@ final class StillWriter {
     /// Counts paintings asked for and pictures put back, so a painting finished late never lands over a newer one,
     /// or over the user's own picture once it is back.
     private var turn = 0
+    /// The painting each display was last given, by name, with the moment it shows.
+    private var given: [CGDirectDisplayID: (name: String, moment: World.Moment)] = [:]
 
     init(gpu: GPU, defaults: UserDefaults = .standard) {
         self.gpu = gpu
@@ -61,9 +63,9 @@ final class StillWriter {
         savedOriginals = originals
     }
 
-    /// Paints again the frame each wallpaper holds and makes it that display's desktop picture, on the desktop in
-    /// view. The GPU only composites what is already cached, and the JPEG is encoded on a background queue.
-    func paint(_ wallpapers: some Sequence<Wallpaper>) {
+    /// Paints the world as it is at `moment` for each wallpaper and makes it that display's desktop picture, on the
+    /// desktop in view. The GPU mostly composites what is already cached, and the JPEG is encoded on a background queue.
+    func paint(_ wallpapers: some Sequence<Wallpaper>, at moment: World.Moment) {
         turn += 1
         let turn = turn
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -81,20 +83,20 @@ final class StillWriter {
             descriptor.storageMode = .shared
             guard let target = gpu.device.makeTexture(descriptor: descriptor),
                   let commands = gpu.queue.makeCommandBuffer() else { continue }
-            wallpaper.encodeStill(into: target, commandBuffer: commands)
+            wallpaper.encodeStill(at: moment.time, into: target, commandBuffer: commands)
             let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
             commands.addCompletedHandler { [weak self] buffer in
                 guard buffer.status == .completed else { return }
                 DispatchQueue.global(qos: .userInitiated).async {
                     guard (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
-                    DispatchQueue.main.async { self?.show(url, on: id, covering: covered, turn: turn) }
+                    DispatchQueue.main.async { self?.show(url, of: moment, on: id, covering: covered, turn: turn) }
                 }
             }
             commands.commit()
         }
     }
 
-    private func show(_ url: URL, on id: CGDirectDisplayID, covering covered: URL, turn: Int) {
+    private func show(_ url: URL, of moment: World.Moment, on id: CGDirectDisplayID, covering covered: URL, turn: Int) {
         // A newer painting is on its way, or the user's own picture is back, or the user has moved to another desktop,
         // whose picture this painting would cover without knowing it.
         guard turn == self.turn, let screen = screen(id), NSWorkspace.shared.desktopImageURL(for: screen) == covered else {
@@ -124,6 +126,7 @@ final class StillWriter {
             try? FileManager.default.removeItem(at: url)
             return
         }
+        given[id] = (url.lastPathComponent, moment)
         Log.display.info("Display \(id) has a painting for its desktop picture")
         if isStill(covered) {
             originals[covered.lastPathComponent] = nil
@@ -132,20 +135,28 @@ final class StillWriter {
         }
     }
 
-    /// Whether each wallpaper's display shows a painting made in the last `seconds`, on the desktop in view.
-    func isPainted(_ wallpapers: some Sequence<Wallpaper>, within seconds: TimeInterval = .infinity) -> Bool {
-        wallpapers.allSatisfy { wallpaper in
-            guard let screen = screen(wallpaper.displayID), let current = NSWorkspace.shared.desktopImageURL(for: screen),
-                  isStill(current), let made = Self.made(current) else { return false }
-            return Date.now.timeIntervalSince(made) < seconds
-        }
+    /// The moment shown by the painting a wallpaper's display was last given.
+    func moment(givenTo wallpaper: Wallpaper) -> World.Moment? {
+        given[wallpaper.displayID]?.moment
     }
 
-    /// As the Mac locks: the painting on the lock screen becomes the very frame each wallpaper holds, the moment it
-    /// carries on from as the Mac unlocks, so the desktop comes back without a change.
-    func lock(showing wallpapers: some Sequence<Wallpaper>) {
+    /// Whether the wallpapers' displays all show their latest paintings, of one moment, on the desktops in view.
+    func showsOneMoment(_ wallpapers: some Sequence<Wallpaper>) -> Bool {
+        var time: TimeInterval?
+        for wallpaper in wallpapers {
+            guard let given = given[wallpaper.displayID], let screen = screen(wallpaper.displayID),
+                  NSWorkspace.shared.desktopImageURL(for: screen)?.lastPathComponent == given.name,
+                  time == nil || time == given.moment.time else { return false }
+            time = given.moment.time
+        }
+        return true
+    }
+
+    /// As the Mac locks: the paintings stay just as they are, and one still on its way never lands. While the lock
+    /// screen is up the desktop in view is its own, not the user's, so nothing here touches desktop pictures then.
+    func lock() {
         locked = true
-        paint(wallpapers)
+        turn += 1
     }
 
     func unlock() {

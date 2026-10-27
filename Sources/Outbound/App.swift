@@ -46,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var painted = (leg: -1, revision: -1, time: 0.0, at: Date.distantPast)
     /// The session is ending (logging out, restarting, shutting down), so the painting stays for the login window.
     private var sessionEnding = false
+    /// When the Mac last unlocked: the desktop picture shows through as the desktop fades back in, so it is left alone
+    /// for a moment.
+    private var unlockedAt = Date.distantPast
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
 
@@ -104,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.start()
         // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
         installMainMenu()
-        // Launched while the Mac is locked, as an update installs, the lock screen gets this launch's own painting.
+        // Launched while the Mac is locked, as an update installs, the painting on the lock screen stays as it is.
         // Otherwise the desktop picture becomes a painting once the wallpapers are up over it, in place of any left
         // there by the last launch.
         if displays.isLocked {
@@ -125,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         installStatusItem()
         observePreferences()
-        paintingTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        paintingTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshPainting(force: false) }
         }
 
@@ -210,38 +213,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preferences.matchingStill && unlocked
     }
 
-    /// Keeps the painting on the desktop close to the view, so the lock screen opens on much the same picture: on a
-    /// new place or a change of light, after a Fly To or a pause, on a display or desktop without one, and otherwise
-    /// every five minutes while someone is watching it move. Only displays in view: a full-screen app's desktop goes
-    /// away with it, and a painting there would never be put back.
+    /// Keeps the painting on the desktop close to the view, so the moment it shows is never far behind: on a new place
+    /// or a change of light or pace, after a Fly To or a pause, on a display or desktop showing an older one, and
+    /// otherwise every five minutes while someone is watching it move. Never mid-sweep, and only on displays in view:
+    /// a full-screen app's desktop goes away with it, and a painting there would never be put back.
     private func refreshPainting(force: Bool) {
         let shown = displays.wallpapersInView
-        guard paintsDesktop, !displays.isQuiet, !shown.isEmpty else { return }
+        guard paintsDesktop, !displays.isQuiet, !world.isSweeping, !shown.isEmpty,
+              Date.now.timeIntervalSince(unlockedAt) > 3 else { return }
         let leg = world.journey.leg(at: world.camera.y).index
         let stale = world.time != painted.time && Date.now.timeIntervalSince(painted.at) > 300
-        guard force || leg != painted.leg || world.revision != painted.revision || stale || !stills.isPainted(shown)
-        else { return }
+        guard force || leg != painted.leg || world.revision != painted.revision || stale
+                || !stills.showsOneMoment(shown) else { return }
         painted = (leg, world.revision, world.time, .now)
-        stills.paint(shown)
+        stills.paint(shown, at: world.moment())
     }
 
-    /// Another desktop is in view. It gets a painting, unless it has a fresh one from a moment ago; with the painting
+    /// Another desktop is in view: it gets a painting of now, unless it already shows the latest one; with the painting
     /// turned off, one left there goes back to the user's own picture.
     private func desktopChanged() {
         if !paintsDesktop {
             stills.restore()
-        } else if !stills.isPainted(displays.wallpapersInView, within: 300) {
+        } else if !stills.showsOneMoment(displays.wallpapersInView) {
             refreshPainting(force: true)
         }
     }
 
-    /// As the Mac locks, the painting on the lock screen becomes the very frame the wallpapers hold.
+    /// The lock screen comes up showing the painting on the desktop before anyone is told the Mac is locking, and a
+    /// change to it then shows as the lock screen settling twice. So nothing on it changes: the wallpapers go back,
+    /// behind it, to the moment that painting shows, and carry on from there once the Mac unlocks, so the desktop
+    /// comes back just as the lock screen left it.
     private func lockChanged(_ locked: Bool) {
-        if locked, paintsDesktop {
-            stills.lock(showing: displays.wallpapers.values)
-        } else if !locked {
+        guard locked else {
             stills.unlock()
+            unlockedAt = .now
+            return
         }
+        stills.lock()
+        let wallpapers = displays.wallpapers.values
+        guard paintsDesktop,
+              let moment = wallpapers.compactMap({ stills.moment(givenTo: $0) }).max(by: { $0.time < $1.time })
+        else { return }
+        guard world.canRewind(to: moment) else {
+            Log.display.info("Locked: the painting's moment is out of reach, so the view may change on unlocking")
+            return
+        }
+        let back = world.time - moment.time
+        world.rewind(to: moment)
+        wallpapers.forEach { $0.redraw() }
+        Log.display.info("Locked: back \(String(format: "%.1f", back), privacy: .public) s to the painting's moment")
     }
 
     #if !APPSTORE
@@ -350,7 +370,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             journey.refreshSeasons()
             world.repaint()
         }
-        if journey.speed != preferences.pace.speed { journey.setSpeed(preferences.pace.speed, at: world.time) }
+        if journey.speed != preferences.pace.speed {
+            journey.setSpeed(preferences.pace.speed, at: world.time)
+            // A painting from before shows a moment the new pace never passed through.
+            if stills != nil { refreshPainting(force: true) }
+        }
         journey.staysPut = preferences.stay == .forever
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         displays.power.batteryMode = preferences.batteryMode
