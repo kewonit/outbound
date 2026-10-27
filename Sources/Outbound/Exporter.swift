@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 ///     Outbound --render - --seconds 20 --fps 30 ... | ffmpeg -f rawvideo -pix_fmt bgra -s WxH -r 30 -i - out.mp4
 ///     Outbound --icon icon.png
 ///     Outbound --dmg background.png [--scale 2]
-///     Outbound --og preview.png
+///     Outbound --og preview.jpg
 ///
 /// For the website: --caption adds the place name in the corner as on the desktop, and --dock 58 leaves that
 /// many points for a Dock along the bottom, so the caption sits above it as it does on a Mac. --cursor flies a
@@ -296,7 +296,7 @@ enum Exporter {
     }
 
     /// The picture shown when a link to the site is shared: the painting under a soft wash, with the app icon, the
-    /// name, what it is and the price, 1200 by 630 pixels.
+    /// name and what it is, 1200 by 630 pixels. Saved as a JPEG it stays well under the 300 KB WhatsApp will show.
     private static func linkPreview(to url: URL) throws {
         let frame = CGRect(x: 0, y: 0, width: 800, height: 420)
         let painting = try paint(Place.named("punjab")!, season: 0, frame: frame, scale: 1.5,
@@ -315,7 +315,7 @@ enum Exporter {
         context.drawLinearGradient(wash, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 1200, y: 0), options: [])
 
         // The app icon, in the macOS squircle.
-        let iconRect = CGRect(x: 72, y: 410, width: 120, height: 120)
+        let iconRect = CGRect(x: 72, y: 362, width: 120, height: 120)
         context.saveGState()
         context.setShadow(offset: CGSize(width: 0, height: -4), blur: 14, color: CGColor(gray: 0, alpha: 0.45))
         context.addPath(CGPath(roundedRect: iconRect, cornerWidth: 27, cornerHeight: 27, transform: nil))
@@ -342,11 +342,10 @@ enum Exporter {
                         options: [.usesLineFragmentOrigin])
             NSGraphicsContext.restoreGraphicsState()
         }
-        write("Outbound", size: 76, weight: .bold, alpha: 1, at: CGPoint(x: 70, y: 384), width: 560)
+        write("Outbound", size: 76, weight: .bold, alpha: 1, at: CGPoint(x: 70, y: 336), width: 560)
         write("A painted world, flying by behind your desktop.", size: 34, weight: .medium, alpha: 0.92,
-              at: CGPoint(x: 72, y: 282), width: 500)
-        write("For Mac  ·  $7 + tax", size: 24, weight: .medium, alpha: 0.7, at: CGPoint(x: 72, y: 128), width: 500)
-        try save(context.makeImage()!, to: url, type: .png)
+              at: CGPoint(x: 72, y: 234), width: 500)
+        try save(context.makeImage()!, to: url, type: url.pathExtension == "jpg" ? .jpeg : .png)
     }
 
     /// The disk image window, 600 points wide: a strip of painted tulip fields torn across the top of a sheet of
