@@ -270,13 +270,15 @@ final class Wallpaper: NSObject {
 
     /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen. The lock
     /// screen hides the window a moment before the Mac says it is locking, so it may be hidden already: drawn even so,
-    /// coming back shows this moment; given no drawable, it keeps what it showed, and coming back dissolves from that.
+    /// coming back starts from this moment; given no drawable, it keeps what it showed, and coming back starts from that.
     func redraw() {
         let hidden = holds.contains(.hidden)
         if !hidden { forgetParting() }
         updateCaption()
         guard draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil) else { return }
-        if hidden { forgetParting() }
+        offset = 0
+        // Under app windows it may stay hidden long after: coming back starts from this moment, the one it shows.
+        if hidden { keepParting() }
         if !renderer.drawsBird { drawBird(at: world.time) }
     }
 
