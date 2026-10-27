@@ -10,11 +10,11 @@ cd "$(dirname "$0")/.."
 #
 # Ship the version with scripts/release.sh first, so the download and the App Store carry the same code.
 # Needs the Apple Distribution and Mac Installer Distribution identities in the login keychain, the Mac App
-# Store provisioning profile (APPSTORE_PROFILE, by default in ~/Documents), and an App Store Connect API key:
-# its .p8 in ~/.appstoreconnect/private_keys, its ids in ASC_KEY_ID and ASC_ISSUER_ID.
+# Store provisioning profile (APPSTORE_PROFILE, by default in ~/Documents/Outbound App Store), and an App Store
+# Connect API key: its .p8 in ~/.appstoreconnect/private_keys, its ids in ASC_KEY_ID and ASC_ISSUER_ID.
 build="${1:-}"
 team="Kartik Kulloli (55W3P96VL4)"
-profile="${APPSTORE_PROFILE:-$HOME/Documents/Outbound App Store.provisionprofile}"
+profile="${APPSTORE_PROFILE:-$HOME/Documents/Outbound App Store/Outbound App Store.provisionprofile}"
 : "${ASC_KEY_ID:?Set ASC_KEY_ID to the App Store Connect API key id}"
 : "${ASC_ISSUER_ID:?Set ASC_ISSUER_ID to the App Store Connect API issuer id}"
 [[ -f "$profile" ]] || { echo "No provisioning profile at $profile" >&2; exit 1; }
