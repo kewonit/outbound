@@ -47,7 +47,7 @@ final class Preferences: ObservableObject {
     @Published var matchingStill: Bool { didSet { save() } }
     /// Hold still after five minutes without anyone at the Mac.
     @Published var restsWhenAway: Bool { didSet { save() } }
-    /// The pale dry-brush border round the painting.
+    /// The pale dry-brush border round the painting. Off until it is asked for.
     @Published var paperEdge: Bool { didSet { save() } }
     /// The place to start from next launch.
     @Published var lastPlace: String { didSet { save() } }
@@ -63,7 +63,7 @@ final class Preferences: ObservableObject {
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
-        paperEdge = defaults.object(forKey: "paperEdge") as? Bool ?? true
+        paperEdge = defaults.object(forKey: "paperEdge") as? Bool ?? false
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
     }
 

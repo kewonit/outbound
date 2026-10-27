@@ -285,6 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let window = ActivationWindow(license: license, world: world, gpu: gpu)
             #endif
             window.onDone = { [weak self] in self?.activation = nil }
+            window.paperEdge = preferences.paperEdge
             activation = window
         }
         activation?.show()
@@ -381,6 +382,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
+        activation?.paperEdge = preferences.paperEdge
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { stills.restore() }
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
