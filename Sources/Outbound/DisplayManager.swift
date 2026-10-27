@@ -117,9 +117,11 @@ final class DisplayManager {
         wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) && $0.isVisible }
     }
 
-    /// Displays whose wallpaper is covered, as it is by a full-screen app.
+    /// Displays whose wallpaper is covered, as it is by a full-screen app, even if only for a moment so far.
     var occludedDisplays: Set<CGDirectDisplayID> {
-        Set(wallpapers.values.filter { $0.holds.contains(.occluded) }.map(\.displayID))
+        Set(wallpapers.values.filter {
+            $0.holds.contains(.occluded) || (!$0.holds.contains(.starting) && !$0.isVisible)
+        }.map(\.displayID))
     }
 
     private static var screenIsLocked: Bool {

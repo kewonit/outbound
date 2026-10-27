@@ -31,6 +31,11 @@ enum OtherDesktops {
         guard let agent = NSRunningApplication.runningApplications(withBundleIdentifier: agentID)
             .first(where: { $0.bundleURL?.path == agentPath }) else { return nil }
         let pid = agent.processIdentifier
+        // Should Outbound itself be stopped while it holds the agent, something must still let the agent go on.
+        let watchdog = Process()
+        watchdog.executableURL = URL(filePath: "/bin/sh")
+        watchdog.arguments = ["-c", "sleep 3; kill -CONT \(pid)"]
+        guard (try? watchdog.run()) != nil else { return nil }
         // Held still while the store changes, so it can't write over it, then stopped outright rather than asked to
         // quit, so it never saves its own copy on the way out. launchd starts it again, and it reads the store afresh.
         guard kill(pid, SIGSTOP) == 0 else { return nil }

@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var paintingTimer: Timer?
     /// What the painting on the desktop last showed: its place, its light, the world's moment, and when it was made.
     private var painted = (leg: -1, revision: -1, time: 0.0, at: -TimeInterval.infinity)
+    /// A new painting was asked for, say for a new border or pace, but couldn't be made then.
+    private var owesPainting = false
     /// The session is ending (logging out, restarting, shutting down), as the quit itself says.
     private var sessionEnding = false
     /// When the Mac last unlocked: the desktop picture shows through as the desktop fades back in, so it is left alone
@@ -96,6 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                // A painting on its way for the desktop just left never lands, and is made again.
+                if self?.stills.desktopsMoved() == true { self?.painted.leg = -1 }
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 MainActor.assumeIsolated { self?.desktopChanged() }
             }
@@ -190,12 +196,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if stills.owesRestore, CACurrentMediaTime() - unlockedAt > 3 { restorePictures() }
             return
         }
-        guard !displays.isQuiet else { return }
+        let force = force || owesPainting
+        guard !displays.isQuiet else {
+            owesPainting = force
+            return
+        }
         let shown = displays.wallpapersInView
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
         guard !world.isSweeping, !shown.isEmpty, !shown.contains(where: \.isRepainting),
-              CACurrentMediaTime() - unlockedAt > 3 else { return }
+              CACurrentMediaTime() - unlockedAt > 3 else {
+            owesPainting = force
+            return
+        }
         let leg = world.journey.leg(at: world.camera.y).index
         let stale = world.time != painted.time && CACurrentMediaTime() - painted.at > 300
         let renewed = force || leg != painted.leg || world.revision != painted.revision || stale
@@ -203,6 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Only a desktop come into view, or one showing something else: it gets the painting the others show.
         if !renewed, stills.carry(shown) { return }
         painted = (leg, world.revision, world.time, CACurrentMediaTime())
+        owesPainting = false
         stills.paint(shown, at: world.moment())
     }
 

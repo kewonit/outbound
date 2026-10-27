@@ -145,11 +145,13 @@ final class Wallpaper: NSObject {
             self?.reveal()
         }
         if !drawn { reveal() }
+        // A frame that is never presented, say on a display not yet drawing, mustn't keep the window down for good.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.reveal() }
     }
 
     private func reveal() {
-        // Closed meanwhile.
-        guard link != nil else { return }
+        // Closed meanwhile, or up already.
+        guard link != nil, holds.contains(.starting) else { return }
         window.orderFrontRegardless()
         let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")

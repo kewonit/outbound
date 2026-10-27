@@ -32,6 +32,12 @@ final class StillWriter {
     private var refused: [CGDirectDisplayID: URL?] = [:]
     /// The last painting's stamp, so two in one millisecond never share a name.
     private var lastStamp = 0
+    /// Counts moves between desktops, so a painting made for one never lands on another.
+    private var desktopsSeen = 0
+    /// When each display was last given a picture here, and on which of those desktops.
+    private var lastGiven: [CGDirectDisplayID: (desktops: Int, at: Date)] = [:]
+    /// Displays whose desktop in view swapped its painting for another picture without being seen to show it.
+    private var putBack: Set<CGDirectDisplayID> = []
     /// The user's own picture was asked for while the Mac was locked, and hasn't gone back yet.
     private(set) var owesRestore = false
 
@@ -89,9 +95,7 @@ final class StillWriter {
         let turn = turn
         waiting = 0
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        // The system caches desktop pictures by URL, so every painting gets a name of its own.
-        let stamp = max(Int(Date.now.timeIntervalSince1970 * 1000), lastStamp + 1)
-        lastStamp = stamp
+        let stamp = nextStamp()
         for wallpaper in wallpapers {
             let id = wallpaper.displayID
             let size = wallpaper.stillSize
@@ -101,6 +105,8 @@ final class StillWriter {
                 refused.updateValue(nil, forKey: id)
                 continue
             }
+            // Painting one the system won't show is wasted work.
+            if let picture = refused[id], picture == covered { continue }
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
                                                                       width: width, height: height, mipmapped: false)
             descriptor.usage = [.renderTarget, .shaderRead]
@@ -129,6 +135,20 @@ final class StillWriter {
             try? FileManager.default.removeItem(at: url)
             return
         }
+        guard give(url, on: id, screen: screen, covering: covered) else { return }
+        given[id] = (url, [url.lastPathComponent], moment)
+        Log.display.info("Display \(id) has a painting for its desktop picture")
+    }
+
+    /// A name of its own for the next painting, as the system caches desktop pictures by URL.
+    private func nextStamp() -> Int {
+        lastStamp = max(Int(Date.now.timeIntervalSince1970 * 1000), lastStamp + 1)
+        return lastStamp
+    }
+
+    /// Makes `url` display `id`'s picture on the desktop in view, over `covered`, after remembering what it covers.
+    /// Returns false, with the file gone, when the system won't take it.
+    private func give(_ url: URL, on id: CGDirectDisplayID, screen: NSScreen, covering covered: URL) -> Bool {
         var originals = savedOriginals
         if isStill(covered) {
             // A painting over a painting covers the same picture.
@@ -151,15 +171,37 @@ final class StillWriter {
             savedOriginals = originals
             try? FileManager.default.removeItem(at: url)
             refused[id] = covered
-            return
+            return false
         }
-        given[id] = (url, [url.lastPathComponent], moment)
         refused[id] = nil
         seen.insert(id)
-        Log.display.info("Display \(id) has a painting for its desktop picture")
-        // The painting it replaces goes, but not its record: for a moment after a desktop's picture changes the system
-        // still names the old one, and a painting made then must still find the picture it covers.
-        if isStill(covered) { try? FileManager.default.removeItem(at: covered) }
+        lastGiven[id] = (desktopsSeen, .now)
+        if isStill(covered) {
+            try? FileManager.default.removeItem(at: covered)
+            retire(covered.lastPathComponent)
+        }
+        return true
+    }
+
+    /// Lets go of a replaced painting's record a little later, not at once: for a moment after a desktop's picture
+    /// changes the system still names the old one, and a painting made then must still find the picture it covers.
+    private func retire(_ name: String) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            guard let self, !given.values.contains(where: { $0.names.contains(name) }) else { return }
+            var originals = savedOriginals
+            originals[name] = nil
+            savedOriginals = originals
+        }
+    }
+
+    /// The user has moved to other desktops: a painting on its way for the ones they left never lands. Returns
+    /// whether one was dropped, so it can be made again.
+    @discardableResult
+    func desktopsMoved() -> Bool {
+        desktopsSeen += 1
+        turn += 1
+        defer { waiting = 0 }
+        return waiting > 0
     }
 
     /// Gives each desktop in view that shows something else a copy of the painting its display was last given, as a
@@ -173,43 +215,33 @@ final class StillWriter {
             let id = wallpaper.displayID
             guard let screen = screen(id), let covered = NSWorkspace.shared.desktopImageURL(for: screen) else { continue }
             if let given = given[id], given.names.contains(covered.lastPathComponent) {
+                putBack.remove(id)
                 moments.insert(given.moment.time)
                 continue
             }
             if let picture = refused[id], picture == covered { continue }
             guard let latest = given[id], FileManager.default.fileExists(atPath: latest.file.path) else { return false }
+            if let last = lastGiven[id], last.desktops == desktopsSeen {
+                // This very desktop was given a picture a moment ago, which the system may not name yet.
+                if Date.now.timeIntervalSince(last.at) < 3 {
+                    moments.insert(latest.moment.time)
+                    continue
+                }
+                // Or another picture took its place: the user's choice, which the painting covers in turn, or, twice
+                // running, the system's own, as when whoever manages the Mac sets it, which counts as a refusal.
+                if putBack.contains(id) {
+                    refused[id] = covered
+                    continue
+                }
+                putBack.insert(id)
+            }
             // A name of its own, so this desktop's picture is remembered apart from the others'.
-            let stamp = max(Int(Date.now.timeIntervalSince1970 * 1000), lastStamp + 1)
-            lastStamp = stamp
-            let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
+            let url = folder.appending(path: "painting-\(id)-\(nextStamp()).jpg")
             guard (try? FileManager.default.copyItem(at: latest.file, to: url)) != nil else { return false }
-            var originals = savedOriginals
-            if isStill(covered) {
-                originals[url.lastPathComponent] = originals[covered.lastPathComponent]
-            } else {
-                let original = Original(url: covered, options: NSWorkspace.shared.desktopImageOptions(for: screen))
-                originals[url.lastPathComponent] = original
-                originals[String(id)] = original
-            }
-            savedOriginals = originals
-            do {
-                try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [
-                    .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
-                    .allowClipping: true
-                ])
-            } catch {
-                originals[url.lastPathComponent] = nil
-                savedOriginals = originals
-                try? FileManager.default.removeItem(at: url)
-                refused[id] = covered
-                continue
-            }
+            guard give(url, on: id, screen: screen, covering: covered) else { continue }
             given[id]?.names.insert(url.lastPathComponent)
             moments.insert(latest.moment.time)
-            refused[id] = nil
-            seen.insert(id)
             Log.display.info("Display \(id) has the painting on this desktop too")
-            if isStill(covered) { try? FileManager.default.removeItem(at: covered) }
         }
         return moments.count <= 1
     }
@@ -234,6 +266,7 @@ final class StillWriter {
             }
             let current = NSWorkspace.shared.desktopImageURL(for: screen)
             if let given = given[id], let current, given.names.contains(current.lastPathComponent) {
+                putBack.remove(id)
                 seen.insert(id)
                 if let time, time != given.moment.time { one = false }
                 time = given.moment.time
@@ -290,8 +323,8 @@ final class StillWriter {
         for (screen, painting) in showing {
             let original = originals[painting.lastPathComponent]
                 ?? screen.displayID.flatMap { originals[String($0)] } ?? fallback
-            restored[painting.lastPathComponent] = original
             let keeps = screen.displayID.map { keeping.contains($0) } ?? false
+            if !keeps { restored[painting.lastPathComponent] = original }
             if !keeps { originals[painting.lastPathComponent] = nil }
             Log.display.info("Display \(screen.displayID ?? 0) has the user's own picture back")
             if let original,
