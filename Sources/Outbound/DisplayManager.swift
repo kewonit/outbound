@@ -1,7 +1,7 @@
 import AppKit
 import OutboundCore
 
-/// Keeps one wallpaper on every display, and draws little or nothing on any that nobody can see.
+/// Keeps one wallpaper on every display, and stops drawing on any that nobody can see.
 @MainActor
 final class DisplayManager {
     let world: World
@@ -201,8 +201,7 @@ final class DisplayManager {
         if running, globalHolds.isEmpty { cover.start() } else { cover.stop() }
     }
 
-    /// Wallpapers stopped because macOS says nobody can see them, held by nothing else, while the flight goes on. Those
-    /// slowed under app windows keep up by drawing.
+    /// Wallpapers nobody can see while the flight goes on: hidden, and held by nothing else.
     private var unseen: [Wallpaper] {
         wallpapers.values.filter { $0.holds == [.hidden] }
     }
@@ -298,7 +297,7 @@ final class DisplayManager {
     /// Holds or releases the flight when every display becomes hidden or one comes back into view; otherwise only which
     /// displays to keep up has changed.
     private func checkHidden() {
-        let every = !wallpapers.isEmpty && wallpapers.values.allSatisfy(\.isUnseen)
+        let every = !wallpapers.isEmpty && wallpapers.values.allSatisfy { $0.holds.contains(.hidden) }
         if every != everyHidden {
             everyHidden = every
             holdWorld()

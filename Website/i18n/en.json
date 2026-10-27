@@ -28,7 +28,7 @@
   "faq.a11": "Email <a href=\"mailto:outbound@edbn.me\">outbound@edbn.me</a>, or see <a href=\"/support\">Support</a>.",
   "faq.a2": "No. Your Mac paints it live as it flies, so it never loops.",
   "faq.a3": "Yes. Pick any of the eight places from the menu bar, and how long it stays over each, from six minutes to an hour, or keep it over one.",
-  "faq.a4": "No. It slows to a few frames a second while the desktop is hidden, and pauses when the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.",
+  "faq.a4": "No. It stops drawing while the desktop is hidden, and pauses when the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.",
   "faq.a5": "Yes. One landscape runs across all of them.",
   "faq.a6": "It comes back when you quit Outbound.",
   "faq.a7": "It shows right after you pay, and stays in your <a href=\"https://polar.sh/edbnme/portal\">customer portal</a>. Buy from inside the app and it unlocks by itself.",

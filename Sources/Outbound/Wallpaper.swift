@@ -157,8 +157,11 @@ final class Wallpaper: NSObject {
         window.orderFrontRegardless()
         let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
-        // Under app windows already, as under a full-screen app: slowed before it starts.
-        if coveredByWindows { slow = true }
+        // Hidden already, as under a full-screen app: held before it starts, so its frame clock never runs.
+        if coveredByWindows {
+            keepParting()
+            set(.hidden, true)
+        }
         set(.starting, false)
         revealing = true
         revealedAt = CACurrentMediaTime()
@@ -305,75 +308,46 @@ final class Wallpaper: NSObject {
         didSet { if coveredByWindows != oldValue { visibilityChanged() } }
     }
 
-    /// Follows whether anyone can see this display. When macOS says none of the window can be seen, it stops outright: a
-    /// hidden window gets no drawables, and asking for one stalls for a second. App windows over its desktop slow it to a
-    /// few frames a second instead, so it keeps up with the flight unseen, and coming back carries on from the frame
-    /// still showing. Just up, the window isn't seen for a moment, so until macOS first says it is, only app windows
-    /// count.
+    /// Stops drawing the moment nobody can see this display, and starts again the moment someone can: a hidden window
+    /// gets no drawables, and asking for one stalls for a second. Just up, the window isn't seen for a moment, so for a
+    /// second, until macOS first says it is, only app windows over it count.
     private func visibilityChanged() {
         guard link != nil, !holds.contains(.starting) else { return }
         let occluded = !isVisible && (!revealing || CACurrentMediaTime() - revealedAt >= Self.revealGrace)
-        let was = (holds.contains(.hidden), slow)
-        slow = coveredByWindows && !occluded
-        if occluded != holds.contains(.hidden) {
-            if occluded {
-                keepParting()
-                // Coming back from here dissolves instead.
-                resuming = false
-            }
-            set(.hidden, occluded)
-            if !occluded { armDissolve() }
+        let hidden = occluded || coveredByWindows
+        if hidden != holds.contains(.hidden) {
+            if hidden { keepParting() }
+            set(.hidden, hidden)
+            if !hidden { comeBack() }
+            onHiddenChange()
         }
-        if was != (holds.contains(.hidden), slow) { onHiddenChange() }
         if isVisible, revealing {
             revealing = false
             onReveal()
         }
     }
 
-    /// Nobody can see this display: it has stopped, or slowed under app windows.
-    var isUnseen: Bool { holds.contains(.hidden) || slow }
-
-    /// App windows cover this display's desktop: it draws `unseenRate` frames a second, each at the flight's own moment,
-    /// so it never falls behind.
-    private var slow = false {
-        didSet {
-            guard slow != oldValue else { return }
-            applyFrameRate()
-            if slow {
-                // Unseen, it catches up with the flight at once, wherever coming back last left it.
-                offset = 0
-                foldBird()
-            } else {
-                resuming = true
-            }
-            Log.display.info("Display \(self.displayID) \(self.slow ? "slowed under windows" : "back to full speed", privacy: .public)")
-        }
-    }
-    /// Frames a second while app windows cover the desktop.
-    private static let unseenRate: Float = 4
-    /// How far behind the flight this display draws: as far as its last slowed frame was when it came back, so it
-    /// carries on from the frame still showing instead of leaping ahead. A quarter of a second at most, a few points.
+    /// How far behind the flight this display draws: as far as it was hidden, when that was only a moment, so it carries
+    /// on from the frame still showing instead of leaping ahead or hurrying to catch up.
     private var offset: TimeInterval = 0
-    /// Just back from slowed frames: the next frame works out `offset`.
+    /// Just back after a moment hidden: the next frame works out `offset`.
     private var resuming = false
+    /// Hidden longer than this, the view has moved on too far to carry on from, and it dissolves instead.
+    private static let carryOnLimit: TimeInterval = 1
 
     /// Called when this wallpaper is hidden or can be seen again.
     var onHiddenChange: () -> Void = {}
     /// Called once the window is up over the desktop picture and can be seen.
     var onReveal: () -> Void = {}
 
-    /// Frames a second this display draws now.
-    private var drawRate: Float { slow ? min(Self.unseenRate, framesPerSecond) : framesPerSecond }
-
     private func applyFrameRate() {
-        link?.rate = drawRate
+        link?.rate = framesPerSecond
     }
 
     // MARK: - Coming back
 
-    /// What this display last drew: its moment, how far a dissolve had faded then, and the world's revision.
-    private var lastFrame: (moment: TimeInterval, fade: Float, revision: Int)?
+    /// What this display last drew: its moment, and how far a dissolve had faded then.
+    private var lastFrame: (moment: TimeInterval, fade: Float)?
     /// When the bird's own layer last drew it.
     private var lastBird: TimeInterval?
     /// What this display showed when it was hidden, kept for the dissolve on coming back. The system may take it back
@@ -437,18 +411,23 @@ final class Wallpaper: NSObject {
         birdLayerLeft = true
     }
 
-    /// Coming back after macOS said nothing of this display could be seen: when the flight has moved on meanwhile, its
-    /// first frames dissolve from what it showed then.
-    private func armDissolve() {
+    /// Coming back: hidden only a moment, it carries on from what it showed, at the flight's own speed and that little
+    /// behind it, never hurrying to catch up. Hidden while the flight moved on further, its first frames dissolve from
+    /// what it showed to where the flight has got to.
+    private func comeBack() {
+        resuming = false
         guard let parting else { return }
         self.parting = nil
-        // Still under app windows, where nobody would see it; or taken back by the system meanwhile, or no longer the
-        // size of a frame: the view just changes.
-        guard !slow, parting.texture.setPurgeableState(.nonVolatile) != .empty,
-              CGSize(width: parting.texture.width, height: parting.texture.height) == stillSize else { return }
         let gap = world.renderTime(for: CACurrentMediaTime()) - parting.moment
-        // Back where it left off, as Pause When Hidden brings it: nothing to do.
-        guard abs(gap) >= 0.25 else { return }
+        if gap >= 0, gap <= Self.carryOnLimit {
+            resuming = true
+            return
+        }
+        offset = 0
+        // Back before where it left off, as the lock screen can leave it; or the picture was taken back by the system
+        // meanwhile, or is no longer the size of a frame: the view just changes.
+        guard abs(gap) >= 0.25, parting.texture.setPurgeableState(.nonVolatile) != .empty,
+              CGSize(width: parting.texture.width, height: parting.texture.height) == stillSize else { return }
         dissolve = (parting.texture, nil)
         Log.display.info("Display \(self.displayID) dissolving from \(String(format: "%.1f", gap), privacy: .public) s back")
     }
@@ -600,24 +579,15 @@ final class Wallpaper: NSObject {
         default: break
         }
         #endif
-        if slow {
-            // Unseen, a slowed frame goes up as soon as it is drawn, showing the moment it is up. Asked for its target, a
-            // quarter of a second off, it would still be waiting when the desktop comes back, ahead of frames behind it.
-            presentTime = CACurrentMediaTime()
-            onScreen = tick.timestamp + 2 * tick.duration
-        }
         world.advance(to: onScreen)
         if resuming, let last = lastFrame {
-            // Back from slowed frames: carry on one frame from the one the window still shows.
+            // Back after a moment hidden: carry on one frame from the one the window still shows.
             offset = min(max(world.renderTime(for: onScreen) - Double(1 / framesPerSecond) - last.moment, 0), 1)
             Log.display.info("Display \(self.displayID) carrying on \(Int(self.offset * 1000), privacy: .public) ms behind")
         }
         resuming = false
         let moment = world.renderTime(for: onScreen) - offset
-        // Slowed under app windows with the flight held still, nothing has changed to draw.
-        if slow, let last = lastFrame, last.moment == moment, last.revision == world.revision,
-           !renderer.isRepainting(for: world) { return }
-        if !slow { handOverBird(at: moment, presenting: presentTime) }
+        handOverBird(at: moment, presenting: presentTime)
         if birdLayerLeft {
             birdLayerLeft = false
             // Back from hidden, the landscape paints the bird; unless it went straight back to its layer, the layer
@@ -631,7 +601,7 @@ final class Wallpaper: NSObject {
         draw(at: moment, showing: onScreen, presentAt: presentTime)
         #if DEBUG
         stats.ticked(late: entered - tick.timestamp, took: CACurrentMediaTime() - entered, waited: drawableWait)
-        stats.reportIfDue(rate: Double(drawRate), refresh: tick.duration)
+        stats.reportIfDue(rate: Double(framesPerSecond), refresh: tick.duration)
         #endif
     }
 
@@ -650,7 +620,7 @@ final class Wallpaper: NSObject {
         #endif
         let overlay = dissolveFade(at: moment)
         renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands, overlay: overlay)
-        lastFrame = (moment, overlay?.fade ?? 0, world.revision)
+        lastFrame = (moment, overlay?.fade ?? 0)
         let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
             let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
