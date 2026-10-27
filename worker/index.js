@@ -302,10 +302,10 @@ async function form(request, url, limiter, size) {
   if (!(await allowed(limiter, request.headers.get("CF-Connecting-IP") ?? "unknown"))) {
     return { refusal: reply({ error: "Too many tries. Wait a minute." }, 429) };
   }
-  const text = await request.text();
-  if (text.length > size) return { refusal: reply({ error: "Too long." }, 413) };
+  const raw = await request.text();
+  if (raw.length > size) return { refusal: reply({ error: "Too long." }, 413) };
   try {
-    const body = JSON.parse(text);
+    const body = JSON.parse(raw);
     if (body && typeof body === "object" && !Array.isArray(body)) return { body };
   } catch {}
   return { refusal: reply({ error: "Send JSON." }, 400) };
