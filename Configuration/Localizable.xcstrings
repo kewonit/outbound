@@ -3342,96 +3342,96 @@
         }
       }
     },
-    "It stops drawing whenever you can't see it.": {
+    "It slows right down whenever you can't see it.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يتوقف عن الرسم كلما غاب عن نظرك."
+            "value": "يبطئ كثيرًا كلما غاب عن نظرك."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es hört auf zu zeichnen, sobald es nicht zu sehen ist."
+            "value": "Es zeichnet kaum noch, sobald es nicht zu sehen ist."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deja de dibujar cuando no está a la vista."
+            "value": "Dibuja muy poco cuando no está a la vista."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il arrête de dessiner dès qu'il n'est plus visible."
+            "value": "Il ralentit fortement dès qu'il n'est plus visible."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "जब यह दिखाई नहीं देता, तब यह बनाना रोक देता है।"
+            "value": "जब यह दिखाई नहीं देता, तब यह बहुत धीमा हो जाता है।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Smette di disegnare quando non è visibile."
+            "value": "Rallenta molto quando non è visibile."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "見えていないときは、描くのを止めます。"
+            "value": "見えていないときは、ほとんど描きません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면에 보이지 않을 때는 그리기를 멈춥니다."
+            "value": "화면에 보이지 않을 때는 아주 느리게 그립니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Het stopt met tekenen als je het niet kunt zien."
+            "value": "Het tekent nog maar heel weinig als je het niet kunt zien."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Przestaje rysować, gdy go nie widać."
+            "value": "Mocno zwalnia, gdy go nie widać."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ele para de desenhar sempre que fica fora de vista."
+            "value": "Ele desacelera bastante sempre que fica fora de vista."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Он перестаёт рисовать, когда его не видно."
+            "value": "Когда его не видно, он почти не рисует."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Göremediğin her an çizmeyi bırakır."
+            "value": "Göremediğin her an iyice yavaşlar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的时候，它会停止绘制。"
+            "value": "看不到它的时候，它会大幅放慢。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的時候，它會停止繪製。"
+            "value": "看不到它的時候，它會大幅放慢。"
           }
         }
       }

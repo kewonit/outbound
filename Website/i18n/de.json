@@ -28,7 +28,7 @@
   "faq.a11": "Schreib an <a href=\"mailto:outbound@edbn.me\">outbound@edbn.me</a> oder schau unter <a href=\"/support\">Support</a>.",
   "faq.a2": "Nein. Dein Mac malt es live im Flug, deshalb wiederholt sich nie etwas.",
   "faq.a3": "Ja. Wähle in der Menüleiste einen der acht Orte und wie lange es über jedem bleibt, von sechs Minuten bis zu einer Stunde, oder lass es über einem einzigen Ort.",
-  "faq.a4": "Nein. Es hört auf zu zeichnen, solange der Schreibtisch verdeckt ist, und pausiert, wenn der Bildschirm im Ruhezustand ist oder der Stromsparmodus an ist. Im Akkubetrieb kann es stattdessen ein stilles Gemälde zeigen.",
+  "faq.a4": "Nein. Es zeichnet nur noch wenige Bilder pro Sekunde, solange der Schreibtisch verdeckt ist, und pausiert, wenn der Bildschirm im Ruhezustand ist oder der Stromsparmodus an ist. Im Akkubetrieb kann es stattdessen ein stilles Gemälde zeigen.",
   "faq.a5": "Ja. Eine einzige Landschaft erstreckt sich über alle.",
   "faq.a6": "Es kommt zurück, sobald du Outbound beendest.",
   "faq.a7": "Er wird direkt nach dem Bezahlen angezeigt und bleibt in deinem <a href=\"https://polar.sh/edbnme/portal\">Kundenportal</a>. Kaufst du in der App, schaltet sich Outbound von selbst frei.",
