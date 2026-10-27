@@ -7,7 +7,7 @@ final class DisplayManager {
     let world: World
     let gpu: GPU
     let power: PowerMonitor
-    private var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
+    private(set) var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
     /// Every display's wallpaper is covered, by full-screen apps say. Nobody can see the flight, so it waits, as it
     /// does while the Mac is locked: coming back shows the same place, with the ground each display cached still good,
@@ -43,6 +43,8 @@ final class DisplayManager {
     func start() {
         guard !started else { return }
         started = true
+        // Launched while the Mac is locked, say to install an update, nothing says so later.
+        if Self.screenIsLocked { set(.locked, true) }
         sync()
         let center = NotificationCenter.default
         center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -102,6 +104,16 @@ final class DisplayManager {
     /// Nobody is watching: the screens are asleep or locked, another user has the Mac, or it has been left alone.
     var isQuiet: Bool {
         !globalHolds.isDisjoint(with: [.asleep, .locked, .inactive, .resting])
+    }
+
+    /// The Mac is locked.
+    var isLocked: Bool {
+        globalHolds.contains(.locked)
+    }
+
+    private static var screenIsLocked: Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
     }
 
     /// Called as a quiet moment begins, a good time to install an update.

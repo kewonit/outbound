@@ -33,9 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var updates: Updates!
     private var licenseTimer: Timer?
     private var settingsWindow: NSWindow?
-    private var stillTimer: Timer?
-    private var stillLeg = -1
-    private var stillTaken = Date.distantPast
     private var stillsWereOn = false
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
@@ -80,25 +77,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.start()
         // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
         installMainMenu()
-        // A painting left behind by a crash or an older version goes back to the user's own picture.
-        stills.restore()
+        // Launched while the Mac is locked, as an update installs, the lock screen gets this launch's own painting.
+        // Otherwise a painting left as the desktop picture, by a crash, an update or an older version, goes back to
+        // the user's own picture once the wallpapers are up over it.
+        if displays.isLocked { lockChanged(true) } else { stills.restoreOnceSettled() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
                                                           object: nil, queue: .main) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                MainActor.assumeIsolated { self?.stills.restore() }
-            }
+            MainActor.assumeIsolated { self?.stills.restoreOnceSettled() }
         }
         installStatusItem()
         observePreferences()
-
-        // Keep a painting of the view ready for the lock screen, checking twice a minute for a new place. The first
-        // waits a moment, so it never shares the GPU with the wallpapers' first frames.
-        stillTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshStill(force: false) }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshStill(force: true) }
 
         license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }
         if !license.unlocks {
@@ -134,12 +124,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     #if DEBUG
     /// OUTBOUND_EXERCISE=1 brings on the heavy moments while the frame statistics run: the light moving on (a repaint
-    /// wave), a lock-screen still and a Fly To, twenty seconds apart after twenty-five seconds of plain flying, then
-    /// the bird chasing a pretend cursor for fifteen seconds and gliding off again.
+    /// wave) and a Fly To, forty seconds apart after twenty-five seconds of plain flying, then the bird chasing a
+    /// pretend cursor for fifteen seconds and gliding off again.
     private func exercise() {
         let moments: [(TimeInterval, String, () -> Void)] = [
             (25, "repaint wave", { [weak self] in self?.world.repaint() }),
-            (45, "still", { [weak self] in guard let self else { return }; stills.prepare(world: world) }),
             (65, "Fly To", { [weak self] in
                 guard let self else { return }
                 let here = world.journey.leg(at: world.camera.y).place
@@ -173,9 +162,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// went on: nobody can move to another one in between.
     private func lockChanged(_ locked: Bool) {
         if locked, preferences.matchingStill, license.unlocks {
-            stills.show()
+            stills.lock(showing: displays.wallpapers.values)
         } else if !locked {
-            stills.restore()
+            stills.unlock()
         }
     }
 
@@ -183,7 +172,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.running = unlocked
         if unlocked {
             activation?.finish()
-            refreshStill(force: true)
         } else {
             stills.restore()
             showActivation()
@@ -202,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
-        // Leave the desktop as the user had it before Outbound.
+        // Leave the desktop as the user had it before Outbound, unless the Mac is locked (see `StillWriter.restore`).
         stills.restore()
     }
 
@@ -280,25 +268,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
-        let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
-        if stills != nil {
-            stills.paperEdge = preferences.paperEdge
-            if edgeChanged { refreshStill(force: true) }
-        }
-        if stills != nil && preferences.matchingStill != stillsWereOn {
-            if preferences.matchingStill { refreshStill(force: true) } else { stills.restore() }
-        }
+        if stills != nil, stillsWereOn, !preferences.matchingStill { stills.restore() }
         stillsWereOn = preferences.matchingStill
-    }
-
-    private func refreshStill(force: Bool) {
-        guard preferences.matchingStill, license.unlocks, !displays.isAsleep else { return }
-        let leg = world.journey.leg(at: world.camera.y).index
-        guard force || leg != stillLeg || Date.now.timeIntervalSince(stillTaken) > 600 else { return }
-        stillLeg = leg
-        stillTaken = .now
-        stills.prepare(world: world)
     }
 
     // MARK: - Menu
@@ -447,10 +419,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
         world.journey.fly(to: place, from: bottom, time: world.time)
         preferences.lastPlace = place.id
-        // Let the repaint finish before painting the still.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
-            self?.refreshStill(force: true)
-        }
     }
 
     @objc private func toggleBorder() {
@@ -469,7 +437,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.isPaused.toggle()
         // The gull greys out while the world is paused.
         statusItem.button?.appearsDisabled = displays.isPaused
-        if displays.isPaused { refreshStill(force: true) }
     }
 
     @objc private func openSettings() {

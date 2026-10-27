@@ -2,8 +2,8 @@ import AppKit
 @preconcurrency import Metal
 import UniformTypeIdentifiers
 
-/// Shows a painting of the current view on the lock screen by making it the real desktop picture while the Mac
-/// is locked, and puts the user's own picture back as it unlocks.
+/// Shows the painting on the lock screen by making it the real desktop picture while the Mac is locked, and puts
+/// the user's own picture back once it has unlocked.
 ///
 /// macOS keeps a picture for every desktop (Space) on every display, and an app can only change the one showing.
 /// Nobody can move to another desktop while the Mac is locked, so a painting shown then always comes off the same
@@ -13,11 +13,16 @@ import UniformTypeIdentifiers
 final class StillWriter {
     private let gpu: GPU
     private let defaults: UserDefaults
-    /// The latest painting of each display, ready to show the moment the Mac locks.
-    private var ready: [CGDirectDisplayID: URL] = [:]
     private static let originalsKey = "originalDesktopPictures"
-    /// Whether the paintings have their pale border, as the live ones do.
-    var paperEdge = true
+    /// How long the desktop takes to come back in view over the desktop picture, after the Mac unlocks or the
+    /// desktop changes, with time to spare.
+    private static let settling: TimeInterval = 2
+    /// The Mac is locked, so the paintings stay where they are.
+    private var locked = false
+    /// Counts locks, so a painting finished late never lands over a newer one.
+    private var locks = 0
+    /// Counts restores put off, so only the latest one runs.
+    private var restores = 0
 
     init(gpu: GPU, defaults: UserDefaults = .standard) {
         self.gpu = gpu
@@ -33,44 +38,61 @@ final class StillWriter {
         url.isFileURL && url.standardizedFileURL.path.hasPrefix(folder.standardizedFileURL.path)
     }
 
-    /// Paints each display's view, ready for the lock screen, off the main thread's back: the GPU paints on a queue of
-    /// its own, so live frames never wait behind it, and a background queue encodes the JPEG. At 1x, to keep it light.
-    /// Nothing on screen changes.
-    func prepare(world: World) {
+    /// As the Mac locks: paints again the frame each wallpaper holds, the moment it carries on from once the Mac
+    /// unlocks, and makes it that display's desktop picture, remembering the user's own first. The lock screen and
+    /// the desktop under it then show the same painting, so nothing changes as one gives way to the other.
+    func lock(showing wallpapers: some Sequence<Wallpaper>) {
+        locked = true
+        locks += 1
+        let turn = locks
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // The system caches desktop pictures by URL, so every painting gets a name of its own.
         let stamp = Int(Date.now.timeIntervalSince1970 * 1000)
-        for screen in NSScreen.screens {
-            guard let id = screen.displayID else { continue }
-            let width = Int(screen.frame.width.rounded()), height = Int(screen.frame.height.rounded())
+        for wallpaper in wallpapers {
+            let id = wallpaper.displayID
+            let size = wallpaper.stillSize
+            let width = Int(size.width), height = Int(size.height)
             guard width > 0, height > 0 else { continue }
-            let url = folder.appending(path: "lock-\(id)-\(stamp).jpg")
-            let renderer = ViewRenderer(gpu: gpu)
-            renderer.configure(frame: screen.frame, scale: 1)
-            renderer.paperEdge = paperEdge
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
                                                                       width: width, height: height, mipmapped: false)
             descriptor.usage = [.renderTarget, .shaderRead]
             descriptor.storageMode = .shared
             guard let target = gpu.device.makeTexture(descriptor: descriptor),
-                  let commands = gpu.stillQueue.makeCommandBuffer() else { continue }
-            renderer.encode(world: world, into: target, commandBuffer: commands)
+                  let commands = gpu.queue.makeCommandBuffer() else { continue }
+            wallpaper.encodeStill(into: target, commandBuffer: commands)
+            let url = folder.appending(path: "lock-\(id)-\(stamp).jpg")
             commands.addCompletedHandler { [weak self] buffer in
                 guard buffer.status == .completed else { return }
-                DispatchQueue.global(qos: .utility).async {
+                DispatchQueue.global(qos: .userInitiated).async {
                     guard (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
-                    DispatchQueue.main.async { self?.paintingReady(url, for: id) }
+                    DispatchQueue.main.async { self?.show(url, on: id, turn: turn) }
                 }
             }
             commands.commit()
         }
     }
 
-    private func paintingReady(_ url: URL, for id: CGDirectDisplayID) {
-        ready[id] = url
-        // Keep the new painting, and whichever one is on the lock screen right now; older ones are shown nowhere.
-        // Paintings named display-… were set by older versions and may still be on a desktop not yet seen again,
-        // so they stay.
+    private func show(_ url: URL, on id: CGDirectDisplayID, turn: Int) {
+        defer { removePaintings(of: id, keeping: url) }
+        // Unlocked meanwhile, or locked again with a newer painting on its way.
+        guard locked, turn == locks, let screen = NSScreen.screens.first(where: { $0.displayID == id }) else { return }
+        var originals = savedOriginals
+        if let current = NSWorkspace.shared.desktopImageURL(for: screen), !isStill(current) {
+            originals[String(id)] = Original(url: current, options: NSWorkspace.shared.desktopImageOptions(for: screen))
+            // Saved before the picture changes, so a crash in between still knows what to put back.
+            savedOriginals = originals
+        }
+        try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [
+            .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
+            .allowClipping: true
+        ])
+        Log.display.info("Display \(id) shows the painting on the lock screen")
+    }
+
+    /// Keeps the new painting, and whichever one is on the lock screen right now; older ones are shown nowhere.
+    /// Paintings named display-… were set by older versions and may still be on a desktop not yet seen again, so they
+    /// stay.
+    private func removePaintings(of id: CGDirectDisplayID, keeping url: URL) {
         let shown = NSScreen.screens.first { $0.displayID == id }.flatMap { NSWorkspace.shared.desktopImageURL(for: $0) }
         let keep = [url.lastPathComponent, shown?.lastPathComponent]
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
@@ -79,27 +101,31 @@ final class StillWriter {
         }
     }
 
-    /// Makes the ready paintings the desktop pictures, as the Mac locks, remembering the user's own first.
-    func show() {
-        var originals = savedOriginals
-        for screen in NSScreen.screens {
-            guard let id = screen.displayID, let url = ready[id] else { continue }
-            if let current = NSWorkspace.shared.desktopImageURL(for: screen), !isStill(current) {
-                originals[String(id)] = Original(url: current, options: NSWorkspace.shared.desktopImageOptions(for: screen))
-            }
-            // Saved before the picture changes, so a crash in between still knows what to put back.
-            savedOriginals = originals
-            try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [
-                .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
-                .allowClipping: true
-            ])
+    /// As the Mac unlocks: the paintings come off once the desktop is back in view over them. Put back at once, the
+    /// user's own pictures would show through as the lock screen gives way to the desktop.
+    func unlock() {
+        locked = false
+        restoreOnceSettled()
+    }
+
+    /// Puts the user's own pictures back once the desktop has settled in view over them, after the Mac unlocks, at
+    /// launch, or on moving to another desktop. Asked again meanwhile, it waits from then.
+    func restoreOnceSettled() {
+        restores += 1
+        let turn = restores
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.settling) { [weak self] in
+            guard let self, turn == restores else { return }
+            restore()
         }
     }
 
     /// Puts the user's own picture back on every display showing a painting, on the desktop in view. Every
     /// display showing a picture of the user's own has it remembered, so a painting left on a desktop with no
-    /// record of its own still gets the picture that display last had, or failing that another display's.
+    /// record of its own still gets the picture that display last had, or failing that another display's. While the
+    /// Mac is locked the paintings stay on the lock screen, even as Outbound quits to install an update; they come
+    /// off once it unlocks, or at the next launch.
     func restore() {
+        guard !locked else { return }
         var originals = savedOriginals
         var showing: [(NSScreen, String)] = []
         for screen in NSScreen.screens {
@@ -113,6 +139,7 @@ final class StillWriter {
         }
         let fallback = originals.values.first
         for (screen, key) in showing {
+            Log.display.info("Display \(key, privacy: .public) has the user's own picture back")
             if let original = originals[key] ?? fallback,
                (try? NSWorkspace.shared.setDesktopImageURL(original.url, for: screen, options: original.options)) != nil {
                 continue
