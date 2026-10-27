@@ -18,7 +18,7 @@ struct SettingsView: View {
                     Described("Hold still while I'm away", "Rests after five minutes with nobody at the Mac.")
                 }
                 Toggle(isOn: $preferences.matchingStill) {
-                    Described("Show the painting on the lock screen", "A still of the current view, while the Mac is locked.")
+                    Described("Show the painting on the lock screen", "A still of the current view, kept as the desktop picture.")
                 }
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             } footer: {

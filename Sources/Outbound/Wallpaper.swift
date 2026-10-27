@@ -71,6 +71,8 @@ final class MetalView: NSView {
 final class Wallpaper: NSObject {
     enum Hold: Hashable {
         case user, occluded, asleep, locked, inactive, lowPower, resting
+        /// The first frame is still being painted, before the window goes up.
+        case starting
     }
 
     let displayID: CGDirectDisplayID
@@ -90,7 +92,6 @@ final class Wallpaper: NSObject {
         didSet { birdLink?.rate = birdFramesPerSecond }
     }
     private var captionUpdated = -TimeInterval.infinity
-    private var hasDrawn = false
     private var link: FrameClock?
     /// How long one refresh of this display lasts, as of the last frame.
     private var refresh = 1.0 / 60
@@ -122,16 +123,45 @@ final class Wallpaper: NSObject {
         view.frame = container.bounds
         place(on: screen)
         applyScale(on: screen)
-        window.orderFrontRegardless()
 
         link = FrameClock(view: view, display: displayID) { [weak self] tick in self?.tick(tick) }
         applyFrameRate()
+        set(.starting, true)
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.occlusionChanged() }
         })
+    }
+
+    /// Paints the first frame straight away and puts the window up once it is presented, so the desktop picture gives way
+    /// to the painting itself, not to an empty window, and nothing waits for the display link. Called once the
+    /// wallpaper is set up, so that frame already has the right border and scale.
+    func show() {
+        view.layoutSubtreeIfNeeded()
+        updateCaption()
+        let now = CACurrentMediaTime()
+        world.advance(to: now)
+        let drawn = draw(at: world.renderTime(for: now), showing: now, presentAt: nil) { [weak self] in
+            self?.reveal()
+        }
+        if !drawn { reveal() }
+        // A frame that is never presented, say on a display not yet drawing, mustn't keep the window down for good.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.reveal() }
+    }
+
+    private func reveal() {
+        // Closed meanwhile, or up already.
+        guard link != nil, holds.contains(.starting) else { return }
+        window.orderFrontRegardless()
+        let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
+        Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
+        set(.starting, false)
+        revealing = true
         occlusionChanged()
     }
+
+    /// Up, and waiting to be seen: the window says so a moment after it goes up.
+    private var revealing = false
 
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
@@ -187,9 +217,6 @@ final class Wallpaper: NSObject {
             if paused {
                 birdLink?.invalidate()
                 birdLink = nil
-                // Held before its first frame, say in Low Power Mode, it would show a blank window over the desktop
-                // picture; paint once so it holds a still painting instead.
-                if !hasDrawn { DispatchQueue.main.async { [weak self] in self?.drawStill() } }
             }
             Log.display.info("Display \(self.displayID) \(paused ? "paused" : "running", privacy: .public) \(String(describing: self.holds), privacy: .public)")
         }
@@ -197,6 +224,29 @@ final class Wallpaper: NSObject {
 
     func repaint() {
         renderer.invalidate()
+    }
+
+    /// The pixels a still of this display has, the same as its frames.
+    var stillSize: CGSize { view.metalLayer.drawableSize }
+
+    /// New light is still spreading over the ground, so a still now would show it half done.
+    var isRepainting: Bool { renderer.isRepainting(for: world) }
+
+    /// Paints the world as it is at `time` into `target`, for the desktop picture: from the same ground as the frames,
+    /// with the bird in it even while it flies on a layer of its own. Encoded on the queue the frames use, so it
+    /// follows them.
+    func encodeStill(at time: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
+        let drawsBird = renderer.drawsBird
+        renderer.drawsBird = true
+        renderer.encode(world: world, at: time, into: target, commandBuffer: commandBuffer)
+        renderer.drawsBird = drawsBird
+    }
+
+    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen.
+    func redraw() {
+        updateCaption()
+        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
+        if !renderer.drawsBird { drawBird(at: world.time) }
     }
 
     var halfRateClouds: Bool {
@@ -217,13 +267,37 @@ final class Wallpaper: NSObject {
         }
     }
 
+    /// Whether any of the window can be seen.
+    var isVisible: Bool { window.occlusionState.contains(.visible) }
+
+    /// Counts changes to whether the window can be seen, so a cover that lifts again at once is never acted on.
+    private var occlusionChanges = 0
+
+    /// Holds the frames while the window is covered, as it is by a full-screen app. Moving between desktops covers it
+    /// for a moment too, and holding then would make the view jump on, so only a cover lasting a second counts.
     private func occlusionChanged() {
-        set(.occluded, !window.occlusionState.contains(.visible))
-        onOcclusionChange()
+        occlusionChanges += 1
+        guard !isVisible else {
+            set(.occluded, false)
+            onOcclusionChange()
+            if revealing {
+                revealing = false
+                onReveal()
+            }
+            return
+        }
+        let change = occlusionChanges
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self, occlusionChanges == change, link != nil, !isVisible else { return }
+            set(.occluded, true)
+            onOcclusionChange()
+        }
     }
 
     /// Called when this wallpaper is covered or uncovered.
     var onOcclusionChange: () -> Void = {}
+    /// Called once the window is up over the desktop picture and can be seen.
+    var onReveal: () -> Void = {}
 
     private func applyFrameRate() {
         link?.rate = framesPerSecond
@@ -350,22 +424,16 @@ final class Wallpaper: NSObject {
         #endif
     }
 
-    /// One frame for a wallpaper that was held before it ever drew.
-    private func drawStill() {
-        guard !hasDrawn, link != nil else { return }
-        view.layoutSubtreeIfNeeded()
-        updateCaption()
-        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
-    }
-
     /// Draws the world as it is at `moment`, for a frame meant to be on screen at `display` time, going up at
-    /// `presentAt`, or as soon as it is ready.
-    private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?) {
+    /// `presentAt`, or as soon as it is ready. Calls `done` once it is presented; returns whether it drew.
+    @discardableResult
+    private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?,
+                      done: (@MainActor () -> Void)? = nil) -> Bool {
         #if DEBUG
         let asked = CACurrentMediaTime()
         #endif
         guard let drawable = view.metalLayer.nextDrawable(),
-              let commands = gpu.queue.makeCommandBuffer() else { return }
+              let commands = gpu.queue.makeCommandBuffer() else { return false }
         #if DEBUG
         drawableWait = CACurrentMediaTime() - asked
         #endif
@@ -386,9 +454,14 @@ final class Wallpaper: NSObject {
             DispatchQueue.main.async { self?.stats.finished(gpu: milliseconds, painted: painted) }
         }
         #endif
+        if let done {
+            drawable.addPresentedHandler { _ in
+                DispatchQueue.main.async { done() }
+            }
+        }
         if let presentAt, !presentAt.isNaN { commands.present(drawable, atTime: presentAt) } else { commands.present(drawable) }
-        hasDrawn = true
         commands.commit()
+        return true
     }
 
     #if DEBUG

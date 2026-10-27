@@ -507,96 +507,96 @@
         }
       }
     },
-    "A still of the current view, while the Mac is locked.": {
+    "A still of the current view, kept as the desktop picture.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "صورة ثابتة للمشهد الحالي أثناء قفل جهاز Mac."
+            "value": "صورة ثابتة للمشهد الحالي، تبقى صورةً لسطح المكتب."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ein Standbild der aktuellen Ansicht, solange der Mac gesperrt ist."
+            "value": "Ein Standbild der aktuellen Ansicht, als Schreibtischhintergrund."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Una imagen fija de la vista actual mientras el Mac está bloqueado."
+            "value": "Una imagen fija de la vista actual, como fondo del escritorio."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Une image fixe de la vue actuelle, quand le Mac est verrouillé."
+            "value": "Une image fixe de la vue actuelle, gardée comme fond d'écran."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac लॉक रहने पर, मौजूदा नज़ारे की एक स्थिर तस्वीर।"
+            "value": "मौजूदा नज़ारे की एक स्थिर तस्वीर, डेस्कटॉप चित्र के रूप में।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un'immagine fissa della vista attuale, mentre il Mac è bloccato."
+            "value": "Un'immagine fissa della vista attuale, come sfondo della scrivania."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macのロック中は、いまの景色を静止画で表示します。"
+            "value": "いまの景色の静止画を、デスクトップピクチャにします。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac이 잠겨 있는 동안 현재 풍경을 정지 화면으로 보여줍니다."
+            "value": "현재 풍경의 정지 화면을 데스크탑 사진으로 둡니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een stilstaand beeld van wat je nu ziet, zolang de Mac vergrendeld is."
+            "value": "Een stilstaand beeld van wat je nu ziet, als bureaubladachtergrond."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nieruchomy kadr z bieżącego widoku, gdy Mac jest zablokowany."
+            "value": "Nieruchomy kadr z bieżącego widoku jako obraz biurka."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uma imagem parada da vista atual enquanto o Mac está bloqueado."
+            "value": "Uma imagem parada da vista atual como imagem da mesa."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Неподвижный кадр текущего вида, пока Mac заблокирован."
+            "value": "Неподвижный кадр текущего вида в качестве картинки рабочего стола."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac kilitliyken, o anki görüntüden sabit bir kare."
+            "value": "O anki görüntüden sabit bir kare, masaüstü resmi olarak."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac 锁定时，显示当前景色的静止画面。"
+            "value": "将当前景色的静止画面用作桌面图片。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac 鎖定時，顯示目前景色的靜態畫面。"
+            "value": "將目前景色的靜態畫面用作桌面圖片。"
           }
         }
       }

@@ -43,7 +43,7 @@ final class Preferences: ObservableObject {
     @Published var pace: Pace { didSet { save() } }
     @Published var stay: Stay { didSet { save() } }
     @Published var batteryMode: PowerState.BatteryMode { didSet { save() } }
-    /// Show a painting of the current view on the lock screen, as the desktop picture while the Mac is locked.
+    /// Keep a painting of the current view as the desktop picture, so the lock screen shows it too.
     @Published var matchingStill: Bool { didSet { save() } }
     /// Hold still after five minutes without anyone at the Mac.
     @Published var restsWhenAway: Bool { didSet { save() } }

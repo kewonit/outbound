@@ -108,6 +108,12 @@ public struct PaintBudget: Sendable {
         costPerMillion += (sample - costPerMillion) * 0.25
     }
 
+    /// The world went back `seconds`, as it does to a painting's moment as the Mac locks, so frames now ask from that
+    /// far back and the budget refills from there.
+    public mutating func rewind(by seconds: Double) {
+        savedAt = savedAt.map { $0 - seconds }
+    }
+
     /// Displays a moment apart may ask in any order, so time only ever moves the budget forward.
     private mutating func refill(at time: Double) {
         guard let savedAt else {
