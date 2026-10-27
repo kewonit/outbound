@@ -1,7 +1,7 @@
 import AppKit
 import OutboundCore
 
-/// Keeps one wallpaper on every display, and pauses them all when nobody can see them.
+/// Keeps one wallpaper on every display, and stops drawing on any that nobody can see.
 @MainActor
 final class DisplayManager {
     let world: World
@@ -9,16 +9,28 @@ final class DisplayManager {
     let power: PowerMonitor
     private(set) var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
-    /// Every display's wallpaper is covered, by full-screen apps say. Nobody can see the flight, so it waits, as it
-    /// does while the Mac is locked: coming back shows the same place, with the ground each display cached still good,
-    /// rather than the whole view repainted at once.
+    /// Every display's wallpaper is covered, by full-screen apps say. With Pause When Hidden on, the flight waits, as it
+    /// does while the Mac is locked, and coming back shows the same place. Otherwise it flies on unseen, and coming back
+    /// shows where it has got to.
     private var everyOccluded = false {
         didSet {
             guard everyOccluded != oldValue else { return }
-            world.hold(!globalHolds.isEmpty || everyOccluded)
-            Log.display.info("\(self.everyOccluded ? "Every display is covered: holding still" : "A display is in view again", privacy: .public)")
+            let line = !everyOccluded ? "A display is in view again"
+                : pausesWhenHidden ? "Every display is covered: holding still" : "Every display is covered: flying on unseen"
+            Log.display.info("\(line, privacy: .public)")
         }
     }
+    /// Hold the flight while every display is covered.
+    var pausesWhenHidden = false {
+        didSet { if pausesWhenHidden != oldValue { holdWorld() } }
+    }
+    /// Counts calls to holdWorld, so a release waiting out its grace is dropped when anything changes meanwhile.
+    private var releases = 0
+    /// Brings each covered display's ground up to the flight every couple of seconds while it flies on unseen.
+    private var upkeep: Timer?
+    #if DEBUG
+    private var keptUp: TimeInterval?
+    #endif
     private(set) var tier = PowerTier.choose(PowerState())
     private var started = false
     /// Wallpapers only exist while running; before Outbound is unlocked it is not.
@@ -146,8 +158,70 @@ final class DisplayManager {
     func set(_ hold: Wallpaper.Hold, _ on: Bool) {
         if on { globalHolds.insert(hold) } else { globalHolds.remove(hold) }
         wallpapers.values.forEach { $0.set(hold, on) }
-        world.hold(!globalHolds.isEmpty || everyOccluded)
+        holdWorld()
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
+    }
+
+    /// Holds the flight while anything holds every display (asleep, locked, paused and the like), or while every
+    /// display is covered with Pause When Hidden on. A hold lifting while every display is still covered, as the Mac
+    /// unlocks behind the lock screen, keeps the flight where it is until a display is in view, for two seconds at most:
+    /// it then carries on from the moment the lock screen showed rather than a little past it.
+    private func holdWorld() {
+        let held = !globalHolds.isEmpty || (everyOccluded && pausesWhenHidden)
+        releases += 1
+        if !held, everyOccluded, world.isHeld {
+            let release = releases
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self, releases == release else { return }
+                world.hold(false)
+                updateUpkeep()
+            }
+        } else {
+            world.hold(held)
+        }
+        updateUpkeep()
+    }
+
+    /// Wallpapers nobody can see while the flight goes on: covered, and held by nothing else.
+    private var unseen: [Wallpaper] {
+        wallpapers.values.filter { $0.holds == [.occluded] }
+    }
+
+    /// Keeps the ground of every display nobody can see up with the flight while it goes on, so coming back to one
+    /// paints a strip rather than the whole view at once. Every couple of seconds is plenty: the flight reveals a few
+    /// dozen rows of ground a second.
+    private func updateUpkeep() {
+        let wanted = running && !world.isHeld && !unseen.isEmpty
+        guard wanted != (upkeep != nil) else { return }
+        if wanted {
+            upkeep = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.keepUp() }
+            }
+            upkeep?.tolerance = 0.5
+            Log.display.info("Keeping covered displays up with the flight")
+        } else {
+            upkeep?.invalidate()
+            upkeep = nil
+            #if DEBUG
+            keptUp = nil
+            #endif
+            Log.display.info("No longer keeping covered displays up")
+        }
+    }
+
+    private func keepUp() {
+        let now = CACurrentMediaTime()
+        #if DEBUG
+        // App Nap can hold the timer back while every window is covered; the first frame back then paints more.
+        if let keptUp, now - keptUp > 4 {
+            Log.display.info("Kept up \(String(format: "%.1f", now - keptUp), privacy: .public) s after the last time")
+        }
+        keptUp = now
+        #endif
+        // Nothing to do when a display in view has already taken the flight further.
+        world.advance(to: now)
+        let moment = world.renderTime(for: now)
+        unseen.forEach { $0.keepUp(at: moment) }
     }
 
     func repaint() {
@@ -198,6 +272,7 @@ final class DisplayManager {
 
     private func checkOcclusion() {
         everyOccluded = !wallpapers.isEmpty && wallpapers.values.allSatisfy { $0.holds.contains(.occluded) }
+        holdWorld()
     }
 
     /// The tier's frame rates, as each display can show them evenly.

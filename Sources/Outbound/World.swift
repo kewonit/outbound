@@ -85,6 +85,8 @@ final class World {
     private var heldFor: TimeInterval = 0
     private var heldSince: TimeInterval?
 
+    var isHeld: Bool { heldSince != nil }
+
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
             heldSince = now

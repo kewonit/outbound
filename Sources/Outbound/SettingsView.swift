@@ -67,7 +67,7 @@ struct SettingsView: View {
             Text("Outbound \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
                 .font(.callout.weight(.medium))
             VStack(spacing: 2) {
-                Text("It pauses by itself whenever you can't see it.")
+                Text("It stops drawing whenever you can't see it.")
                 Text("Quit it and your own desktop picture comes back.")
             }
             HStack(spacing: 6) {

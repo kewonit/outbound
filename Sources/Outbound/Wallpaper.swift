@@ -226,6 +226,15 @@ final class Wallpaper: NSObject {
         renderer.invalidate()
     }
 
+    /// Brings the ground up to the flight while nobody can see this display, without drawing a frame: a covered window
+    /// gets no drawables, and asking for one stalls for a second.
+    func keepUp(at moment: TimeInterval) {
+        guard let commands = gpu.queue.makeCommandBuffer() else { return }
+        commands.label = "Keeping up"
+        renderer.keepUp(world: world, at: moment, commandBuffer: commands)
+        commands.commit()
+    }
+
     /// The pixels a still of this display has, the same as its frames.
     var stillSize: CGSize { view.metalLayer.drawableSize }
 
