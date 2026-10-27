@@ -13,6 +13,11 @@ final class ActivationWindow {
     private var observer: NSObjectProtocol?
     /// Called once the window is closed after unlocking, when it is no longer needed.
     var onDone: () -> Void = {}
+    /// Whether the preview has the pale border, as the wallpaper does.
+    var paperEdge: Bool {
+        get { preview.paperEdge }
+        set { preview.paperEdge = newValue }
+    }
 
     init(license: LicenseController, world: World, gpu: GPU) {
         let size = CGSize(width: 560, height: 300)
@@ -210,6 +215,12 @@ final class PreviewView: NSView {
     private let metal: MetalView
     private let renderer: ViewRenderer
     private var link: FrameClock?
+
+    /// Whether the painting has its pale border, as the wallpaper does.
+    @MainActor var paperEdge: Bool {
+        get { renderer.paperEdge }
+        set { renderer.paperEdge = newValue }
+    }
 
     @MainActor
     init(world: World, gpu: GPU, size: CGSize) {
