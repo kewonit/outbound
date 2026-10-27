@@ -532,8 +532,8 @@ enum Exporter {
     }
 
     nonisolated static func write(_ texture: MTLTexture, to url: URL, type: UTType = .png) throws {
-        let image = try image(texture)
-        guard let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)
+        guard let image = try? image(texture),
+              let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil)
         else { throw Failure(description: "Could not write \(url.path)") }
         CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw Failure(description: "Could not write \(url.path)") }

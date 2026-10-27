@@ -1885,6 +1885,8 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     // megabytes in all.
     int first = blend >= 1.0 ? 1 : 0, last = blend <= 0.0 ? 0 : 1;
     Land a, b;
+    // Never unrolled, or the copies come back.
+    #pragma clang loop unroll(disable)
     for (int i = first; i <= last; i++) {
         Land painted = land(world, i == 0 ? scene.legA : scene.legB, scene, i == 0 ? halfA : halfB, wander);
         if (i == 0) a = painted; else b = painted;

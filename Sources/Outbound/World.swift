@@ -66,9 +66,6 @@ final class World {
         bird = Bird(at: Bird.wander(in: home, time: time))
         birdTrail = BirdTrail(bird.pose, at: time)
         updateSun(force: true)
-        NotificationCenter.default.addObserver(forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.clockMonth = nil }
-        }
     }
 
     /// The moment a display showing at `displayTime` should draw: its own time, less the time spent held still.
@@ -185,9 +182,10 @@ final class World {
     static func desktopIsUnder(_ point: CGPoint) -> Bool {
         let number = NSWindow.windowNumber(at: point, belowWindowWithWindowNumber: 0)
         guard number > 0 else { return true }
-        let now = CACurrentMediaTime()
+        // The wall clock, which keeps going while the Mac sleeps.
+        let now = Date.now
         let layer: Int?
-        if let last = lastWindow, last.number == number, now - last.read < 2 {
+        if let last = lastWindow, last.number == number, abs(now.timeIntervalSince(last.read)) < 2 {
             layer = last.layer
         } else {
             let info = CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(number)) as? [[String: Any]]
@@ -200,7 +198,7 @@ final class World {
 
     /// The level of the window last found under the pointer, read again every couple of seconds, so following the
     /// pointer across one window asks the window server once each time rather than twice.
-    private static var lastWindow: (number: Int, layer: Int?, read: TimeInterval)?
+    private static var lastWindow: (number: Int, layer: Int?, read: Date)?
 
     var camera: SIMD2<Double> {
         camera(at: time)
@@ -387,15 +385,18 @@ final class World {
         return (flock, sighting)
     }
 
-    /// The month by the clock, and when it begins and ends, so asking every frame costs a comparison rather than a
-    /// calendar sum. A new time zone moves where months begin, so it is worked out again then.
-    private var clockMonth: (number: Int, start: Date, end: Date)?
+    /// The month by the clock, when it begins and ends, and when that was worked out, so asking every frame costs a
+    /// comparison rather than a calendar sum. It is worked out again every minute, as a new time zone or calendar moves
+    /// where months begin.
+    private var clockMonth: (number: Int, start: Date, end: Date, asked: Date)?
 
     private func month(at date: Date) -> Int {
-        if let month = clockMonth, date >= month.start, date < month.end { return month.number }
+        if let month = clockMonth, date >= month.start, date < month.end, abs(date.timeIntervalSince(month.asked)) < 60 {
+            return month.number
+        }
         let calendar = Calendar.current
         let number = calendar.component(.month, from: date)
-        clockMonth = calendar.dateInterval(of: .month, for: date).map { (number, $0.start, $0.end) }
+        clockMonth = calendar.dateInterval(of: .month, for: date).map { (number, $0.start, $0.end, date) }
         return number
     }
 
