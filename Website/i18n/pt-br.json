@@ -28,7 +28,7 @@
   "faq.a11": "Mande um e-mail para <a href=\"mailto:outbound@edbn.me\">outbound@edbn.me</a> ou veja a página de <a href=\"/support\">Suporte</a>.",
   "faq.a2": "Não. Seu Mac pinta tudo ao vivo durante o voo, então nunca se repete.",
   "faq.a3": "Sim. Escolha qualquer um dos oito lugares na barra de menus e quanto tempo ele fica sobre cada um, de seis minutos a uma hora, ou deixe-o sobre um só.",
-  "faq.a4": "Não. Ele para de desenhar enquanto a área de trabalho está oculta, e pausa quando a tela entra em repouso ou o Modo Pouca Energia está ativado. Na bateria, ele pode mostrar uma pintura parada.",
+  "faq.a4": "Não. Ele pausa quando a tela entra em repouso ou o Modo Pouca Energia está ativado, ou enquanto a área de trabalho está oculta se “Pausar Quando Oculto” estiver ativado. Na bateria, ele pode mostrar uma pintura parada.",
   "faq.a5": "Sim. Uma única paisagem se estende por todas elas.",
   "faq.a6": "Ele volta quando você encerra o Outbound.",
   "faq.a7": "Ela aparece logo depois do pagamento e fica no seu <a href=\"https://polar.sh/edbnme/portal\">portal do cliente</a>. Se você comprar pelo app, o Outbound se desbloqueia sozinho.",

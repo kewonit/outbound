@@ -3342,96 +3342,96 @@
         }
       }
     },
-    "It stops drawing whenever you can't see it.": {
+    "It pauses by itself while you're away.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يتوقف عن الرسم كلما غاب عن نظرك."
+            "value": "يتوقف مؤقتًا من تلقاء نفسه أثناء غيابك."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es hört auf zu zeichnen, sobald es nicht zu sehen ist."
+            "value": "Es pausiert von selbst, solange du weg bist."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deja de dibujar cuando no está a la vista."
+            "value": "Se pausa solo mientras no estás."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il arrête de dessiner dès qu'il n'est plus visible."
+            "value": "Il se met en pause tout seul quand tu n'es pas là."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "जब यह दिखाई नहीं देता, तब यह बनाना रोक देता है।"
+            "value": "आपके दूर रहने पर यह अपने-आप रुक जाता है।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Smette di disegnare quando non è visibile."
+            "value": "Si mette in pausa da solo quando non ci sei."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "見えていないときは、描くのを止めます。"
+            "value": "席を外している間は、自動で一時停止します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면에 보이지 않을 때는 그리기를 멈춥니다."
+            "value": "자리를 비운 동안에는 알아서 일시 정지합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Het stopt met tekenen als je het niet kunt zien."
+            "value": "Het pauzeert vanzelf als je weg bent."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Przestaje rysować, gdy go nie widać."
+            "value": "Sam się wstrzymuje, gdy Cię nie ma."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ele para de desenhar sempre que fica fora de vista."
+            "value": "Ele pausa sozinho enquanto você está longe."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Он перестаёт рисовать, когда его не видно."
+            "value": "Он сам встаёт на паузу, пока вас нет."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Göremediğin her an çizmeyi bırakır."
+            "value": "Sen yokken kendiliğinden duraklar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的时候，它会停止绘制。"
+            "value": "你不在的时候，它会自动暂停。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的時候，它會停止繪製。"
+            "value": "你不在的時候，它會自動暫停。"
           }
         }
       }

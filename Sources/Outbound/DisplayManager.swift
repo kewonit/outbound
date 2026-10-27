@@ -1,7 +1,7 @@
 import AppKit
 import OutboundCore
 
-/// Keeps one wallpaper on every display, and stops drawing on any that nobody can see.
+/// Keeps one wallpaper on every display, and pauses them all when nobody can see them.
 @MainActor
 final class DisplayManager {
     let world: World
@@ -9,28 +9,25 @@ final class DisplayManager {
     let power: PowerMonitor
     private(set) var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
-    /// Nobody can see any display: full-screen apps or other windows hide every desktop. With Pause When Hidden on, the
-    /// flight waits from that moment, as it does while the Mac is locked, and coming back shows the same place.
-    /// Otherwise it flies on unseen, and coming back dissolves to where it has got to.
-    private var everyHidden = false {
+    /// Every display's desktop is hidden, by full-screen apps or other windows say, and Pause When Hidden is on. Nobody
+    /// can see the flight, so it waits, as it does while the Mac is locked: coming back shows the same place, with the
+    /// ground each display cached still good, rather than the whole view repainted at once.
+    private var pausedHidden = false {
         didSet {
-            guard everyHidden != oldValue else { return }
-            let line = !everyHidden ? "A display is in view again"
-                : pausesWhenHidden ? "Every display is hidden: holding still" : "Every display is hidden: flying on unseen"
-            Log.display.info("\(line, privacy: .public)")
+            guard pausedHidden != oldValue else { return }
+            wallpapers.values.forEach { $0.set(.hidden, pausedHidden) }
+            world.hold(!globalHolds.isEmpty || pausedHidden)
+            Log.display.info("\(self.pausedHidden ? "Every display is hidden: holding still" : "Carrying on", privacy: .public)")
         }
     }
-    /// Hold the flight while every display is hidden.
+    /// Hold the flight while every display's desktop is hidden. Off, it flies on whether anyone can see it or not.
     var pausesWhenHidden = false {
-        didSet { if pausesWhenHidden != oldValue { holdWorld() } }
+        didSet {
+            guard pausesWhenHidden != oldValue else { return }
+            watchCover()
+            checkOcclusion()
+        }
     }
-    /// When the flight, held while it was hidden or locked, goes on even though nothing is in view yet.
-    private var releaseAt: TimeInterval?
-    /// Brings each covered display's ground up to the flight every couple of seconds while it flies on unseen.
-    private var upkeep: Timer?
-    #if DEBUG
-    private var keptUp: TimeInterval?
-    #endif
     private(set) var tier = PowerTier.choose(PowerState())
     private var started = false
     /// Wallpapers only exist while running; before Outbound is unlocked it is not.
@@ -68,6 +65,10 @@ final class DisplayManager {
         }
         // Launched while the Mac is locked, say to install an update, nothing says so later.
         if Self.screenIsLocked { set(.locked, true) }
+        cover.onChange = { [weak self] id, covered in
+            Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
+            self?.wallpapers[id]?.coveredByWindows = covered
+        }
         sync()
         let center = NotificationCenter.default
         center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -93,11 +94,6 @@ final class DisplayManager {
             Log.power.info("\(resting ? "Resting: nobody is around" : "Awake", privacy: .public)")
         }
         rest.start()
-        cover.onChange = { [weak self] id, covered in
-            Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
-            self?.wallpapers[id]?.coveredByWindows = covered
-        }
-        watchCover()
         power.onChange = { [weak self] _ in self?.applyPower() }
         applyPower()
     }
@@ -131,15 +127,16 @@ final class DisplayManager {
         globalHolds.contains(.locked)
     }
 
-    /// The wallpapers up and in view as macOS sees them, for the desktop pictures. A desktop under app windows is
-    /// still a desktop there, whose picture the lock screen shows, so it counts.
+    /// The wallpapers up and in view, not covered by a full-screen app.
     var wallpapersInView: [Wallpaper] {
-        wallpapers.values.filter { !$0.holds.contains(.starting) && $0.isVisible }
+        wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) && $0.isVisible }
     }
 
-    /// Displays whose wallpaper macOS says is out of view, as it is under a screen saver.
+    /// Displays whose wallpaper is covered, as it is by a full-screen app, even if only for a moment so far.
     var occludedDisplays: Set<CGDirectDisplayID> {
-        Set(wallpapers.values.filter { !$0.holds.contains(.starting) && !$0.isVisible }.map(\.displayID))
+        Set(wallpapers.values.filter {
+            $0.holds.contains(.occluded) || (!$0.holds.contains(.starting) && !$0.isVisible)
+        }.map(\.displayID))
     }
 
     private static var screenIsLocked: Bool {
@@ -166,84 +163,21 @@ final class DisplayManager {
         // Windows may have moved while nothing was drawn, so they are read again before any display starts once more.
         watchCover()
         wallpapers.values.forEach { $0.set(hold, on) }
-        holdWorld()
+        world.hold(!globalHolds.isEmpty || pausedHidden)
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
     }
 
-    /// Holds the flight while anything holds every display (asleep, locked, paused and the like), or while every
-    /// display is covered with Pause When Hidden on. A hold lifting while every display is still covered, as the Mac
-    /// unlocks behind the lock screen, keeps the flight where it is until a display is in view, for two seconds at most:
-    /// it then carries on from the moment the lock screen showed rather than a little past it.
-    private func holdWorld() {
-        let held = !globalHolds.isEmpty || (everyHidden && pausesWhenHidden)
-        if !held, everyHidden, world.isHeld {
-            if releaseAt == nil {
-                let at = CACurrentMediaTime() + 2
-                releaseAt = at
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                    guard let self, releaseAt == at else { return }
-                    releaseAt = nil
-                    world.hold(!globalHolds.isEmpty || (everyHidden && pausesWhenHidden))
-                    updateUpkeep()
-                }
-            }
-        } else {
-            releaseAt = nil
-            world.hold(held)
-        }
-        updateUpkeep()
-    }
-
-    /// Reads which desktops app windows cover while anything is drawn, and not while the Mac is locked, asleep,
-    /// resting or paused.
+    /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
+    /// while the Mac is locked, asleep, resting or paused.
     private func watchCover() {
+        guard pausesWhenHidden else {
+            cover.stop()
+            cover.displays = []
+            wallpapers.values.forEach { $0.coveredByWindows = false }
+            return
+        }
         cover.displays = Array(wallpapers.keys)
         if running, globalHolds.isEmpty { cover.start() } else { cover.stop() }
-    }
-
-    /// Wallpapers nobody can see while the flight goes on: hidden, and held by nothing else.
-    private var unseen: [Wallpaper] {
-        wallpapers.values.filter { $0.holds == [.hidden] }
-    }
-
-    /// Keeps the ground of every display nobody can see up with the flight while it goes on, so coming back to one
-    /// paints a strip rather than the whole view at once. Every couple of seconds is plenty: the flight reveals a few
-    /// dozen rows of ground a second.
-    private func updateUpkeep() {
-        let wanted = running && !world.isHeld && !unseen.isEmpty
-        guard wanted != (upkeep != nil) else { return }
-        if wanted {
-            let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.keepUp() }
-            }
-            timer.tolerance = 0.5
-            // The common modes, so it keeps up while a menu is open.
-            RunLoop.main.add(timer, forMode: .common)
-            upkeep = timer
-            Log.display.info("Keeping covered displays up with the flight")
-        } else {
-            upkeep?.invalidate()
-            upkeep = nil
-            #if DEBUG
-            keptUp = nil
-            #endif
-            Log.display.info("No longer keeping covered displays up")
-        }
-    }
-
-    private func keepUp() {
-        let now = CACurrentMediaTime()
-        #if DEBUG
-        // App Nap can hold the timer back while every window is covered; the first frame back then paints more.
-        if let keptUp, now - keptUp > 4 {
-            Log.display.info("Kept up \(String(format: "%.1f", now - keptUp), privacy: .public) s after the last time")
-        }
-        keptUp = now
-        #endif
-        // Nothing to do when a display in view has already taken the flight further.
-        world.advance(to: now)
-        let moment = world.renderTime(for: now)
-        unseen.forEach { $0.keepUp(at: moment) }
     }
 
     func repaint() {
@@ -270,8 +204,9 @@ final class DisplayManager {
                 wallpaper.paperEdge = paperEdge
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
+                if pausedHidden { wallpaper.set(.hidden, true) }
                 wallpaper.coveredByWindows = cover.covered.contains(id)
-                wallpaper.onHiddenChange = { [weak self] in self?.checkHidden() }
+                wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
                 // Once every display's is up, so the first paintings are of one moment.
                 wallpaper.onReveal = { [weak self] in
                     guard let self,
@@ -289,21 +224,14 @@ final class DisplayManager {
             Log.display.info("Removed display \(id)")
         }
         watchCover()
-        checkHidden()
+        checkOcclusion()
         refreshRates()
         added.forEach { $0.show() }
     }
 
-    /// Holds or releases the flight when every display becomes hidden or one comes back into view; otherwise only which
-    /// displays to keep up has changed.
-    private func checkHidden() {
-        let every = !wallpapers.isEmpty && wallpapers.values.allSatisfy { $0.holds.contains(.hidden) }
-        if every != everyHidden {
-            everyHidden = every
-            holdWorld()
-        } else {
-            updateUpkeep()
-        }
+    private func checkOcclusion() {
+        pausedHidden = pausesWhenHidden && !wallpapers.isEmpty
+            && wallpapers.values.allSatisfy { $0.holds.contains(.occluded) || $0.coveredByWindows }
     }
 
     /// The tier's frame rates, as each display can show them evenly.

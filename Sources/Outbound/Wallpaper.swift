@@ -70,8 +70,8 @@ final class MetalView: NSView {
 @MainActor
 final class Wallpaper: NSObject {
     enum Hold: Hashable {
-        case user, asleep, locked, inactive, lowPower, resting
-        /// Nobody can see this display: macOS says something covers all of it, or app windows hide its desktop.
+        case user, occluded, asleep, locked, inactive, lowPower, resting
+        /// Every display's desktop is hidden, and Pause When Hidden holds the flight until one is in view again.
         case hidden
         /// The first frame is still being painted, before the window goes up.
         case starting
@@ -131,7 +131,7 @@ final class Wallpaper: NSObject {
         set(.starting, true)
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.visibilityChanged() }
+            MainActor.assumeIsolated { self?.occlusionChanged() }
         })
     }
 
@@ -157,25 +157,13 @@ final class Wallpaper: NSObject {
         window.orderFrontRegardless()
         let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
-        // Hidden already, as under a full-screen app: held before it starts, so its frame clock never runs.
-        if coveredByWindows {
-            keepParting()
-            set(.hidden, true)
-        }
         set(.starting, false)
         revealing = true
-        revealedAt = CACurrentMediaTime()
-        visibilityChanged()
-        onHiddenChange()
-        // Up under a screen saver, it is never seen, and must stop rather than wait a second for each drawable.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.revealGrace) { [weak self] in self?.visibilityChanged() }
+        occlusionChanged()
     }
 
     /// Up, and waiting to be seen: the window says so a moment after it goes up.
     private var revealing = false
-    private var revealedAt: TimeInterval = 0
-    /// How long a window just up may go unseen before it counts as hidden.
-    private static let revealGrace: TimeInterval = 1
 
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
@@ -186,8 +174,6 @@ final class Wallpaper: NSObject {
     /// On battery a Retina display draws at 1.5x and lets Core Animation scale it up: almost half the pixels.
     /// The drawable and the renderer always change together, or the cache would tile across the screen.
     private func applyScale(on screen: NSScreen) {
-        // A picture kept from before no longer fits the frames.
-        forgetParting()
         let backing = Double(screen.backingScaleFactor)
         let scale = economical && backing > 1.5 ? 1.5 : backing
         view.renderScale = scale == backing ? nil : scale
@@ -217,7 +203,6 @@ final class Wallpaper: NSObject {
         birdLink?.invalidate()
         birdLink = nil
         observers.forEach(NotificationCenter.default.removeObserver)
-        forgetParting()
         window.orderOut(nil)
         window.close()
     }
@@ -243,15 +228,6 @@ final class Wallpaper: NSObject {
         renderer.invalidate()
     }
 
-    /// Brings the ground up to the flight while nobody can see this display, without drawing a frame: a covered window
-    /// gets no drawables, and asking for one stalls for a second.
-    func keepUp(at moment: TimeInterval) {
-        guard let commands = gpu.queue.makeCommandBuffer() else { return }
-        commands.label = "Keeping up"
-        renderer.keepUp(world: world, at: moment, commandBuffer: commands)
-        commands.commit()
-    }
-
     /// The pixels a still of this display has, the same as its frames.
     var stillSize: CGSize { view.metalLayer.drawableSize }
 
@@ -268,17 +244,10 @@ final class Wallpaper: NSObject {
         renderer.drawsBird = drawsBird
     }
 
-    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen. The lock
-    /// screen hides the window a moment before the Mac says it is locking, so it may be hidden already: drawn even so,
-    /// coming back starts from this moment; given no drawable, it keeps what it showed, and coming back starts from that.
+    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen.
     func redraw() {
-        let hidden = holds.contains(.hidden)
-        if !hidden { forgetParting() }
         updateCaption()
-        guard draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil) else { return }
-        offset = 0
-        // Under app windows it may stay hidden long after: coming back starts from this moment, the one it shows.
-        if hidden { keepParting() }
+        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
         if !renderer.drawsBird { drawBird(at: world.time) }
     }
 
@@ -300,172 +269,46 @@ final class Wallpaper: NSObject {
         }
     }
 
-    /// Whether macOS says any of the window can be seen. App windows over the desktop don't change it (see
-    /// `coveredByWindows`), so desktop pictures keep following the desktops that are there.
+    /// Whether any of the window can be seen.
     var isVisible: Bool { window.occlusionState.contains(.visible) }
 
     /// App windows hide this display's desktop, which macOS doesn't say for a window at the desktop's level (see
-    /// `CoverWatch`).
+    /// `CoverWatch`). Only looked for with Pause When Hidden on.
     var coveredByWindows = false {
-        didSet { if coveredByWindows != oldValue { visibilityChanged() } }
+        didSet { if coveredByWindows != oldValue { onOcclusionChange() } }
     }
 
-    /// Stops drawing the moment nobody can see this display, and starts again the moment someone can: a hidden window
-    /// gets no drawables, and asking for one stalls for a second. Just up, the window isn't seen for a moment, so for a
-    /// second, until macOS first says it is, only app windows over it count.
-    private func visibilityChanged() {
-        guard link != nil, !holds.contains(.starting) else { return }
-        let occluded = !isVisible && (!revealing || CACurrentMediaTime() - revealedAt >= Self.revealGrace)
-        let hidden = occluded || coveredByWindows
-        if hidden != holds.contains(.hidden) {
-            if hidden { keepParting() }
-            set(.hidden, hidden)
-            if !hidden { comeBack() }
-            onHiddenChange()
+    /// Counts changes to whether the window can be seen, so a cover that lifts again at once is never acted on.
+    private var occlusionChanges = 0
+
+    /// Holds the frames while the window is covered, as it is by a full-screen app. Moving between desktops covers it
+    /// for a moment too, and holding then would make the view jump on, so only a cover lasting a second counts.
+    private func occlusionChanged() {
+        occlusionChanges += 1
+        guard !isVisible else {
+            set(.occluded, false)
+            onOcclusionChange()
+            if revealing {
+                revealing = false
+                onReveal()
+            }
+            return
         }
-        if isVisible, revealing {
-            revealing = false
-            onReveal()
+        let change = occlusionChanges
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self, occlusionChanges == change, link != nil, !isVisible else { return }
+            set(.occluded, true)
+            onOcclusionChange()
         }
     }
 
-    /// How far behind the flight this display draws: as far as it was hidden, when that was only a moment, so it carries
-    /// on from the frame still showing instead of leaping ahead or hurrying to catch up.
-    private var offset: TimeInterval = 0
-    /// Just back after a moment hidden: the next frame works out `offset`.
-    private var resuming = false
-    /// Hidden longer than this, the view has moved on too far to carry on from, and it dissolves instead.
-    private static let carryOnLimit: TimeInterval = 1
-
-    /// Called when this wallpaper is hidden or can be seen again.
-    var onHiddenChange: () -> Void = {}
+    /// Called when this wallpaper is covered or uncovered.
+    var onOcclusionChange: () -> Void = {}
     /// Called once the window is up over the desktop picture and can be seen.
     var onReveal: () -> Void = {}
 
     private func applyFrameRate() {
         link?.rate = framesPerSecond
-    }
-
-    // MARK: - Coming back
-
-    /// What this display last drew: its moment, and how far a dissolve had faded then.
-    private var lastFrame: (moment: TimeInterval, fade: Float)?
-    /// When the bird's own layer last drew it.
-    private var lastBird: TimeInterval?
-    /// What this display showed when it was hidden, kept for the dissolve on coming back. The system may take it back
-    /// meanwhile, while memory is short; the view then just changes.
-    private var parting: (texture: MTLTexture, moment: TimeInterval)?
-    /// A dissolve under way: what it fades out, and the moment of its first frame.
-    private var dissolve: (texture: MTLTexture, start: TimeInterval?)?
-    /// The bird was on its own layer when this display was hidden, and is painted with the landscape from the first
-    /// frame back.
-    private var birdLayerLeft = false
-    private static let dissolveTime: TimeInterval = {
-        #if DEBUG
-        // OUTBOUND_DISSOLVE=3 slows the dissolve down to three seconds, to look at it closely.
-        if let seconds = ProcessInfo.processInfo.environment["OUTBOUND_DISSOLVE"].flatMap(Double.init), seconds > 0 {
-            return seconds
-        }
-        #endif
-        return 0.5
-    }()
-
-    /// Paints again what the window shows as this display is hidden: its last frame, with any dissolve as far as it had
-    /// got and the bird even if it flew on a layer of its own, painting no ground that was only waiting.
-    private func keepParting() {
-        defer { dissolve = nil }
-        parting = nil
-        let size = stillSize
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
-                                                                  width: Int(size.width), height: Int(size.height),
-                                                                  mipmapped: false)
-        descriptor.usage = [.renderTarget, .shaderRead]
-        descriptor.storageMode = .private
-        guard let last = lastFrame, size.width > 0, size.height > 0,
-              let texture = gpu.device.makeTexture(descriptor: descriptor),
-              let commands = gpu.queue.makeCommandBuffer() else { return }
-        texture.label = "Parting"
-        commands.label = "Parting"
-        renderer.encode(world: world, at: last.moment, into: texture, commandBuffer: commands,
-                        overlay: dissolve.map { ($0.texture, last.fade) }, birdAt: renderer.drawsBird ? nil : lastBird,
-                        paintsWaiting: false)
-        let kept = ObjectIdentifier(texture)
-        commands.addCompletedHandler { [weak self] _ in
-            DispatchQueue.main.async {
-                // Kept while hidden, but the system may take it back while memory is short.
-                guard let self, self.holds.contains(.hidden), let parting = self.parting,
-                      ObjectIdentifier(parting.texture) == kept else { return }
-                parting.texture.setPurgeableState(.volatile)
-            }
-        }
-        commands.commit()
-        parting = (texture, last.moment)
-        foldBird()
-    }
-
-    /// Paints the bird with the landscape from the next frame drawn, its own layer showing it, still, until then.
-    private func foldBird() {
-        guard !renderer.drawsBird else { return }
-        renderer.drawsBird = true
-        birdHandOvers += 1
-        birdLink?.invalidate()
-        birdLink = nil
-        birdLayerLeft = true
-    }
-
-    /// Coming back: hidden only a moment, it carries on from what it showed, at the flight's own speed and that little
-    /// behind it, never hurrying to catch up. Hidden while the flight moved on further, its first frames dissolve from
-    /// what it showed to where the flight has got to.
-    private func comeBack() {
-        resuming = false
-        guard let parting else { return }
-        self.parting = nil
-        let gap = world.renderTime(for: CACurrentMediaTime()) - parting.moment
-        if gap >= 0, gap <= Self.carryOnLimit {
-            resuming = true
-            return
-        }
-        offset = 0
-        // Back before where it left off, as the lock screen can leave it; or the picture was taken back by the system
-        // meanwhile, or is no longer the size of a frame: the view just changes.
-        guard abs(gap) >= 0.25, parting.texture.setPurgeableState(.nonVolatile) != .empty,
-              CGSize(width: parting.texture.width, height: parting.texture.height) == stillSize else { return }
-        dissolve = (parting.texture, nil)
-        Log.display.info("Display \(self.displayID) dissolving from \(String(format: "%.1f", gap), privacy: .public) s back")
-    }
-
-    private func forgetParting() {
-        parting = nil
-        dissolve = nil
-        offset = 0
-    }
-
-    /// How much of the picture kept from before this frame shows, from all of it to none, eased at both ends and timed
-    /// in the world's time, so a pause midway carries on from the same point.
-    private func dissolveFade(at moment: TimeInterval) -> (texture: MTLTexture, fade: Float)? {
-        guard let dissolve else { return nil }
-        let start = dissolve.start ?? moment
-        if dissolve.start == nil { self.dissolve?.start = moment }
-        let progress = min(max((moment - start) / Self.dissolveTime, 0), 1)
-        let fade = Float(1 - Easing.smoothstep(progress))
-        guard fade > 0 else {
-            self.dissolve = nil
-            return nil
-        }
-        return (dissolve.texture, fade)
-    }
-
-    /// Takes the bird off its own layer once the frame painting it with the landscape is on screen.
-    private func hideBirdLayer(at presentTime: TimeInterval) {
-        birdHandOvers += 1
-        let handOver = birdHandOvers
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(presentTime - CACurrentMediaTime(), 0)) { [weak self] in
-            guard let self, birdHandOvers == handOver else { return }
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            birdView.isHidden = true
-            CATransaction.commit()
-        }
     }
 
     /// Whether the bird belongs on this display's own layer at `time`: chasing the cursor, and near this display.
@@ -498,7 +341,7 @@ final class Wallpaper: NSObject {
             #endif
             if wantsLayer {
                 startBirdLink()
-                drawBird(at: world.renderTime(for: presentTime + refresh) - offset)
+                drawBird(at: world.renderTime(for: presentTime + refresh))
             } else {
                 birdLink?.invalidate()
                 birdLink = nil
@@ -532,7 +375,6 @@ final class Wallpaper: NSObject {
             layer.drawableSize = size
         }
         guard let drawable = layer.nextDrawable(), let commands = gpu.birdQueue.makeCommandBuffer() else { return }
-        lastBird = time
         renderer.encodeBird(world: world, at: time, into: drawable.texture, commandBuffer: commands, size: box,
                             scale: scale)
         commands.commit()
@@ -550,16 +392,11 @@ final class Wallpaper: NSObject {
     }
 
     private func birdTick(_ tick: FrameClock.Tick) {
-        // On macOS 13 a tick on its way to the main thread can arrive just after the clock stopped.
-        guard birdLink != nil, link?.isPaused == false else { return }
         world.advance(to: tick.targetTimestamp)
-        drawBird(at: world.renderTime(for: tick.targetTimestamp) - offset)
+        drawBird(at: world.renderTime(for: tick.targetTimestamp))
     }
 
     private func tick(_ tick: FrameClock.Tick) {
-        // On macOS 13 a tick on its way to the main thread can arrive just after the clock stopped, as the display
-        // was hidden: drawing then would wait a second for a drawable that never comes.
-        guard link?.isPaused == false else { return }
         refresh = tick.duration
         #if DEBUG
         let entered = CACurrentMediaTime()
@@ -582,20 +419,8 @@ final class Wallpaper: NSObject {
         }
         #endif
         world.advance(to: onScreen)
-        if resuming, let last = lastFrame {
-            // Back after a moment hidden: carry on one frame from the one the window still shows.
-            offset = min(max(world.renderTime(for: onScreen) - Double(1 / framesPerSecond) - last.moment, 0), 1)
-            Log.display.info("Display \(self.displayID) carrying on \(Int(self.offset * 1000), privacy: .public) ms behind")
-        }
-        resuming = false
-        let moment = world.renderTime(for: onScreen) - offset
+        let moment = world.renderTime(for: onScreen)
         handOverBird(at: moment, presenting: presentTime)
-        if birdLayerLeft {
-            birdLayerLeft = false
-            // Back from hidden, the landscape paints the bird; unless it went straight back to its layer, the layer
-            // still showing it from before goes as this frame goes up.
-            if renderer.drawsBird { hideBirdLayer(at: presentTime) }
-        }
         if tick.targetTimestamp - captionUpdated > 0.5 {
             captionUpdated = tick.targetTimestamp
             updateCaption()
@@ -620,9 +445,7 @@ final class Wallpaper: NSObject {
         #if DEBUG
         drawableWait = CACurrentMediaTime() - asked
         #endif
-        let overlay = dissolveFade(at: moment)
-        renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands, overlay: overlay)
-        lastFrame = (moment, overlay?.fade ?? 0)
+        renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands)
         let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
             let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000

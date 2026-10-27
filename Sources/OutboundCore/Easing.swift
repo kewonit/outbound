@@ -2,12 +2,6 @@ import Foundation
 
 /// The gentle start that keeps the flight from jumping into motion after it was held.
 public enum Easing {
-    /// Eased both ends: 0 at 0, 1 at 1, still at either end.
-    public static func smoothstep(_ p: Double) -> Double {
-        let p = min(max(p, 0), 1)
-        return p * p * (3 - 2 * p)
-    }
-
     /// How far behind its usual schedule the flight is, `elapsed` seconds after it starts again from still, when it
     /// gathers speed over `length` seconds instead of setting off at full pace. It grows from nothing to half of
     /// `length`, where it stays.

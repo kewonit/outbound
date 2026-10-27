@@ -89,8 +89,6 @@ final class World {
     private var setOff: TimeInterval?
     static let setOffLength = 0.8
 
-    var isHeld: Bool { heldSince != nil }
-
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
             // What setting off last time took off the clock stays taken off.

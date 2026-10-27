@@ -86,8 +86,6 @@ final class ViewRenderer {
     private var incomingFilled: Int?
     /// The leg being flown to, so a second Fly To during the first starts over.
     private var sweepLeg: Int?
-    /// The moment the ground was last brought up to, to tell a Fly To that came and went while it wasn't painted.
-    private var groundTime: TimeInterval?
     /// Cloud-space position of the cloud texture's bottom-left corner when it was last painted.
     private var cloudCorner: SIMD2<Double>?
     private static let cloudMargin = 48
@@ -183,24 +181,84 @@ final class ViewRenderer {
     }
 
     /// Draws the world as it is at `t`, the moment this frame will be on screen.
-    ///
-    /// `overlay` lays another picture of the same size over the frame, `fade` of the way to it, for the dissolve on coming
-    /// back to a display (see `Wallpaper`). `birdAt` paints the bird as it was at that moment even while it has a layer
-    /// of its own, and `paintsWaiting` false paints no ground that could wait: both are for painting again exactly what
-    /// a display last showed.
-    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer,
-                overlay: (texture: MTLTexture, fade: Float)? = nil, birdAt: TimeInterval? = nil,
-                paintsWaiting: Bool = true) {
-        guard clouds != nil,
-              let ground = updateGround(world: world, at: t, seen: true, paintsWaiting: paintsWaiting,
-                                        commandBuffer: commandBuffer),
-              let color, let mask, let clouds else { return }
+    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
         let mpp = World.metresPerPoint
         let texel = mpp / density
-        let (worldFrame, x0, y0, top, full) = (ground.frame, ground.x0, ground.y0, ground.top, ground.full)
+        let camera = world.camera(at: t)
+        let x0 = Double(frame.minX) * mpp + camera.x
+        let y0 = Double(frame.minY) * mpp + camera.y
+        let top = Double(frame.maxY) * mpp + camera.y
+        let worldFrame = world.frame(bottom: y0, top: top, at: t)
         var scene = worldFrame.scene
         lastScene = scene
+        if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
+        guard let color, let mask, let clouds else { return }
+
+        // Work out which world texel rectangles need painting.
+        let need = (x: Int((x0 / texel).rounded(.down)) - Self.pad, y: Int((y0 / texel).rounded(.down)) - Self.pad)
+        var full = valid == nil
+        // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
+        // from top to bottom, a budgeted number of rows a frame, so no single frame has to repaint the whole screen.
+        if revision != world.revision {
+            repaintRow = valid == nil ? nil : (valid!.y + cacheHeight)
+            cloudCorner = nil
+            incomingFilled = nil
+        }
+        var rects: [Rect] = []
+        if !full, let v = valid {
+            let dx = need.x - v.x, dy = need.y - v.y
+            if abs(dx) >= cacheWidth || abs(dy) >= cacheHeight {
+                full = true
+            } else {
+                if dy > 0 { rects.append((need.x, v.y + cacheHeight, cacheWidth, dy)) }
+                if dy < 0 { rects.append((need.x, need.y, cacheWidth, -dy)) }
+                let keptY = max(need.y, v.y), keptH = cacheHeight - abs(dy)
+                if dx > 0 { rects.append((v.x + cacheWidth, keptY, dx, keptH)) }
+                if dx < 0 { rects.append((need.x, keptY, -dx, keptH)) }
+            }
+        }
+        if full {
+            rects = [(need.x, need.y, cacheWidth, cacheHeight)]
+        }
+        // Newly revealed ground can't wait; it still counts against the budget for what can.
+        let revealed = rects
+        gpu.paintBudget.spend(revealed.reduce(0) { $0 + $1.w * $1.h }, at: t)
+        if !full, let wave = repaintRow {
+            let row = min(wave, need.y + cacheHeight)
+            let granted = gpu.paintBudget.take(max(cacheHeight / 12, 1) * cacheWidth, at: t)
+            let low = max(row - max(granted / cacheWidth, 1), need.y)
+            if low < row { rects.append((need.x, low, cacheWidth, row - low)) }
+            repaintRow = low > need.y ? low : nil
+        } else if full {
+            repaintRow = nil
+        }
+        var incomingRects: [Rect] = []
+        if let front = worldFrame.sweepFront {
+            incomingRects = sweepRects(front: front, need: need, revealed: revealed, texel: texel,
+                                       leg: worldFrame.legB.index, at: t)
+        }
+        valid = need
+        revision = world.revision
+        lastSweepFront = worldFrame.sweepFront
+        paintedTexels = (rects + incomingRects).reduce(0) { $0 + $1.w * $1.h }
+        #if DEBUG
+        events = []
+        if full { events.append("full") }
+        if repaintRow != nil { events.append("wave") }
+        if worldFrame.sweepFront != nil { events.append("sweep") }
+        #endif
+
         let pipelines = gpu.shaders.pipelines
+        paint(rects, into: [color, mask], scene: scene, clearing: full, texel: texel, reference: worldFrame.reference,
+              commandBuffer: commandBuffer)
+        if let incoming, !incomingRects.isEmpty {
+            // The new place as it will be once the sweep is over.
+            var settled = scene
+            settled.morph.y = 0.001
+            settled.morph.z = -1
+            paint(incomingRects, into: [incoming.color, incoming.mask], scene: settled, clearing: false, texel: texel,
+                  reference: worldFrame.reference, commandBuffer: commandBuffer)
+        }
 
         // Clouds never change shape, they only drift, so they are painted at a quarter of the resolution
         // with a margin and slid along until the margin runs out.
@@ -256,12 +314,12 @@ final class ViewRenderer {
 
         // Composite into the target. The bird is drawn by whichever display it is over.
         let gust = world.gustSpace(origin, at: t)
-        let bird = world.birdPose(at: birdAt ?? t)
+        let bird = world.birdPose(at: t)
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
             && birdPoint.x < Double(frame.width) + 90 && birdPoint.y < Double(frame.height) + 90
         var finish = self.finish
-        finish.z = drawsBird || birdAt != nil ? 1 : 0
+        finish.z = drawsBird ? 1 : 0
         finish.w = groundFilter
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
@@ -330,130 +388,8 @@ final class ViewRenderer {
 
             encoder.setRenderPipelineState(pipelines.sky)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-
-            if let overlay, overlay.fade > 0, overlay.texture.width == target.width,
-               overlay.texture.height == target.height {
-                var fade = min(overlay.fade, 1)
-                encoder.setRenderPipelineState(pipelines.parting)
-                encoder.setFragmentTexture(overlay.texture, index: 7)
-                encoder.setFragmentBytes(&fade, length: MemoryLayout<Float>.stride, index: 2)
-                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            }
             encoder.endEncoding()
         }
-    }
-
-    /// Where the camera is for a frame and what its ground step did, for the rest of the frame.
-    private struct Ground {
-        let frame: World.Frame
-        let x0: Double
-        let y0: Double
-        let top: Double
-        let full: Bool
-    }
-
-    /// Keeps the ground of a display nobody can see close to the flight, a strip at a time, so coming back to it paints
-    /// a strip rather than the whole cache in one frame. No frame is drawn: a covered window gets no drawables. Its GPU
-    /// time isn't learned from, as there is no frame pass to tell the painting apart from.
-    func keepUp(world: World, at t: TimeInterval, commandBuffer: MTLCommandBuffer) {
-        updateGround(world: world, at: t, seen: false, commandBuffer: commandBuffer)
-    }
-
-    /// Brings the ground cache up to `t`: the rows and columns the camera has revealed, a budgeted part of any repaint
-    /// wave, and during a Fly To the new place ahead of its sweep. `seen` is false for a display nobody can see (see
-    /// `keepUp`), which leaves the heavy parts for the first frame back. Nil when nothing was painted for a frame.
-    @discardableResult
-    private func updateGround(world: World, at t: TimeInterval, seen: Bool, paintsWaiting: Bool = true,
-                              commandBuffer: MTLCommandBuffer) -> Ground? {
-        let mpp = World.metresPerPoint
-        let texel = mpp / density
-        let camera = world.camera(at: t)
-        let x0 = Double(frame.minX) * mpp + camera.x
-        let y0 = Double(frame.minY) * mpp + camera.y
-        let top = Double(frame.maxY) * mpp + camera.y
-        let worldFrame = world.frame(bottom: y0, top: top, at: t)
-        if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
-        // Unseen, a Fly To's new place isn't painted ahead of its sweep: between two calls the front crosses the whole
-        // view, which is most of the cache at once. Once it has swept in, the ground is repainted as a wave (below).
-        if !seen, worldFrame.sweepFront != nil { return nil }
-        guard let color, let mask else { return nil }
-        let scene = worldFrame.scene
-
-        // Work out which world texel rectangles need painting.
-        let need = (x: Int((x0 / texel).rounded(.down)) - Self.pad, y: Int((y0 / texel).rounded(.down)) - Self.pad)
-        var full = valid == nil
-        // A Fly To came and went while this ground wasn't painted, so it still shows the place before: it is repainted
-        // from the top as a wave, as new light is.
-        if worldFrame.sweepFront == nil, let since = groundTime, let v = valid,
-           [worldFrame.legA, worldFrame.legB].contains(where: { ($0.sweepStart ?? -.infinity) >= since }) {
-            repaintRow = v.y + cacheHeight
-        }
-        // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
-        // from top to bottom, a budgeted number of rows a frame, so no single frame has to repaint the whole screen.
-        if revision != world.revision {
-            repaintRow = valid == nil ? nil : (valid!.y + cacheHeight)
-            cloudCorner = nil
-            incomingFilled = nil
-        }
-        var rects: [Rect] = []
-        if !full, let v = valid {
-            let dx = need.x - v.x, dy = need.y - v.y
-            if abs(dx) >= cacheWidth || abs(dy) >= cacheHeight {
-                full = true
-            } else {
-                if dy > 0 { rects.append((need.x, v.y + cacheHeight, cacheWidth, dy)) }
-                if dy < 0 { rects.append((need.x, need.y, cacheWidth, -dy)) }
-                let keptY = max(need.y, v.y), keptH = cacheHeight - abs(dy)
-                if dx > 0 { rects.append((v.x + cacheWidth, keptY, dx, keptH)) }
-                if dx < 0 { rects.append((need.x, keptY, -dx, keptH)) }
-            }
-        }
-        if full {
-            rects = [(need.x, need.y, cacheWidth, cacheHeight)]
-        }
-        // Unseen, the whole cache isn't painted in one go: that burst is what keeping up avoids, and the first frame back
-        // paints it as it would have anyway.
-        if full, !seen { return nil }
-        // Newly revealed ground can't wait; it still counts against the budget for what can.
-        let revealed = rects
-        gpu.paintBudget.spend(revealed.reduce(0) { $0 + $1.w * $1.h }, at: t)
-        if !full, paintsWaiting, let wave = repaintRow {
-            let row = min(wave, need.y + cacheHeight)
-            let granted = gpu.paintBudget.take(max(cacheHeight / 12, 1) * cacheWidth, at: t)
-            let low = max(row - max(granted / cacheWidth, 1), need.y)
-            if low < row { rects.append((need.x, low, cacheWidth, row - low)) }
-            repaintRow = low > need.y ? low : nil
-        } else if full {
-            repaintRow = nil
-        }
-        var incomingRects: [Rect] = []
-        if let front = worldFrame.sweepFront {
-            incomingRects = sweepRects(front: front, need: need, revealed: revealed, texel: texel,
-                                       leg: worldFrame.legB.index, at: t, paintsWaiting: paintsWaiting)
-        }
-        valid = need
-        revision = world.revision
-        lastSweepFront = worldFrame.sweepFront
-        groundTime = t
-        paintedTexels = (rects + incomingRects).reduce(0) { $0 + $1.w * $1.h }
-        #if DEBUG
-        events = []
-        if full { events.append("full") }
-        if repaintRow != nil { events.append("wave") }
-        if worldFrame.sweepFront != nil { events.append("sweep") }
-        #endif
-
-        paint(rects, into: [color, mask], scene: scene, clearing: full, texel: texel, reference: worldFrame.reference,
-              commandBuffer: commandBuffer)
-        if let incoming, !incomingRects.isEmpty {
-            // The new place as it will be once the sweep is over.
-            var settled = scene
-            settled.morph.y = 0.001
-            settled.morph.z = -1
-            paint(incomingRects, into: [incoming.color, incoming.mask], scene: settled, clearing: false, texel: texel,
-                  reference: worldFrame.reference, commandBuffer: commandBuffer)
-        }
-        return Ground(frame: worldFrame, x0: x0, y0: y0, top: top, full: full)
     }
 
     private var light: MTLTexture?
@@ -547,7 +483,7 @@ final class ViewRenderer {
     /// already holds, then rows upward from where it got to, always as far as the sweep's front, where the land starts
     /// to turn, and further as the budget allows, so it is ready before the front gets there.
     private func sweepRects(front: Double, need: (x: Int, y: Int), revealed: [Rect], texel: Double, leg: Int,
-                            at t: TimeInterval, paintsWaiting: Bool) -> [Rect] {
+                            at t: TimeInterval) -> [Rect] {
         if sweepLeg != leg {
             // A Fly To during another: settle what the first had turned so far by repainting the ground, then begin
             // the new place afresh.
@@ -573,8 +509,7 @@ final class ViewRenderer {
         let frontRow = min(Int((front / texel).rounded(.up)) + 2, topRow)
         let must = max(frontRow - filled, 0)
         gpu.paintBudget.spend(must * cacheWidth, at: t)
-        let extra = paintsWaiting
-            ? gpu.paintBudget.take(max(topRow - filled - must, 0) * cacheWidth, at: t) / cacheWidth : 0
+        let extra = gpu.paintBudget.take(max(topRow - filled - must, 0) * cacheWidth, at: t) / cacheWidth
         let reach = min(filled + must + extra, topRow)
         if reach > filled { out.append((need.x, filled, cacheWidth, reach - filled)) }
         incomingFilled = reach

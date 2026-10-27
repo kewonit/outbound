@@ -22,8 +22,6 @@ struct ShaderTests {
         for library in [bench.current, bench.shipped] {
             #expect(Set(used).isSubset(of: library.functionNames), "\(library.label ?? "")")
         }
-        // Newer than the shipped copy: the dissolve on coming back to a display.
-        #expect(bench.current.functionNames.contains("parting"))
     }
 
     @Test func structsAreLaidOutTheSameAsInSwift() throws {

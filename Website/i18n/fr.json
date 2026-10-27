@@ -28,7 +28,7 @@
   "faq.a11": "Écris à <a href=\"mailto:outbound@edbn.me\">outbound@edbn.me</a> ou consulte la page <a href=\"/support\">Assistance</a>.",
   "faq.a2": "Non. Ton Mac le peint en direct au fil du vol, donc rien ne se répète jamais.",
   "faq.a3": "Oui. Choisis l'un des huit lieux dans la barre des menus, et combien de temps il reste au-dessus de chacun, de six minutes à une heure, ou garde-le sur un seul.",
-  "faq.a4": "Non. Il arrête de dessiner tant que le bureau est masqué, et se met en pause quand l'écran est en veille ou que le mode Économie d'énergie est activé. Sur batterie, il peut aussi figer la peinture.",
+  "faq.a4": "Non. Il se met en pause quand l'écran est en veille ou que le mode Économie d'énergie est activé, ou tant que le bureau est masqué si « Pause si masqué » est coché. Sur batterie, il peut aussi figer la peinture.",
   "faq.a5": "Oui. Un seul et même paysage s'étend sur tous les écrans.",
   "faq.a6": "Il revient dès que tu quittes Outbound.",
   "faq.a7": "Elle s'affiche juste après le paiement et reste dans ton <a href=\"https://polar.sh/edbnme/portal\">espace client</a>. Achète depuis l'app et Outbound se débloque tout seul.",
