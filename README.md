@@ -1,4 +1,4 @@
-<img src="Website/assets/og.png" alt="Outbound: a painted world, flying by behind your desktop" width="100%">
+<img src="Website/assets/og.jpg" alt="Outbound: a painted world, flying by behind your desktop" width="100%">
 
 **A live wallpaper for Mac.** A painted world drifts by behind your desktop, and a little bird follows your cursor.
 
