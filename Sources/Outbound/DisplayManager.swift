@@ -7,7 +7,7 @@ final class DisplayManager {
     let world: World
     let gpu: GPU
     let power: PowerMonitor
-    private var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
+    private(set) var wallpapers: [CGDirectDisplayID: Wallpaper] = [:]
     private var globalHolds: Set<Wallpaper.Hold> = []
     /// Every display's wallpaper is covered, by full-screen apps say. Nobody can see the flight, so it waits, as it
     /// does while the Mac is locked: coming back shows the same place, with the ground each display cached still good,
@@ -43,6 +43,19 @@ final class DisplayManager {
     func start() {
         guard !started else { return }
         started = true
+        // Not documented, but long-standing and what every screen-aware app listens to. Listened for before asking,
+        // so an unlock while the wallpapers start up is never missed.
+        let distributed = DistributedNotificationCenter.default()
+        for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
+            distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.set(.locked, on)
+                    self?.onLockChange(on)
+                }
+            }
+        }
+        // Launched while the Mac is locked, say to install an update, nothing says so later.
+        if Self.screenIsLocked { set(.locked, true) }
         sync()
         let center = NotificationCenter.default
         center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -59,16 +72,6 @@ final class DisplayManager {
         for (name, hold, on) in holds {
             workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.set(hold, on) }
-            }
-        }
-        // Not documented, but long-standing and what every screen-aware app listens to.
-        let distributed = DistributedNotificationCenter.default()
-        for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
-            distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    self?.set(.locked, on)
-                    self?.onLockChange(on)
-                }
             }
         }
 
@@ -104,11 +107,36 @@ final class DisplayManager {
         !globalHolds.isDisjoint(with: [.asleep, .locked, .inactive, .resting])
     }
 
+    /// The Mac is locked.
+    var isLocked: Bool {
+        globalHolds.contains(.locked)
+    }
+
+    /// The wallpapers up and in view, not covered by a full-screen app.
+    var wallpapersInView: [Wallpaper] {
+        wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) && $0.isVisible }
+    }
+
+    /// Displays whose wallpaper is covered, as it is by a full-screen app, even if only for a moment so far.
+    var occludedDisplays: Set<CGDirectDisplayID> {
+        Set(wallpapers.values.filter {
+            $0.holds.contains(.occluded) || (!$0.holds.contains(.starting) && !$0.isVisible)
+        }.map(\.displayID))
+    }
+
+    private static var screenIsLocked: Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
     /// Called as a quiet moment begins, a good time to install an update.
     var onQuiet: () -> Void = {}
 
     /// Called as the Mac locks (true) and unlocks (false).
     var onLockChange: (Bool) -> Void = { _ in }
+
+    /// Called as a wallpaper comes up over the desktop picture.
+    var onReveal: () -> Void = {}
 
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
@@ -127,7 +155,14 @@ final class DisplayManager {
     }
 
     private func sync() {
+        // Before any new wallpaper paints: its first frame bakes the river into the ground it keeps.
+        world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
+        if let main = NSScreen.screens.first {
+            world.home = main.frame
+            world.centreRiver(on: main.frame)
+        }
         var seen = Set<CGDirectDisplayID>()
+        var added: [Wallpaper] = []
         for screen in NSScreen.screens where running {
             guard let id = screen.displayID else { continue }
             seen.insert(id)
@@ -140,7 +175,14 @@ final class DisplayManager {
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
+                // Once every display's is up, so the first paintings are of one moment.
+                wallpaper.onReveal = { [weak self] in
+                    guard let self,
+                          wallpapers.values.allSatisfy({ !$0.holds.contains(.starting) && $0.isVisible }) else { return }
+                    onReveal()
+                }
                 wallpapers[id] = wallpaper
+                added.append(wallpaper)
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")
             }
         }
@@ -150,12 +192,8 @@ final class DisplayManager {
             Log.display.info("Removed display \(id)")
         }
         checkOcclusion()
-        world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
-        if let main = NSScreen.screens.first {
-            world.home = main.frame
-            world.centreRiver(on: main.frame)
-        }
         refreshRates()
+        added.forEach { $0.show() }
     }
 
     private func checkOcclusion() {

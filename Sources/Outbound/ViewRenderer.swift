@@ -10,8 +10,6 @@ final class GPU {
     let queue: MTLCommandQueue
     /// The bird's small layer has a queue of its own, so its frames never wait behind a landscape's.
     let birdQueue: MTLCommandQueue
-    /// So do lock-screen stills, which paint a whole view at once, so live frames never wait behind them.
-    let stillQueue: MTLCommandQueue
     let shaders: ShaderLibrary
     let wrap: MTLSamplerState
     let clamp: MTLSamplerState
@@ -24,8 +22,7 @@ final class GPU {
         // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
         // Apple's own GPUs can do.
         guard let device = MTLCreateSystemDefaultDevice(), device.supportsFamily(.apple7),
-              let queue = device.makeCommandQueue(), let birdQueue = device.makeCommandQueue(),
-              let stillQueue = device.makeCommandQueue() else {
+              let queue = device.makeCommandQueue(), let birdQueue = device.makeCommandQueue() else {
             throw CocoaError(.featureUnsupported, userInfo: [
                 NSLocalizedDescriptionKey: "Outbound needs a Mac with Apple silicon."
             ])
@@ -33,7 +30,6 @@ final class GPU {
         self.device = device
         self.queue = queue
         self.birdQueue = birdQueue
-        self.stillQueue = stillQueue
         shaders = try ShaderLibrary(device: device)
 
         let descriptor = MTLSamplerDescriptor()
@@ -172,6 +168,11 @@ final class ViewRenderer {
         let texture = gpu.device.makeTexture(descriptor: descriptor)
         texture?.label = label
         return texture
+    }
+
+    /// The ground isn't all painted in the world's present light yet: a repaint wave is crossing it, or about to.
+    func isRepainting(for world: World) -> Bool {
+        revision != world.revision || repaintRow != nil
     }
 
     /// Draws the world as it is now, for stills and exports.
