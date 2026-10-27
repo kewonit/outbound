@@ -187,6 +187,13 @@ function structuredData(json, { folder, tag }, strings) {
   return `\n${JSON.stringify(data, null, 1)}\n`;
 }
 
+// The paintings on a page, for image search: its pictures of places and of the day, and the hero's poster, at the
+// addresses the page itself uses.
+function pictures(page) {
+  const found = read(`${page}.html`).matchAll(/\s(?:src|poster)="(assets\/(?:places\/|day\/|poster\.)[^"]+)"/g);
+  return [...new Set([...found].map((m) => `${site}/${m[1]}`))];
+}
+
 function sitemap() {
   const now = new Date();
   const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -194,6 +201,7 @@ function sitemap() {
     const links = [`    <xhtml:link rel="alternate" hreflang="en" href="${pageURL("", page)}"/>`];
     for (const { folder: f, tag } of LANGUAGES) links.push(`    <xhtml:link rel="alternate" hreflang="${tag}" href="${pageURL(f, page)}"/>`);
     links.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${pageURL("", page)}"/>`);
+    for (const picture of pictures(page)) links.push(`    <image:image><image:loc>${picture}</image:loc></image:image>`);
     return `  <url><loc>${pageURL(folder, page)}</loc><lastmod>${today}</lastmod>\n${links.join("\n")}\n  </url>`;
   };
   const urls = [];
@@ -206,7 +214,7 @@ function sitemap() {
     const kept = new RegExp(`\\s*<url><loc>${site}${path}</loc><lastmod>[^<]*</lastmod></url>`).exec(old);
     if (kept) urls.push(kept[0].trim().replace(/^/, "  "));
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
 const source = english();
