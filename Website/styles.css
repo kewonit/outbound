@@ -360,6 +360,26 @@ kbd {
   color: var(--ink-mute);
 }
 .tier-needs span { display: inline-flex; align-items: center; gap: 0.45rem; }
+/* For everyone not on a Mac: a tiny card at the end of the same line, on to the waitlist. */
+.tier-elsewhere {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-inline-start: -0.25rem;
+  padding-block: 0.3rem;
+  padding-inline: 0.65rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.tier-elsewhere:hover { background: var(--panel-2); border-color: #333333; color: var(--ink); }
+.tier-needs .tier-elsewhere-arrow { width: 14px; height: 14px; color: var(--ink-faint); }
+.tier-elsewhere:hover .tier-elsewhere-arrow { color: var(--ink-mute); }
+[dir="rtl"] .tier-elsewhere-arrow { transform: scaleX(-1); }
 .tier-needs svg {
   flex: none;
   width: 16px;
@@ -522,7 +542,10 @@ kbd {
   .tier-city .tier-desc { grid-area: desc; }
   .tier-city .tier-desc br { display: inline; }
   .tier-city .btn { grid-area: button; align-self: center; margin: 0; margin-inline-start: 1rem; }
-  .tier-needs { grid-area: 3 / 1; margin-top: 1rem; }
+  .tier-needs { grid-area: 3 / 1 / auto / -1; margin-top: 1rem; }
+  .tier-needs { align-items: center; }
+  /* Its edges line up with the price box's, past the row's small inset. */
+  .tier-elsewhere { margin-inline: auto -0.25rem; }
   /* Without the download or the city, the box closes around what's left. */
   .price-grid:has(> .tier-side[hidden]) { grid-template-columns: 1fr; }
   .price-grid:has(> .tier-side[hidden]) .tier.featured { border-inline-end: 1px solid var(--line); border-start-end-radius: 12px; }
@@ -758,6 +781,86 @@ kbd {
 .text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .thanks #status:empty { display: none; }
 
+
+/* ---------- Waitlist: one email when Outbound comes to Windows or iPhone ---------- */
+.waitlist-form { margin-top: 2.5rem; max-width: 30rem; }
+/* Windows or iPhone, as one small segmented control. */
+.platforms {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.25rem;
+  min-inline-size: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--panel);
+}
+.platform { position: relative; display: flex; }
+.platform input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.platform span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 0.85rem;
+  border-radius: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-mute);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.platform svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.platform:hover span { color: var(--ink); }
+.platform input:checked + span { background: var(--btn-dark); color: var(--ink); }
+.platform input:focus-visible + span { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.waitlist-row { display: flex; gap: 0.5rem; }
+.waitlist-row input {
+  flex: 1;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease;
+}
+.waitlist-row input::placeholder { color: var(--ink-faint); }
+.waitlist-row input:hover { border-color: #333333; }
+.waitlist-row input:focus { outline: none; border-color: #4a4a4a; }
+.waitlist-row input:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.waitlist-row .btn:disabled { opacity: 0.6; cursor: default; }
+.waitlist-status { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--ink-soft); }
+.waitlist-status:empty { display: none; }
+/* A short page keeps its footer, with the fine print, at the bottom of the window. */
+.fill { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.fill main { flex: 1; }
+.waitlist-fine { margin: 0; font-size: 0.875rem; color: var(--ink-mute); }
+.waitlist-done { margin: 2.5rem 0 0; font-size: 1.125rem; color: var(--ink); }
+.waitlist-done:focus { outline: none; }
+/* The bots' field, out of sight and out of reach, and clipped rather than moved off the page, which would let a
+   right-to-left page scroll sideways to it. */
+.trap, .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* ---------- Leaner landing page ---------- */
 .demo figcaption, .places figcaption { margin-top: 0.55rem; }
