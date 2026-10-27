@@ -21,6 +21,11 @@ final class StillWriter {
     private var turn = 0
     /// The painting each display was last given, by name, with the moment it shows.
     private var given: [CGDirectDisplayID: (name: String, moment: World.Moment)] = [:]
+    /// The displays that showed the painting they were given when last looked at. Once the Mac locks, the desktop in
+    /// view is the lock screen's own, so what was seen before then is what counts.
+    private var seen: Set<CGDirectDisplayID> = []
+    /// Displays whose painting of the latest turn is still on its way.
+    private var waiting = 0
     /// The picture a display had when the system wouldn't take a painting over it, say one chosen by whoever manages
     /// the Mac. It isn't asked again until that picture changes.
     private var refused: [CGDirectDisplayID: URL?] = [:]
@@ -78,6 +83,7 @@ final class StillWriter {
     func paint(_ wallpapers: some Sequence<Wallpaper>, at moment: World.Moment) {
         turn += 1
         let turn = turn
+        waiting = 0
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // The system caches desktop pictures by URL, so every painting gets a name of its own.
         let stamp = max(Int(Date.now.timeIntervalSince1970 * 1000), lastStamp + 1)
@@ -101,16 +107,18 @@ final class StillWriter {
             let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
             commands.addCompletedHandler { [weak self] buffer in
                 guard buffer.status == .completed else { return }
-                DispatchQueue.global(qos: .userInitiated).async {
+                DispatchQueue.global(qos: .utility).async {
                     guard (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
                     DispatchQueue.main.async { self?.show(url, of: moment, on: id, covering: covered, turn: turn) }
                 }
             }
             commands.commit()
+            waiting += 1
         }
     }
 
     private func show(_ url: URL, of moment: World.Moment, on id: CGDirectDisplayID, covering covered: URL, turn: Int) {
+        if turn == self.turn { waiting -= 1 }
         // A newer painting is on its way, or the user's own picture is back, or the user has moved to another desktop,
         // whose picture this painting would cover without knowing it.
         guard turn == self.turn, let screen = screen(id), NSWorkspace.shared.desktopImageURL(for: screen) == covered else {
@@ -143,6 +151,7 @@ final class StillWriter {
         }
         given[id] = (url.lastPathComponent, moment)
         refused[id] = nil
+        seen.insert(id)
         Log.display.info("Display \(id) has a painting for its desktop picture")
         if isStill(covered) {
             originals[covered.lastPathComponent] = nil
@@ -151,16 +160,18 @@ final class StillWriter {
         }
     }
 
-    /// The moment shown by the painting a wallpaper's display was last given.
+    /// The moment shown by the painting a wallpaper's display was last given, if its desktop showed it when last
+    /// looked at.
     func moment(givenTo wallpaper: Wallpaper) -> World.Moment? {
-        given[wallpaper.displayID]?.moment
+        seen.contains(wallpaper.displayID) ? given[wallpaper.displayID]?.moment : nil
     }
 
     /// Whether the wallpapers' displays all show their latest paintings, of one moment, on the desktops in view, or
-    /// still the picture the system wouldn't let a painting cover.
+    /// still the picture the system wouldn't let a painting cover. Notes which show theirs, for the Mac locking.
     func showsOneMoment(_ wallpapers: some Sequence<Wallpaper>) -> Bool {
         var time: TimeInterval?
         var one = true
+        var seen: Set<CGDirectDisplayID> = []
         for wallpaper in wallpapers {
             let id = wallpaper.displayID
             guard let screen = screen(id) else {
@@ -169,6 +180,7 @@ final class StillWriter {
             }
             let current = NSWorkspace.shared.desktopImageURL(for: screen)
             if let given = given[id], current?.lastPathComponent == given.name {
+                seen.insert(id)
                 if let time, time != given.moment.time { one = false }
                 time = given.moment.time
             } else if let picture = refused[id], picture == current {
@@ -177,14 +189,19 @@ final class StillWriter {
                 one = false
             }
         }
+        if !locked { self.seen = seen }
         return one
     }
 
     /// As the Mac locks: the paintings stay just as they are, and one still on its way never lands. While the lock
     /// screen is up the desktop in view is its own, not the user's, so nothing here touches desktop pictures then.
-    func lock() {
+    /// Returns whether a painting was dropped on its way.
+    @discardableResult
+    func lock() -> Bool {
         locked = true
         turn += 1
+        defer { waiting = 0 }
+        return waiting > 0
     }
 
     func unlock() {

@@ -133,7 +133,7 @@ final class Wallpaper: NSObject {
         })
     }
 
-    /// Paints the first frame straight away and puts the window up once it is done, so the desktop picture gives way
+    /// Paints the first frame straight away and puts the window up once it is presented, so the desktop picture gives way
     /// to the painting itself, not to an empty window, and nothing waits for the display link. Called once the
     /// wallpaper is set up, so that frame already has the right border and scale.
     func show() {
@@ -155,6 +155,7 @@ final class Wallpaper: NSObject {
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
         set(.starting, false)
         occlusionChanged()
+        onReveal()
     }
 
     func move(to screen: NSScreen) {
@@ -223,6 +224,9 @@ final class Wallpaper: NSObject {
     /// The pixels a still of this display has, the same as its frames.
     var stillSize: CGSize { view.metalLayer.drawableSize }
 
+    /// New light is still spreading over the ground, so a still now would show it half done.
+    var isRepainting: Bool { renderer.isRepainting(for: world) }
+
     /// Paints the world as it is at `time` into `target`, for the desktop picture: from the same ground as the frames,
     /// with the bird in it even while it flies on a layer of its own. Encoded on the queue the frames use, so it
     /// follows them.
@@ -265,6 +269,8 @@ final class Wallpaper: NSObject {
 
     /// Called when this wallpaper is covered or uncovered.
     var onOcclusionChange: () -> Void = {}
+    /// Called once the window is up over the desktop picture.
+    var onReveal: () -> Void = {}
 
     private func applyFrameRate() {
         link?.rate = framesPerSecond
@@ -392,7 +398,7 @@ final class Wallpaper: NSObject {
     }
 
     /// Draws the world as it is at `moment`, for a frame meant to be on screen at `display` time, going up at
-    /// `presentAt`, or as soon as it is ready. Calls `done` once the GPU has painted it; returns whether it drew.
+    /// `presentAt`, or as soon as it is ready. Calls `done` once it is presented; returns whether it drew.
     @discardableResult
     private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?,
                       done: (@MainActor () -> Void)? = nil) -> Bool {
@@ -422,7 +428,7 @@ final class Wallpaper: NSObject {
         }
         #endif
         if let done {
-            commands.addCompletedHandler { _ in
+            drawable.addPresentedHandler { _ in
                 DispatchQueue.main.async { done() }
             }
         }

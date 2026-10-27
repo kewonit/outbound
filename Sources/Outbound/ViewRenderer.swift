@@ -171,6 +171,11 @@ final class ViewRenderer {
     }
 
     /// Draws the world as it is now, for stills and exports.
+    /// The ground isn't all painted in the world's present light yet: a repaint wave is crossing it, or about to.
+    func isRepainting(for world: World) -> Bool {
+        revision != world.revision || repaintRow != nil
+    }
+
     func encode(world: World, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
         encode(world: world, at: world.time, into: target, commandBuffer: commandBuffer)
     }

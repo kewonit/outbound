@@ -132,6 +132,9 @@ final class DisplayManager {
     /// Called as the Mac locks (true) and unlocks (false).
     var onLockChange: (Bool) -> Void = { _ in }
 
+    /// Called as a wallpaper comes up over the desktop picture.
+    var onReveal: () -> Void = {}
+
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
         set { set(.user, newValue) }
@@ -169,6 +172,7 @@ final class DisplayManager {
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
+                wallpaper.onReveal = { [weak self] in self?.onReveal() }
                 wallpapers[id] = wallpaper
                 added.append(wallpaper)
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")

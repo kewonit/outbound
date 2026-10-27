@@ -83,18 +83,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         applyPreferences()
         if !LicenseController.isGated { displays.note = String(localized: "Development build") }
         displays.running = license.unlocks
+        displays.onReveal = { [weak self] in self?.refreshPainting(force: false) }
         displays.start()
         // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
         installMainMenu()
         // Launched while the Mac is locked, as an update installs, the painting on the lock screen stays as it is.
-        // Otherwise the desktop picture becomes a painting once the wallpapers are up over it, in place of any left
-        // there by the last launch.
-        if displays.isLocked {
-            lockChanged(true)
-        } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshPainting(force: true) }
-        }
-        // With the painting off, one left there by the last launch goes back to the user's own picture.
+        // Otherwise the desktop picture becomes a painting as each wallpaper comes up over it, in place of any left
+        // there by the last launch; with the painting off, that one goes back to the user's own picture.
+        if displays.isLocked { lockChanged(true) }
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
@@ -185,21 +181,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Keeps the painting on the desktop close to the view, so the moment it shows is never far behind: on a new place
     /// or a change of light or pace, after a Fly To or a pause, on a display or desktop showing an older one, and
-    /// otherwise every five minutes while someone is watching it move. Never mid-sweep, and only on displays in view:
-    /// a full-screen app's desktop goes away with it, and a painting there would never be put back. With the painting
-    /// off, puts back the user's own picture if that was asked for while the Mac was locked.
+    /// otherwise every five minutes while someone is watching it move. Never mid-sweep or while new light is still
+    /// spreading over the ground, and only on displays in view: a full-screen app's desktop goes away with it, and a
+    /// painting there would never be put back. With the painting off, puts back the user's own picture if that was
+    /// asked for while the Mac was locked.
     private func refreshPainting(force: Bool) {
         guard paintsDesktop else {
             if stills.owesRestore, Date.now.timeIntervalSince(unlockedAt) > 3 { restorePictures() }
             return
         }
+        guard !displays.isQuiet else { return }
         let shown = displays.wallpapersInView
-        guard !displays.isQuiet, !world.isSweeping, !shown.isEmpty,
+        // Looked at every time, so the Mac locking knows which paintings are on screen.
+        let showsOneMoment = stills.showsOneMoment(shown)
+        guard !world.isSweeping, !shown.isEmpty, !shown.contains(where: \.isRepainting),
               Date.now.timeIntervalSince(unlockedAt) > 3 else { return }
         let leg = world.journey.leg(at: world.camera.y).index
         let stale = world.time != painted.time && Date.now.timeIntervalSince(painted.at) > 300
-        guard force || leg != painted.leg || world.revision != painted.revision || stale
-                || !stills.showsOneMoment(shown) else { return }
+        guard force || leg != painted.leg || world.revision != painted.revision || stale || !showsOneMoment
+        else { return }
         painted = (leg, world.revision, world.time, .now)
         stills.paint(shown, at: world.moment())
     }
@@ -224,7 +224,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             unlockedAt = .now
             return
         }
-        stills.lock()
+        // A painting dropped on its way is asked for again once the Mac unlocks.
+        if stills.lock() { painted.leg = -1 }
         let wallpapers = displays.wallpapers.values
         guard paintsDesktop,
               let moment = wallpapers.compactMap({ stills.moment(givenTo: $0) }).max(by: { $0.time < $1.time })
@@ -235,6 +236,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let back = world.time - moment.time
         world.rewind(to: moment)
+        // Frames now ask for ground from that far back.
+        gpu.paintBudget.rewind(by: back)
         wallpapers.forEach { $0.redraw() }
         Log.display.info("Locked: back \(String(format: "%.1f", back), privacy: .public) s to the painting's moment")
     }
@@ -243,7 +246,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if unlocked {
             displays.running = true
             activation?.finish()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshPainting(force: true) }
         } else {
             // While the wallpapers still cover the desktop, so the change never shows.
             restorePictures()
