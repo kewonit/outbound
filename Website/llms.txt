@@ -13,6 +13,7 @@
 
 - [Home](https://outbound.edbn.me/): what it looks like, the places, the price and the FAQ
 - [Support](https://outbound.edbn.me/support): your key, moving to a new Mac, and help
+- [Windows and iPhone](https://outbound.edbn.me/waitlist): not out yet; leave an email for one email when it is
 - [Privacy](https://outbound.edbn.me/privacy): what the app sends and what it keeps on your Mac
 - [License](https://outbound.edbn.me/license): the source is public to read; using the app needs a license
 
