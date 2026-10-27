@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url><loc>https://outbound.edbn.me/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/"/>
@@ -18,6 +18,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/es/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -37,6 +50,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/fr/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -56,6 +82,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/de/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -75,6 +114,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/it/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -94,6 +146,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/pt-br/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -113,6 +178,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/nl/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -132,6 +210,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/ru/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -151,6 +242,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/tr/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -170,6 +274,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/pl/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -189,6 +306,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/ja/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -208,6 +338,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/ko/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -227,6 +370,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/zh-hans/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -246,6 +402,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/zh-hant/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -265,6 +434,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/hi/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -284,6 +466,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/ar/</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/"/>
@@ -303,6 +498,19 @@
     <xhtml:link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/"/>
     <xhtml:link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/"/>
+    <image:image><image:loc>https://outbound.edbn.me/assets/poster.jpg?v=4</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/morning.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/noon.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/evening.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/day/night.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/niigata.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/punjab.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lisse.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/serengeti.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/normandy.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/kansas.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/lapland.jpg?v=3</image:loc></image:image>
+    <image:image><image:loc>https://outbound.edbn.me/assets/places/pampa.jpg?v=3</image:loc></image:image>
   </url>
   <url><loc>https://outbound.edbn.me/support</loc><lastmod>2026-10-27</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://outbound.edbn.me/support"/>
