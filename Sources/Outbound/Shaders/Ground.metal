@@ -1880,14 +1880,17 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     float riverHalf = width * 0.5;
     float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
-    Land l;
-    if (blend >= 1.0) {
-        l = land(world, scene.legB, scene, halfB, wander);
-    } else if (blend <= 0.0) {
-        l = land(world, scene.legA, scene, halfA, wander);
-    } else {
-        Land a = land(world, scene.legA, scene, halfA, wander);
-        Land b = land(world, scene.legB, scene, halfB, wander);
+    // Each place shown here is painted from the one call, in a loop of one or two, so the shader holds a single copy
+    // of everything land() works with. Every copy costs memory for each thread the GPU can run at once, hundreds of
+    // megabytes in all.
+    int first = blend >= 1.0 ? 1 : 0, last = blend <= 0.0 ? 0 : 1;
+    Land a, b;
+    for (int i = first; i <= last; i++) {
+        Land painted = land(world, i == 0 ? scene.legA : scene.legB, scene, i == 0 ? halfA : halfB, wander);
+        if (i == 0) a = painted; else b = painted;
+    }
+    Land l = first == 1 ? b : a;
+    if (first != last) {
         l = a;
         l.color = mix(a.color, b.color, blend);
         l.water = mix(a.water, b.water, blend);
