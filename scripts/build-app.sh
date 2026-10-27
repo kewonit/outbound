@@ -11,8 +11,9 @@ cd "$(dirname "$0")/.."
 # appstore builds the Mac App Store edition into build/appstore: sandboxed, with no
 # Sparkle and no license store, packaged as an installer for App Store Connect.
 # Set SIGN_IDENTITY to an Apple Distribution identity, INSTALLER_IDENTITY to a Mac
-# Installer Distribution one and APPSTORE_PROFILE to its provisioning profile, and
-# APPSTORE_BUILD to give a re-upload of the same version a build number of its own.
+# Installer Distribution one and APPSTORE_PROFILE to its provisioning profile.
+# APPSTORE_VERSION and APPSTORE_BUILD stamp a version and build number of their own,
+# say for a version the download hasn't shipped yet, or a re-upload of the same one.
 # Without them it is signed ad hoc to run here, under a bundle ID of its own, so
 # its sandbox container never belongs to the real app.
 edition="${1:-debug}"
@@ -60,6 +61,7 @@ if [[ "$edition" == appstore ]]; then
         SUVerifyUpdateBeforeExtraction CFBundleURLTypes; do
         plutil -remove "$key" "$plist"
     done
+    [[ -n "${APPSTORE_VERSION:-}" ]] && plutil -replace CFBundleShortVersionString -string "$APPSTORE_VERSION" "$plist"
     [[ -n "${APPSTORE_BUILD:-}" ]] && plutil -replace CFBundleVersion -string "$APPSTORE_BUILD" "$plist"
     # Xcode stamps the tools an app was built with, and App Store Connect checks them.
     xcode_version="$(xcodebuild -version | awk '/^Xcode/ { print $2 }')"
