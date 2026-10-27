@@ -198,19 +198,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               CACurrentMediaTime() - unlockedAt > 3 else { return }
         let leg = world.journey.leg(at: world.camera.y).index
         let stale = world.time != painted.time && CACurrentMediaTime() - painted.at > 300
-        guard force || leg != painted.leg || world.revision != painted.revision || stale || !showsOneMoment
-        else { return }
+        let renewed = force || leg != painted.leg || world.revision != painted.revision || stale
+        guard renewed || !showsOneMoment else { return }
+        // Only a desktop come into view, or one showing something else: it gets the painting the others show.
+        if !renewed, stills.carry(shown) { return }
         painted = (leg, world.revision, world.time, CACurrentMediaTime())
         stills.paint(shown, at: world.moment())
     }
 
-    /// Another desktop is in view: it gets a painting of now, unless it already shows the latest one; with the painting
+    /// Another desktop is in view: it gets the painting the others show, unless it already shows it; with the painting
     /// turned off, one left there goes back to the user's own picture.
     private func desktopChanged() {
         if !paintsDesktop {
             restorePictures()
-        } else if !stills.showsOneMoment(displays.wallpapersInView) {
-            refreshPainting(force: true)
+        } else {
+            refreshPainting(force: false)
         }
     }
 
@@ -254,9 +256,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Puts the user's own pictures back, leaving any painting that may still be on a desktop under a full-screen app.
+    /// Puts the user's own pictures back: on the desktops in view, leaving any painting that may still be on a desktop
+    /// under a full-screen app, then on every desktop out of view where the system allows it, that one included.
     private func restorePictures() {
         stills.restore(keeping: displays.occludedDisplays)
+        stills.restoreOtherDesktops()
     }
 
     private func showActivation() {
