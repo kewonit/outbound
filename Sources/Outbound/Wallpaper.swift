@@ -154,9 +154,12 @@ final class Wallpaper: NSObject {
         let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
         set(.starting, false)
+        revealing = true
         occlusionChanged()
-        onReveal()
     }
+
+    /// Up, and waiting to be seen: the window says so a moment after it goes up.
+    private var revealing = false
 
     func move(to screen: NSScreen) {
         window.setFrame(screen.frame, display: false)
@@ -262,14 +265,36 @@ final class Wallpaper: NSObject {
         }
     }
 
+    /// Whether any of the window can be seen.
+    var isVisible: Bool { window.occlusionState.contains(.visible) }
+
+    /// Counts changes to whether the window can be seen, so a cover that lifts again at once is never acted on.
+    private var occlusionChanges = 0
+
+    /// Holds the frames while the window is covered, as it is by a full-screen app. Moving between desktops covers it
+    /// for a moment too, and holding then would make the view jump on, so only a cover lasting a second counts.
     private func occlusionChanged() {
-        set(.occluded, !window.occlusionState.contains(.visible))
-        onOcclusionChange()
+        occlusionChanges += 1
+        guard !isVisible else {
+            set(.occluded, false)
+            onOcclusionChange()
+            if revealing {
+                revealing = false
+                onReveal()
+            }
+            return
+        }
+        let change = occlusionChanges
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self, occlusionChanges == change, link != nil, !isVisible else { return }
+            set(.occluded, true)
+            onOcclusionChange()
+        }
     }
 
     /// Called when this wallpaper is covered or uncovered.
     var onOcclusionChange: () -> Void = {}
-    /// Called once the window is up over the desktop picture.
+    /// Called once the window is up over the desktop picture and can be seen.
     var onReveal: () -> Void = {}
 
     private func applyFrameRate() {

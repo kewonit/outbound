@@ -114,7 +114,7 @@ final class DisplayManager {
 
     /// The wallpapers up and in view, not covered by a full-screen app.
     var wallpapersInView: [Wallpaper] {
-        wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) }
+        wallpapers.values.filter { $0.holds.isDisjoint(with: [.occluded, .starting]) && $0.isVisible }
     }
 
     /// Displays whose wallpaper is covered, as it is by a full-screen app.
@@ -173,7 +173,12 @@ final class DisplayManager {
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
-                wallpaper.onReveal = { [weak self] in self?.onReveal() }
+                // Once every display's is up, so the first paintings are of one moment.
+                wallpaper.onReveal = { [weak self] in
+                    guard let self,
+                          wallpapers.values.allSatisfy({ !$0.holds.contains(.starting) && $0.isVisible }) else { return }
+                    onReveal()
+                }
                 wallpapers[id] = wallpaper
                 added.append(wallpaper)
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")
