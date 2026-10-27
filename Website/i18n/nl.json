@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "Kopieer je sleutel",
   "js.emailInvalid": "Dat e-mailadres lijkt niet te kloppen.",
   "js.feedbackEmpty": "Schrijf eerst iets.",
+  "js.feedbackLong": "Maximaal 2000 tekens.",
   "js.feedbackSent": "Bedankt. Het is onderweg.",
   "js.finding": "Je sleutel wordt opgehaald…",
   "js.formBusy": "Te veel pogingen. Wacht een minuut.",

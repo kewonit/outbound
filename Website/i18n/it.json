@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "Copia la tua chiave",
   "js.emailInvalid": "Questa email non sembra corretta.",
   "js.feedbackEmpty": "Scrivi prima qualcosa.",
+  "js.feedbackLong": "Massimo 2000 caratteri.",
   "js.feedbackSent": "Grazie. È in viaggio.",
   "js.finding": "Cerco la tua chiave…",
   "js.formBusy": "Troppi tentativi. Aspetta un minuto.",

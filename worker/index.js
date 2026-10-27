@@ -19,8 +19,8 @@
 //
 // POLAR_ACCESS_TOKEN is a secret: a Polar organization token with checkouts:read, checkouts:write,
 // orders:read, benefits:read and license_keys:read. The waitlist and feedback need three more: SUPABASE_URL,
-// SUPABASE_KEY (the project's publishable key) and SUPABASE_TOKEN, the one secret the database's functions accept
-// (worker/supabase.sql). Everything else comes from vars in wrangler.jsonc.
+// SUPABASE_KEY (the project's publishable key) and WAITLIST_TOKEN, the one secret the database's functions accept,
+// named for the first of them (worker/supabase.sql). Everything else comes from vars in wrangler.jsonc.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // A checkout id keeps working as a way back to its key for a month, then only the customer portal does.
@@ -33,6 +33,8 @@ const TRANSLATED = new Set(["/", "/support", "/thanks", "/waitlist", "/feedback"
 // What the forms take: an address of a sensible shape, one of the two platforms on the way, a message of a few
 // paragraphs at most, and the app's version as it writes it.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Control characters, apart from line breaks and tabs, which a message has no use for and Postgres can't always keep.
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const PLATFORMS = ["windows", "ios"];
 const MESSAGE_LIMIT = 2000;
 const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
@@ -256,7 +258,7 @@ async function license(request, env) {
 async function waitlist(request, env, url) {
   const { body, refusal } = await form(request, url, env.WAITLIST, 2048);
   if (refusal) return refusal;
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const email = text(body.email).toLowerCase();
   const platform = PLATFORMS.includes(body.platform) ? body.platform : null;
   if (!platform || email.length > 254 || !EMAIL.test(email)) return reply({ error: "That isn't an email." }, 400);
   if (body.hp) return reply({ ok: true });
@@ -273,8 +275,8 @@ async function waitlist(request, env, url) {
 async function feedback(request, env, url) {
   const { body, refusal } = await form(request, url, env.FEEDBACK, 16384);
   if (refusal) return refusal;
-  const message = typeof body.message === "string" ? body.message.trim() : "";
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const message = text(body.message);
+  const email = text(body.email).toLowerCase();
   if (!message || [...message].length > MESSAGE_LIMIT) {
     return reply({ error: `Write something, up to ${MESSAGE_LIMIT} characters.` }, 400);
   }
@@ -309,13 +311,18 @@ async function form(request, url, limiter, size) {
   return { refusal: reply({ error: "Send JSON." }, 400) };
 }
 
-// One of Outbound's functions in Supabase, which do nothing without SUPABASE_TOKEN (worker/supabase.sql).
+// A field as the database can keep it: whole characters only, no control characters, trimmed. Anything not text is "".
+function text(value) {
+  return typeof value === "string" ? value.toWellFormed().replace(CONTROL, "").trim() : "";
+}
+
+// One of Outbound's functions in Supabase, which do nothing without WAITLIST_TOKEN (worker/supabase.sql).
 async function supabase(env, name, args) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_KEY || !env.SUPABASE_TOKEN) throw new Error("Supabase isn't set up");
+  if (!env.SUPABASE_URL || !env.SUPABASE_KEY || !env.WAITLIST_TOKEN) throw new Error("Supabase isn't set up");
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
     headers: { apikey: env.SUPABASE_KEY, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ p_token: env.SUPABASE_TOKEN, ...args }),
+    body: JSON.stringify({ p_token: env.WAITLIST_TOKEN, ...args }),
   });
   if (!response.ok) throw new Error(`Supabase ${name} answered ${response.status}`);
 }

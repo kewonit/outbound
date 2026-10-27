@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "复制你的激活码",
   "js.emailInvalid": "这个邮箱地址看起来不对。",
   "js.feedbackEmpty": "请先写点什么。",
+  "js.feedbackLong": "最多 2000 个字。",
   "js.feedbackSent": "谢谢，已经发出。",
   "js.finding": "正在查找你的激活码…",
   "js.formBusy": "尝试次数过多，请等一分钟。",

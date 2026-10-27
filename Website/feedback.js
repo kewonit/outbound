@@ -33,6 +33,12 @@
       form.elements.message.focus();
       return;
     }
+    // Counted in characters as the server counts them, which a browser's maxlength doesn't always do.
+    if (Array.from(message).length > 2000) {
+      status.textContent = word("js.feedbackLong", "Keep it to 2000 characters.");
+      form.elements.message.focus();
+      return;
+    }
     if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
       status.textContent = word("js.emailInvalid", "That email doesn't look right.");
       form.elements.email.focus();
@@ -58,9 +64,10 @@
       done.hidden = false;
       done.focus();
     }).catch(function (error) {
-      // What was written stays in the box, so nothing is lost.
-      status.textContent = error.message === "429"
-        ? word("js.formBusy", "Too many tries. Wait a minute.")
+      // What was written stays in the box, so nothing is lost. The checks above catch what the server would turn
+      // down, so a refusal now is most likely the length.
+      status.textContent = error.message === "429" ? word("js.formBusy", "Too many tries. Wait a minute.")
+        : error.message === "400" || error.message === "413" ? word("js.feedbackLong", "Keep it to 2000 characters.")
         : word("js.formFailed", "That didn't go through. Try again.");
       button.disabled = false;
     });

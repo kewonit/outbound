@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "複製你的授權碼",
   "js.emailInvalid": "這個電子郵件地址看起來不太對。",
   "js.feedbackEmpty": "請先寫點什麼。",
+  "js.feedbackLong": "最多 2000 個字。",
   "js.feedbackSent": "謝謝，已經送出。",
   "js.finding": "正在尋找你的授權碼…",
   "js.formBusy": "嘗試次數過多，請稍候一分鐘。",

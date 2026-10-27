@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "انسخ مفتاحك",
   "js.emailInvalid": "يبدو أن هذا البريد غير صحيح.",
   "js.feedbackEmpty": "اكتب شيئًا أولًا.",
+  "js.feedbackLong": "2000 حرف كحد أقصى.",
   "js.feedbackSent": "شكرًا. في طريقها إليه.",
   "js.finding": "جارٍ البحث عن مفتاحك…",
   "js.formBusy": "محاولات كثيرة. انتظر دقيقة.",

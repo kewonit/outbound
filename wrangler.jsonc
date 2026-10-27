@@ -3,7 +3,7 @@
   // a buyer's license key to the app. Deploys from main through Workers Builds, or with npx wrangler deploy.
   //
   // Secrets, set once and kept across deploys with npx wrangler secret put NAME: POLAR_ACCESS_TOKEN, and for the
-  // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and SUPABASE_TOKEN (worker/supabase.sql). Locally they go in
+  // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and WAITLIST_TOKEN (worker/supabase.sql). Locally they go in
   // .dev.vars.
   "name": "outbound",
   "main": "worker/index.js",

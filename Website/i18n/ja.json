@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "ライセンスキーをコピー",
   "js.emailInvalid": "メールアドレスが正しくないようです。",
   "js.feedbackEmpty": "まず何か書いてください。",
+  "js.feedbackLong": "2000文字以内でお願いします。",
   "js.feedbackSent": "ありがとうございます。送信しました。",
   "js.finding": "ライセンスキーを探しています…",
   "js.formBusy": "試行回数が多すぎます。1分ほどお待ちください。",

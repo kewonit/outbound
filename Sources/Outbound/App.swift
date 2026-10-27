@@ -471,10 +471,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showActivation()
     }
 
-    /// The feedback page in the browser. Its address says which version of Outbound the message is about, and nothing
-    /// else.
+    /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
+    /// message is about, and nothing else.
     @objc private func openFeedback() {
-        var page = URLComponents(string: "https://outbound.edbn.me/feedback")!
+        let site = Store.shop.deletingLastPathComponent()
+        guard var page = URLComponents(url: site.appendingPathComponent("feedback"), resolvingAgainstBaseURL: false) else { return }
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
             page.queryItems = [URLQueryItem(name: "app", value: version)]
         }

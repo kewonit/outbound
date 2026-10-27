@@ -81,6 +81,7 @@
   "js.copyKeyTitle": "내 키 복사하기",
   "js.emailInvalid": "이메일 주소가 올바르지 않은 것 같습니다.",
   "js.feedbackEmpty": "먼저 내용을 입력하세요.",
+  "js.feedbackLong": "2000자 이내로 써 주세요.",
   "js.feedbackSent": "감사합니다. 전송되었습니다.",
   "js.finding": "키를 찾는 중…",
   "js.formBusy": "시도가 너무 많습니다. 1분 후에 다시 시도하세요.",
