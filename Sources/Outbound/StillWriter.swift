@@ -26,6 +26,8 @@ final class StillWriter {
     private var refused: [CGDirectDisplayID: URL?] = [:]
     /// The last painting's stamp, so two in one millisecond never share a name.
     private var lastStamp = 0
+    /// The user's own picture was asked for while the Mac was locked, and hasn't gone back yet.
+    private(set) var owesRestore = false
 
     init(gpu: GPU, defaults: UserDefaults = .standard) {
         self.gpu = gpu
@@ -191,11 +193,16 @@ final class StillWriter {
 
     /// Puts the user's own picture back on every display showing a painting, on the desktop in view: the one that
     /// painting covers, or failing that the one the display last had, or another display's. Every display showing a
-    /// picture of the user's own has it remembered. While the Mac is locked the paintings stay on the lock screen.
+    /// picture of the user's own has it remembered. While the Mac is locked the paintings stay on the lock screen, and
+    /// the user's own picture is owed until the next call.
     /// A display in `keeping` may have a full-screen app's desktop in view, with its painting still on the desktop
     /// under it, so that painting and its record stay for the next time.
     func restore(keeping: Set<CGDirectDisplayID> = []) {
-        guard !locked else { return }
+        guard !locked else {
+            owesRestore = true
+            return
+        }
+        owesRestore = false
         turn += 1
         var originals = savedOriginals
         var showing: [(NSScreen, URL)] = []
