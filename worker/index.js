@@ -14,11 +14,13 @@
 //   POST /api/waitlist { email, platform, lang }
 //                                      Puts an address down for one email when Outbound comes to Windows or
 //                                      iPhone: { ok: true }, the same whether or not it was already there.
+//   POST /api/feedback { message, email?, lang, app? }
+//                                      Keeps a message from the feedback page: { ok: true }.
 //
 // POLAR_ACCESS_TOKEN is a secret: a Polar organization token with checkouts:read, checkouts:write,
-// orders:read, benefits:read and license_keys:read. The waitlist needs three more: SUPABASE_URL, SUPABASE_KEY (the
-// project's publishable key) and WAITLIST_TOKEN, the one secret the database's waitlist function accepts
-// (worker/waitlist.sql). Everything else comes from vars in wrangler.jsonc.
+// orders:read, benefits:read and license_keys:read. The waitlist and feedback need three more: SUPABASE_URL,
+// SUPABASE_KEY (the project's publishable key) and SUPABASE_TOKEN, the one secret the database's functions accept
+// (worker/supabase.sql). Everything else comes from vars in wrangler.jsonc.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // A checkout id keeps working as a way back to its key for a month, then only the customer portal does.
@@ -27,10 +29,13 @@ const CLAIM_WINDOW = 30 * 24 * 3600 * 1000;
 const POLAR_VERSION = "2026-10";
 // The languages the site is translated into, by their folder. English is the site's own root.
 const LANGUAGES = ["es", "fr", "de", "it", "pt-br", "nl", "ru", "tr", "pl", "ja", "ko", "zh-hans", "zh-hant", "hi", "ar"];
-const TRANSLATED = new Set(["/", "/support", "/thanks", "/waitlist"]);
-// What the waitlist takes: an address of a sensible shape, and one of the two platforms on the way.
+const TRANSLATED = new Set(["/", "/support", "/thanks", "/waitlist", "/feedback"]);
+// What the forms take: an address of a sensible shape, one of the two platforms on the way, a message of a few
+// paragraphs at most, and the app's version as it writes it.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PLATFORMS = ["windows", "ios"];
+const MESSAGE_LIMIT = 2000;
+const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
 // Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
 // the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
 // of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $7. The city is $99
@@ -77,6 +82,7 @@ export default {
       if (url.pathname === "/api/checkout") return await checkout(request, env);
       if (url.pathname === "/api/license") return await license(request, env);
       if (url.pathname === "/api/waitlist") return await waitlist(request, env, url);
+      if (url.pathname === "/api/feedback") return await feedback(request, env, url);
       return reply({ error: "Not found." }, 404);
     } catch (error) {
       // Messages name the Polar endpoint and status only, never a key.
@@ -245,37 +251,73 @@ async function license(request, env) {
     paid: paid(order) });
 }
 
-// The waitlist page's form. Only the site's own pages may send it, a few times a minute from one address. A filled-in
-// trap field means a bot: it hears the same as everyone and nothing is kept. The answer never says whether an address
-// was already on the list. The database takes it only through outbound_join_waitlist(), with WAITLIST_TOKEN.
+// The waitlist page's form: one email when Outbound comes to Windows or iPhone. The answer never says whether an
+// address was already on the list.
 async function waitlist(request, env, url) {
-  if (request.headers.get("Origin") !== url.origin) return reply({ error: "Not from this site." }, 403);
-  if (!request.headers.get("Content-Type")?.startsWith("application/json")) return reply({ error: "Send JSON." }, 415);
-  if (!(await allowed(env.WAITLIST, request.headers.get("CF-Connecting-IP") ?? "unknown"))) {
-    return reply({ error: "Too many tries. Wait a minute." }, 429);
-  }
-  const text = await request.text();
-  if (text.length > 2048) return reply({ error: "Too long." }, 413);
-  let body;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    return reply({ error: "Send JSON." }, 400);
-  }
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  const platform = PLATFORMS.includes(body?.platform) ? body.platform : null;
+  const { body, refusal } = await form(request, url, env.WAITLIST, 2048);
+  if (refusal) return refusal;
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const platform = PLATFORMS.includes(body.platform) ? body.platform : null;
   if (!platform || email.length > 254 || !EMAIL.test(email)) return reply({ error: "That isn't an email." }, 400);
   if (body.hp) return reply({ ok: true });
-  const lang = LANGUAGES.includes(body.lang) ? body.lang : "en";
+  await supabase(env, "outbound_join_waitlist", {
+    p_email: email,
+    p_platform: platform,
+    p_lang: LANGUAGES.includes(body.lang) ? body.lang : "en",
+  });
+  return reply({ ok: true });
+}
 
-  if (!env.SUPABASE_URL || !env.SUPABASE_KEY || !env.WAITLIST_TOKEN) throw new Error("The waitlist isn't set up");
-  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/outbound_join_waitlist`, {
+// The feedback page's form: a message, an address only when the writer wants a reply, and the app's version when the
+// app opened the page.
+async function feedback(request, env, url) {
+  const { body, refusal } = await form(request, url, env.FEEDBACK, 16384);
+  if (refusal) return refusal;
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!message || [...message].length > MESSAGE_LIMIT) {
+    return reply({ error: `Write something, up to ${MESSAGE_LIMIT} characters.` }, 400);
+  }
+  if (email && (email.length > 254 || !EMAIL.test(email))) return reply({ error: "That isn't an email." }, 400);
+  if (body.hp) return reply({ ok: true });
+  await supabase(env, "outbound_send_feedback", {
+    p_message: message,
+    p_email: email || null,
+    p_lang: LANGUAGES.includes(body.lang) ? body.lang : "en",
+    p_app: typeof body.app === "string" && VERSION.test(body.app) ? body.app : null,
+  });
+  return reply({ ok: true });
+}
+
+// A form sent from the site's own pages, as JSON, no bigger than it needs to be, a few times a minute from one
+// address: { body }, or { refusal } to answer with instead. A filled-in trap field (hp) means a bot, which the forms
+// answer as if all went well while keeping nothing.
+async function form(request, url, limiter, size) {
+  if (request.headers.get("Origin") !== url.origin) return { refusal: reply({ error: "Not from this site." }, 403) };
+  if (!request.headers.get("Content-Type")?.startsWith("application/json")) {
+    return { refusal: reply({ error: "Send JSON." }, 415) };
+  }
+  if (!(await allowed(limiter, request.headers.get("CF-Connecting-IP") ?? "unknown"))) {
+    return { refusal: reply({ error: "Too many tries. Wait a minute." }, 429) };
+  }
+  const text = await request.text();
+  if (text.length > size) return { refusal: reply({ error: "Too long." }, 413) };
+  try {
+    const body = JSON.parse(text);
+    if (body && typeof body === "object" && !Array.isArray(body)) return { body };
+  } catch {}
+  return { refusal: reply({ error: "Send JSON." }, 400) };
+}
+
+// One of Outbound's functions in Supabase, which do nothing without SUPABASE_TOKEN (worker/supabase.sql).
+async function supabase(env, name, args) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_KEY || !env.SUPABASE_TOKEN) throw new Error("Supabase isn't set up");
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
     headers: { apikey: env.SUPABASE_KEY, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ p_token: env.WAITLIST_TOKEN, p_email: email, p_platform: platform, p_lang: lang }),
+    body: JSON.stringify({ p_token: env.SUPABASE_TOKEN, ...args }),
   });
-  if (!response.ok) throw new Error(`Supabase outbound_join_waitlist answered ${response.status}`);
-  return reply({ ok: true });
+  if (!response.ok) throw new Error(`Supabase ${name} answered ${response.status}`);
 }
 
 // What an order came to before tax, in whole units of its money. Polar counts in cents, except in currencies

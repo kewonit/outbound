@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!-- Site URLs (download, buy, github) live once, at the top of app.js. The form is feedback.js, and worker/index.js keeps
+     what it sends. Not for search engines, so it has no other languages listed. -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="feedback.metaTitle">피드백 · Outbound</title>
+<meta name="description" content="좋은 점, 아쉬운 점, 다음에 바라는 점을 Outbound를 만든 사람에게 알려 주세요." data-i18n-attr="content=feedback.metaDescription">
+<link rel="canonical" href="https://outbound.edbn.me/ko/feedback">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/ko/feedback">
+<meta property="og:title" content="피드백 · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta property="og:description" content="좋은 점, 아쉬운 점, 다음에 바라는 점을 Outbound를 만든 사람에게 알려 주세요." data-i18n-attr="content=feedback.metaDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound: 데스크탑 뒤로 흘러가는 그림 속 세상." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="피드백 · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta name="twitter:description" content="좋은 점, 아쉬운 점, 다음에 바라는 점을 Outbound를 만든 사람에게 알려 주세요." data-i18n-attr="content=feedback.metaDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content="Outbound: 데스크탑 뒤로 흘러가는 그림 속 세상." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css?v=21">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body class="fill">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/ko/" aria-label="Outbound 홈" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/ko/#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$7에 구입하기</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 data-i18n="feedback.title">피드백.</h1>
+    <p class="lede" data-i18n="feedback.lede">좋은 점, 아쉬운 점, 다음에 바라는 점. Outbound를 만든 사람에게 바로 전달됩니다.</p>
+
+    <!-- Posts, so nothing written here ends up in a page's address. feedback.js sends it and answers in place. -->
+    <form class="page-form" id="feedback" action="/api/feedback" method="post" novalidate>
+      <textarea class="field" name="message" required maxlength="2000" rows="6" placeholder="피드백" aria-label="피드백"
+                data-i18n-attr="placeholder=feedback.message aria-label=feedback.message"></textarea>
+      <div class="form-row">
+        <input class="field" type="email" name="email" maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder="이메일 주소(선택)" aria-label="이메일 주소(선택)" data-i18n-attr="placeholder=feedback.email aria-label=feedback.email">
+        <button class="btn btn-light" type="submit" data-i18n="feedback.button">보내기</button>
+      </div>
+      <!-- Left empty by people, filled in by bots. -->
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="feedback-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="feedback-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<footer class="footer footer-plain">
+  <div class="wrap-narrow">
+    <p class="form-fine" data-i18n="feedback.fine">Outbound를 만든 사람만 읽습니다. 이메일 주소는 답장에만 사용합니다. <a href="/privacy">개인정보 처리방침(영문)</a></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">언어</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko" selected>한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"복사됨","js.copy":"복사","js.copyKey":"키 복사","js.copyKeyTitle":"내 키 복사하기","js.emailInvalid":"이메일 주소가 올바르지 않은 것 같습니다.","js.feedbackEmpty":"먼저 내용을 입력하세요.","js.feedbackSent":"감사합니다. 전송되었습니다.","js.finding":"키를 찾는 중…","js.formBusy":"시도가 너무 많습니다. 1분 후에 다시 시도하세요.","js.formFailed":"전송하지 못했습니다. 다시 시도해 주세요.","js.offline":"스토어에 연결하지 못했습니다. ‘활성화’를 눌러 보거나 고객 포털을 확인하세요.","js.portal":"키는 아래 고객 포털에서 확인할 수 있습니다.","js.pressCopy":"⌘C를 눌러 키를 복사하세요.","js.refunded":"환불된 구입입니다.","js.slow":"평소보다 오래 걸리고 있습니다. ‘활성화’를 눌러 보거나 잠시 후 고객 포털을 확인하세요.","js.unfinished":"결제가 완료되지 않았습니다.","js.waitlistIos":"목록에 등록되었습니다. Outbound가 iPhone에 나오면 한 통만 보내드립니다.","js.waitlistWindows":"목록에 등록되었습니다. Outbound가 Windows에 나오면 한 통만 보내드립니다."};</script>
+<script src="/app.js?v=14"></script>
+<script src="/feedback.js?v=1"></script>
+</body>
+</html>

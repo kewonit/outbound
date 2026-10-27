@@ -3,7 +3,8 @@
   // a buyer's license key to the app. Deploys from main through Workers Builds, or with npx wrangler deploy.
   //
   // Secrets, set once and kept across deploys with npx wrangler secret put NAME: POLAR_ACCESS_TOKEN, and for the
-  // waitlist SUPABASE_URL, SUPABASE_KEY and WAITLIST_TOKEN (worker/waitlist.sql). Locally they go in .dev.vars.
+  // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and SUPABASE_TOKEN (worker/supabase.sql). Locally they go in
+  // .dev.vars.
   "name": "outbound",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
@@ -12,8 +13,8 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": [
-      "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/waitlist", "/*/", "/*/support", "/*/thanks", "/*/waitlist",
-      "/license", "/privacy"
+      "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/waitlist", "/feedback", "/*/", "/*/support", "/*/thanks",
+      "/*/waitlist", "/*/feedback", "/license", "/privacy"
     ]
   },
   "vars": {
@@ -28,7 +29,8 @@
   "ratelimits": [
     { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
     { "name": "LOOKUPS", "namespace_id": "1102", "simple": { "limit": 60, "period": 60 } },
-    { "name": "WAITLIST", "namespace_id": "1103", "simple": { "limit": 5, "period": 60 } }
+    { "name": "WAITLIST", "namespace_id": "1103", "simple": { "limit": 5, "period": 60 } },
+    { "name": "FEEDBACK", "namespace_id": "1104", "simple": { "limit": 5, "period": 60 } }
   ],
   "routes": [{ "pattern": "outbound.edbn.me", "custom_domain": true }],
   "workers_dev": false,

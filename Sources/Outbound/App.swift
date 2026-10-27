@@ -338,6 +338,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
             unlock.target = self
             menu.addItem(unlock)
+            menu.addItem(feedbackItem())
             menu.addItem(.separator())
             menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
@@ -407,8 +408,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         check.target = self
         check.isEnabled = updates.canCheck
         menu.addItem(check)
+        menu.addItem(feedbackItem())
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    /// Just above Quit, whether or not Outbound is unlocked.
+    private func feedbackItem() -> NSMenuItem {
+        let item = NSMenuItem(title: String(localized: "Feedback…"), action: #selector(openFeedback), keyEquivalent: "")
+        item.target = self
+        return item
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
@@ -460,6 +469,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openActivation() {
         showActivation()
+    }
+
+    /// The feedback page in the browser. Its address says which version of Outbound the message is about, and nothing
+    /// else.
+    @objc private func openFeedback() {
+        var page = URLComponents(string: "https://outbound.edbn.me/feedback")!
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            page.queryItems = [URLQueryItem(name: "app", value: version)]
+        }
+        if let url = page.url { NSWorkspace.shared.open(url) }
     }
 
     @objc private func togglePause() {

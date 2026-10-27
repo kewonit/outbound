@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Henüz hazır değil. E-posta adresini bırak, hazır olduğunda tek bir e-posta gönderelim. Fazlası yok.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Hangisi?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="E-posta adresin" aria-label="E-posta adresin" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Bana haber ver</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Adresin yalnızca o tek e-posta için kullanılır, sonra silinir. <a href="/privacy">Gizlilik (İngilizce)</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Adresin yalnızca o tek e-posta için kullanılır, sonra silinir. <a href="/privacy">Gizlilik (İngilizce)</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Dil</label>
       <select id="language" data-lang-picker>
@@ -123,7 +123,7 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Kopyalandı","js.copy":"Kopyala","js.copyKey":"Anahtarı kopyala","js.copyKeyTitle":"Anahtarını kopyala","js.finding":"Anahtarın aranıyor…","js.offline":"Mağazaya ulaşılamadı. Etkinleştir'i dene ya da müşteri portalına bak.","js.portal":"Anahtarın aşağıdaki müşteri portalında.","js.pressCopy":"Anahtarını kopyalamak için ⌘C'ye bas.","js.refunded":"Bu satın alma iade edildi.","js.slow":"Her zamankinden uzun sürüyor. Etkinleştir'i dene ya da bir dakika sonra müşteri portalına bak.","js.unfinished":"Bu ödeme tamamlanmadı.","js.waitlistBusy":"Çok fazla deneme. Bir dakika bekle.","js.waitlistFailed":"Gönderilemedi. Tekrar dene.","js.waitlistInvalid":"Bu e-posta adresi doğru görünmüyor.","js.waitlistIos":"Listedesin. Outbound iPhone'a geldiğinde tek bir e-posta.","js.waitlistWindows":"Listedesin. Outbound Windows'a geldiğinde tek bir e-posta."};</script>
+<script>window.OUTBOUND_I18N = {"js.copied":"Kopyalandı","js.copy":"Kopyala","js.copyKey":"Anahtarı kopyala","js.copyKeyTitle":"Anahtarını kopyala","js.emailInvalid":"Bu e-posta adresi doğru görünmüyor.","js.feedbackEmpty":"Önce bir şey yaz.","js.feedbackSent":"Teşekkürler. Yola çıktı.","js.finding":"Anahtarın aranıyor…","js.formBusy":"Çok fazla deneme. Bir dakika bekle.","js.formFailed":"Gönderilemedi. Tekrar dene.","js.offline":"Mağazaya ulaşılamadı. Etkinleştir'i dene ya da müşteri portalına bak.","js.portal":"Anahtarın aşağıdaki müşteri portalında.","js.pressCopy":"Anahtarını kopyalamak için ⌘C'ye bas.","js.refunded":"Bu satın alma iade edildi.","js.slow":"Her zamankinden uzun sürüyor. Etkinleştir'i dene ya da bir dakika sonra müşteri portalına bak.","js.unfinished":"Bu ödeme tamamlanmadı.","js.waitlistIos":"Listedesin. Outbound iPhone'a geldiğinde tek bir e-posta.","js.waitlistWindows":"Listedesin. Outbound Windows'a geldiğinde tek bir e-posta."};</script>
 <script src="/app.js?v=14"></script>
 <script src="/waitlist.js?v=1"></script>
 </body>

@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Ainda não está pronto. Deixe seu e-mail e você recebe um único e-mail quando estiver. Nada mais.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Qual?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="Seu e-mail" aria-label="Seu e-mail" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Me avise</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Seu endereço é usado só para esse único e-mail e depois é apagado. <a href="/privacy">Privacidade (em inglês)</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Seu endereço é usado só para esse único e-mail e depois é apagado. <a href="/privacy">Privacidade (em inglês)</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Idioma</label>
       <select id="language" data-lang-picker>
@@ -123,7 +123,7 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Copiada","js.copy":"Copiar","js.copyKey":"Copiar chave","js.copyKeyTitle":"Copie sua chave","js.finding":"Buscando sua chave…","js.offline":"Não foi possível acessar a loja. Tente Ativar ou confira seu portal do cliente.","js.portal":"Sua chave está no seu portal do cliente, aqui embaixo.","js.pressCopy":"Pressione ⌘C para copiar sua chave.","js.refunded":"Esta compra foi reembolsada.","js.slow":"Está demorando mais que o normal. Tente Ativar ou confira seu portal do cliente daqui a um minuto.","js.unfinished":"Este pagamento não foi concluído.","js.waitlistBusy":"Tentativas demais. Espere um minuto.","js.waitlistFailed":"Não deu certo. Tente de novo.","js.waitlistInvalid":"Esse e-mail não parece certo.","js.waitlistIos":"Você está na lista. Um único e-mail quando o Outbound chegar ao iPhone.","js.waitlistWindows":"Você está na lista. Um único e-mail quando o Outbound chegar ao Windows."};</script>
+<script>window.OUTBOUND_I18N = {"js.copied":"Copiada","js.copy":"Copiar","js.copyKey":"Copiar chave","js.copyKeyTitle":"Copie sua chave","js.emailInvalid":"Esse e-mail não parece certo.","js.feedbackEmpty":"Escreva algo primeiro.","js.feedbackSent":"Obrigado. Já está a caminho.","js.finding":"Buscando sua chave…","js.formBusy":"Tentativas demais. Espere um minuto.","js.formFailed":"Não deu certo. Tente de novo.","js.offline":"Não foi possível acessar a loja. Tente Ativar ou confira seu portal do cliente.","js.portal":"Sua chave está no seu portal do cliente, aqui embaixo.","js.pressCopy":"Pressione ⌘C para copiar sua chave.","js.refunded":"Esta compra foi reembolsada.","js.slow":"Está demorando mais que o normal. Tente Ativar ou confira seu portal do cliente daqui a um minuto.","js.unfinished":"Este pagamento não foi concluído.","js.waitlistIos":"Você está na lista. Um único e-mail quando o Outbound chegar ao iPhone.","js.waitlistWindows":"Você está na lista. Um único e-mail quando o Outbound chegar ao Windows."};</script>
 <script src="/app.js?v=14"></script>
 <script src="/waitlist.js?v=1"></script>
 </body>

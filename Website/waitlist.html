@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Not ready yet. Leave your email and you'll get one email when it is. Nothing more.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Which one?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="Your email" aria-label="Your email" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Notify me</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Your address is used for that one email, then deleted. <a href="/privacy">Privacy</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Your address is used for that one email, then deleted. <a href="/privacy">Privacy</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Language</label>
       <select id="language" data-lang-picker>

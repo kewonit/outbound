@@ -3,8 +3,8 @@
 //
 //   node scripts/build-site-languages.mjs extract   writes Website/i18n/en.json, the English of every key
 //   node scripts/build-site-languages.mjs           checks Website/i18n/<language>.json against it, then writes
-//                                                    Website/<language>/index.html, support.html, thanks.html and
-//                                                    waitlist.html,
+//                                                    Website/<language>/index.html, support.html, thanks.html,
+//                                                    waitlist.html and feedback.html,
 //                                                    the hreflang links of every page and the sitemap
 //
 // A translation keeps the English's markup exactly (the same tags with the same attributes), its prices and its
@@ -16,8 +16,8 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "Website");
 const site = "https://outbound.edbn.me";
-const pages = ["index", "support", "thanks", "waitlist"];
-// Pages search engines should list in every language; the thank-you page is for buyers only.
+const pages = ["index", "support", "thanks", "waitlist", "feedback"];
+// Pages search engines should list in every language; the thank-you page is for buyers only, and feedback is a form.
 const listed = { index: "/", support: "/support", waitlist: "/waitlist" };
 
 export const LANGUAGES = [
@@ -68,7 +68,7 @@ function english() {
       }
     }
   }
-  for (const script of ["app.js", "thanks.js", "waitlist.js"]) {
+  for (const script of ["app.js", "thanks.js", "waitlist.js", "feedback.js"]) {
     for (const [, key, value] of read(script).matchAll(/word\("(js\.\w+)", "((?:[^"\\]|\\.)*)"\)/g)) add(key, value, script);
   }
   // Structured data that isn't on the page word for word. Its FAQ is rebuilt from the page's, so it must match.
@@ -147,7 +147,7 @@ function translatePage(html, page, language, strings) {
   // stay in this language. Privacy and the license stay English.
   out = out.replace(/(\s(?:href|src|poster|data-src)=")(?!https?:|\/|#|mailto:|data:)([^"]+)"/g, '$1/$2"');
   out = out.replace(/(\shref=")\/(#[\w-]+)?"/g, `$1/${folder}/$2"`);
-  out = out.replace(/(\shref=")\/(support|thanks|waitlist)"/g, `$1/${folder}/$2"`);
+  out = out.replace(/(\shref=")\/(support|thanks|waitlist|feedback)"/g, `$1/${folder}/$2"`);
   out = out.replace(/(<link rel="canonical" href=")[^"]*"/, `$1${pageURL(folder, page)}"`);
   out = out.replace(/(<meta property="og:url" content=")[^"]*"/, `$1${pageURL(folder, page)}"`);
   out = out.replace(/(<meta property="og:locale" content=")[^"]*"/, `$1${locale}"`);

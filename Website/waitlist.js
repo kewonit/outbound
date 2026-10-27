@@ -48,7 +48,7 @@
     event.preventDefault();
     var email = form.elements.email.value.trim();
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      status.textContent = word("js.waitlistInvalid", "That email doesn't look right.");
+      status.textContent = word("js.emailInvalid", "That email doesn't look right.");
       form.elements.email.focus();
       return;
     }
@@ -74,8 +74,8 @@
       done.focus();
     }).catch(function (error) {
       status.textContent = error.message === "429"
-        ? word("js.waitlistBusy", "Too many tries. Wait a minute.")
-        : word("js.waitlistFailed", "That didn't go through. Try again.");
+        ? word("js.formBusy", "Too many tries. Wait a minute.")
+        : word("js.formFailed", "That didn't go through. Try again.");
       button.disabled = false;
     });
   });

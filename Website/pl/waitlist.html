@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Jeszcze nie jest gotowe. Zostaw e-mail, a dostaniesz jedną wiadomość, gdy będzie. Nic więcej.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Który?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="Twój e-mail" aria-label="Twój e-mail" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Powiadom mnie</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Twój adres posłuży tylko do tego jednego e-maila, potem zostanie usunięty. <a href="/privacy">Prywatność (po angielsku)</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Twój adres posłuży tylko do tego jednego e-maila, potem zostanie usunięty. <a href="/privacy">Prywatność (po angielsku)</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Język</label>
       <select id="language" data-lang-picker>
@@ -123,7 +123,7 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Skopiowano","js.copy":"Kopiuj","js.copyKey":"Kopiuj klucz","js.copyKeyTitle":"Skopiuj swój klucz","js.finding":"Szukamy Twojego klucza…","js.offline":"Nie udało się połączyć ze sklepem. Kliknij Aktywuj lub zajrzyj do portalu klienta.","js.portal":"Twój klucz jest w portalu klienta poniżej.","js.pressCopy":"Naciśnij ⌘C, aby skopiować klucz.","js.refunded":"Za ten zakup zwrócono pieniądze.","js.slow":"Trwa to dłużej niż zwykle. Kliknij Aktywuj lub zajrzyj za minutę do portalu klienta.","js.unfinished":"Ta płatność nie została dokończona.","js.waitlistBusy":"Za dużo prób. Poczekaj minutę.","js.waitlistFailed":"Nie udało się wysłać. Spróbuj ponownie.","js.waitlistInvalid":"Ten adres e-mail nie wygląda dobrze.","js.waitlistIos":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na iPhone'a.","js.waitlistWindows":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na Windowsa."};</script>
+<script>window.OUTBOUND_I18N = {"js.copied":"Skopiowano","js.copy":"Kopiuj","js.copyKey":"Kopiuj klucz","js.copyKeyTitle":"Skopiuj swój klucz","js.emailInvalid":"Ten adres e-mail nie wygląda dobrze.","js.feedbackEmpty":"Najpierw coś napisz.","js.feedbackSent":"Dziękujemy. Już leci.","js.finding":"Szukamy Twojego klucza…","js.formBusy":"Za dużo prób. Poczekaj minutę.","js.formFailed":"Nie udało się wysłać. Spróbuj ponownie.","js.offline":"Nie udało się połączyć ze sklepem. Kliknij Aktywuj lub zajrzyj do portalu klienta.","js.portal":"Twój klucz jest w portalu klienta poniżej.","js.pressCopy":"Naciśnij ⌘C, aby skopiować klucz.","js.refunded":"Za ten zakup zwrócono pieniądze.","js.slow":"Trwa to dłużej niż zwykle. Kliknij Aktywuj lub zajrzyj za minutę do portalu klienta.","js.unfinished":"Ta płatność nie została dokończona.","js.waitlistIos":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na iPhone'a.","js.waitlistWindows":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na Windowsa."};</script>
 <script src="/app.js?v=14"></script>
 <script src="/waitlist.js?v=1"></script>
 </body>

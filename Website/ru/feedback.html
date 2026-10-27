@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!-- Site URLs (download, buy, github) live once, at the top of app.js. The form is feedback.js, and worker/index.js keeps
+     what it sends. Not for search engines, so it has no other languages listed. -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="feedback.metaTitle">Отзыв · Outbound</title>
+<meta name="description" content="Расскажите человеку, который сделал Outbound, что работает, что нет и чего хочется дальше." data-i18n-attr="content=feedback.metaDescription">
+<link rel="canonical" href="https://outbound.edbn.me/ru/feedback">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/ru/feedback">
+<meta property="og:title" content="Отзыв · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta property="og:description" content="Расскажите человеку, который сделал Outbound, что работает, что нет и чего хочется дальше." data-i18n-attr="content=feedback.metaDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound: рисованный мир, пролетающий за вашим рабочим столом." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Отзыв · Outbound" data-i18n-attr="content=feedback.metaTitle">
+<meta name="twitter:description" content="Расскажите человеку, который сделал Outbound, что работает, что нет и чего хочется дальше." data-i18n-attr="content=feedback.metaDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content="Outbound: рисованный мир, пролетающий за вашим рабочим столом." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css?v=21">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body class="fill">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/ru/" aria-label="Outbound, главная" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/ru/#buy" data-url="buy" data-soon="Скоро" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Купить за $7</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 data-i18n="feedback.title">Отзыв.</h1>
+    <p class="lede" data-i18n="feedback.lede">Что работает, что нет, чего хочется дальше. Всё приходит прямо человеку, который сделал Outbound.</p>
+
+    <!-- Posts, so nothing written here ends up in a page's address. feedback.js sends it and answers in place. -->
+    <form class="page-form" id="feedback" action="/api/feedback" method="post" novalidate>
+      <textarea class="field" name="message" required maxlength="2000" rows="6" placeholder="Ваш отзыв" aria-label="Ваш отзыв"
+                data-i18n-attr="placeholder=feedback.message aria-label=feedback.message"></textarea>
+      <div class="form-row">
+        <input class="field" type="email" name="email" maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder="Ваш email (необязательно)" aria-label="Ваш email (необязательно)" data-i18n-attr="placeholder=feedback.email aria-label=feedback.email">
+        <button class="btn btn-light" type="submit" data-i18n="feedback.button">Отправить</button>
+      </div>
+      <!-- Left empty by people, filled in by bots. -->
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="feedback-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="feedback-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<footer class="footer footer-plain">
+  <div class="wrap-narrow">
+    <p class="form-fine" data-i18n="feedback.fine">Читает только человек, который сделал Outbound. Email нужен только для ответа. <a href="/privacy">Конфиденциальность (на английском)</a></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Язык</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru" selected>Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl">Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."};</script>
+<script src="/app.js?v=14"></script>
+<script src="/feedback.js?v=1"></script>
+</body>
+</html>

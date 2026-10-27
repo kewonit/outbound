@@ -71,7 +71,7 @@
     <p class="lede" data-i18n="waitlist.lede">Пока не готово. Оставьте email, и мы пришлём одно письмо, когда всё будет готово. Больше ничего.</p>
 
     <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
-    <form class="waitlist-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
       <fieldset class="platforms">
         <legend class="sr-only" data-i18n="waitlist.which">Какая платформа?</legend>
         <label class="platform">
@@ -83,22 +83,22 @@
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
         </label>
       </fieldset>
-      <div class="waitlist-row">
-        <input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
                placeholder="Ваш email" aria-label="Ваш email" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
         <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Сообщить мне</button>
       </div>
       <!-- Left empty by people, filled in by bots. -->
       <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
-      <p class="waitlist-status" id="waitlist-status" role="alert"></p>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
     </form>
-    <p class="waitlist-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
   </div>
 </main>
 
 <footer class="footer footer-plain">
   <div class="wrap-narrow">
-    <p class="waitlist-fine" data-i18n="waitlist.fine">Адрес нужен только для этого одного письма, потом он удаляется. <a href="/privacy">Конфиденциальность (на английском)</a></p>
+    <p class="form-fine" data-i18n="waitlist.fine">Адрес нужен только для этого одного письма, потом он удаляется. <a href="/privacy">Конфиденциальность (на английском)</a></p>
     <div class="lang-picker">
       <label for="language" data-i18n="footer.language">Язык</label>
       <select id="language" data-lang-picker>
@@ -123,7 +123,7 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.finding":"Ищем ваш ключ…","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistBusy":"Слишком много попыток. Подождите минуту.","js.waitlistFailed":"Не получилось отправить. Попробуйте ещё раз.","js.waitlistInvalid":"Похоже, в адресе ошибка.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."};</script>
+<script>window.OUTBOUND_I18N = {"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."};</script>
 <script src="/app.js?v=14"></script>
 <script src="/waitlist.js?v=1"></script>
 </body>
