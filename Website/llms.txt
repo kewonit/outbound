@@ -4,7 +4,7 @@
 
 - Your Mac paints it live with Metal as it flies, so it never loops.
 - The places: Punjab (India), Niigata (Japan), the Serengeti (Tanzania), Normandy (France), Lisse (Netherlands), La Pampa (Argentina), Lapland (Finland) and Kansas (United States).
-- It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.
+- It stops drawing while the desktop is hidden, and pauses when the screen sleeps or Low Power Mode is on. You can have it pause while the desktop is hidden too. On battery it can hold a still painting instead.
 - One landscape runs across every display. Your own wallpaper comes back when you quit.
 - Your city: for $99 plus tax, once, we paint your town or city into Outbound as one of its Extended Places, ready in about a week. It includes a license for up to 3 Macs. Buy at https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b
 - Updates are free and install themselves. The app has no account and no analytics.
