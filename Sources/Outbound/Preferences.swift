@@ -67,7 +67,9 @@ final class Preferences: ObservableObject {
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
         pausesWhenHidden = defaults.object(forKey: "pausesWhenHidden") as? Bool ?? false
-        paperEdge = defaults.object(forKey: "paperEdge") as? Bool ?? false
+        // Kept under a new name since the border went off by default: the old one was saved as on for everyone who
+        // had run Outbound by then, whether they asked for it or not.
+        paperEdge = defaults.object(forKey: "paperBorder") as? Bool ?? false
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
     }
 
@@ -80,7 +82,8 @@ final class Preferences: ObservableObject {
         defaults.set(matchingStill, forKey: "matchingStill")
         defaults.set(restsWhenAway, forKey: "restsWhenAway")
         defaults.set(pausesWhenHidden, forKey: "pausesWhenHidden")
-        defaults.set(paperEdge, forKey: "paperEdge")
+        defaults.set(paperEdge, forKey: "paperBorder")
+        defaults.removeObject(forKey: "paperEdge")
         defaults.set(lastPlace, forKey: "lastPlace")
     }
 }
