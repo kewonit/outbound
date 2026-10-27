@@ -203,7 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// turned off, one left there goes back to the user's own picture.
     private func desktopChanged() {
         if !paintsDesktop {
-            stills.restore()
+            restorePictures()
         } else if !stills.showsOneMoment(displays.wallpapersInView) {
             refreshPainting(force: true)
         }
@@ -240,9 +240,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             activation?.finish()
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshPainting(force: true) }
         } else {
-            stills.restore()
+            restorePictures()
             showActivation()
         }
+    }
+
+    /// Puts the user's own pictures back, leaving any painting that may still be on a desktop under a full-screen app.
+    private func restorePictures() {
+        stills.restore(keeping: displays.occludedDisplays)
     }
 
     private func showActivation() {
@@ -260,7 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
         // screens are asleep, as an update installs, and as the session ends, for the login window; the next launch
         // carries on from it.
-        if !sessionEnding, !displays.isAsleep { stills.restore() }
+        if !sessionEnding, !displays.isAsleep { restorePictures() }
     }
 
     // MARK: - Links from the thank-you page
@@ -344,7 +349,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         if stills != nil {
-            if stillsWereOn, !preferences.matchingStill { stills.restore() }
+            if stillsWereOn, !preferences.matchingStill { restorePictures() }
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
         }
         stillsWereOn = preferences.matchingStill
