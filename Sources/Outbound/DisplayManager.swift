@@ -127,7 +127,14 @@ final class DisplayManager {
     }
 
     private func sync() {
+        // Before any new wallpaper paints: its first frame bakes the river into the ground it keeps.
+        world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
+        if let main = NSScreen.screens.first {
+            world.home = main.frame
+            world.centreRiver(on: main.frame)
+        }
         var seen = Set<CGDirectDisplayID>()
+        var added: [Wallpaper] = []
         for screen in NSScreen.screens where running {
             guard let id = screen.displayID else { continue }
             seen.insert(id)
@@ -141,6 +148,7 @@ final class DisplayManager {
                 globalHolds.forEach { wallpaper.set($0, true) }
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
                 wallpapers[id] = wallpaper
+                added.append(wallpaper)
                 Log.display.info("Added display \(id) \(String(describing: screen.frame), privacy: .public) @\(screen.backingScaleFactor)x")
             }
         }
@@ -150,12 +158,8 @@ final class DisplayManager {
             Log.display.info("Removed display \(id)")
         }
         checkOcclusion()
-        world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
-        if let main = NSScreen.screens.first {
-            world.home = main.frame
-            world.centreRiver(on: main.frame)
-        }
         refreshRates()
+        added.forEach { $0.show() }
     }
 
     private func checkOcclusion() {

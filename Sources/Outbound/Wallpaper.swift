@@ -71,6 +71,8 @@ final class MetalView: NSView {
 final class Wallpaper: NSObject {
     enum Hold: Hashable {
         case user, occluded, asleep, locked, inactive, lowPower, resting
+        /// The first frame is still being painted, before the window goes up.
+        case starting
     }
 
     let displayID: CGDirectDisplayID
@@ -90,7 +92,6 @@ final class Wallpaper: NSObject {
         didSet { birdLink?.rate = birdFramesPerSecond }
     }
     private var captionUpdated = -TimeInterval.infinity
-    private var hasDrawn = false
     private var link: FrameClock?
     /// How long one refresh of this display lasts, as of the last frame.
     private var refresh = 1.0 / 60
@@ -122,14 +123,37 @@ final class Wallpaper: NSObject {
         view.frame = container.bounds
         place(on: screen)
         applyScale(on: screen)
-        window.orderFrontRegardless()
 
         link = FrameClock(view: view, display: displayID) { [weak self] tick in self?.tick(tick) }
         applyFrameRate()
+        set(.starting, true)
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.occlusionChanged() }
         })
+    }
+
+    /// Paints the first frame straight away and puts the window up once it is done, so the desktop picture gives way
+    /// to the painting itself, not to an empty window, and nothing waits for the display link. Called once the
+    /// wallpaper is set up, so that frame already has the right border and scale.
+    func show() {
+        view.layoutSubtreeIfNeeded()
+        updateCaption()
+        let now = CACurrentMediaTime()
+        world.advance(to: now)
+        let drawn = draw(at: world.renderTime(for: now), showing: now, presentAt: nil) { [weak self] in
+            self?.reveal()
+        }
+        if !drawn { reveal() }
+    }
+
+    private func reveal() {
+        // Closed meanwhile.
+        guard link != nil else { return }
+        window.orderFrontRegardless()
+        let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
+        Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
+        set(.starting, false)
         occlusionChanged()
     }
 
@@ -187,9 +211,6 @@ final class Wallpaper: NSObject {
             if paused {
                 birdLink?.invalidate()
                 birdLink = nil
-                // Held before its first frame, say in Low Power Mode, it would show a blank window over the desktop
-                // picture; paint once so it holds a still painting instead.
-                if !hasDrawn { DispatchQueue.main.async { [weak self] in self?.drawStill() } }
             }
             Log.display.info("Display \(self.displayID) \(paused ? "paused" : "running", privacy: .public) \(String(describing: self.holds), privacy: .public)")
         }
@@ -350,22 +371,16 @@ final class Wallpaper: NSObject {
         #endif
     }
 
-    /// One frame for a wallpaper that was held before it ever drew.
-    private func drawStill() {
-        guard !hasDrawn, link != nil else { return }
-        view.layoutSubtreeIfNeeded()
-        updateCaption()
-        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
-    }
-
     /// Draws the world as it is at `moment`, for a frame meant to be on screen at `display` time, going up at
-    /// `presentAt`, or as soon as it is ready.
-    private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?) {
+    /// `presentAt`, or as soon as it is ready. Calls `done` once the GPU has painted it; returns whether it drew.
+    @discardableResult
+    private func draw(at moment: TimeInterval, showing display: TimeInterval, presentAt: TimeInterval?,
+                      done: (@MainActor () -> Void)? = nil) -> Bool {
         #if DEBUG
         let asked = CACurrentMediaTime()
         #endif
         guard let drawable = view.metalLayer.nextDrawable(),
-              let commands = gpu.queue.makeCommandBuffer() else { return }
+              let commands = gpu.queue.makeCommandBuffer() else { return false }
         #if DEBUG
         drawableWait = CACurrentMediaTime() - asked
         #endif
@@ -386,9 +401,14 @@ final class Wallpaper: NSObject {
             DispatchQueue.main.async { self?.stats.finished(gpu: milliseconds, painted: painted) }
         }
         #endif
+        if let done {
+            commands.addCompletedHandler { _ in
+                DispatchQueue.main.async { done() }
+            }
+        }
         if let presentAt, !presentAt.isNaN { commands.present(drawable, atTime: presentAt) } else { commands.present(drawable) }
-        hasDrawn = true
         commands.commit()
+        return true
     }
 
     #if DEBUG

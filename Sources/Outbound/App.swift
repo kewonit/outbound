@@ -7,8 +7,11 @@ import SwiftUI
 @MainActor
 enum OutboundApp {
     static let delegate = AppDelegate()
+    /// When Outbound began, for the log line saying how soon each display's painting was up.
+    static var launched: CFTimeInterval = 0
 
     static func main() {
+        launched = CACurrentMediaTime()
         let arguments = CommandLine.arguments
         if Exporter.handles(arguments) { exit(Exporter.run(arguments)) }
         let app = NSApplication.shared
@@ -54,7 +57,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             source.resume()
             signals.append(source)
         }
-        installMainMenu()
         do {
             gpu = try GPU()
         } catch {
@@ -76,6 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !LicenseController.isGated { displays.note = String(localized: "Development build") }
         displays.running = license.unlocks
         displays.start()
+        // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
+        installMainMenu()
         // A painting left behind by a crash or an older version goes back to the user's own picture.
         stills.restore()
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
@@ -89,11 +93,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installStatusItem()
         observePreferences()
 
-        // Keep a painting of the view ready for the lock screen, checking twice a minute for a new place.
+        // Keep a painting of the view ready for the lock screen, checking twice a minute for a new place. The first
+        // waits a moment, so it never shares the GPU with the wallpapers' first frames.
         stillTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshStill(force: false) }
         }
-        refreshStill(force: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshStill(force: true) }
 
         license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }
         if !license.unlocks {
