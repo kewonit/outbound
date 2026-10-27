@@ -41,6 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var gpu: GPU!
     private var settingsWindow: NSWindow?
     private var stillsWereOn = false
+    private var paintingTimer: Timer?
+    /// What the painting on the desktop last showed: its place, its light, the world's moment, and when it was made.
+    private var painted = (leg: -1, revision: -1, time: 0.0, at: Date.distantPast)
+    /// The session is ending (logging out, restarting, shutting down), so the painting stays for the login window.
+    private var sessionEnding = false
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
 
@@ -100,17 +105,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
         installMainMenu()
         // Launched while the Mac is locked, as an update installs, the lock screen gets this launch's own painting.
-        // Otherwise a painting left as the desktop picture, by a crash, an update or an older version, goes back to
-        // the user's own picture once the wallpapers are up over it.
-        if displays.isLocked { lockChanged(true) } else { stills.restoreOnceSettled() }
+        // Otherwise the desktop picture becomes a painting once the wallpapers are up over it, in place of any left
+        // there by the last launch.
+        if displays.isLocked {
+            lockChanged(true)
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshPainting(force: true) }
+        }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
-                                                          object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.stills.restoreOnceSettled() }
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                MainActor.assumeIsolated { self?.desktopChanged() }
+            }
+        }
+        workspace.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.sessionEnding = true }
         }
         installStatusItem()
         observePreferences()
+        paintingTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshPainting(force: false) }
+        }
 
         #if APPSTORE
         // Says where Outbound lives, once: it has no Dock icon, only the gull in the menu bar.
@@ -188,10 +205,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     #endif
 
-    /// The painting is the desktop picture only while the Mac is locked, so it always comes off the desktop it
-    /// went on: nobody can move to another one in between.
+    /// Whether the desktop picture is a painting of the view while Outbound runs.
+    private var paintsDesktop: Bool {
+        preferences.matchingStill && unlocked
+    }
+
+    /// Keeps the painting on the desktop close to the view, so the lock screen opens on much the same picture: on a
+    /// new place or a change of light, after a Fly To or a pause, on a display or desktop without one, and otherwise
+    /// every five minutes while someone is watching it move. Only displays in view: a full-screen app's desktop goes
+    /// away with it, and a painting there would never be put back.
+    private func refreshPainting(force: Bool) {
+        let shown = displays.wallpapersInView
+        guard paintsDesktop, !displays.isQuiet, !shown.isEmpty else { return }
+        let leg = world.journey.leg(at: world.camera.y).index
+        let stale = world.time != painted.time && Date.now.timeIntervalSince(painted.at) > 300
+        guard force || leg != painted.leg || world.revision != painted.revision || stale || !stills.isPainted(shown)
+        else { return }
+        painted = (leg, world.revision, world.time, .now)
+        stills.paint(shown)
+    }
+
+    /// Another desktop is in view. It gets a painting, unless it has a fresh one from a moment ago; with the painting
+    /// turned off, one left there goes back to the user's own picture.
+    private func desktopChanged() {
+        if !paintsDesktop {
+            stills.restore()
+        } else if !stills.isPainted(displays.wallpapersInView, within: 300) {
+            refreshPainting(force: true)
+        }
+    }
+
+    /// As the Mac locks, the painting on the lock screen becomes the very frame the wallpapers hold.
     private func lockChanged(_ locked: Bool) {
-        if locked, preferences.matchingStill, unlocked {
+        if locked, paintsDesktop {
             stills.lock(showing: displays.wallpapers.values)
         } else if !locked {
             stills.unlock()
@@ -203,6 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.running = unlocked
         if unlocked {
             activation?.finish()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.refreshPainting(force: true) }
         } else {
             stills.restore()
             showActivation()
@@ -226,8 +273,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
-        // Leave the desktop as the user had it before Outbound, unless the Mac is locked (see `StillWriter.restore`).
-        stills.restore()
+        // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
+        // screens are asleep, as an update installs, and as the session ends, for the login window; the next launch
+        // carries on from it.
+        if !sessionEnding, !displays.isAsleep { stills.restore() }
     }
 
     // MARK: - Links from the thank-you page
@@ -306,8 +355,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
+        let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
-        if stills != nil, stillsWereOn, !preferences.matchingStill { stills.restore() }
+        if stills != nil {
+            if stillsWereOn, !preferences.matchingStill { stills.restore() }
+            if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
+        }
         stillsWereOn = preferences.matchingStill
     }
 
@@ -459,6 +512,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
         world.journey.fly(to: place, from: bottom, time: world.time)
         preferences.lastPlace = place.id
+        // Once the new place has swept in.
+        DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
+            self?.refreshPainting(force: true)
+        }
     }
 
     @objc private func toggleBorder() {
@@ -479,6 +536,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.isPaused.toggle()
         // The gull greys out while the world is paused.
         statusItem.button?.appearsDisabled = displays.isPaused
+        if displays.isPaused { refreshPainting(force: true) }
     }
 
     @objc private func openSettings() {
