@@ -214,10 +214,13 @@ final class DisplayManager {
         let wanted = running && !world.isHeld && !unseen.isEmpty
         guard wanted != (upkeep != nil) else { return }
         if wanted {
-            upkeep = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.keepUp() }
             }
-            upkeep?.tolerance = 0.5
+            timer.tolerance = 0.5
+            // The common modes, so it keeps up while a menu is open.
+            RunLoop.main.add(timer, forMode: .common)
+            upkeep = timer
             Log.display.info("Keeping covered displays up with the flight")
         } else {
             upkeep?.invalidate()

@@ -33,7 +33,7 @@ final class CoverWatch {
     /// While a desktop is covered, a click anywhere may have moved or closed what covers it.
     private var clicks: Any?
     /// Each app's bundle, by process, for telling apps whose windows may be see-through.
-    private var bundles: [pid_t: String?] = [:]
+    private var bundles: [pid_t: String] = [:]
 
     func start() {
         guard !running else { return }
@@ -76,6 +76,8 @@ final class CoverWatch {
         interval = 0
         if let clicks { NSEvent.removeMonitor(clicks) }
         clicks = nil
+        // A cover read before must be read again for as long after, not count across the time stopped.
+        for id in debounces.keys { debounces[id]?.restart() }
     }
 
     /// Reads now, and again after each of `delays` in seconds.
@@ -157,7 +159,8 @@ final class CoverWatch {
 
     private func bundle(of pid: pid_t) -> String? {
         if let known = bundles[pid] { return known }
-        let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
+        // Only an app's is kept: a process that isn't one yet, or whose number an app takes later, is asked again.
+        guard let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier else { return nil }
         bundles[pid] = bundle
         return bundle
     }

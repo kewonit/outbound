@@ -385,7 +385,7 @@ final class ViewRenderer {
         // A Fly To came and went while this ground wasn't painted, so it still shows the place before: it is repainted
         // from the top as a wave, as new light is.
         if worldFrame.sweepFront == nil, let since = groundTime, let v = valid,
-           [worldFrame.legA, worldFrame.legB].contains(where: { ($0.sweepStart ?? -.infinity) > since }) {
+           [worldFrame.legA, worldFrame.legB].contains(where: { ($0.sweepStart ?? -.infinity) >= since }) {
             repaintRow = v.y + cacheHeight
         }
         // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave

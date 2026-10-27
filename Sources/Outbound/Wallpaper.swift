@@ -161,14 +161,20 @@ final class Wallpaper: NSObject {
         if coveredByWindows { slow = true }
         set(.starting, false)
         revealing = true
+        revealedAt = CACurrentMediaTime()
         visibilityChanged()
+        onHiddenChange()
+        // Up under a screen saver, it is never seen, and must stop rather than wait a second for each drawable.
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.revealGrace) { [weak self] in self?.visibilityChanged() }
     }
 
     /// Up, and waiting to be seen: the window says so a moment after it goes up.
     private var revealing = false
+    private var revealedAt: TimeInterval = 0
+    /// How long a window just up may go unseen before it counts as hidden.
+    private static let revealGrace: TimeInterval = 1
 
     func move(to screen: NSScreen) {
-        forgetParting()
         window.setFrame(screen.frame, display: false)
         place(on: screen)
         applyScale(on: screen)
@@ -259,13 +265,15 @@ final class Wallpaper: NSObject {
         renderer.drawsBird = drawsBird
     }
 
-    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen. Hidden,
-    /// it draws nothing: the window keeps showing what it showed, which coming back dissolves from.
+    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen. The lock
+    /// screen hides the window a moment before the Mac says it is locking, so it may be hidden already: drawn even so,
+    /// coming back shows this moment; given no drawable, it keeps what it showed, and coming back dissolves from that.
     func redraw() {
-        guard !holds.contains(.hidden) else { return }
-        forgetParting()
+        let hidden = holds.contains(.hidden)
+        if !hidden { forgetParting() }
         updateCaption()
-        draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
+        guard draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil) else { return }
+        if hidden { forgetParting() }
         if !renderer.drawsBird { drawBird(at: world.time) }
     }
 
@@ -304,7 +312,7 @@ final class Wallpaper: NSObject {
     /// count.
     private func visibilityChanged() {
         guard link != nil, !holds.contains(.starting) else { return }
-        let occluded = !isVisible && !revealing
+        let occluded = !isVisible && (!revealing || CACurrentMediaTime() - revealedAt >= Self.revealGrace)
         let was = (holds.contains(.hidden), slow)
         slow = coveredByWindows && !occluded
         if occluded != holds.contains(.hidden) {
@@ -458,7 +466,7 @@ final class Wallpaper: NSObject {
         let start = dissolve.start ?? moment
         if dissolve.start == nil { self.dissolve?.start = moment }
         let progress = min(max((moment - start) / Self.dissolveTime, 0), 1)
-        let fade = Float(1 - progress * progress * (3 - 2 * progress))
+        let fade = Float(1 - Easing.smoothstep(progress))
         guard fade > 0 else {
             self.dissolve = nil
             return nil
@@ -509,7 +517,7 @@ final class Wallpaper: NSObject {
             #endif
             if wantsLayer {
                 startBirdLink()
-                drawBird(at: world.renderTime(for: presentTime + refresh))
+                drawBird(at: world.renderTime(for: presentTime + refresh) - offset)
             } else {
                 birdLink?.invalidate()
                 birdLink = nil
@@ -564,7 +572,7 @@ final class Wallpaper: NSObject {
         // On macOS 13 a tick on its way to the main thread can arrive just after the clock stopped.
         guard birdLink != nil, link?.isPaused == false else { return }
         world.advance(to: tick.targetTimestamp)
-        drawBird(at: world.renderTime(for: tick.targetTimestamp))
+        drawBird(at: world.renderTime(for: tick.targetTimestamp) - offset)
     }
 
     private func tick(_ tick: FrameClock.Tick) {
@@ -592,6 +600,12 @@ final class Wallpaper: NSObject {
         default: break
         }
         #endif
+        if slow {
+            // Unseen, a slowed frame goes up as soon as it is drawn, showing the moment it is up. Asked for its target, a
+            // quarter of a second off, it would still be waiting when the desktop comes back, ahead of frames behind it.
+            presentTime = CACurrentMediaTime()
+            onScreen = tick.timestamp + 2 * tick.duration
+        }
         world.advance(to: onScreen)
         if resuming, let last = lastFrame {
             // Back from slowed frames: carry on one frame from the one the window still shows.
@@ -601,7 +615,8 @@ final class Wallpaper: NSObject {
         resuming = false
         let moment = world.renderTime(for: onScreen) - offset
         // Slowed under app windows with the flight held still, nothing has changed to draw.
-        if slow, let last = lastFrame, last.moment == moment, last.revision == world.revision { return }
+        if slow, let last = lastFrame, last.moment == moment, last.revision == world.revision,
+           !renderer.isRepainting(for: world) { return }
         if !slow { handOverBird(at: moment, presenting: presentTime) }
         if birdLayerLeft {
             birdLayerLeft = false

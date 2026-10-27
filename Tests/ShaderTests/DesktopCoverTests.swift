@@ -101,4 +101,19 @@ struct DesktopCoverTests {
             #expect(counts == expected, "at \(time)")
         }
     }
+
+    /// Stopped and started again, as around a lock, a cover not yet confirmed has to last again; one confirmed stays.
+    @Test func aCoverIsReadAgainAfterAGap() {
+        var waiting = CoverDebounce(confirm: 2)
+        waiting.read(true, at: 0)
+        waiting.restart()
+        let early = waiting.read(true, at: 3600), later = waiting.read(true, at: 3602)
+        #expect(!early && later)
+        var confirmed = CoverDebounce(confirm: 2)
+        confirmed.read(true, at: 0)
+        confirmed.read(true, at: 2)
+        confirmed.restart()
+        let still = confirmed.read(true, at: 3600)
+        #expect(still)
+    }
 }

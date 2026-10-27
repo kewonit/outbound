@@ -124,4 +124,9 @@ public struct CoverDebounce: Sendable {
         }
         return covered
     }
+
+    /// Forgets a cover not yet confirmed, keeping one that is: readings resume after a gap.
+    public mutating func restart() {
+        if !covered { since = nil }
+    }
 }
