@@ -3342,96 +3342,96 @@
         }
       }
     },
-    "It pauses by itself whenever you can't see it.": {
+    "It pauses by itself while you're away.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يتوقف مؤقتًا من تلقاء نفسه كلما غاب عن نظرك."
+            "value": "يتوقف مؤقتًا من تلقاء نفسه أثناء غيابك."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es pausiert von selbst, sobald es nicht zu sehen ist."
+            "value": "Es pausiert von selbst, solange du weg bist."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se pausa solo cuando no está a la vista."
+            "value": "Se pausa solo mientras no estás."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il se met en pause tout seul dès qu'il n'est plus visible."
+            "value": "Il se met en pause tout seul quand tu n'es pas là."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "जब यह दिखाई नहीं देता, तब यह अपने-आप रुक जाता है।"
+            "value": "आपके दूर रहने पर यह अपने-आप रुक जाता है।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si mette in pausa da solo quando non è visibile."
+            "value": "Si mette in pausa da solo quando non ci sei."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "見えていないときは、自動で一時停止します。"
+            "value": "席を外している間は、自動で一時停止します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면에 보이지 않을 때는 알아서 일시 정지합니다."
+            "value": "자리를 비운 동안에는 알아서 일시 정지합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Het pauzeert vanzelf als je het niet kunt zien."
+            "value": "Het pauzeert vanzelf als je weg bent."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sam się wstrzymuje, gdy go nie widać."
+            "value": "Sam się wstrzymuje, gdy Cię nie ma."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ele pausa sozinho sempre que fica fora de vista."
+            "value": "Ele pausa sozinho enquanto você está longe."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Он сам встаёт на паузу, когда его не видно."
+            "value": "Он сам встаёт на паузу, пока вас нет."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Göremediğin her an kendiliğinden duraklar."
+            "value": "Sen yokken kendiliğinden duraklar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的时候，它会自动暂停。"
+            "value": "你不在的时候，它会自动暂停。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的時候，它會自動暫停。"
+            "value": "你不在的時候，它會自動暫停。"
           }
         }
       }
@@ -5612,6 +5612,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "暫停"
+          }
+        }
+      }
+    },
+    "Pause When Hidden": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف مؤقت عند الإخفاء"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausieren, wenn verdeckt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar al ocultarse"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause si masqué"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छिपने पर पॉज़ करें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa quando nascosto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隠れているときは一時停止"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가려지면 일시 정지"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauzeer indien verborgen"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymaj, gdy zasłonięte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar Quando Oculto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пауза, когда скрыто"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gizliyken Duraklat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏时暂停"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱藏時暫停"
           }
         }
       }

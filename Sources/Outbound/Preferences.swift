@@ -47,6 +47,9 @@ final class Preferences: ObservableObject {
     @Published var matchingStill: Bool { didSet { save() } }
     /// Hold still after five minutes without anyone at the Mac.
     @Published var restsWhenAway: Bool { didSet { save() } }
+    /// Hold the flight while every display's desktop is hidden, as by full-screen apps. Off, it flies on unseen, and
+    /// the view has moved on when the desktop comes back.
+    @Published var pausesWhenHidden: Bool { didSet { save() } }
     /// The pale dry-brush border round the painting. Off until it is asked for.
     @Published var paperEdge: Bool { didSet { save() } }
     /// The place to start from next launch.
@@ -63,7 +66,10 @@ final class Preferences: ObservableObject {
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
-        paperEdge = defaults.object(forKey: "paperEdge") as? Bool ?? false
+        pausesWhenHidden = defaults.object(forKey: "pausesWhenHidden") as? Bool ?? false
+        // Kept under a new name since the border went off by default: the old one was saved as on for everyone who
+        // had run Outbound by then, whether they asked for it or not.
+        paperEdge = defaults.object(forKey: "paperBorder") as? Bool ?? false
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
     }
 
@@ -75,7 +81,9 @@ final class Preferences: ObservableObject {
         defaults.set(batteryMode.rawValue, forKey: "batteryMode")
         defaults.set(matchingStill, forKey: "matchingStill")
         defaults.set(restsWhenAway, forKey: "restsWhenAway")
-        defaults.set(paperEdge, forKey: "paperEdge")
+        defaults.set(pausesWhenHidden, forKey: "pausesWhenHidden")
+        defaults.set(paperEdge, forKey: "paperBorder")
+        defaults.removeObject(forKey: "paperEdge")
         defaults.set(lastPlace, forKey: "lastPlace")
     }
 }

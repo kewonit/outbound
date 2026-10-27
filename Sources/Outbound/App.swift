@@ -383,6 +383,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
+        displays.pausesWhenHidden = preferences.pausesWhenHidden
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
@@ -494,6 +495,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                              current: preferences.stay) { preferences.stay = $0 })
         menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
                              current: preferences.batteryMode) { preferences.batteryMode = $0 })
+        let hidden = NSMenuItem(title: String(localized: "Pause When Hidden"), action: #selector(togglePausesWhenHidden),
+                                keyEquivalent: "")
+        hidden.target = self
+        hidden.state = preferences.pausesWhenHidden ? .on : .off
+        menu.addItem(hidden)
         menu.addItem(.separator())
 
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
@@ -559,6 +565,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleBorder() {
         preferences.paperEdge.toggle()
+    }
+
+    @objc private func togglePausesWhenHidden() {
+        preferences.pausesWhenHidden.toggle()
     }
 
     @objc private func checkForUpdates() {

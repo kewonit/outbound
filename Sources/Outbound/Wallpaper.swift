@@ -71,6 +71,8 @@ final class MetalView: NSView {
 final class Wallpaper: NSObject {
     enum Hold: Hashable {
         case user, occluded, asleep, locked, inactive, lowPower, resting
+        /// Every display's desktop is hidden, and Pause When Hidden holds the flight until one is in view again.
+        case hidden
         /// The first frame is still being painted, before the window goes up.
         case starting
     }
@@ -269,6 +271,12 @@ final class Wallpaper: NSObject {
 
     /// Whether any of the window can be seen.
     var isVisible: Bool { window.occlusionState.contains(.visible) }
+
+    /// App windows hide this display's desktop, which macOS doesn't say for a window at the desktop's level (see
+    /// `CoverWatch`). Only looked for with Pause When Hidden on.
+    var coveredByWindows = false {
+        didSet { if coveredByWindows != oldValue { onOcclusionChange() } }
+    }
 
     /// Counts changes to whether the window can be seen, so a cover that lifts again at once is never acted on.
     private var occlusionChanges = 0
