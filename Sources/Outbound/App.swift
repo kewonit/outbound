@@ -37,12 +37,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var stillsWereOn = false
     private var paintingTimer: Timer?
     /// What the painting on the desktop last showed: its place, its light, the world's moment, and when it was made.
-    private var painted = (leg: -1, revision: -1, time: 0.0, at: Date.distantPast)
+    private var painted = (leg: -1, revision: -1, time: 0.0, at: -TimeInterval.infinity)
     /// The session is ending (logging out, restarting, shutting down), as the quit itself says.
     private var sessionEnding = false
     /// When the Mac last unlocked: the desktop picture shows through as the desktop fades back in, so it is left alone
     /// for a moment.
-    private var unlockedAt = Date.distantPast
+    private var unlockedAt = -TimeInterval.infinity
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
     /// Links from the thank-you page that arrived before launch finished.
@@ -187,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// asked for while the Mac was locked.
     private func refreshPainting(force: Bool) {
         guard paintsDesktop else {
-            if stills.owesRestore, Date.now.timeIntervalSince(unlockedAt) > 3 { restorePictures() }
+            if stills.owesRestore, CACurrentMediaTime() - unlockedAt > 3 { restorePictures() }
             return
         }
         guard !displays.isQuiet else { return }
@@ -195,12 +195,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
         guard !world.isSweeping, !shown.isEmpty, !shown.contains(where: \.isRepainting),
-              Date.now.timeIntervalSince(unlockedAt) > 3 else { return }
+              CACurrentMediaTime() - unlockedAt > 3 else { return }
         let leg = world.journey.leg(at: world.camera.y).index
-        let stale = world.time != painted.time && Date.now.timeIntervalSince(painted.at) > 300
+        let stale = world.time != painted.time && CACurrentMediaTime() - painted.at > 300
         guard force || leg != painted.leg || world.revision != painted.revision || stale || !showsOneMoment
         else { return }
-        painted = (leg, world.revision, world.time, .now)
+        painted = (leg, world.revision, world.time, CACurrentMediaTime())
         stills.paint(shown, at: world.moment())
     }
 
@@ -221,7 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func lockChanged(_ locked: Bool) {
         guard locked else {
             stills.unlock()
-            unlockedAt = .now
+            unlockedAt = CACurrentMediaTime()
             return
         }
         // A painting dropped on its way is asked for again once the Mac unlocks.

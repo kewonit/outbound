@@ -43,6 +43,17 @@ final class DisplayManager {
     func start() {
         guard !started else { return }
         started = true
+        // Not documented, but long-standing and what every screen-aware app listens to. Listened for before asking,
+        // so an unlock while the wallpapers start up is never missed.
+        let distributed = DistributedNotificationCenter.default()
+        for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
+            distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.set(.locked, on)
+                    self?.onLockChange(on)
+                }
+            }
+        }
         // Launched while the Mac is locked, say to install an update, nothing says so later.
         if Self.screenIsLocked { set(.locked, true) }
         sync()
@@ -61,16 +72,6 @@ final class DisplayManager {
         for (name, hold, on) in holds {
             workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.set(hold, on) }
-            }
-        }
-        // Not documented, but long-standing and what every screen-aware app listens to.
-        let distributed = DistributedNotificationCenter.default()
-        for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
-            distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    self?.set(.locked, on)
-                    self?.onLockChange(on)
-                }
             }
         }
 
