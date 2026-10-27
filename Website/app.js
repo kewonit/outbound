@@ -17,12 +17,30 @@
     return WORDS[key] || english;
   }
 
+  // Counts a moment with Plausible. Blocked, missing or failing, it does nothing, and nothing waits for it.
+  function track(name, props) {
+    try {
+      if (typeof window.plausible === "function") window.plausible(name, { props: props });
+    } catch (error) {}
+  }
+
+  // Which part of the page a link sits in, so the counts can tell the top bar's Buy from the price box's.
+  function place(link) {
+    if (link.closest(".topbar")) return "topbar";
+    if (link.closest(".hero")) return "hero";
+    if (link.closest(".tier")) return "price";
+    if (link.closest(".foot-cta")) return "footer";
+    if (link.closest(".thanks")) return "thanks";
+    return "page";
+  }
+
   // The language picker in the footer. The choice is remembered, and the site keeps to it rather than the
   // browser's languages, then the same page opens in that language.
   var LANGUAGES = /^\/(es|fr|de|it|pt-br|nl|ru|tr|pl|ja|ko|zh-hans|zh-hant|hi|ar)(?=\/|$)/;
   document.querySelectorAll("select[data-lang-picker]").forEach(function (picker) {
     picker.addEventListener("change", function () {
       var language = picker.value;
+      track("Language", { to: language });
       document.cookie = "lang=" + language + "; path=/; max-age=31536000; samesite=lax";
       var path = location.pathname.replace(LANGUAGES, "") || "/";
       location.href = (language === "en" ? "" : "/" + language) + path + location.hash;
@@ -54,6 +72,20 @@
     if (!URLS[element.getAttribute("data-needs")]) {
       element.hidden = true;
     }
+  });
+
+  // Counts the clicks that lead to a purchase or a download. A "Coming soon" link has no address, so it counts
+  // nothing.
+  var MOMENTS = { buy: "Buy", download: "Download", city: "City" };
+  document.querySelectorAll("a[data-url], a[data-dollars]").forEach(function (link) {
+    var name = link.hasAttribute("data-dollars") ? "Buy" : MOMENTS[link.getAttribute("data-url")];
+    if (!name) return;
+    link.addEventListener("click", function () {
+      if (!link.getAttribute("href")) return;
+      var props = { place: place(link) };
+      if (name === "Buy") props.currency = link.hasAttribute("data-dollars") ? "usd" : "local";
+      track(name, props);
+    });
   });
 
   // A buyer's key, kept in this browser for a year after checkout so it is easy to find again. While it is
@@ -151,6 +183,8 @@
       if (willOpen) {
         item.classList.add("open");
         button.setAttribute("aria-expanded", "true");
+        // The question's key, the same in every language.
+        track("FAQ", { question: button.getAttribute("data-i18n") || "unknown" });
       }
     });
   });

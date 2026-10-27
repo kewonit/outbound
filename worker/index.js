@@ -8,8 +8,9 @@
 //   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
 //   POST /api/checkout                 A new Polar checkout for Outbound, in the buyer's money: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
-//                                      { status: "ready", key, email } or { status: "pending" | "open" | ... },
-//                                      with city: true when it bought a city painted in as well.
+//                                      { status: "ready", key, email, paid } or { status: "pending" | "open" | ... },
+//                                      with city: true when it bought a city painted in as well. paid is what
+//                                      the buyer paid before tax, { amount, currency }, for counting sales.
 //
 // POLAR_ACCESS_TOKEN is a secret: a Polar organization token with checkouts:read, checkouts:write,
 // orders:read, benefits:read and license_keys:read. Everything else comes from vars in wrangler.jsonc.
@@ -231,7 +232,17 @@ async function license(request, env) {
   if (!keyID) return answer({ status: "pending" });
   const key = await polar(env, `/v1/license-keys/${keyID}`);
   if (!key || key.status !== "granted") return answer({ status: "pending" });
-  return answer({ status: "ready", key: key.key, email: mask(order.customer?.email ?? checkout.customer_email) });
+  return answer({ status: "ready", key: key.key, email: mask(order.customer?.email ?? checkout.customer_email),
+    paid: paid(order) });
+}
+
+// What an order came to before tax, in whole units of its money. Polar counts in cents, except in currencies
+// that have none.
+const WHOLE = new Set(["jpy", "krw"]);
+function paid(order) {
+  const currency = typeof order.currency === "string" ? order.currency.toLowerCase() : "";
+  if (!currency || typeof order.net_amount !== "number") return undefined;
+  return { amount: WHOLE.has(currency) ? order.net_amount : order.net_amount / 100, currency };
 }
 
 async function polar(env, path, init = {}) {

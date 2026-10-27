@@ -9,6 +9,15 @@
     return WORDS[key] || english;
   }
 
+  // Counts a moment with Plausible. Blocked, missing or failing, it does nothing, and nothing waits for it.
+  function track(name, props, revenue) {
+    try {
+      if (typeof window.plausible === "function") {
+        window.plausible(name, revenue ? { props: props, revenue: revenue } : { props: props });
+      }
+    } catch (error) {}
+  }
+
   var id = window.OUTBOUND_CHECKOUT;
   var status = document.getElementById("status");
   var activate = document.getElementById("activate");
@@ -46,6 +55,23 @@
   // The app swaps the checkout for the key itself, so the key never travels in a link.
   activate.href = "outbound://activate?checkout=" + encodeURIComponent(id);
   activate.removeAttribute("aria-disabled");
+  activate.addEventListener("click", function () {
+    track("Activate", {});
+  });
+
+  // Counts the purchase once, however often the page is opened again, with what was paid before tax. Nothing
+  // about the buyer goes with it.
+  function counted(answer) {
+    try {
+      if (localStorage.getItem("outbound-counted") === id) return;
+      localStorage.setItem("outbound-counted", id);
+    } catch (error) {}
+    var paid = answer.paid;
+    var revenue = paid && paid.amount > 0 && typeof paid.currency === "string"
+      ? { currency: paid.currency.toUpperCase(), amount: paid.amount }
+      : null;
+    track("Purchase", { product: answer.city ? "city" : "outbound" }, revenue);
+  }
 
   var started = Date.now();
   function poll() {
@@ -65,6 +91,7 @@
             localStorage.setItem("outbound-license", JSON.stringify({ key: answer.key, saved: Date.now() }));
           } catch (error) {}
           show(answer.key, answer.email);
+          counted(answer);
           return;
         }
         if (answer.status === "open" || answer.status === "confirmed" || answer.status === "pending" || !answer.status) {
