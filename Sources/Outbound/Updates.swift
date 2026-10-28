@@ -1,3 +1,5 @@
+// The App Store updates the copies it sells itself.
+#if !APPSTORE
 import AppKit
 @preconcurrency import Sparkle
 
@@ -45,3 +47,4 @@ extension Updates: SPUUpdaterDelegate {
         return true
     }
 }
+#endif

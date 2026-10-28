@@ -4,7 +4,8 @@ import SwiftUI
 
 /// The window shown before Outbound is unlocked: a live window onto the world, a way to buy it that unlocks
 /// by itself once paid, and a place to paste a key bought earlier. Once unlocked it stays to say where Outbound
-/// lives now, and offers to open it at login.
+/// lives now, and offers to open it at login. A copy from the App Store was bought there, so its window opens at
+/// that last step, once, on the first launch.
 @MainActor
 final class ActivationWindow {
     private let window: NSWindow
@@ -19,16 +20,36 @@ final class ActivationWindow {
         set { preview.paperEdge = newValue }
     }
 
-    init(license: LicenseController, world: World, gpu: GPU) {
-        let size = CGSize(width: 560, height: 300)
-        preview = PreviewView(world: world, gpu: gpu, size: size)
-        window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .closable, .fullSizeContentView],
-                          backing: .buffered, defer: false)
-        let view = ActivationView(license: license, preview: preview, state: state) { [weak self] size in
+    private static let size = CGSize(width: 560, height: 300)
+
+    #if APPSTORE
+    init(world: World, gpu: GPU) {
+        preview = PreviewView(world: world, gpu: gpu, size: Self.size)
+        window = Self.makeWindow()
+        set(up: ActivationView(preview: preview, state: state) { [weak self] size in
             self?.fit(size)
         } done: { [weak self] in
             self?.window.performClose(nil)
-        }
+        }, title: String(localized: "Welcome to Outbound"))
+    }
+    #else
+    init(license: LicenseController, world: World, gpu: GPU) {
+        preview = PreviewView(world: world, gpu: gpu, size: Self.size)
+        window = Self.makeWindow()
+        set(up: ActivationView(license: license, preview: preview, state: state) { [weak self] size in
+            self?.fit(size)
+        } done: { [weak self] in
+            self?.window.performClose(nil)
+        }, title: String(localized: "Unlock Outbound"))
+    }
+    #endif
+
+    private static func makeWindow() -> NSWindow {
+        NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.titled, .closable, .fullSizeContentView],
+                 backing: .buffered, defer: false)
+    }
+
+    private func set(up view: some View, title: String) {
         let hosting = NSHostingController(rootView: view)
         // The window follows its content itself: AppKit only ever grows it, and adds the title bar the content
         // already runs under.
@@ -36,7 +57,7 @@ final class ActivationWindow {
         window.contentViewController = hosting
         // The content is a fixed size, whatever it is offered.
         window.setFrame(CGRect(origin: .zero, size: hosting.sizeThatFits(in: .zero)), display: false)
-        window.title = String(localized: "Unlock Outbound")
+        window.title = title
         window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
         window.opensWhereTheUserIs()
@@ -49,12 +70,15 @@ final class ActivationWindow {
     }
 
     func show() {
+        #if !APPSTORE
         // Locked again, say after a refund, while the thank-you was still up.
         state.unlocked = false
+        #endif
         preview.start()
         window.bringForward()
     }
 
+    #if !APPSTORE
     /// Says thank you and where to find Outbound, and stays until the buyer is done reading. Someone who closed
     /// the window, or never saw it, isn't shown it again.
     func finish() {
@@ -66,6 +90,7 @@ final class ActivationWindow {
         state.opensAtLogin = true
         state.unlocked = true
     }
+    #endif
 
     /// Fits the window to its content as it changes, keeping the top edge where it is.
     private func fit(_ size: CGSize) {
@@ -86,17 +111,27 @@ final class ActivationWindow {
 
 @MainActor
 final class ActivationState: ObservableObject {
+    #if APPSTORE
+    // Opens at login only if the user ticks the box: the App Store asks that apps never start at login unasked.
+    @Published var unlocked = true
+    @Published var opensAtLogin = false
+    #else
     @Published var unlocked = false
     @Published var opensAtLogin = true
+    #endif
 }
 
 private struct ActivationView: View {
+    #if !APPSTORE
     @ObservedObject var license: LicenseController
+    #endif
     let preview: PreviewView
     @ObservedObject var state: ActivationState
     let resized: (CGSize) -> Void
     let done: () -> Void
+    #if !APPSTORE
     @State private var key = ""
+    #endif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -105,11 +140,15 @@ private struct ActivationView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Outbound")
                     .font(.system(size: 22, weight: .semibold))
+                #if APPSTORE
+                unlocked
+                #else
                 if state.unlocked {
                     unlocked
                 } else {
                     locked
                 }
+                #endif
             }
             .padding(22)
         }
@@ -119,6 +158,7 @@ private struct ActivationView: View {
         .ignoresSafeArea(edges: .top)
     }
 
+    #if !APPSTORE
     @ViewBuilder private var locked: some View {
         if license.waitingForPurchase {
             waiting
@@ -161,11 +201,18 @@ private struct ActivationView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+    #endif
 
     @ViewBuilder private var unlocked: some View {
+        #if APPSTORE
+        Label("All set. Thank you!", systemImage: "checkmark.circle.fill")
+            .font(.title3)
+            .foregroundStyle(.green)
+        #else
         Label("Unlocked. Thank you!", systemImage: "checkmark.circle.fill")
             .font(.title3)
             .foregroundStyle(.green)
+        #endif
         Text("Outbound is flying behind your windows now. It lives in the menu bar, under \(Image(nsImage: .outboundGullInline).renderingMode(.template)).")
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -179,6 +226,7 @@ private struct ActivationView: View {
         }
     }
 
+    #if !APPSTORE
     private var waiting: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
@@ -200,6 +248,7 @@ private struct ActivationView: View {
     private func unlock() {
         Task { await license.activate(key) }
     }
+    #endif
 }
 
 private struct PreviewRepresentable: NSViewRepresentable {

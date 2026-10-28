@@ -357,6 +357,7 @@ final class StillWriter {
     /// What the last `restore` put back in place of each painting, for desktops out of view that still show one.
     private var restored: [String: Original] = [:]
 
+    #if !APPSTORE
     /// After `restore`, puts the user's own pictures back on the desktops out of view as well, where the system's
     /// wallpaper store lets it (see OtherDesktops), then lets go of the paintings no desktop shows any more.
     func restoreOtherDesktops() {
@@ -382,6 +383,7 @@ final class StillWriter {
         savedOriginals = originals
         savedMoments = keptMoments
     }
+    #endif
 
     // MARK: - Moments left on the desktop
 

@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
 
+// Notices answer links from the site's thank-you page, which copies from the App Store never get.
+#if !APPSTORE
 /// A small window with a message and a button or two, for things worth saying when a link from the browser
 /// arrives. Unlike a modal alert it never holds up the app, and it waits for an answer however long it takes.
 @MainActor
@@ -90,6 +92,7 @@ private struct NoticeView: View {
         .frame(width: 360, alignment: .leading)
     }
 }
+#endif
 
 extension NSWindow {
     /// Small fixed windows can't be minimised or made full screen, so they show only the close button rather than
