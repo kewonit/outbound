@@ -23,6 +23,9 @@
   // Opened from the app's menu, the address says which version, as ?app=1.3, and the message carries it along.
   var app = new URLSearchParams(location.search).get("app");
   if (!/^\d{1,3}(\.\d{1,3}){0,2}$/.test(app || "")) app = null;
+  // And one line about how the painting runs on that Mac, as ?diag=chip=M1 os=26.1 ..., for a painting that won't move.
+  var diag = new URLSearchParams(location.search).get("diag");
+  if (!/^[A-Za-z0-9 =:,._-]{1,160}$/.test(diag || "")) diag = null;
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -54,6 +57,7 @@
         email: email,
         lang: document.documentElement.lang.toLowerCase(),
         app: app,
+        diag: diag,
         hp: form.elements.hp.value
       })
     }).then(function (response) {

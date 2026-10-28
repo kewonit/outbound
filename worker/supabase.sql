@@ -17,7 +17,7 @@
 --
 -- And the feedback, newest first:
 --
---   select created_at, message, email, lang, app from outbound.feedback order by created_at desc;
+--   select created_at, message, email, lang, app, diag from outbound.feedback order by created_at desc;
 
 create schema if not exists outbound;
 revoke all on schema outbound from public, anon, authenticated;
@@ -78,11 +78,18 @@ create table if not exists outbound.feedback (
   app text check (app is null or app ~ '^[0-9]{1,3}(\.[0-9]{1,3}){0,2}$'),
   created_at timestamptz not null default now()
 );
+-- The app's line about how the painting runs on that Mac (chip, macOS, what holds it still, GPU errors and cost),
+-- added after the table was first made.
+alter table outbound.feedback add column if not exists diag text
+  check (diag is null or (char_length(diag) <= 160 and diag ~ '^[A-Za-z0-9 =:,._-]+$'));
 alter table outbound.feedback enable row level security;
 revoke all on outbound.feedback from public, anon, authenticated;
 
--- Keeps one message: the email only when given, and the app's version only when the app opened the page.
-create or replace function public.outbound_send_feedback(p_token text, p_message text, p_email text, p_lang text, p_app text)
+-- Keeps one message: the email only when given, and the app's version and its line only when the app opened the page.
+-- The version without that line goes, so there is never a choice of two.
+drop function if exists public.outbound_send_feedback(text, text, text, text, text);
+create or replace function public.outbound_send_feedback(p_token text, p_message text, p_email text, p_lang text, p_app text,
+                                                         p_diag text default null)
 returns void
 language plpgsql
 security definer
@@ -95,12 +102,12 @@ begin
   ) then
     raise exception 'not allowed' using errcode = '42501';
   end if;
-  insert into outbound.feedback (message, email, lang, app)
+  insert into outbound.feedback (message, email, lang, app, diag)
   values (pg_catalog.btrim(p_message), nullif(pg_catalog.lower(pg_catalog.btrim(p_email)), ''),
-          coalesce(p_lang, 'en'), nullif(p_app, ''));
+          coalesce(p_lang, 'en'), nullif(p_app, ''), nullif(p_diag, ''));
 end;
 $$;
-revoke all on function public.outbound_send_feedback(text, text, text, text, text) from public, anon, authenticated, service_role;
-grant execute on function public.outbound_send_feedback(text, text, text, text, text) to anon;
+revoke all on function public.outbound_send_feedback(text, text, text, text, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.outbound_send_feedback(text, text, text, text, text, text) to anon;
 
 notify pgrst, 'reload schema';

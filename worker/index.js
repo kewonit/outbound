@@ -42,6 +42,8 @@ const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const PLATFORMS = ["windows", "ios"];
 const MESSAGE_LIMIT = 2000;
 const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
+// The app's line about how the painting runs on that Mac: chip, macOS, holds, GPU errors and cost.
+const DIAG = /^[A-Za-z0-9 =:,._-]{1,160}$/;
 // An X ad's click id, as X adds it to the ad's link (twclid), no longer than Polar keeps in a checkout's metadata.
 const TWCLID = /^[\w.~-]{1,500}$/;
 // How long the store remembers an order X has heard of: longer than a checkout can still be claimed.
@@ -333,8 +335,8 @@ async function waitlist(request, env, url) {
   return reply({ ok: true });
 }
 
-// The feedback page's form: a message, an address only when the writer wants a reply, and the app's version when the
-// app opened the page.
+// The feedback page's form: a message, an address only when the writer wants a reply, and the app's version and its line
+// about how the painting runs when the app opened the page.
 async function feedback(request, env, url) {
   const { body, refusal } = await form(request, url, env.FEEDBACK, 16384);
   if (refusal) return refusal;
@@ -350,6 +352,8 @@ async function feedback(request, env, url) {
     p_email: email || null,
     p_lang: LANGUAGES.includes(body.lang) ? body.lang : "en",
     p_app: typeof body.app === "string" && VERSION.test(body.app) ? body.app : null,
+    // Only when there is one, so feedback from the site still reaches a database not yet given the column.
+    ...(typeof body.diag === "string" && DIAG.test(body.diag) ? { p_diag: body.diag } : {}),
   });
   return reply({ ok: true });
 }

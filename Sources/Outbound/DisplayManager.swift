@@ -200,6 +200,11 @@ final class DisplayManager {
         }
     }
 
+    /// What holds the displays still, by name, for the feedback page.
+    var holdNames: [String] {
+        Set(wallpapers.values.flatMap(\.holds)).union(globalHolds).map { "\($0)" }.sorted()
+    }
+
     /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
     /// while the Mac is locked, asleep, resting or paused.
     private func watchCover() {

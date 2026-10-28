@@ -637,14 +637,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
-    /// message is about, and nothing else.
+    /// message is about, and how the painting runs on this Mac (see `diagnostics`), and nothing else.
     @objc private func openFeedback() {
         let site = Store.shop.deletingLastPathComponent()
         guard var page = URLComponents(url: site.appendingPathComponent("feedback"), resolvingAgainstBaseURL: false) else { return }
+        var items: [URLQueryItem] = []
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-            page.queryItems = [URLQueryItem(name: "app", value: version)]
+            items.append(URLQueryItem(name: "app", value: version))
         }
+        if displays != nil { items.append(URLQueryItem(name: "diag", value: diagnostics)) }
+        page.queryItems = items
         if let url = page.url { NSWorkspace.shared.open(url) }
+    }
+
+    /// One line about how the painting runs here, for the feedback page, as a painting that won't move can't be seen
+    /// from anywhere else: the chip, macOS and how many displays, what holds the painting still, the last error the
+    /// GPU gave, what painting the ground costs (GPU milliseconds a million texels) and the piece of work it is cut to.
+    private var diagnostics: String {
+        var size = 0
+        sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
+        var brand = [UInt8](repeating: 0, count: max(size, 1))
+        sysctlbyname("machdep.cpu.brand_string", &brand, &size, nil, 0)
+        let chip = String(decoding: brand.prefix { $0 != 0 }, as: UTF8.self)
+            .replacingOccurrences(of: "Apple ", with: "").replacingOccurrences(of: " ", with: "_")
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let holds = displays.holdNames
+        var parts = ["chip=\(chip.isEmpty ? "unknown" : chip)", "os=\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)",
+                     "displays=\(displays.wallpapers.count)", "holds=\(holds.isEmpty ? "none" : holds.joined(separator: ","))"]
+        if let reason = displays.power.state.holdReason { parts.append("power=\(reason)") }
+        if let error = gpu.lastError { parts.append("gpu=\(error.name):\(error.count)") }
+        parts.append("cost=\(Int(gpu.groundCost.millisecondsPerMillion.rounded()))")
+        parts.append("piece=\(gpu.groundCost.texelsPerPiece / 1000)k")
+        // Only what the page and the shop's server let through.
+        let line = parts.joined(separator: " ").filter { $0.isASCII && ($0.isLetter || $0.isNumber || " =:,._-".contains($0)) }
+        Log.display.info("Feedback diagnostics: \(line, privacy: .public)")
+        return String(line.prefix(160))
     }
 
     @objc private func togglePause() {
