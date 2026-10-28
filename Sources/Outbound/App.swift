@@ -482,6 +482,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(unlock)
             menu.addItem(feedbackItem())
             menu.addItem(.separator())
+            if let dev = devBuildItem() { menu.addItem(dev) }
             menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
         }
@@ -562,6 +563,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(check)
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
+        if let dev = devBuildItem() { menu.addItem(dev) }
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
@@ -585,6 +587,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.keyEquivalentModifierMask = []
         item.target = self
         return item
+    }
+
+    /// Which build this is, in one made with `scripts/build-app.sh dev`: its version, build number and commit, so test
+    /// builds can be told apart. Shipped builds have none, and the line is never translated.
+    private func devBuildItem() -> NSMenuItem? {
+        guard let line = Self.devBuildLine(Bundle.main.infoDictionary) else { return nil }
+        let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    /// The line a dev build's Info.plist carries, and nil for any other build's.
+    nonisolated static func devBuildLine(_ info: [String: Any]?) -> String? {
+        guard let line = info?["OutboundDevBuild"] as? String, !line.isEmpty else { return nil }
+        return line
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
