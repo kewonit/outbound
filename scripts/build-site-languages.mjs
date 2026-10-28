@@ -3,7 +3,8 @@
 //
 //   node scripts/build-site-languages.mjs extract   writes Website/i18n/en.json, the English of every key
 //   node scripts/build-site-languages.mjs           checks Website/i18n/<language>.json against it, then writes
-//                                                    Website/<language>/index.html, support.html and thanks.html,
+//                                                    Website/<language>/index.html, support.html, thanks.html,
+//                                                    waitlist.html and feedback.html,
 //                                                    the hreflang links of every page and the sitemap
 //
 // A translation keeps the English's markup exactly (the same tags with the same attributes), its prices and its
@@ -15,9 +16,9 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "Website");
 const site = "https://outbound.edbn.me";
-const pages = ["index", "support", "thanks"];
-// Pages search engines should list in every language; the thank-you page is for buyers only.
-const listed = { index: "/", support: "/support" };
+const pages = ["index", "support", "thanks", "waitlist", "feedback"];
+// Pages search engines should list in every language; the thank-you page is for buyers only, and feedback is a form.
+const listed = { index: "/", support: "/support", waitlist: "/waitlist" };
 
 export const LANGUAGES = [
   { folder: "es", tag: "es", locale: "es_ES" },
@@ -67,7 +68,7 @@ function english() {
       }
     }
   }
-  for (const script of ["app.js", "thanks.js"]) {
+  for (const script of ["app.js", "thanks.js", "waitlist.js", "feedback.js"]) {
     for (const [, key, value] of read(script).matchAll(/word\("(js\.\w+)", "((?:[^"\\]|\\.)*)"\)/g)) add(key, value, script);
   }
   // Structured data that isn't on the page word for word. Its FAQ is rebuilt from the page's, so it must match.
@@ -91,7 +92,7 @@ function english() {
 
 // What can't change in translation: the markup, prices and keyboard keys.
 const markup = (html) => [...html.matchAll(/<\/?\w+[^>]*>/g)].map((m) => m[0]).sort();
-const fixed = (text) => [...text.matchAll(/\$\d+|⌘\w/g)].map((m) => m[0]).sort();
+const fixed = (text) => [...text.matchAll(/\$\d+(?:\.\d+)?|⌘\w/g)].map((m) => m[0]).sort();
 
 function check(source, language, strings) {
   const problems = [];
@@ -146,7 +147,7 @@ function translatePage(html, page, language, strings) {
   // stay in this language. Privacy and the license stay English.
   out = out.replace(/(\s(?:href|src|poster|data-src)=")(?!https?:|\/|#|mailto:|data:)([^"]+)"/g, '$1/$2"');
   out = out.replace(/(\shref=")\/(#[\w-]+)?"/g, `$1/${folder}/$2"`);
-  out = out.replace(/(\shref=")\/(support|thanks)"/g, `$1/${folder}/$2"`);
+  out = out.replace(/(\shref=")\/(support|thanks|waitlist|feedback)"/g, `$1/${folder}/$2"`);
   out = out.replace(/(<link rel="canonical" href=")[^"]*"/, `$1${pageURL(folder, page)}"`);
   out = out.replace(/(<meta property="og:url" content=")[^"]*"/, `$1${pageURL(folder, page)}"`);
   out = out.replace(/(<meta property="og:locale" content=")[^"]*"/, `$1${locale}"`);
@@ -187,6 +188,13 @@ function structuredData(json, { folder, tag }, strings) {
   return `\n${JSON.stringify(data, null, 1)}\n`;
 }
 
+// The paintings on a page, for image search: its pictures of places and of the day, and the hero's poster, at the
+// addresses the page itself uses.
+function pictures(page) {
+  const found = read(`${page}.html`).matchAll(/\s(?:src|poster)="(assets\/(?:places\/|day\/|poster\.)[^"]+)"/g);
+  return [...new Set([...found].map((m) => `${site}/${m[1]}`))];
+}
+
 function sitemap() {
   const now = new Date();
   const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -194,6 +202,7 @@ function sitemap() {
     const links = [`    <xhtml:link rel="alternate" hreflang="en" href="${pageURL("", page)}"/>`];
     for (const { folder: f, tag } of LANGUAGES) links.push(`    <xhtml:link rel="alternate" hreflang="${tag}" href="${pageURL(f, page)}"/>`);
     links.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${pageURL("", page)}"/>`);
+    for (const picture of pictures(page)) links.push(`    <image:image><image:loc>${picture}</image:loc></image:image>`);
     return `  <url><loc>${pageURL(folder, page)}</loc><lastmod>${today}</lastmod>\n${links.join("\n")}\n  </url>`;
   };
   const urls = [];
@@ -206,7 +215,7 @@ function sitemap() {
     const kept = new RegExp(`\\s*<url><loc>${site}${path}</loc><lastmod>[^<]*</lastmod></url>`).exec(old);
     if (kept) urls.push(kept[0].trim().replace(/^/, "  "));
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
 const source = english();

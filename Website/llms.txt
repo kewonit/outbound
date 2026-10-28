@@ -1,10 +1,10 @@
 # Outbound
 
-> A live wallpaper for Mac. A painted landscape flies by behind your desktop, over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor. $7 plus tax, once, for up to 3 Macs. Needs a Mac with Apple silicon and macOS 13 Ventura or later.
+> A live wallpaper for Mac. A painted landscape flies by behind your desktop, over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor. $4.99 plus tax, once, for up to 3 Macs. Needs a Mac with Apple silicon and macOS 13 Ventura or later.
 
 - Your Mac paints it live with Metal as it flies, so it never loops.
 - The places: Punjab (India), Niigata (Japan), the Serengeti (Tanzania), Normandy (France), Lisse (Netherlands), La Pampa (Argentina), Lapland (Finland) and Kansas (United States).
-- It pauses when the desktop is hidden, the screen sleeps or Low Power Mode is on. On battery it can hold a still painting instead.
+- It pauses when the screen sleeps or Low Power Mode is on, or while the desktop is hidden if Pause When Hidden is on. On battery it can hold a still painting instead.
 - One landscape runs across every display. Your own wallpaper comes back when you quit.
 - Your city: for $99 plus tax, once, we paint your town or city into Outbound as one of its Extended Places, ready in about a week. It includes a license for up to 3 Macs. Buy at https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b
 - Updates are free and install themselves. The app has no account and no analytics.
@@ -13,6 +13,7 @@
 
 - [Home](https://outbound.edbn.me/): what it looks like, the places, the price and the FAQ
 - [Support](https://outbound.edbn.me/support): your key, moving to a new Mac, and help
+- [Windows and iPhone](https://outbound.edbn.me/waitlist): not out yet; leave an email for one email when it is
 - [Privacy](https://outbound.edbn.me/privacy): what the app sends and what it keeps on your Mac
 - [License](https://outbound.edbn.me/license): the source is public to read; using the app needs a license
 

@@ -11,3 +11,6 @@ node_modules/
 # Tests stay on the maintainer's Mac, apart from the shader tests.
 Tests/*
 !Tests/ShaderTests/
+
+# Wrangler's local secrets for npx wrangler dev.
+.dev.vars*

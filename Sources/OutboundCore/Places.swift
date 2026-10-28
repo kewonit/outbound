@@ -3,7 +3,7 @@ import Foundation
 public struct Season: Sendable {
     /// Calendar months (1 to 12) this season covers at the place.
     public let months: Set<Int>
-    /// "Late winter · mustard in flower"
+    /// "Late winter – mustard in flower"
     public let line: String
     public let biome: Biome
 }
@@ -78,16 +78,16 @@ private let punjabBase: Biome = {
 private let punjab = Place(
     id: "punjab", name: "Punjab, India", anchor: Coordinate(latitude: 30.838, longitude: 76.189),
     seasons: [
-        Season(months: [1, 2, 3], line: "Late winter · mustard in flower", biome: punjabBase),
-        Season(months: [4, 5], line: "Spring · wheat turning gold", biome: punjabBase.with {
+        Season(months: [1, 2, 3], line: "Late winter – mustard in flower", biome: punjabBase),
+        Season(months: [4, 5], line: "Spring – wheat turning gold", biome: punjabBase.with {
             $0.crops = (rgb(0xe2b23a), rgb(0xd9a62f), rgb(0xc9a15a), rgb(0xe8c35a))
             $0.ground = rgb(0xb7a35a); $0.sway = 0.8
         }),
-        Season(months: [6, 7, 8, 9], line: "Monsoon · young rice in flooded fields", biome: punjabBase.with {
+        Season(months: [6, 7, 8, 9], line: "Monsoon – young rice in flooded fields", biome: punjabBase.with {
             $0.crops = (rgb(0x5fae4a), rgb(0x76c05a), rgb(0x4f9f60), rgb(0x8ccf62))
             $0.flooded = 0.45; $0.ground = rgb(0x6aa944); $0.riverWidth = 44; $0.ponds = 0.45; $0.sway = 0.5
         }),
-        Season(months: [10, 11, 12], line: "Autumn · rice harvest and new wheat", biome: punjabBase.with {
+        Season(months: [10, 11, 12], line: "Autumn – rice harvest and new wheat", biome: punjabBase.with {
             // Stubble, a few burnt fields, fresh-sown wheat on dark tilled soil.
             $0.crops = (rgb(0xcdb576), rgb(0x3a3430), rgb(0x7a6048), rgb(0x9cc860))
             $0.ground = rgb(0x9ab656); $0.sway = 0.4
@@ -123,18 +123,18 @@ private let niigataBase: Biome = {
 private let niigata = Place(
     id: "niigata", name: "Niigata, Japan", anchor: Coordinate(latitude: 37.935, longitude: 139.398),
     seasons: [
-        Season(months: [4, 5], line: "Spring · sakura over flooded paddies", biome: niigataBase),
-        Season(months: [6, 7, 8], line: "Summer · rice in full green", biome: niigataBase.with {
+        Season(months: [4, 5], line: "Spring – sakura over flooded paddies", biome: niigataBase),
+        Season(months: [6, 7, 8], line: "Summer – rice in full green", biome: niigataBase.with {
             $0.crops = (rgb(0x5fa64e), rgb(0x74b45a), rgb(0x55994a), rgb(0x86bf62)); $0.fallow = 0.03
             $0.flooded = 0.15; $0.canopy = rgb(0x2f6f3c); $0.canopyLight = rgb(0x4b9148); $0.petals = 0
             $0.sway = 0.7
         }),
-        Season(months: [9, 10], line: "Autumn · rice harvest", biome: niigataBase.with {
+        Season(months: [9, 10], line: "Autumn – rice harvest", biome: niigataBase.with {
             $0.crops = (rgb(0xd9b452), rgb(0xcca444), rgb(0xb59a6a), rgb(0xe0c066)); $0.fallow = 0.15
             $0.flooded = 0.05; $0.canopy = rgb(0xc8693a); $0.canopyLight = rgb(0xe08a4a); $0.petals = 0
             $0.hedge = rgb(0xa9a46a); $0.sway = 0.6
         }),
-        Season(months: [11, 12, 1, 2, 3], line: "Winter · snow over the paddies", biome: niigataBase.with {
+        Season(months: [11, 12, 1, 2, 3], line: "Winter – snow over the paddies", biome: niigataBase.with {
             $0.crops = (rgb(0xeef2f6), rgb(0xe4eaf1), rgb(0xd9e2ec), rgb(0xf3f5f8)); $0.fallow = 0.05
             $0.flooded = 0.1; $0.snowCover = 0.85; $0.canopy = rgb(0x6a5a52); $0.canopyLight = rgb(0x8a7a70)
             $0.petals = 0; $0.hedge = rgb(0xc9cdd2); $0.sway = 0; $0.cars = 0.1
@@ -170,19 +170,19 @@ private let serengetiBase: Biome = {
 private let serengeti = Place(
     id: "serengeti", name: "Serengeti, Tanzania", anchor: Coordinate(latitude: -2.542, longitude: 35.063),
     seasons: [
-        Season(months: [6, 7, 8, 9, 10], line: "Dry season · long grass", biome: serengetiBase),
-        Season(months: [11, 12], line: "Short rains · the herds arrive", biome: serengetiBase.with {
+        Season(months: [6, 7, 8, 9, 10], line: "Dry season – long grass", biome: serengetiBase),
+        Season(months: [11, 12], line: "Short rains – the herds arrive", biome: serengetiBase.with {
             $0.ground = rgb(0xa9b84e); $0.groundDark = rgb(0x86a03e)
             $0.crops = (rgb(0xb7b552), rgb(0x9fb04a), rgb(0xcfb257), rgb(0x8ea845))
             $0.animal = .zebra; $0.animalColor = rgb(0xf2efe8); $0.herds = 0.6; $0.landmarks = (.kopje, 0.4, .none, 0)
         }),
-        Season(months: [1, 2, 3], line: "Calving season · wildebeest on short grass", biome: serengetiBase.with {
+        Season(months: [1, 2, 3], line: "Calving season – wildebeest on short grass", biome: serengetiBase.with {
             $0.ground = rgb(0x93b84a); $0.groundDark = rgb(0x76a03c)
             $0.crops = (rgb(0x8fb64a), rgb(0xa5c25a), rgb(0x7ea842), rgb(0xb3c763))
             $0.animal = .wildebeest; $0.animalColor = rgb(0x4a4038); $0.herds = 0.95; $0.sway = 0.3
             $0.landmarks = (.kopje, 0.4, .none, 0)
         }),
-        Season(months: [4, 5], line: "Long rains · lush plains", biome: serengetiBase.with {
+        Season(months: [4, 5], line: "Long rains – lush plains", biome: serengetiBase.with {
             $0.ground = rgb(0x6fa840); $0.groundDark = rgb(0x568f35)
             $0.crops = (rgb(0x6fa840), rgb(0x86b84c), rgb(0x5e9a3a), rgb(0x9cc45a))
             $0.ponds = 0.6; $0.riverWidth = 26; $0.herds = 0.4; $0.animal = .wildebeest; $0.animalColor = rgb(0x4a4038)
@@ -216,17 +216,17 @@ private let pampaBase: Biome = {
 private let pampa = Place(
     id: "pampa", name: "La Pampa, Argentina", anchor: Coordinate(latitude: -36.842, longitude: -64.037),
     seasons: [
-        Season(months: [9, 10, 11], line: "Spring · open grassland", biome: pampaBase),
-        Season(months: [12, 1, 2], line: "Summer · sunflowers beside the pasture", biome: pampaBase.with {
+        Season(months: [9, 10, 11], line: "Spring – open grassland", biome: pampaBase),
+        Season(months: [12, 1, 2], line: "Summer – sunflowers beside the pasture", biome: pampaBase.with {
             // Pasture, maize, sunflowers in flower, soy.
             $0.crops = (rgb(0x9aa85a), rgb(0x5f8c38), rgb(0xe9bf2c), rgb(0x7ea145)); $0.ground = rgb(0xb2aa6a)
             $0.sway = 0.7
         }),
-        Season(months: [3, 4, 5], line: "Autumn · golden pasture", biome: pampaBase.with {
+        Season(months: [3, 4, 5], line: "Autumn – golden pasture", biome: pampaBase.with {
             $0.ground = rgb(0xc2b25a); $0.groundDark = rgb(0x8a6e52)
             $0.crops = (rgb(0xb9b064), rgb(0xa3a85a), rgb(0xcfae5a), rgb(0xd2c08e))
         }),
-        Season(months: [6, 7, 8], line: "Winter · frost on the pasture", biome: pampaBase.with {
+        Season(months: [6, 7, 8], line: "Winter – frost on the pasture", biome: pampaBase.with {
             $0.ground = rgb(0xa9b58f); $0.groundDark = rgb(0x83705a)
             $0.crops = (rgb(0xb3bf9c), rgb(0x9fb184), rgb(0x8fa868), rgb(0xc9c3a6)); $0.sway = 0.1
         })
@@ -258,18 +258,18 @@ private let laplandBase: Biome = {
 private let lapland = Place(
     id: "lapland", name: "Lapland, Finland", anchor: Coordinate(latitude: 67.126, longitude: 26.827),
     seasons: [
-        Season(months: [6, 7, 8], line: "Summer · midnight sun on the fells", biome: laplandBase),
-        Season(months: [9], line: "Autumn · ruska colours on the fells", biome: laplandBase.with {
+        Season(months: [6, 7, 8], line: "Summer – midnight sun on the fells", biome: laplandBase),
+        Season(months: [9], line: "Autumn – ruska colours on the fells", biome: laplandBase.with {
             // Crimson ground layer, ochre mires and gold birches against dark pine on pale lichen.
             $0.crops = (rgb(0xc9c0a0), rgb(0xc08f4c), rgb(0x8a4b30), rgb(0x6b4a2c))
             $0.hedge = rgb(0xd9a33a); $0.canopyLight = rgb(0x66784a)
         }),
-        Season(months: [10, 11, 12, 1, 2, 3, 4], line: "Winter · snow on the fells", biome: laplandBase.with {
+        Season(months: [10, 11, 12, 1, 2, 3, 4], line: "Winter – snow on the fells", biome: laplandBase.with {
             $0.crops = (rgb(0xf1f4f7), rgb(0xe6ecf2), rgb(0xdce4ec), rgb(0xd6dde6)); $0.ground = rgb(0xeef2f6)
             $0.snowCover = 0.9; $0.frozen = 0.85; $0.sway = 0; $0.rock = rgb(0x8c8f96); $0.hedge = rgb(0x8a8078)
             $0.herds = 0.35; $0.boats = 0
         }),
-        Season(months: [5], line: "Spring · snowmelt on the fells", biome: laplandBase.with {
+        Season(months: [5], line: "Spring – snowmelt on the fells", biome: laplandBase.with {
             $0.crops = (rgb(0xbab38c), rgb(0x9a9062), rgb(0x6a6a48), rgb(0x5a5a40)); $0.snowCover = 0.35
             $0.frozen = 0.2; $0.hedge = rgb(0x8a8a5a)
         })
@@ -303,18 +303,18 @@ private let normandyBase: Biome = {
 private let normandy = Place(
     id: "normandy", name: "Normandy, France", anchor: Coordinate(latitude: 48.948, longitude: -0.148),
     seasons: [
-        Season(months: [4, 5], line: "Spring · apple blossom and new grass", biome: normandyBase.with {
+        Season(months: [4, 5], line: "Spring – apple blossom and new grass", biome: normandyBase.with {
             $0.blossom = (rgb(0xf3e6ea), rgb(0xfbf4f6))
         }),
-        Season(months: [6, 7, 8], line: "Summer · wheat, flax and pasture", biome: normandyBase.with {
+        Season(months: [6, 7, 8], line: "Summer – wheat, flax and pasture", biome: normandyBase.with {
             $0.crops = (rgb(0xe3c252), rgb(0x86a9de), rgb(0x8cc74e), rgb(0xd6b84a)); $0.petals = 0
             $0.canopy = rgb(0x2f6b38); $0.canopyLight = rgb(0x4d8e45); $0.sway = 0.8
         }),
-        Season(months: [9, 10, 11], line: "Autumn · apple harvest", biome: normandyBase.with {
+        Season(months: [9, 10, 11], line: "Autumn – apple harvest", biome: normandyBase.with {
             $0.crops = (rgb(0x86b84c), rgb(0xa9744a), rgb(0xc9a24a), rgb(0x6fa642)); $0.petals = 0
             $0.canopy = rgb(0x5f7a35); $0.canopyLight = rgb(0xc9873a); $0.hedge = rgb(0x4a6a2f)
         }),
-        Season(months: [12, 1, 2, 3], line: "Winter · bare hedgerows", biome: normandyBase.with {
+        Season(months: [12, 1, 2, 3], line: "Winter – bare hedgerows", biome: normandyBase.with {
             $0.crops = (rgb(0x7fa65a), rgb(0x9a7a56), rgb(0x8a9d62), rgb(0xa08868)); $0.petals = 0
             $0.canopy = rgb(0x6d5c4f); $0.canopyLight = rgb(0x8a7866); $0.hedge = rgb(0x5a5a45); $0.sway = 0.2
             $0.ground = rgb(0x7f9f5a)
@@ -347,11 +347,11 @@ private let lisseBase: Biome = {
 private let lisse = Place(
     id: "lisse", name: "Lisse, Netherlands", anchor: Coordinate(latitude: 52.258, longitude: 4.558),
     seasons: [
-        Season(months: [4, 5], line: "Spring · tulips in bloom", biome: lisseBase),
-        Season(months: [6, 7, 8, 9], line: "Summer · bulbs lifted, fields resting", biome: lisseBase.with {
+        Season(months: [4, 5], line: "Spring – tulips in bloom", biome: lisseBase),
+        Season(months: [6, 7, 8, 9], line: "Summer – bulbs lifted, fields resting", biome: lisseBase.with {
             $0.crops = (rgb(0x86b85a), rgb(0xb5a77c), rgb(0x9cc46a), rgb(0xc2b48a)); $0.fallow = 0.3
         }),
-        Season(months: [10, 11, 12, 1, 2, 3], line: "Winter · new bulbs under straw", biome: lisseBase.with {
+        Season(months: [10, 11, 12, 1, 2, 3], line: "Winter – new bulbs under straw", biome: lisseBase.with {
             $0.crops = (rgb(0xc9aa6a), rgb(0xb89a5e), rgb(0x8c6f50), rgb(0xd2b878)); $0.fallow = 0.15
             $0.ground = rgb(0x8aa86a); $0.hedge = rgb(0x7a8f5a); $0.sway = 0.1
         })
@@ -385,15 +385,15 @@ private let kansasBase: Biome = {
 private let kansas = Place(
     id: "kansas", name: "Kansas, United States", anchor: Coordinate(latitude: 37.689, longitude: -100.851),
     seasons: [
-        Season(months: [6, 7, 8], line: "Summer · corn under the pivots", biome: kansasBase),
-        Season(months: [9, 10, 11], line: "Autumn · sorghum and harvest circles", biome: kansasBase.with {
+        Season(months: [6, 7, 8], line: "Summer – corn under the pivots", biome: kansasBase),
+        Season(months: [9, 10, 11], line: "Autumn – sorghum and harvest circles", biome: kansasBase.with {
             $0.crops = (rgb(0xc9a46a), rgb(0xa0522d), rgb(0xc9a046), rgb(0x8a7a5a))
         }),
-        Season(months: [12, 1, 2], line: "Winter · green wheat in the circles", biome: kansasBase.with {
+        Season(months: [12, 1, 2], line: "Winter – green wheat in the circles", biome: kansasBase.with {
             $0.crops = (rgb(0x7a9e4a), rgb(0xc4ad80), rgb(0x8aa654), rgb(0xb59b70)); $0.ground = rgb(0xcdbb92)
             $0.sway = 0.1
         }),
-        Season(months: [3, 4, 5], line: "Spring · wheat greening", biome: kansasBase.with {
+        Season(months: [3, 4, 5], line: "Spring – wheat greening", biome: kansasBase.with {
             $0.crops = (rgb(0x7cb24a), rgb(0x92c05a), rgb(0xb5a46a), rgb(0x6aa542))
         })
     ],

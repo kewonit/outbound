@@ -1,97 +1,97 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "$7 + tax, once. Up to 3 Macs.": {
-      "comment": "Under the Buy button. Keep $7 as is.",
+    "$4.99 + tax, once. Up to 3 Macs.": {
+      "comment": "Under the Buy button. Keep $4.99 as is.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + الضريبة، مرة واحدة. حتى 3 أجهزة Mac."
+            "value": "$4.99 + الضريبة، مرة واحدة. حتى 3 أجهزة Mac."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + Steuern, einmalig. Für bis zu 3 Macs."
+            "value": "$4.99 + Steuern, einmalig. Für bis zu 3 Macs."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + impuestos, pago único. Hasta 3 Mac."
+            "value": "$4.99 + impuestos, pago único. Hasta 3 Mac."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + taxes, paiement unique. Jusqu'à 3 Mac."
+            "value": "$4.99 + taxes, paiement unique. Jusqu'à 3 Mac."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + टैक्स, सिर्फ़ एक बार। 3 Mac तक।"
+            "value": "$4.99 + टैक्स, सिर्फ़ एक बार। 3 Mac तक।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + tasse, una tantum. Fino a 3 Mac."
+            "value": "$4.99 + tasse, una tantum. Fino a 3 Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7（税別）の買い切り。Mac 3台まで使えます。"
+            "value": "$4.99（税別）の買い切り。Mac 3台まで使えます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7(세금 별도), 한 번만 결제. Mac 최대 3대."
+            "value": "$4.99(세금 별도), 한 번만 결제. Mac 최대 3대."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + btw, eenmalig. Voor maximaal 3 Macs."
+            "value": "$4.99 + btw, eenmalig. Voor maximaal 3 Macs."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + podatek, jednorazowo. Do 3 komputerów Mac."
+            "value": "$4.99 + podatek, jednorazowo. Do 3 komputerów Mac."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + impostos, pagamento único. Até 3 Macs."
+            "value": "$4.99 + impostos, pagamento único. Até 3 Macs."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + налог, один раз. До 3 Mac."
+            "value": "$4.99 + налог, один раз. До 3 Mac."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + vergi, tek seferlik. 3 Mac'e kadar."
+            "value": "$4.99 + vergi, tek seferlik. 3 Mac'e kadar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + 税费，一次买断。最多可用于 3 台 Mac。"
+            "value": "$4.99 + 税费，一次买断。最多可用于 3 台 Mac。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + 稅，一次買斷。最多 3 台 Mac。"
+            "value": "$4.99 + 稅，一次買斷。最多 3 台 Mac。"
           }
         }
       }
@@ -2682,6 +2682,100 @@
         }
       }
     },
+    "Feedback": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ملاحظات"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comentarios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre avis"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ीडबैक"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィードバック"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "피드백"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opinie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отзыв"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri Bildirim"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "反馈"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "意見回饋"
+          }
+        }
+      }
+    },
     "Find my key": {
       "localizations": {
         "ar": {
@@ -3343,96 +3437,96 @@
         }
       }
     },
-    "It pauses by itself whenever you can't see it.": {
+    "It pauses by itself while you're away.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يتوقف مؤقتًا من تلقاء نفسه كلما غاب عن نظرك."
+            "value": "يتوقف مؤقتًا من تلقاء نفسه أثناء غيابك."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es pausiert von selbst, sobald es nicht zu sehen ist."
+            "value": "Es pausiert von selbst, solange du weg bist."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se pausa solo cuando no está a la vista."
+            "value": "Se pausa solo mientras no estás."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il se met en pause tout seul dès qu'il n'est plus visible."
+            "value": "Il se met en pause tout seul quand tu n'es pas là."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "जब यह दिखाई नहीं देता, तब यह अपने-आप रुक जाता है।"
+            "value": "आपके दूर रहने पर यह अपने-आप रुक जाता है।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si mette in pausa da solo quando non è visibile."
+            "value": "Si mette in pausa da solo quando non ci sei."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "見えていないときは、自動で一時停止します。"
+            "value": "席を外している間は、自動で一時停止します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "화면에 보이지 않을 때는 알아서 일시 정지합니다."
+            "value": "자리를 비운 동안에는 알아서 일시 정지합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Het pauzeert vanzelf als je het niet kunt zien."
+            "value": "Het pauzeert vanzelf als je weg bent."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sam się wstrzymuje, gdy go nie widać."
+            "value": "Sam się wstrzymuje, gdy Cię nie ma."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ele pausa sozinho sempre que fica fora de vista."
+            "value": "Ele pausa sozinho enquanto você está longe."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Он сам встаёт на паузу, когда его не видно."
+            "value": "Он сам встаёт на паузу, пока вас нет."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Göremediğin her an kendiliğinden duraklar."
+            "value": "Sen yokken kendiliğinden duraklar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的时候，它会自动暂停。"
+            "value": "你不在的时候，它会自动暂停。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "看不到它的時候，它會自動暫停。"
+            "value": "你不在的時候，它會自動暫停。"
           }
         }
       }
@@ -5613,6 +5707,100 @@
           "stringUnit": {
             "state": "translated",
             "value": "暫停"
+          }
+        }
+      }
+    },
+    "Pause When Hidden": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف مؤقت عند الإخفاء"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausieren, wenn verdeckt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar al ocultarse"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause si masqué"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छिपने पर पॉज़ करें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa quando nascosto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隠れているときは一時停止"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가려지면 일시 정지"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauzeer indien verborgen"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymaj, gdy zasłonięte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar Quando Oculto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пауза, когда скрыто"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gizliyken Duraklat"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏时暂停"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隱藏時暫停"
           }
         }
       }

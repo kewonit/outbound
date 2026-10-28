@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- Site URLs (download, buy, github) live once, at the top of app.js. The form is waitlist.js, and the list is kept by
+     worker/index.js. -->
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="waitlist.metaTitle">Windows i iPhone · Outbound</title>
+<meta name="description" content="Outbound, malowana żywa tapeta, trafi na Windowsa i iPhone'a. Zostaw e-mail, a dostaniesz jedną wiadomość, gdy będzie gotowa. Nic więcej." data-i18n-attr="content=waitlist.metaDescription">
+<link rel="canonical" href="https://outbound.edbn.me/pl/waitlist">
+<!-- languages -->
+<link rel="alternate" hreflang="en" href="https://outbound.edbn.me/waitlist">
+<link rel="alternate" hreflang="es" href="https://outbound.edbn.me/es/waitlist">
+<link rel="alternate" hreflang="fr" href="https://outbound.edbn.me/fr/waitlist">
+<link rel="alternate" hreflang="de" href="https://outbound.edbn.me/de/waitlist">
+<link rel="alternate" hreflang="it" href="https://outbound.edbn.me/it/waitlist">
+<link rel="alternate" hreflang="pt-BR" href="https://outbound.edbn.me/pt-br/waitlist">
+<link rel="alternate" hreflang="nl" href="https://outbound.edbn.me/nl/waitlist">
+<link rel="alternate" hreflang="ru" href="https://outbound.edbn.me/ru/waitlist">
+<link rel="alternate" hreflang="tr" href="https://outbound.edbn.me/tr/waitlist">
+<link rel="alternate" hreflang="pl" href="https://outbound.edbn.me/pl/waitlist">
+<link rel="alternate" hreflang="ja" href="https://outbound.edbn.me/ja/waitlist">
+<link rel="alternate" hreflang="ko" href="https://outbound.edbn.me/ko/waitlist">
+<link rel="alternate" hreflang="zh-Hans" href="https://outbound.edbn.me/zh-hans/waitlist">
+<link rel="alternate" hreflang="zh-Hant" href="https://outbound.edbn.me/zh-hant/waitlist">
+<link rel="alternate" hreflang="hi" href="https://outbound.edbn.me/hi/waitlist">
+<link rel="alternate" hreflang="ar" href="https://outbound.edbn.me/ar/waitlist">
+<link rel="alternate" hreflang="x-default" href="https://outbound.edbn.me/waitlist">
+<!-- /languages -->
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://outbound.edbn.me/pl/waitlist">
+<meta property="og:title" content="Windows i iPhone · Outbound" data-i18n-attr="content=waitlist.metaTitle">
+<meta property="og:description" content="Outbound, malowana żywa tapeta, trafi na Windowsa i iPhone'a. Zostaw e-mail, a dostaniesz jedną wiadomość, gdy będzie gotowa. Nic więcej." data-i18n-attr="content=waitlist.metaDescription">
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outbound: malowany świat przelatujący w tle biurka." data-i18n-attr="content=meta.imageAlt">
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Windows i iPhone · Outbound" data-i18n-attr="content=waitlist.metaTitle">
+<meta name="twitter:description" content="Outbound, malowana żywa tapeta, trafi na Windowsa i iPhone'a. Zostaw e-mail, a dostaniesz jedną wiadomość, gdy będzie gotowa. Nic więcej." data-i18n-attr="content=waitlist.metaDescription">
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content="Outbound: malowany świat przelatujący w tle biurka." data-i18n-attr="content=meta.imageAlt">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css?v=22">
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body class="fill">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href="/pl/" aria-label="Outbound, strona główna" data-i18n-attr="aria-label=nav.home"><span class="mark mark-md" aria-hidden="true"></span></a>
+    <div class="topbar-actions">
+      <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+      <a class="btn btn-light btn-sm" href="/pl/#buy" data-url="buy" data-soon="Wkrótce" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Kup za $4.99</a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap-narrow prose waitlist">
+    <h1 data-i18n="waitlist.title">Outbound na Windowsa i iPhone'a.</h1>
+    <p class="lede" data-i18n="waitlist.lede">Jeszcze nie jest gotowe. Zostaw e-mail, a dostaniesz jedną wiadomość, gdy będzie. Nic więcej.</p>
+
+    <!-- Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. -->
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+      <fieldset class="platforms">
+        <legend class="sr-only" data-i18n="waitlist.which">Który?</legend>
+        <label class="platform">
+          <input type="radio" name="platform" value="ios" checked>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.5h2"/></svg>iPhone</span>
+        </label>
+        <label class="platform">
+          <input type="radio" name="platform" value="windows">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
+        </label>
+      </fieldset>
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder="Twój e-mail" aria-label="Twój e-mail" data-i18n-attr="placeholder=waitlist.email aria-label=waitlist.email">
+        <button class="btn btn-light" type="submit" data-i18n="waitlist.button">Powiadom mnie</button>
+      </div>
+      <!-- Left empty by people, filled in by bots. -->
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<footer class="footer footer-plain">
+  <div class="wrap-narrow">
+    <p class="form-fine" data-i18n="waitlist.fine">Twój adres posłuży tylko do tego jednego e-maila, potem zostanie usunięty. <a href="/privacy">Prywatność (po angielsku)</a></p>
+    <div class="lang-picker">
+      <label for="language" data-i18n="footer.language">Język</label>
+      <select id="language" data-lang-picker>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+        <option value="pt-br">Português (Brasil)</option>
+        <option value="nl">Nederlands</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+        <option value="pl" selected>Polski</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="zh-hans">简体中文</option>
+        <option value="zh-hant">繁體中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+  </div>
+</footer>
+
+<script>window.OUTBOUND_I18N = {"js.copied":"Skopiowano","js.copy":"Kopiuj","js.copyKey":"Kopiuj klucz","js.copyKeyTitle":"Skopiuj swój klucz","js.emailInvalid":"Ten adres e-mail nie wygląda dobrze.","js.feedbackEmpty":"Najpierw coś napisz.","js.feedbackLong":"Maksymalnie 2000 znaków.","js.feedbackSent":"Dziękujemy. Już leci.","js.finding":"Szukamy Twojego klucza…","js.formBusy":"Za dużo prób. Poczekaj minutę.","js.formFailed":"Nie udało się wysłać. Spróbuj ponownie.","js.offline":"Nie udało się połączyć ze sklepem. Kliknij Aktywuj lub zajrzyj do portalu klienta.","js.portal":"Twój klucz jest w portalu klienta poniżej.","js.pressCopy":"Naciśnij ⌘C, aby skopiować klucz.","js.refunded":"Za ten zakup zwrócono pieniądze.","js.slow":"Trwa to dłużej niż zwykle. Kliknij Aktywuj lub zajrzyj za minutę do portalu klienta.","js.unfinished":"Ta płatność nie została dokończona.","js.waitlistIos":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na iPhone'a.","js.waitlistWindows":"Jesteś na liście. Jeden e-mail, gdy Outbound trafi na Windowsa."};</script>
+<script src="/app.js?v=15"></script>
+<script src="/waitlist.js?v=2"></script>
+</body>
+</html>

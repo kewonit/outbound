@@ -2,7 +2,9 @@
   // The website: static files from Website/, and a small API under /api/ in worker/index.js that hands
   // a buyer's license key to the app. Deploys from main through Workers Builds, or with npx wrangler deploy.
   //
-  // One secret, set once and kept across deploys: npx wrangler secret put POLAR_ACCESS_TOKEN
+  // Secrets, set once and kept across deploys with npx wrangler secret put NAME: POLAR_ACCESS_TOKEN, for the
+  // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and WAITLIST_TOKEN (worker/supabase.sql), and for telling X Ads
+  // of sales X_PIXEL_TOKEN, the pixel's Conversion API token from X Ads Manager. Locally they go in .dev.vars.
   "name": "outbound",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
@@ -11,7 +13,8 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": [
-      "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/*/", "/*/support", "/*/thanks", "/license", "/privacy"
+      "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/waitlist", "/feedback", "/*/", "/*/support", "/*/thanks",
+      "/*/waitlist", "/*/feedback", "/license", "/privacy"
     ]
   },
   "vars": {
@@ -21,11 +24,18 @@
     // Polar's own checkout link for Outbound, where the site's Buy goes when a checkout can't be made.
     "POLAR_CHECKOUT_LINK": "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA",
     // Your City in Outbound: a buyer's city painted in, with the same license key benefit.
-    "POLAR_CITY_PRODUCT_ID": "a1589a31-9bb3-4d5a-a647-edf5e1f54a71"
+    "POLAR_CITY_PRODUCT_ID": "a1589a31-9bb3-4d5a-a647-edf5e1f54a71",
+    // The X Ads pixel that sales are told to, and its Purchase event ("Purchase Tracker" in Events Manager).
+    "X_PIXEL_ID": "pxms3",
+    "X_PURCHASE_EVENT": "tw-pxms3-pxms4"
   },
+  // The orders X Ads has heard of, so each sale is told once.
+  "kv_namespaces": [{ "binding": "CONVERSIONS", "id": "1f4ff1311ad946aaa2cff9b8195e51cb" }],
   "ratelimits": [
     { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
-    { "name": "LOOKUPS", "namespace_id": "1102", "simple": { "limit": 60, "period": 60 } }
+    { "name": "LOOKUPS", "namespace_id": "1102", "simple": { "limit": 60, "period": 60 } },
+    { "name": "WAITLIST", "namespace_id": "1103", "simple": { "limit": 5, "period": 60 } },
+    { "name": "FEEDBACK", "namespace_id": "1104", "simple": { "limit": 5, "period": 60 } }
   ],
   "routes": [{ "pattern": "outbound.edbn.me", "custom_domain": true }],
   "workers_dev": false,

@@ -72,7 +72,7 @@ final class World {
     /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
     /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
     func renderTime(for displayTime: TimeInterval) -> TimeInterval {
-        heldSince == nil ? displayTime - heldFor : time
+        heldSince == nil ? displayTime - heldFor - setOffLag(at: displayTime) : time
     }
 
     /// The bird as it was, or is, at `t`.
@@ -84,14 +84,27 @@ final class World {
     /// it stopped instead of leaping ahead.
     private var heldFor: TimeInterval = 0
     private var heldSince: TimeInterval?
+    /// When the flight last set off again after being held, in display time. It gathers speed over `setOffLength`
+    /// rather than going from still to full pace in one frame.
+    private var setOff: TimeInterval?
+    static let setOffLength = 0.8
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
+            // What setting off last time took off the clock stays taken off.
+            heldFor += setOffLag(at: now)
+            setOff = nil
             heldSince = now
         } else if !on, let since = heldSince {
             heldFor += now - since
             heldSince = nil
+            setOff = now
         }
+    }
+
+    /// How far behind its usual schedule gathering speed after a hold has left the flight.
+    private func setOffLag(at displayTime: TimeInterval) -> TimeInterval {
+        setOff.map { Easing.rampLag(elapsed: displayTime - $0, length: Self.setOffLength) } ?? 0
     }
 
     /// A moment of the flight to come back to: the one the painting on the desktop shows, which the wallpapers go back
@@ -142,7 +155,7 @@ final class World {
 
     func advance(to displayTime: TimeInterval) {
         guard heldSince == nil else { return }
-        let t = displayTime - heldFor
+        let t = displayTime - heldFor - setOffLag(at: displayTime)
         guard t > time else { return }
         let dt = t - time
         time = t
@@ -228,11 +241,24 @@ final class World {
     /// that is Finder's desktop, which sits below every normal window level.
     static func desktopIsUnder(_ point: CGPoint) -> Bool {
         let number = NSWindow.windowNumber(at: point, belowWindowWithWindowNumber: 0)
-        guard number > 0,
-              let info = CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(number)) as? [[String: Any]],
-              let layer = info.first?[kCGWindowLayer as String] as? Int else { return true }
+        guard number > 0 else { return true }
+        // The wall clock, which keeps going while the Mac sleeps.
+        let now = Date.now
+        let layer: Int?
+        if let last = lastWindow, last.number == number, abs(now.timeIntervalSince(last.read)) < 2 {
+            layer = last.layer
+        } else {
+            let info = CGWindowListCopyWindowInfo([.optionIncludingWindow], CGWindowID(number)) as? [[String: Any]]
+            layer = info?.first?[kCGWindowLayer as String] as? Int
+            lastWindow = (number, layer, now)
+        }
+        guard let layer else { return true }
         return layer < 0
     }
+
+    /// The level of the window last found under the pointer, read again every couple of seconds, so following the
+    /// pointer across one window asks the window server once each time rather than twice.
+    private static var lastWindow: (number: Int, layer: Int?, read: Date)?
 
     var camera: SIMD2<Double> {
         camera(at: time)
@@ -412,12 +438,26 @@ final class World {
     func flock(at t: TimeInterval) -> (Flock, FlockSighting)? {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
-        let month = Calendar.current.component(.month, from: now())
-        guard let flock = Flock.of(leg.place, month: month),
+        guard let flock = Flock.of(leg.place, month: month(at: now())),
               let sighting = flock.sighting(at: t, area: desktop,
                                              seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff)
         else { return nil }
         return (flock, sighting)
+    }
+
+    /// The month by the clock, when it begins and ends, and when that was worked out, so asking every frame costs a
+    /// comparison rather than a calendar sum. It is worked out again every minute, as a new time zone or calendar moves
+    /// where months begin.
+    private var clockMonth: (number: Int, start: Date, end: Date, asked: Date)?
+
+    private func month(at date: Date) -> Int {
+        if let month = clockMonth, date >= month.start, date < month.end, abs(date.timeIntervalSince(month.asked)) < 60 {
+            return month.number
+        }
+        let calendar = Calendar.current
+        let number = calendar.component(.month, from: date)
+        clockMonth = calendar.dateInterval(of: .month, for: date).map { (number, $0.start, $0.end, date) }
+        return number
     }
 
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being

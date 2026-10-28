@@ -7,6 +7,24 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.5</title>
+      <pubDate>Tue, 27 Oct 2026 23:34:22 +0000</pubDate>
+      <description><![CDATA[<p>New Pause When Hidden option holds the flight while windows cover every desktop. A Feedback item in the menu lets you write to me directly, and the painted border now stays off unless you turn it on.</p>]]></description>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.5/Outbound-v1.5.dmg" type="application/octet-stream" sparkle:edSignature="I0s08Ca3LaWZwAnsnCGbI8BPDy1TPMwRfGmIPyimRtt+DILuLMpGvh/tL8U1coSlPqpK+Yawa+K6Ws4w+poeDw==" length="5669210"/>
+    </item>
+    <item>
+      <title>Outbound v1.4</title>
+      <pubDate>Tue, 27 Oct 2026 17:39:00 +0000</pubDate>
+      <description><![CDATA[<p>The painting now stays on the lock screen and the login window, and quitting puts your own picture back on every desktop. Outbound uses about half the memory, starts sooner after an update, and moves between desktops without a jump. New installs start without the painted border.</p>]]></description>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>1.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.4/Outbound-v1.4.dmg" type="application/octet-stream" sparkle:edSignature="I4w6oz5njoxSEn5rmJnB0bxupoTy4h5EKopcdG+jIiEic/fKw55eFjonUuZuoQ8axh8tLOxz95f3Y0Z6xkECBQ==" length="5640373"/>
+    </item>
+    <item>
       <title>Outbound v1.3</title>
       <pubDate>Mon, 26 Oct 2026 23:43:08 +0000</pubDate>
       <description><![CDATA[<p>A new look: real trees and shadows, rivers that bend, cars that keep to the road with soft low beams, and a redrawn Lapland, La Pampa and Niigata. Outbound now speaks your Mac's language, the painted border can be turned off from the menu bar, it can stay over one place, and no light flickers any more.</p>]]></description>

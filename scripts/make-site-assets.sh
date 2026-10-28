@@ -29,7 +29,7 @@ for entry in punjab:45 niigata:45 serengeti:150 normandy:45 lisse:45 pampa:45 la
         --size 1200x780 --scale 1
 done
 # The picture shown when a link to the site is shared.
-"$outbound" --og "$assets/og.png"
+"$outbound" --og "$assets/og.jpg"
 
 # The hero: the pivots of Kansas in summer, with the bird coming to the cursor. It shows as much land as a wide
 # desktop, 1200 points across, in the same 1600 pixels. The page lays a Dock over the bottom, and the caption sits

@@ -1,8 +1,8 @@
-<img src="Website/assets/og.png" alt="Outbound: a painted world, flying by behind your desktop" width="100%">
+<img src="Website/assets/og.jpg" alt="Outbound: a painted world, flying by behind your desktop" width="100%">
 
 **A live wallpaper for Mac.** A painted world drifts by behind your desktop, and a little bird follows your cursor.
 
-**[Buy for $7](https://outbound.edbn.me/#buy)** · [Download](https://outbound.edbn.me/download) · [Website](https://outbound.edbn.me)
+**[Buy for $4.99](https://outbound.edbn.me/#buy)** · [Download](https://outbound.edbn.me/download) · [Website](https://outbound.edbn.me)
 
 <p>
   <img src="Website/assets/demos/follow.jpg" alt="The bird following the cursor" width="49%">
@@ -33,7 +33,7 @@
   <img src="Website/assets/day/night.jpg" alt="Night" width="24%">
 </p>
 
-Needs a Mac with Apple silicon and macOS 13 Ventura or newer. $7 + tax, once, for up to 3 Macs.
+Needs a Mac with Apple silicon and macOS 13 Ventura or newer. $4.99 + tax, once, for up to 3 Macs.
 
 ## Build
 
