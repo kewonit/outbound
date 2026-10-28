@@ -24,7 +24,7 @@
   "demos.title": "1분마다 새로운 풍경.",
   "demos.train": "지나가는 기차",
   "demos.trainVideo": "Niigata의 논을 가로지르는 노란 줄무늬의 하얀 기차",
-  "download.already": "<span class=\"btn-quiet\">이미 구입하셨나요?</span> 다운로드",
+  "download.already": "<span class=\"btn-quiet\">구입하셨나요?</span> 다운로드",
   "download.button": "Mac용 다운로드",
   "faq.a1": "Apple silicon이 탑재되고 macOS 13 Ventura 이상이 설치된 Mac.",
   "faq.a10": "코드는 누구나 읽을 수 있습니다. 앱을 사용하려면 <a href=\"/license\">라이선스</a>가 필요합니다.",
