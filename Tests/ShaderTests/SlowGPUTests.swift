@@ -4,7 +4,7 @@ import Testing
 @testable import Outbound
 @testable import OutboundCore
 
-/// Painting in pieces a slow GPU gets through quickly.
+/// Painting in pieces a slow GPU gets through quickly, and holding still in a way the menu can explain.
 @MainActor
 @Suite
 struct SlowGPUTests {
@@ -81,4 +81,44 @@ struct SlowGPUTests {
         }
     }
 
+    @Test func theMenuAndThePowerTierAgreeOnHoldingStill() {
+        for onBattery in [false, true] {
+            for lowPower in [false, true] {
+                for thermal in [PowerState.Thermal.nominal, .fair, .serious, .critical] {
+                    for mode in PowerState.BatteryMode.allCases {
+                        var state = PowerState()
+                        state.onBattery = onBattery
+                        state.lowPower = lowPower
+                        state.thermal = thermal
+                        state.batteryMode = mode
+                        #expect(PowerTier.choose(state).frozen == (state.holdReason != nil))
+                        let expected: PowerState.HoldReason? = lowPower ? .lowPower : thermal >= .serious ? .heat
+                            : onBattery && mode == .still ? .battery : nil
+                        #expect(state.holdReason == expected)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test func flyingToAPlaceWhileHeldGetsThereAtOnce() {
+        // Days into the clock, where a sweep begun just its length ago can round to not quite over.
+        let world = World(place: .first, time: 314_138.2, light: .alwaysDay)
+        world.pointer = { nil }
+        world.isDesktop = { _ in false }
+        world.advance(to: 314_168.2)
+        world.hold(true, at: 314_168.2)
+        let next = Place.all[1]
+        let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
+        world.journey.fly(to: next, from: bottom, time: world.time, atOnce: true)
+        #expect(!world.isSweeping)
+        let middle = world.camera.y + Double(world.home.midY) * World.metresPerPoint
+        #expect(world.journey.placeShown(at: middle, time: world.time).id == next.id)
+        let top = world.camera.y + Double(world.desktop.maxY) * World.metresPerPoint
+        let frame = world.frame(bottom: bottom + 50, top: top)
+        #expect(frame.sweepFront == nil)
+        #expect(frame.legB.place.id == next.id)
+        // The old place ends below the view, at once rather than over a morph.
+        #expect(frame.scene.morph.y < 0.01)
+    }
 }

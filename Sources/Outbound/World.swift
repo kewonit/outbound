@@ -119,6 +119,9 @@ final class World {
         }
     }
 
+    /// Something holds the flight still: the Mac asleep or locked, Pause, Low Power Mode and the like.
+    var isHeld: Bool { heldSince != nil }
+
     /// How far behind its usual schedule gathering speed after a hold has left the flight.
     private func setOffLag(at displayTime: TimeInterval) -> TimeInterval {
         setOff.map { Easing.rampLag(elapsed: displayTime - $0, length: Self.setOffLength) } ?? 0

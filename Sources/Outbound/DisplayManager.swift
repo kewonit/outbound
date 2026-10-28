@@ -173,6 +173,16 @@ final class DisplayManager {
         world.hold(!globalHolds.isEmpty || pausedHidden || wallpapers.values.contains { $0.holds.contains(.starting) })
     }
 
+    /// Shows a change to the view while the flight is held, which no frame would show until it carries on: each
+    /// wallpaper that is up paints its ground afresh and draws once.
+    func repaintHeld() {
+        for wallpaper in wallpapers.values {
+            wallpaper.repaint()
+            // One still painting its first frame paints it afresh by itself.
+            if !wallpaper.holds.contains(.starting) { wallpaper.redraw() }
+        }
+    }
+
     /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
     /// while the Mac is locked, asleep, resting or paused.
     private func watchCover() {

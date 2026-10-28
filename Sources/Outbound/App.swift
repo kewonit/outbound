@@ -395,11 +395,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func applyPreferences() {
         let journey = world.journey
-        if world.light != preferences.light { world.light = preferences.light }
+        // Whether the painting looks different now, which a held flight would otherwise only show once it carries on.
+        var looks = false
+        if world.light != preferences.light {
+            world.light = preferences.light
+            looks = true
+        }
         if journey.followsCalendar != preferences.followsCalendar {
             journey.followsCalendar = preferences.followsCalendar
             journey.refreshSeasons()
             world.repaint()
+            looks = true
         }
         if journey.speed != preferences.pace.speed {
             journey.setSpeed(preferences.pace.speed, at: world.time)
@@ -414,6 +420,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
+        if looks || edgeChanged, world.isHeld { displays.repaintHeld() }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
@@ -475,6 +482,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let season = NSMenuItem(title: leg.season.line, action: nil, keyEquivalent: "")
         season.isEnabled = false
         menu.addItem(season)
+        if let line = holdLine {
+            let held = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            held.isEnabled = false
+            menu.addItem(held)
+        }
         menu.addItem(.separator())
 
         let places = NSMenu()
@@ -541,6 +553,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
+    /// Why the painting holds still, when the Mac makes it rather than anyone choosing to: the GPU stopped taking its
+    /// work, Low Power Mode is on, the Mac is hot, or it is on battery with the choice to hold still there.
+    private var holdLine: String? {
+        if gpu.revoked { return String(localized: "The GPU stopped the painting. Quit and reopen Outbound.") }
+        switch displays.power.state.holdReason {
+        case .lowPower: return String(localized: "Holding still in Low Power Mode")
+        case .heat: return String(localized: "Holding still while the Mac cools down")
+        case .battery: return String(localized: "Holding still on battery")
+        case nil: return nil
+        }
+    }
+
     /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
     /// an outward arrow, set as a key equivalent with no modifiers so it sits on the right with ⌘, and ⌘Q. Nobody can
     /// type it.
@@ -582,10 +606,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func fly(to place: Place) {
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-        world.journey.fly(to: place, from: bottom, time: world.time)
+        // Held still, no time passes for the new place to sweep in, so it is there at once, painted as a still.
+        let held = world.isHeld
+        world.journey.fly(to: place, from: bottom, time: world.time, atOnce: held)
         preferences.lastPlace = place.id
+        if held { displays.repaintHeld() }
         // Once the new place has swept in.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + (held ? 0 : Journey.sweepDuration) + 0.5) { [weak self] in
             self?.refreshPainting(force: true)
         }
     }

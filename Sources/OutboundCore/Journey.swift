@@ -149,10 +149,13 @@ public final class Journey {
         }
     }
 
-    /// Changes the land under the camera to another place, repainting what is on screen.
-    public func fly(to place: Place, from y: Double, time: TimeInterval, date: Date = .now) {
+    /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over
+    /// `sweepDuration`, or with `atOnce` is there already, as it must be while the flight is held still and no time
+    /// passes for it to sweep in.
+    public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, date: Date = .now) {
         legs.removeAll { $0.start >= y }
-        append(place, start: y, sweep: time, date: date)
+        // A sweep long over, not one just ending, which rounding could leave a hair short of over.
+        append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)
     }
 
     /// Re-reads the season for every leg, after the date or the calendar setting changed.

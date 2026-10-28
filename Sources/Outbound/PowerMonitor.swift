@@ -49,8 +49,14 @@ final class PowerMonitor {
             let source = info.flatMap { IOPSGetProvidingPowerSourceType($0)?.takeUnretainedValue() as String? }
             state.onBattery = source == kIOPSBatteryPowerValue
             #if DEBUG
-            // OUTBOUND_POWER=ac or battery tries either tier whatever the Mac is running on.
-            if let forced = ProcessInfo.processInfo.environment["OUTBOUND_POWER"] { state.onBattery = forced == "battery" }
+            // OUTBOUND_POWER=ac or battery tries either tier whatever the Mac is running on; lowpower and hot hold the
+            // painting still as Low Power Mode and a hot Mac do.
+            switch ProcessInfo.processInfo.environment["OUTBOUND_POWER"] {
+            case "lowpower": state.lowPower = true
+            case "hot": state.thermal = .serious
+            case let forced?: state.onBattery = forced == "battery"
+            case nil: break
+            }
             #endif
         }
     }
