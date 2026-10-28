@@ -587,10 +587,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Which build this is, in one made with `scripts/build-app.sh dev`: its version, build number and commit, so test
     /// builds can be told apart. Shipped builds have none, and the line is never translated.
     private func devBuildItem() -> NSMenuItem? {
-        guard let line = Bundle.main.infoDictionary?["OutboundDevBuild"] as? String, !line.isEmpty else { return nil }
+        guard let line = Self.devBuildLine(Bundle.main.infoDictionary) else { return nil }
         let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
         item.isEnabled = false
         return item
+    }
+
+    /// The line a dev build's Info.plist carries, and nil for any other build's.
+    nonisolated static func devBuildLine(_ info: [String: Any]?) -> String? {
+        guard let line = info?["OutboundDevBuild"] as? String, !line.isEmpty else { return nil }
+        return line
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
