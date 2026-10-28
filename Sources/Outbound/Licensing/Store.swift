@@ -11,7 +11,7 @@ enum Store {
     static let checkoutURL = URL(string: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA")!
     /// Where buyers find their key again and free up a Mac, signing in with a code sent to their email.
     static let portalURL = URL(string: "https://polar.sh/edbnme/portal")!
-    static let price = "$7"
+    static let price = "$4.99"
 
     static var api: URL {
         #if DEBUG

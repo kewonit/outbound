@@ -131,7 +131,7 @@ private struct ActivationView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .disabled(license.busy)
-                Text("$7 + tax, once. Up to 3 Macs.")
+                Text("$4.99 + tax, once. Up to 3 Macs.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
