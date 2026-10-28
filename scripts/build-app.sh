@@ -2,12 +2,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Usage: scripts/build-app.sh [debug|release]
+# Usage: scripts/build-app.sh [debug|release|dev]
 # Release builds are for Apple silicon, whose GPUs the renderer needs, and are
 # packaged as a zip and a disk image. Set SIGN_IDENTITY to a Developer ID
 # Application identity to sign, and NOTARY_PROFILE to a notarytool keychain
 # profile to notarize. Without them the app is signed ad hoc.
-configuration="${1:-debug}"
+#
+# dev is a release build for trying on this Mac, in build/dev, with no zip, disk
+# image or notarization. It is labelled dev-<next version>, 1.6 after 1.5 unless
+# DEV_VERSION says otherwise, with a build number one step past the last
+# release's for each dev build made (7.1, 7.2, ...): Sparkle never offers the
+# last release over it, and still offers the next, numbered 8. The menu shows
+# which dev build it is. Sign it with SIGN_IDENTITY, or the keychain asks again
+# for every new build.
+edition="${1:-debug}"
+configuration="$edition"
+[[ "$edition" == dev ]] && configuration=release
 arch=()
 [[ "$configuration" == release ]] && arch=(--arch arm64)
 
@@ -15,10 +25,28 @@ swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --product Outbound
 bin="$(swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --show-bin-path)"
 
 app="build/Outbound.app"
+[[ "$edition" == dev ]] && app="build/dev/Outbound.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin/Outbound" "$app/Contents/MacOS/"
 cp Configuration/Info.plist "$app/Contents/"
+if [[ "$edition" == dev ]]; then
+    # Only the copy in the bundle: the tracked Info.plist keeps the release's numbers, which release.sh counts on.
+    plist="$app/Contents/Info.plist"
+    shipped="$(plutil -extract CFBundleShortVersionString raw "$plist")"
+    build="$(plutil -extract CFBundleVersion raw "$plist")"
+    if [[ "$shipped" == *.* ]]; then next="${shipped%.*}.$(( ${shipped##*.} + 1 ))"; else next="$(( shipped + 1 ))"; fi
+    next="${DEV_VERSION:-$next}"
+    # Counted in the clone's own git folder, so every worktree shares it and it is never committed.
+    counter="$(git rev-parse --git-common-dir)/outbound-dev-build"
+    count=$(( $(cat "$counter" 2>/dev/null || echo 0) + 1 ))
+    echo "$count" > "$counter"
+    commit="$(git rev-parse --short HEAD)"
+    [[ -z "$(git status --porcelain)" ]] || commit="$commit-changed"
+    plutil -replace CFBundleShortVersionString -string "dev-$next" "$plist"
+    plutil -replace CFBundleVersion -string "$build.$count" "$plist"
+    plutil -insert OutboundDevBuild -string "dev-$next · build $build.$count · $commit" "$plist"
+fi
 # A development build answers outbound-dev:// links, so it never takes links meant for an installed release.
 [[ "$configuration" == debug ]] && plutil -replace CFBundleURLTypes.0.CFBundleURLSchemes.0 -string outbound-dev \
     "$app/Contents/Info.plist"
@@ -54,7 +82,7 @@ fi
 "${sign[@]}" "$sparkle"
 "${sign[@]}" "$app"
 
-if [[ "$configuration" == release ]]; then
+if [[ "$edition" == release ]]; then
     zip="build/Outbound.zip"
     rm -f "$zip"
     ditto -c -k --keepParent "$app" "$zip"
