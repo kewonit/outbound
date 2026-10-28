@@ -115,6 +115,7 @@
   "meta.title": "Outbound · 실시간으로 그려지는 Mac 라이브 배경화면",
   "nav.home": "Outbound 홈",
   "needs.elsewhere": "Windows나 iPhone을 쓰시나요?",
+  "needs.light": "CPU, GPU, 배터리 부담 적음",
   "needs.macos": "macOS 13 Ventura 이상",
   "needs.silicon": "Apple silicon",
   "places.kansasAlt": "Kansas의 센터 피벗 관개로 둥글게 펼쳐진 옥수수밭",

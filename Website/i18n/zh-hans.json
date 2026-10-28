@@ -115,6 +115,7 @@
   "meta.title": "Outbound · 实时绘制的 Mac 动态壁纸",
   "nav.home": "Outbound 首页",
   "needs.elsewhere": "用 Windows 或 iPhone？",
+  "needs.light": "几乎不占 CPU 和 GPU，也省电",
   "needs.macos": "macOS 13 Ventura 或更高版本",
   "needs.silicon": "Apple silicon",
   "places.kansasAlt": "Kansas 中心支轴喷灌下的圆形玉米田",

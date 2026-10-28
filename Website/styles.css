@@ -372,7 +372,7 @@ kbd {
   color: var(--ink-mute);
 }
 .tier-needs span { display: inline-flex; align-items: center; gap: 0.45rem; }
-/* For everyone not on a Mac: a tiny card at the end of the same line, on to the waitlist. */
+/* For everyone not on a Mac: a tiny card on the line below, on to the waitlist. */
 .tier-elsewhere {
   display: inline-flex;
   align-items: center;
@@ -556,8 +556,6 @@ kbd {
   .tier-city .btn { grid-area: button; align-self: center; margin: 0; margin-inline-start: 1rem; }
   .tier-needs { grid-area: 3 / 1 / auto / -1; margin-top: 1rem; }
   .tier-needs { align-items: center; }
-  /* Its edges line up with the price box's, past the row's small inset. */
-  .tier-elsewhere { margin-inline: auto -0.25rem; }
   /* Without the download or the city, the box closes around what's left. */
   .price-grid:has(> .tier-side[hidden]) { grid-template-columns: 1fr; }
   .price-grid:has(> .tier-side[hidden]) .tier.featured { border-inline-end: 1px solid var(--line); border-start-end-radius: 12px; }
