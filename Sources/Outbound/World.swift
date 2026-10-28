@@ -68,6 +68,22 @@ final class World {
         updateSun(force: true)
     }
 
+    /// Opens on `moment` at `displayTime`, as on the painting the last run left on the desktop, say through a restart,
+    /// so the view comes up showing just what the desktop did and sets off from there, gathering speed as it does after
+    /// a hold. Only the light is as it is now. Nil when the moment can't be carried on from.
+    init?(resuming moment: Moment, at displayTime: TimeInterval, date: Date = .now, light: Light = .yourTime) {
+        guard moment.time.isFinite, displayTime.isFinite,
+              let journey = Journey(moment.journey, date: date) else { return nil }
+        time = moment.time
+        self.light = light
+        self.journey = journey
+        bird = moment.bird
+        birdTrail = BirdTrail(bird.pose, at: time)
+        heldFor = displayTime - moment.time
+        setOff = displayTime
+        updateSun(force: true)
+    }
+
     /// The moment a display showing at `displayTime` should draw: its own time, less the time spent held still.
     /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
     /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
@@ -81,7 +97,8 @@ final class World {
     }
 
     /// Time spent held still (asleep, locked, resting), taken off the clock so the flight carries on from where
-    /// it stopped instead of leaping ahead.
+    /// it stopped instead of leaping ahead. Opened on an earlier run's moment, it starts as the gap between that moment
+    /// and the clock, which is less than nothing after a restart, as the clock starts again from zero.
     private var heldFor: TimeInterval = 0
     private var heldSince: TimeInterval?
     /// When the flight last set off again after being held, in display time. It gathers speed over `setOffLength`
@@ -108,16 +125,18 @@ final class World {
     }
 
     /// A moment of the flight to come back to: the one the painting on the desktop shows, which the wallpapers go back
-    /// to as the Mac locks, so the desktop comes back just as the lock screen left it.
-    struct Moment {
+    /// to as the Mac locks, so the desktop comes back just as the lock screen left it, and which the next launch opens
+    /// on while that painting is still there.
+    struct Moment: Codable {
         let time: TimeInterval
         let bird: Bird
         let revision: Int
         let cameraY: Double
+        let journey: Journey.Snapshot
     }
 
     func moment() -> Moment {
-        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time))
+        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time), journey: journey.snapshot)
     }
 
     /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.

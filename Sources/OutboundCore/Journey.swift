@@ -50,6 +50,54 @@ public final class Journey {
         legs = [Leg(index: 0, place: place, season: season, start: -legLength * 0.15, sweepStart: nil)]
     }
 
+    /// What it takes to pick the journey up again just where it was, after Outbound quits and opens again.
+    public struct Snapshot: Codable, Equatable, Sendable {
+        /// A leg, with its place by name.
+        public struct Stretch: Codable, Equatable, Sendable {
+            var index: Int
+            var place: String
+            var start: Double
+            var sweepStart: TimeInterval?
+        }
+
+        var legs: [Stretch]
+        var nextIndex: Int
+        var speed: Double
+        var legLength: Double
+        var anchorTime: TimeInterval
+        var anchorY: Double
+        var driftStart: TimeInterval
+    }
+
+    public var snapshot: Snapshot {
+        Snapshot(legs: legs.map { Snapshot.Stretch(index: $0.index, place: $0.place.id, start: $0.start,
+                                                   sweepStart: $0.sweepStart) },
+                 nextIndex: nextIndex, speed: speed, legLength: legLength, anchorTime: anchorTime, anchorY: anchorY,
+                 driftStart: driftStart)
+    }
+
+    /// Picks the journey up where `snapshot` left it, over the same land and at the same pace, with the seasons as they
+    /// are on `date`. Nil when it can't be, say as a place it was over has gone in an update.
+    public init?(_ snapshot: Snapshot, date: Date = .now, followsCalendar: Bool = true) {
+        let places = snapshot.legs.compactMap { Place.named($0.place) }
+        let starts = snapshot.legs.map(\.start)
+        guard !places.isEmpty, places.count == snapshot.legs.count, snapshot.speed > 0, snapshot.legLength > 0,
+              (starts + [snapshot.anchorTime, snapshot.anchorY, snapshot.driftStart]).allSatisfy(\.isFinite),
+              zip(starts, starts.dropFirst()).allSatisfy({ $0 <= $1 }) else { return nil }
+        speed = snapshot.speed
+        legLength = snapshot.legLength
+        self.followsCalendar = followsCalendar
+        anchorTime = snapshot.anchorTime
+        anchorY = snapshot.anchorY
+        driftStart = snapshot.driftStart
+        legs = zip(snapshot.legs, places).map { saved, place in
+            Leg(index: saved.index, place: place,
+                season: followsCalendar ? place.season(on: date) : place.signatureSeason,
+                start: saved.start, sweepStart: saved.sweepStart)
+        }
+        nextIndex = max(snapshot.nextIndex, (legs.map(\.index).max() ?? 0) + 1)
+    }
+
     public func cameraY(at time: TimeInterval) -> Double {
         anchorY + speed * (time - anchorTime)
     }

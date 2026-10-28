@@ -74,10 +74,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
-        let place = Place.named(preferences.lastPlace) ?? .first
-        let world = World(place: place, time: CACurrentMediaTime(), light: preferences.light)
-        displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         stills = StillWriter(gpu: gpu)
+        // Opened over a painting the last run left on the desktop, as at login after a restart, the view carries on from
+        // the moment it shows, so the desktop picture gives way to the same view rather than another part of the place.
+        let now = CACurrentMediaTime()
+        let resumed = stills.momentLeft().flatMap { World(resuming: $0, at: now, light: preferences.light) }
+        if resumed != nil { Log.display.info("Opening on the moment the painting on the desktop shows") }
+        let world = resumed
+            ?? World(place: Place.named(preferences.lastPlace) ?? .first, time: now, light: preferences.light)
+        displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         updates = Updates()
         updates.isQuiet = { [weak self] in self?.displays.isQuiet ?? false }
         displays.onQuiet = { [weak self] in self?.updates.installIfQuiet() }

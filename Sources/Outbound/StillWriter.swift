@@ -86,6 +86,7 @@ final class StillWriter {
             originals[name] = nil
         }
         savedOriginals = originals
+        savedMoments = keptMoments
     }
 
     /// Paints the world as it is at `moment` for each wallpaper and makes it that display's desktop picture, on the
@@ -137,6 +138,7 @@ final class StillWriter {
         }
         guard give(url, on: id, screen: screen, covering: covered) else { return }
         given[id] = (url, [url.lastPathComponent], moment)
+        keep(moment, shownBy: url)
         Log.display.info("Display \(id) has a painting for its desktop picture")
     }
 
@@ -240,6 +242,7 @@ final class StillWriter {
             guard (try? FileManager.default.copyItem(at: latest.file, to: url)) != nil else { return false }
             guard give(url, on: id, screen: screen, covering: covered) else { continue }
             given[id]?.names.insert(url.lastPathComponent)
+            keep(latest.moment, shownBy: url)
             moments.insert(latest.moment.time)
             Log.display.info("Display \(id) has the painting on this desktop too")
         }
@@ -366,6 +369,48 @@ final class StillWriter {
         }
         for name in originals.keys where Self.isPainting(name) && !shown.contains(name) { originals[name] = nil }
         savedOriginals = originals
+        savedMoments = keptMoments
+    }
+
+    // MARK: - Moments left on the desktop
+
+    /// The moment the painting on the desktop in view shows, when the last run left one there, as it does through a
+    /// restart or as an update installs; failing that, the latest moment a painting still on some desktop shows. The
+    /// view opens on it, so the desktop picture gives way to the very same moment, which then flies on.
+    func momentLeft() -> World.Moment? {
+        let kept = keptMoments
+        let shown = Set(NSScreen.screens.compactMap { NSWorkspace.shared.desktopImageURL(for: $0)?.lastPathComponent })
+        let made = { [folder] (name: String) in Self.made(folder.appending(path: name)) ?? .distantPast }
+        // Those in view first, then the newest.
+        let names = kept.keys.sorted { (shown.contains($0) ? 1 : 0, made($0)) > (shown.contains($1) ? 1 : 0, made($1)) }
+        return names.lazy.compactMap { kept[$0].flatMap { try? JSONDecoder().decode(World.Moment.self, from: $0) } }.first
+    }
+
+    /// Remembers the moment a painting shows, for the next launch, and lets go of those of paintings gone.
+    private func keep(_ moment: World.Moment, shownBy painting: URL) {
+        guard let data = try? JSONEncoder().encode(moment) else { return }
+        var moments = keptMoments
+        moments[painting.lastPathComponent] = data
+        savedMoments = moments
+    }
+
+    /// The moments saved for paintings still kept.
+    private var keptMoments: [String: Data] {
+        savedMoments.filter { FileManager.default.fileExists(atPath: folder.appending(path: $0.key).path) }
+    }
+
+    private static let momentsKey = "paintingMoments"
+
+    /// The moment each painting shows, by the painting's file name.
+    private var savedMoments: [String: Data] {
+        get { (defaults.dictionary(forKey: Self.momentsKey) ?? [:]).compactMapValues { $0 as? Data } }
+        set {
+            if newValue.isEmpty {
+                defaults.removeObject(forKey: Self.momentsKey)
+            } else {
+                defaults.set(newValue, forKey: Self.momentsKey)
+            }
+        }
     }
 
     /// Whether a file name is a painting's, as this version and older ones named them.
