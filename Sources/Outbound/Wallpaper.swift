@@ -129,6 +129,7 @@ final class Wallpaper: NSObject {
         link = FrameClock(view: view, display: displayID) { [weak self] tick in self?.tick(tick) }
         applyFrameRate()
         set(.starting, true)
+        renderer.onGroundLost = { [weak self] in self?.paintHeldGround() }
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.occlusionChanged() }
@@ -214,6 +215,7 @@ final class Wallpaper: NSObject {
         window.setFrame(screen.frame, display: false)
         place(on: screen)
         applyScale(on: screen)
+        paintHeldGround()
     }
 
     /// On battery a Retina display draws at 1.5x and lets Core Animation scale it up: almost half the pixels.
@@ -267,10 +269,24 @@ final class Wallpaper: NSObject {
             }
             Log.display.info("Display \(self.displayID) \(paused ? "paused" : "running", privacy: .public) \(String(describing: self.holds), privacy: .public)")
         }
+        // Waking, say, while something else still holds it.
+        paintHeldGround()
     }
 
+    /// Paints the ground afresh, at once if the display is held.
     func repaint() {
         renderer.invalidate()
+        paintHeldGround()
+    }
+
+    /// Held, nothing is drawn, so ground emptied meanwhile, by a change of scale or display or by work the GPU dropped,
+    /// would stay empty, and no painting of the desktop could be made from it. So it is painted and the held frame drawn
+    /// again, unless the display is asleep or locked, the session is away or the first frame is still to come: nobody
+    /// sees it then, and it is painted once they end. Locking draws again by itself, for the moment it goes back to.
+    private func paintHeldGround() {
+        guard link?.isPaused == true, holds.isDisjoint(with: [.starting, .asleep, .locked, .inactive]),
+              renderer.needsCatchUp(world: world, at: world.time) else { return }
+        redraw()
     }
 
     /// The pixels a still of this display has, the same as its frames.
@@ -321,6 +337,7 @@ final class Wallpaper: NSObject {
             guard economical != oldValue,
                   let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == displayID }) else { return }
             applyScale(on: screen)
+            paintHeldGround()
         }
     }
 
@@ -519,7 +536,7 @@ final class Wallpaper: NSObject {
                 } else {
                     // What the frame painted into the cache may not be there, so it is all painted again.
                     self.gpu.failed(outcome, doing: "drawing a frame")
-                    self.renderer.invalidate()
+                    self.repaint()
                 }
             }
         }

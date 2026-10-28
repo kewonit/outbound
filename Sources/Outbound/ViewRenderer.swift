@@ -297,6 +297,8 @@ final class ViewRenderer {
     var waitsForPieces = false
     /// Why the last such piece failed, while waiting for them.
     private(set) var pieceError: Error?
+    /// Such a piece failed afterwards, so the ground is to be painted afresh.
+    var onGroundLost: @MainActor () -> Void = {}
 
     /// A frame finished, taking `milliseconds` of GPU time and having painted `texels`: teaches the budget what
     /// painting costs on this GPU.
@@ -822,6 +824,7 @@ final class ViewRenderer {
                         } else {
                             self.gpu.failed(outcome, doing: "painting the ground")
                             self.invalidate()
+                            self.onGroundLost()
                         }
                     }
                 }
