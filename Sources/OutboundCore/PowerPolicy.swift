@@ -6,14 +6,23 @@ public enum FramePacing {
     /// this is the lowest fraction at or above the target (60 Hz: 30, 75 Hz: 37.5), unless that is more than half as
     /// much again, then the highest below it (50 Hz: 25). `slowest` is given for a panel that can refresh at any rate
     /// down to it for this window, like ProMotion, which then shows the target as it is.
-    public static func rate(target: Double, fastest: Double, slowest: Double? = nil) -> Double {
+    ///
+    /// With `lowest`, the rate above is taken only if it is within a fifth of the target; further over, the one below
+    /// serves as well and costs less, as long as it is still `lowest` or more (75 Hz: 25 rather than 37.5, but 60 Hz
+    /// keeps 30 for a target of 24, as 20 would be too few). Every frame costs the same, so frames over the target are
+    /// spent for nothing.
+    public static func rate(target: Double, fastest: Double, slowest: Double? = nil, lowest: Double? = nil) -> Double {
         guard target > 0, fastest.isFinite, fastest >= 20 else { return target }
         // Panels at 59.94 or 119.88 Hz are a hair under their round rates.
         let floor = target * (1 - 1.0 / 128)
         if let slowest, slowest < fastest, target >= slowest * (1 - 1.0 / 128) { return min(target, fastest) }
         let fractions = (1...Int((fastest / target).rounded(.up)) + 1).map { fastest / Double($0) }
-        if let above = fractions.last(where: { $0 >= floor }), above <= target * 1.5 { return above }
-        return fractions.first { $0 < floor } ?? fastest
+        let below = fractions.first { $0 < floor }
+        if let above = fractions.last(where: { $0 >= floor }), above <= target * 1.5 {
+            if let lowest, above > target * 1.2, let below, below >= lowest * (1 - 1.0 / 128) { return below }
+            return above
+        }
+        return below ?? fastest
     }
 }
 

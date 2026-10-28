@@ -357,8 +357,9 @@ final class Wallpaper: NSObject {
     /// Whether any of the window can be seen.
     var isVisible: Bool { window.occlusionState.contains(.visible) }
 
-    /// App windows hide this display's desktop, which macOS doesn't say for a window at the desktop's level (see
-    /// `CoverWatch`). Only looked for with Pause When Hidden on.
+    /// App windows hide all of this display's desktop but strips and corners, which macOS doesn't say for a window at
+    /// the desktop's level (see `CoverWatch`), read whenever anything is drawn. It holds with the others, or draws
+    /// fewer frames.
     var coveredByWindows = false {
         didSet { if coveredByWindows != oldValue { onOcclusionChange() } }
     }
