@@ -38,6 +38,22 @@ public struct PowerState: Equatable, Sendable {
     }
 
     public init() {}
+
+    /// Why the wallpaper holds a still painting rather than flying, so the menu can say so.
+    public enum HoldReason: Sendable {
+        case lowPower
+        /// The Mac is running hot.
+        case heat
+        /// On battery, with the choice to hold still there.
+        case battery
+    }
+
+    public var holdReason: HoldReason? {
+        if lowPower { return .lowPower }
+        if thermal >= .serious { return .heat }
+        if onBattery && batteryMode == .still { return .battery }
+        return nil
+    }
 }
 
 public struct PowerTier: Equatable, Sendable {
@@ -51,10 +67,7 @@ public struct PowerTier: Equatable, Sendable {
     public var birdFramesPerSecond: Double = 60
 
     public static func choose(_ state: PowerState) -> PowerTier {
-        if state.lowPower || state.thermal >= .serious {
-            return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
-        }
-        if state.onBattery && state.batteryMode == .still {
+        if state.holdReason != nil {
             return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
         }
         // An even 30 a second, as the site's videos run, keeps the slow pan smooth; on battery 24, which the
@@ -78,9 +91,22 @@ public struct PaintBudget: Sendable {
     private var saved = 0.0
     private var savedAt: Double?
 
-    public init(milliseconds: Double = 4, costPerMillion: Double = 15) {
+    /// What painting that can wait may take when all is well.
+    public static let usualMilliseconds = 4.0
+
+    public init(milliseconds: Double = PaintBudget.usualMilliseconds, costPerMillion: Double = 15) {
         self.milliseconds = milliseconds
         self.costPerMillion = costPerMillion
+    }
+
+    /// The GPU is in trouble: half as much from now on, never under half a millisecond.
+    public mutating func backOff() {
+        milliseconds = max(milliseconds / 2, 0.5)
+    }
+
+    /// A step back towards the usual, after a while without trouble.
+    public mutating func recover() {
+        milliseconds = min(milliseconds * 2, Self.usualMilliseconds)
     }
 
     /// Texels per second.

@@ -1887,8 +1887,17 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     Land a, b;
     // Never unrolled, or the copies come back.
     #pragma clang loop unroll(disable)
+#ifndef OUTBOUND_SLOW_GPU
     for (int i = first; i <= last; i++) {
         Land painted = land(world, i == 0 ? scene.legA : scene.legB, scene, i == 0 ? halfA : halfB, wander);
+#else
+    // Development builds only, with OUTBOUND_SLOW_GPU=n: each place is painted n times over, a hair apart so none of
+    // it can be skipped, to stand in for a GPU n times slower.
+    for (int k = 0; k < (last - first + 1) * OUTBOUND_SLOW_GPU; k++) {
+        int i = first + k % (last - first + 1);
+        Land painted = land(world + float2(0.0, float(k) * 1e-7), i == 0 ? scene.legA : scene.legB, scene,
+                            i == 0 ? halfA : halfB, wander);
+#endif
         if (i == 0) a = painted; else b = painted;
     }
     Land l = first == 1 ? b : a;

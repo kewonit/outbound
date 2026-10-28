@@ -3,7 +3,7 @@ import Foundation
 
 /// The white bird. It lives in global desktop points, so it can fly from one display to another,
 /// chases the cursor while it is moving and otherwise glides about on its own.
-public struct Bird: Sendable {
+public struct Bird: Codable, Sendable {
     public static let cruise = 70.0
     public static let topSpeed = 175.0
     public static let slowest = 34.0

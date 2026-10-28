@@ -16,7 +16,7 @@ final class DisplayManager {
         didSet {
             guard pausedHidden != oldValue else { return }
             wallpapers.values.forEach { $0.set(.hidden, pausedHidden) }
-            world.hold(!globalHolds.isEmpty || pausedHidden)
+            holdWorld()
             Log.display.info("\(self.pausedHidden ? "Every display is hidden: holding still" : "Carrying on", privacy: .public)")
         }
     }
@@ -58,13 +58,21 @@ final class DisplayManager {
         for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
             distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
+                    self?.lockedAtLaunch = false
                     self?.set(.locked, on)
                     self?.onLockChange(on)
                 }
             }
         }
         // Launched while the Mac is locked, say to install an update, nothing says so later.
-        if Self.screenIsLocked { set(.locked, true) }
+        if Self.screenIsLocked {
+            lockedAtLaunch = true
+            set(.locked, true)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.holdsForFirstFrames = false
+            self?.holdWorld()
+        }
         cover.onChange = { [weak self] id, covered in
             Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
             self?.wallpapers[id]?.coveredByWindows = covered
@@ -139,7 +147,7 @@ final class DisplayManager {
         }.map(\.displayID))
     }
 
-    private static var screenIsLocked: Bool {
+    static var screenIsLocked: Bool {
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
     }
@@ -163,8 +171,53 @@ final class DisplayManager {
         // Windows may have moved while nothing was drawn, so they are read again before any display starts once more.
         watchCover()
         wallpapers.values.forEach { $0.set(hold, on) }
-        world.hold(!globalHolds.isEmpty || pausedHidden)
+        holdWorld()
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
+    }
+
+    /// The flight waits while anything holds every display, and as Outbound opens while a display's first frame is still
+    /// being painted, so it sets off from the moment that frame shows, gathering speed, rather than having flown on
+    /// unseen. A display added later never holds the others, nor does a first frame that takes over ten seconds.
+    private func holdWorld() {
+        let opening = holdsForFirstFrames && wallpapers.values.contains { $0.holds.contains(.starting) }
+        world.hold(!globalHolds.isEmpty || pausedHidden || opening)
+    }
+
+    private var holdsForFirstFrames = true
+
+    private func firstFramesShown() {
+        if !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) { holdsForFirstFrames = false }
+        holdWorld()
+    }
+
+    /// The Mac was locked as Outbound opened, as it is when an update installs, and only an unlock it is told of lets
+    /// go of that. Should the session have said locked when it wasn't, say at login, nothing would ever let go, so
+    /// it is asked again now and then.
+    private var lockedAtLaunch = false
+
+    func recheckLock() {
+        guard lockedAtLaunch, globalHolds.contains(.locked), !Self.screenIsLocked else { return }
+        lockedAtLaunch = false
+        Log.display.info("Not locked after all: carrying on")
+        set(.locked, false)
+        onLockChange(false)
+    }
+
+    /// Shows a change to the view while the flight is held, which no frame would show until it carries on: each
+    /// wallpaper that is up paints its ground afresh and draws once. A change to the frame pass alone, like the border,
+    /// only needs `redrawHeld`.
+    func repaintHeld() {
+        // Each held one draws again by itself; one still painting its first frame paints it afresh anyway.
+        wallpapers.values.forEach { $0.repaint() }
+    }
+
+    func redrawHeld() {
+        for wallpaper in wallpapers.values where !wallpaper.holds.contains(.starting) { wallpaper.redraw() }
+    }
+
+    /// What holds the displays still, by name, for the feedback page.
+    var holdNames: [String] {
+        Set(wallpapers.values.flatMap(\.holds)).union(globalHolds).map { "\($0)" }.sorted()
     }
 
     /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
@@ -207,6 +260,7 @@ final class DisplayManager {
                 if pausedHidden { wallpaper.set(.hidden, true) }
                 wallpaper.coveredByWindows = cover.covered.contains(id)
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
+                wallpaper.onStarted = { [weak self] in self?.firstFramesShown() }
                 // Once every display's is up, so the first paintings are of one moment.
                 wallpaper.onReveal = { [weak self] in
                     guard let self,
@@ -226,6 +280,7 @@ final class DisplayManager {
         watchCover()
         checkOcclusion()
         refreshRates()
+        holdWorld()
         added.forEach { $0.show() }
     }
 
