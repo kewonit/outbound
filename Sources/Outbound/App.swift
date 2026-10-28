@@ -625,7 +625,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
-    /// message is about, and nothing else.
+    /// message is about, and nothing else; from the App Store copy, also that the site should leave out its Buy button.
     @objc private func openFeedback() {
         #if APPSTORE
         let site = URL(string: "https://outbound.edbn.me")!
@@ -633,9 +633,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let site = Store.shop.deletingLastPathComponent()
         #endif
         guard var page = URLComponents(url: site.appendingPathComponent("feedback"), resolvingAgainstBaseURL: false) else { return }
+        var items: [URLQueryItem] = []
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-            page.queryItems = [URLQueryItem(name: "app", value: version)]
+            items.append(URLQueryItem(name: "app", value: version))
         }
+        #if APPSTORE
+        items.append(URLQueryItem(name: "from", value: "appstore"))
+        #endif
+        if !items.isEmpty { page.queryItems = items }
         if let url = page.url { NSWorkspace.shared.open(url) }
     }
 

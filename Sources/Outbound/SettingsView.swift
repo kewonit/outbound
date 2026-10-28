@@ -11,7 +11,12 @@ struct SettingsView: View {
     @State private var opensAtLogin = LoginItem.isOn
 
     private static let website = URL(string: "https://outbound.edbn.me")!
+    #if APPSTORE
+    // Opened from the App Store copy, the site leaves out every way to buy it there, and shows App Store help.
+    private static let support = URL(string: "https://outbound.edbn.me/support?from=appstore")!
+    #else
     private static let support = URL(string: "https://outbound.edbn.me/support")!
+    #endif
     private static let privacy = URL(string: "https://outbound.edbn.me/privacy")!
 
     var body: some View {
