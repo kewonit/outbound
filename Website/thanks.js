@@ -41,6 +41,42 @@
     say("");
   }
 
+  // If the browser won't write to the clipboard, the key is selected instead, so Command-C copies it and the
+  // buyer doesn't paste whatever was there before.
+  function selectKey() {
+    var range = document.createRange();
+    range.selectNodeContents(keyText);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    say(word("js.pressCopy", "Press ⌘C to copy your key."));
+  }
+
+  copy.addEventListener("click", function () {
+    var text = keyText.textContent;
+    if (!text) return;
+    if (!navigator.clipboard) {
+      selectKey();
+      return;
+    }
+    navigator.clipboard.writeText(text).then(function () {
+      copy.textContent = word("js.copied", "Copied");
+      setTimeout(function () { copy.textContent = word("js.copy", "Copy"); }, 1600);
+    }, selectKey);
+  });
+
+  // A key kept from an earlier visit takes Activate's place, as it takes Buy's on the homepage, since Activate needs
+  // the checkout and only the tab that paid still has it. The key shows whole, ready to select if Copy can't write
+  // to the clipboard, in the same row the page shows it in after paying.
+  function showSaved(key) {
+    var step = activate.closest("li");
+    step.querySelector('[data-i18n="thanks.step2"]').textContent = word("js.paste", "Open it and paste your key.");
+    step.querySelector('[data-i18n="thanks.step2Detail"]').hidden = true;
+    keyText.textContent = key;
+    activate.parentNode.replaceWith(keyText.parentNode);
+    say("");
+  }
+
   // Without a checkout to look up, the key this browser kept after paying shows again, as on the homepage.
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     var saved = null;
@@ -48,7 +84,7 @@
       saved = JSON.parse(localStorage.getItem("outbound-license") || "null");
     } catch (error) {}
     if (saved && typeof saved.key === "string" && Date.now() - saved.saved < 365 * 24 * 3600 * 1000) {
-      show(saved.key);
+      showSaved(saved.key);
     } else {
       say(word("js.portal", "Your key is in your customer portal below."));
     }
@@ -121,28 +157,4 @@
       });
   }
   poll();
-
-  // If the browser won't write to the clipboard, the key is selected instead, so Command-C copies it and the
-  // buyer doesn't paste whatever was there before.
-  function selectKey() {
-    var range = document.createRange();
-    range.selectNodeContents(keyText);
-    var selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    say(word("js.pressCopy", "Press ⌘C to copy your key."));
-  }
-
-  copy.addEventListener("click", function () {
-    var text = keyText.textContent;
-    if (!text) return;
-    if (!navigator.clipboard) {
-      selectKey();
-      return;
-    }
-    navigator.clipboard.writeText(text).then(function () {
-      copy.textContent = word("js.copied", "Copied");
-      setTimeout(function () { copy.textContent = word("js.copy", "Copy"); }, 1600);
-    }, selectKey);
-  });
 })();

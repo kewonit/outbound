@@ -100,6 +100,7 @@
   "js.formBusy": "Zu viele Versuche. Warte eine Minute.",
   "js.formFailed": "Das hat nicht geklappt. Versuch es noch mal.",
   "js.offline": "Der Shop war nicht erreichbar. Probier es mit „Aktivieren“ oder sieh in deinem Kundenportal nach.",
+  "js.paste": "Öffne es und füge deinen Schlüssel ein.",
   "js.portal": "Dein Schlüssel steht unten in deinem Kundenportal.",
   "js.pressCopy": "Drücke ⌘C, um deinen Schlüssel zu kopieren.",
   "js.refunded": "Dieser Kauf wurde erstattet.",

@@ -100,6 +100,7 @@
   "js.formBusy": "嘗試次數過多，請稍候一分鐘。",
   "js.formFailed": "沒有送出，請再試一次。",
   "js.offline": "無法連上商店。試試按「啟用」，或查看你的客戶中心。",
+  "js.paste": "打開 Outbound，貼上你的授權碼。",
   "js.portal": "你的授權碼在下方的客戶中心裡。",
   "js.pressCopy": "按 ⌘C 複製你的授權碼。",
   "js.refunded": "這筆購買已經退款。",

@@ -100,6 +100,7 @@
   "js.formBusy": "Tentativas demais. Espere um minuto.",
   "js.formFailed": "Não deu certo. Tente de novo.",
   "js.offline": "Não foi possível acessar a loja. Tente Ativar ou confira seu portal do cliente.",
+  "js.paste": "Abra o app e cole sua chave.",
   "js.portal": "Sua chave está no seu portal do cliente, aqui embaixo.",
   "js.pressCopy": "Pressione ⌘C para copiar sua chave.",
   "js.refunded": "Esta compra foi reembolsada.",
