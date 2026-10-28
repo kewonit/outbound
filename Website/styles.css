@@ -780,6 +780,8 @@ kbd {
   place-items: center;
 }
 .thanks .steps .cta-row { margin-top: 0.9rem; }
+/* A real screenshot of the menu, in the page's language, at the size it was taken. */
+.thanks .menu-shot { display: block; width: 100%; max-width: 399px; height: auto; margin-top: 1rem; border: 1px solid var(--line); border-radius: 12px; }
 .thanks .license { margin-top: 2.75rem; }
 .key-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 0.9rem; }
 .key-row code {
