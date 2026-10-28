@@ -333,6 +333,11 @@ final class Wallpaper: NSObject {
         didSet { if coveredByWindows != oldValue { onOcclusionChange() } }
     }
 
+    /// Only a strip of this display's desktop shows, under the rest of it app windows lie: it draws fewer frames.
+    var mostlyCovered = false {
+        didSet { if mostlyCovered != oldValue { onOcclusionChange() } }
+    }
+
     /// Counts changes to whether the window can be seen, so a cover that lifts again at once is never acted on.
     private var occlusionChanges = 0
 

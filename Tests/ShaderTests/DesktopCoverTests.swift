@@ -116,4 +116,22 @@ struct DesktopCoverTests {
         let still = confirmed.read(true, at: 3600)
         #expect(still)
     }
+
+    @Test func coverageSaysHowMuchOfTheDesktopWindowsHide() {
+        #expect(DesktopCover.coverage([], area: Self.area) == 0)
+        #expect(DesktopCover.coverage([Self.area], area: Self.area) == 1)
+        // The left half, grown by the usual 12 points, lies over half the grid and a column more.
+        let (left, _) = Self.area.divided(atDistance: Self.area.width / 2, from: .minXEdge)
+        let half = DesktopCover.coverage([left], area: Self.area)
+        #expect(half > 0.48 && half < 0.55)
+        // A window leaving a strip down one side: mostly covered, not hidden.
+        let (most, _) = Self.area.divided(atDistance: Self.area.width - 120, from: .minXEdge)
+        let strip = DesktopCover.coverage([most], area: Self.area)
+        #expect(strip >= DesktopCover.mostly && strip < 1)
+        #expect(!DesktopCover.covers([most], area: Self.area))
+        // A window over a third of it is nowhere near.
+        let (third, _) = Self.area.divided(atDistance: Self.area.width / 3, from: .minXEdge)
+        #expect(DesktopCover.coverage([third], area: Self.area) < DesktopCover.mostly)
+        #expect(DesktopCover.coverage([Self.area], area: .null) == 0)
+    }
 }

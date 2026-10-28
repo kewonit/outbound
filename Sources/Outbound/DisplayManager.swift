@@ -73,9 +73,10 @@ final class DisplayManager {
             self?.holdsForFirstFrames = false
             self?.holdWorld()
         }
-        cover.onChange = { [weak self] id, covered in
-            Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
-            self?.wallpapers[id]?.coveredByWindows = covered
+        cover.onChange = { [weak self] id, level in
+            Log.display.info("Display \(id) \(level == .open ? "in view" : level == .mostly ? "mostly covered by windows" : "covered by windows", privacy: .public)")
+            self?.wallpapers[id]?.coveredByWindows = level == .hidden
+            self?.wallpapers[id]?.mostlyCovered = level != .open
         }
         sync()
         let center = NotificationCenter.default
@@ -227,15 +228,9 @@ final class DisplayManager {
         Set(wallpapers.values.flatMap(\.holds)).union(globalHolds).map { "\($0)" }.sorted()
     }
 
-    /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
-    /// while the Mac is locked, asleep, resting or paused.
+    /// Reads how much of each desktop app windows cover, only while anything is drawn: not while the Mac is locked,
+    /// asleep, resting or paused.
     private func watchCover() {
-        guard pausesWhenHidden else {
-            cover.stop()
-            cover.displays = []
-            wallpapers.values.forEach { $0.coveredByWindows = false }
-            return
-        }
         cover.displays = Array(wallpapers.keys)
         if running, globalHolds.isEmpty { cover.start() } else { cover.stop() }
     }
@@ -265,7 +260,8 @@ final class DisplayManager {
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 if pausedHidden { wallpaper.set(.hidden, true) }
-                wallpaper.coveredByWindows = cover.covered.contains(id)
+                wallpaper.coveredByWindows = cover.levels[id] == .hidden
+                wallpaper.mostlyCovered = cover.levels[id] != nil
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
                 wallpaper.onStarted = { [weak self] in self?.firstFramesShown() }
                 // Once every display's is up, so the first paintings are of one moment.
@@ -294,7 +290,11 @@ final class DisplayManager {
     private func checkOcclusion() {
         pausedHidden = pausesWhenHidden && !wallpapers.isEmpty
             && wallpapers.values.allSatisfy { $0.holds.contains(.occluded) || $0.coveredByWindows }
+        refreshRates()
     }
+
+    /// Frames a second for a display of which only a strip shows, and the fewest the landscape ever draws while moving.
+    static let stripRate = 24.0
 
     /// The tier's frame rates, as each display can show them evenly.
     private func refreshRates() {
@@ -307,9 +307,11 @@ final class DisplayManager {
             // panels vary their refresh only for full-screen apps, so a window behind everything gets a fixed rate.
             let ranged = screen.maximumRefreshInterval > screen.minimumRefreshInterval + 0.0005
             let slowest = CGDisplayIsBuiltin(id) != 0 && ranged ? 1 / screen.maximumRefreshInterval : nil
-            // The landscape never takes a rate well over its target, nor one under 24, which still pans smoothly.
-            wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, fastest: fastest,
-                                                               slowest: slowest, lowest: 24))
+            // A display of which only a strip shows, or none while another display does, draws at 24, which still pans
+            // smoothly, as on battery. The landscape never takes a rate well over its target, nor one under 24.
+            let target = wallpaper.mostlyCovered ? min(tier.framesPerSecond, Self.stripRate) : tier.framesPerSecond
+            wallpaper.framesPerSecond = Float(FramePacing.rate(target: target, fastest: fastest, slowest: slowest,
+                                                               lowest: Self.stripRate))
             wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, fastest: fastest,
                                                                    slowest: slowest))
             wallpaper.halfRateClouds = tier.halfRateClouds

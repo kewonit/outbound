@@ -80,20 +80,38 @@ public enum DesktopCover {
     /// lets the narrow gaps of tiled windows and Split View's divider count as covered, as nobody sees a desktop
     /// through them.
     public static func covers(_ windows: [CGRect], area: CGRect, spacing: CGFloat = 32, inflate: CGFloat = 12) -> Bool {
-        guard !area.isNull, !area.isEmpty, !windows.isEmpty, spacing > 0 else { return false }
+        coverage(windows, area: area, spacing: spacing, inflate: inflate) >= 1
+    }
+
+    /// The share of the points of a `spacing` grid across `area` that `windows`, each grown by `inflate`, lie over.
+    public static func coverage(_ windows: [CGRect], area: CGRect, spacing: CGFloat = 32, inflate: CGFloat = 12) -> Double {
+        guard !area.isNull, !area.isEmpty, !windows.isEmpty, spacing > 0 else { return 0 }
         let grown = windows.map { $0.insetBy(dx: -inflate, dy: -inflate) }
+        var points = 0, under = 0
         var y = area.minY + min(spacing, area.height) / 2
         while y < area.maxY {
             var x = area.minX + min(spacing, area.width) / 2
             while x < area.maxX {
                 let point = CGPoint(x: x, y: y)
-                if !grown.contains(where: { $0.contains(point) }) { return false }
+                points += 1
+                if grown.contains(where: { $0.contains(point) }) { under += 1 }
                 x += spacing
             }
             y += spacing
         }
-        return true
+        return points == 0 ? 0 : Double(under) / Double(points)
     }
+
+    /// How much of a display's desktop shows.
+    public enum Level: Sendable, Equatable {
+        case open
+        /// A strip or a corner shows, under a tenth of it.
+        case mostly
+        case hidden
+    }
+
+    /// The share of a desktop under windows at which only a strip of it shows.
+    public static let mostly = 0.9
 }
 
 /// When a display counts as covered: covered readings `confirm` seconds apart, so a window passing over, or an app
