@@ -75,9 +75,8 @@ final class DisplayManager {
             self?.holdWorld()
         }
         cover.onChange = { [weak self] id, level in
-            Log.display.info("Display \(id) \(level == .open ? "in view" : level == .mostly ? "mostly covered by windows" : "covered by windows", privacy: .public)")
+            Log.display.info("Display \(id) \(level == .open ? "in view" : "covered by windows", privacy: .public)")
             self?.wallpapers[id]?.coveredByWindows = level == .hidden
-            self?.wallpapers[id]?.mostlyCovered = level != .open
         }
         sync()
         let center = NotificationCenter.default
@@ -255,7 +254,6 @@ final class DisplayManager {
                 globalHolds.forEach { wallpaper.set($0, true) }
                 if pausedHidden { wallpaper.set(.hidden, true) }
                 wallpaper.coveredByWindows = cover.levels[id] == .hidden
-                wallpaper.mostlyCovered = cover.levels[id] != nil
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
                 wallpaper.onStarted = { [weak self] in self?.firstFramesShown() }
                 // Once every display's is up, so the first paintings are of one moment.
@@ -287,7 +285,8 @@ final class DisplayManager {
         refreshRates()
     }
 
-    /// Frames a second for a display of which only a strip shows, and the fewest the landscape ever draws while moving.
+    /// Frames a second for a display hidden under windows that still draws, and the fewest the landscape ever draws
+    /// while moving.
     static let stripRate = 24.0
 
     /// The tier's frame rates, as each display can show them evenly.
@@ -301,9 +300,10 @@ final class DisplayManager {
             // panels vary their refresh only for full-screen apps, so a window behind everything gets a fixed rate.
             let ranged = screen.maximumRefreshInterval > screen.minimumRefreshInterval + 0.0005
             let slowest = CGDisplayIsBuiltin(id) != 0 && ranged ? 1 / screen.maximumRefreshInterval : nil
-            // A display of which only a strip shows, or none while another display does, draws at 24, which still pans
-            // smoothly, as on battery. The landscape never takes a rate well over its target, nor one under 24.
-            let target = wallpaper.mostlyCovered ? min(tier.framesPerSecond, Self.stripRate) : tier.framesPerSecond
+            // A display hidden under windows while it still draws, as another shows or Pause When Hidden is off, draws
+            // at 24, which still pans smoothly, as on battery. The landscape never takes a rate well over its target,
+            // nor one under 24.
+            let target = wallpaper.coveredByWindows ? min(tier.framesPerSecond, Self.stripRate) : tier.framesPerSecond
             wallpaper.framesPerSecond = Float(FramePacing.rate(target: target, fastest: fastest, slowest: slowest,
                                                                lowest: Self.stripRate))
             wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, fastest: fastest,
