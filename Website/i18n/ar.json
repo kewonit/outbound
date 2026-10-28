@@ -24,6 +24,7 @@
   "demos.title": "شيء جديد كل دقيقة.",
   "demos.train": "قطارات تمرّ",
   "demos.trainVideo": "قطار أبيض بخط أصفر يعبر حقول الأرز في Niigata",
+  "download.already": "<span class=\"btn-quiet\">اشتريته بالفعل؟</span> تنزيل",
   "download.button": "تنزيل لجهاز Mac",
   "faq.a1": "جهاز Mac بشريحة Apple silicon ونظام macOS 13 Ventura أو أحدث.",
   "faq.a10": "الشيفرة متاحة للقراءة. أما استخدام التطبيق فيتطلب <a href=\"/license\">ترخيصًا</a>.",

@@ -24,6 +24,7 @@
   "demos.title": "Du nouveau à chaque minute.",
   "demos.train": "Des trains passent",
   "demos.trainVideo": "Un train blanc à bande jaune qui traverse les rizières de Niigata",
+  "download.already": "<span class=\"btn-quiet\">Déjà acheté ?</span> Télécharger",
   "download.button": "Télécharger pour Mac",
   "faq.a1": "Un Mac Apple silicon avec macOS 13 Ventura ou plus récent.",
   "faq.a10": "Le code est consultable librement. Pour utiliser l'app, il te faut une <a href=\"/license\">licence</a>.",
