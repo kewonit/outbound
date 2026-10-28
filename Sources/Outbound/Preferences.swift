@@ -38,23 +38,27 @@ final class Preferences: ObservableObject {
         }
     }
 
-    @Published var light: World.Light { didSet { save() } }
-    @Published var followsCalendar: Bool { didSet { save() } }
-    @Published var pace: Pace { didSet { save() } }
-    @Published var stay: Stay { didSet { save() } }
-    @Published var batteryMode: PowerState.BatteryMode { didSet { save() } }
+    // Each is saved only when it changes, so what is saved is what someone chose, and a default changed later still
+    // reaches everyone who never did. Versions before 1.6 saved every one whenever any changed, and as they quit.
+    @Published var light: World.Light { didSet { defaults.set(light.rawValue, forKey: "light") } }
+    @Published var followsCalendar: Bool { didSet { defaults.set(followsCalendar, forKey: "followsCalendar") } }
+    @Published var pace: Pace { didSet { defaults.set(pace.rawValue, forKey: "pace") } }
+    @Published var stay: Stay { didSet { defaults.set(stay.rawValue, forKey: "stay") } }
+    @Published var batteryMode: PowerState.BatteryMode {
+        didSet { defaults.set(batteryMode.rawValue, forKey: "batteryMode") }
+    }
     /// Keep a painting of the current view as the desktop picture, so the lock screen shows it too.
-    @Published var matchingStill: Bool { didSet { save() } }
+    @Published var matchingStill: Bool { didSet { defaults.set(matchingStill, forKey: "matchingStill") } }
     /// Hold still after five minutes without anyone at the Mac.
-    @Published var restsWhenAway: Bool { didSet { save() } }
+    @Published var restsWhenAway: Bool { didSet { defaults.set(restsWhenAway, forKey: "restsWhenAway") } }
     /// Hold the flight while every display's desktop is hidden, as by full-screen apps, so nothing is drawn that nobody
     /// can see: on by default. Off, it flies on unseen, at the 24 frames a second of a covered desktop, and the view
     /// has moved on when the desktop comes back.
-    @Published var pausesWhenHidden: Bool { didSet { save() } }
+    @Published var pausesWhenHidden: Bool { didSet { defaults.set(pausesWhenHidden, forKey: "holdsWhenHidden") } }
     /// The pale dry-brush border round the painting. Off until it is asked for.
-    @Published var paperEdge: Bool { didSet { save() } }
+    @Published var paperEdge: Bool { didSet { defaults.set(paperEdge, forKey: "paperBorder") } }
     /// The place to start from next launch.
-    @Published var lastPlace: String { didSet { save() } }
+    @Published var lastPlace: String { didSet { defaults.set(lastPlace, forKey: "lastPlace") } }
 
     private let defaults: UserDefaults
 
@@ -67,27 +71,16 @@ final class Preferences: ObservableObject {
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true
-        // Kept under a new name since it came on by default: 1.5 saved it as off for everyone who changed any setting.
+        // Kept under a new name since it came on by default. 1.5 saved it as off for everyone as it quit, so off there
+        // can't be told from never chosen; on there was chosen, and is on here too.
         pausesWhenHidden = defaults.object(forKey: "holdsWhenHidden") as? Bool ?? true
         // Kept under a new name since the border went off by default: the old one was saved as on for everyone who
         // had run Outbound by then, whether they asked for it or not.
         paperEdge = defaults.object(forKey: "paperBorder") as? Bool ?? false
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
-    }
-
-    private func save() {
-        defaults.set(light.rawValue, forKey: "light")
-        defaults.set(followsCalendar, forKey: "followsCalendar")
-        defaults.set(pace.rawValue, forKey: "pace")
-        defaults.set(stay.rawValue, forKey: "stay")
-        defaults.set(batteryMode.rawValue, forKey: "batteryMode")
-        defaults.set(matchingStill, forKey: "matchingStill")
-        defaults.set(restsWhenAway, forKey: "restsWhenAway")
-        defaults.set(pausesWhenHidden, forKey: "holdsWhenHidden")
+        // What the old names hold says nothing about what anyone chose.
         defaults.removeObject(forKey: "pausesWhenHidden")
-        defaults.set(paperEdge, forKey: "paperBorder")
         defaults.removeObject(forKey: "paperEdge")
-        defaults.set(lastPlace, forKey: "lastPlace")
     }
 }
 
