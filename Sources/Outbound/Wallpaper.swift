@@ -129,7 +129,11 @@ final class Wallpaper: NSObject {
         link = FrameClock(view: view, display: displayID) { [weak self] tick in self?.tick(tick) }
         applyFrameRate()
         set(.starting, true)
-        renderer.onGroundLost = { [weak self] in self?.paintHeldGround() }
+        // As after a failed frame, a GPU in trouble isn't handed the ground again straight away.
+        renderer.onGroundLost = { [weak self] in
+            self?.catchUpAfter = CACurrentMediaTime() + 2
+            self?.paintHeldGround()
+        }
         observers.append(NotificationCenter.default.addObserver(
             forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.occlusionChanged() }
@@ -289,10 +293,11 @@ final class Wallpaper: NSObject {
 
     /// Held, nothing is drawn, so ground emptied meanwhile, by a change of scale or display or by work the GPU dropped,
     /// would stay empty, and no painting of the desktop could be made from it. So it is painted and the held frame drawn
-    /// again, unless the display is asleep or locked, the session is away or the first frame is still to come: nobody
-    /// sees it then, and it is painted once they end. Locking draws again by itself, for the moment it goes back to.
+    /// again, unless the display is asleep, locked or covered by a full-screen app, the session is away or the first
+    /// frame is still to come: nobody sees it then, nor is a painting made from it, and it is painted once they end.
+    /// Locking draws again by itself, for the moment it goes back to.
     private func paintHeldGround() {
-        guard link?.isPaused == true, holds.isDisjoint(with: [.starting, .asleep, .locked, .inactive]),
+        guard link?.isPaused == true, holds.isDisjoint(with: [.starting, .asleep, .locked, .inactive, .occluded]),
               renderer.needsCatchUp(world: world, at: world.time) else { return }
         redraw()
     }
