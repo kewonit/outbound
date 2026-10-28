@@ -3,7 +3,7 @@ import OutboundCore
 
 /// Works out, for each display, how much of its desktop app windows hide (see `DesktopCover`), and says when that
 /// changes. One read of the window list serves every display: every second while each desktop is in view, three times a
-/// second while one is mostly or all covered so coming back is noticed at once, and straight after anything that moves
+/// second while one is covered so coming back is noticed at once, and straight after anything that moves
 /// windows about, like switching desktops or apps. Each read takes a fraction of a millisecond.
 @MainActor
 final class CoverWatch {
@@ -15,20 +15,17 @@ final class CoverWatch {
             let gone = Set(oldValue).subtracting(displays)
             for id in gone {
                 debounces[id] = nil
-                mostlyDebounces[id] = nil
                 levels[id] = nil
             }
             if displays != oldValue { check() }
         }
     }
-    /// How much of each display's desktop shows, for those mostly or all covered.
+    /// How much of each display's desktop shows, for those covered.
     private(set) var levels: [CGDirectDisplayID: DesktopCover.Level] = [:]
     /// How long app windows must cover a desktop before it counts. Switching between apps covers and uncovers it all
     /// the time; only a cover that stays should still the painting, or it would stop and start with every switch.
     static let confirm: TimeInterval = 2
     private var debounces: [CGDirectDisplayID: CoverDebounce] = [:]
-    /// The same for a desktop of which only a strip shows.
-    private var mostlyDebounces: [CGDirectDisplayID: CoverDebounce] = [:]
     private var running = false
     private var timer: Timer?
     private var interval: TimeInterval = 0
@@ -81,7 +78,6 @@ final class CoverWatch {
         clicks = nil
         // A cover read before must be read again for as long after, not count across the time stopped.
         for id in debounces.keys { debounces[id]?.restart() }
-        for id in mostlyDebounces.keys { mostlyDebounces[id]?.restart() }
     }
 
     /// Reads now, and again after each of `delays` in seconds.
@@ -120,22 +116,20 @@ final class CoverWatch {
                                          right: frame.maxX - visible.maxX)
             var coverage = DesktopCover.coverage(over[i], area: area)
             #if DEBUG
-            // OUTBOUND_COVER=open, mostly or hidden reads every desktop that way, to try each.
+            // OUTBOUND_COVER=open, hidden or edge (just covered enough) reads every desktop that way, to try each.
             switch ProcessInfo.processInfo.environment["OUTBOUND_COVER"] {
             case "open": coverage = 0
-            case "mostly": coverage = DesktopCover.mostly
+            case "edge": coverage = DesktopCover.hidden
             case "hidden": coverage = 1
             default: break
             }
             #endif
             var debounce = debounces[id] ?? CoverDebounce(confirm: Self.confirm)
-            var mostlyDebounce = mostlyDebounces[id] ?? CoverDebounce(confirm: Self.confirm)
-            let hidden = debounce.read(coverage >= 1, at: time)
-            let mostly = mostlyDebounce.read(coverage >= DesktopCover.mostly, at: time)
+            let covered = coverage >= DesktopCover.hidden
+            let hidden = debounce.read(covered, at: time)
             debounces[id] = debounce
-            mostlyDebounces[id] = mostlyDebounce
-            if coverage >= 1 && !hidden || coverage >= DesktopCover.mostly && !mostly { unconfirmed = true }
-            let level: DesktopCover.Level = hidden ? .hidden : mostly ? .mostly : .open
+            if covered && !hidden { unconfirmed = true }
+            let level: DesktopCover.Level = hidden ? .hidden : .open
             guard level != (levels[id] ?? .open) else { continue }
             levels[id] = level == .open ? nil : level
             #if DEBUG
@@ -150,7 +144,7 @@ final class CoverWatch {
         pace()
     }
 
-    /// Reads every second while every desktop is in view, three times a second while one is mostly or all covered.
+    /// Reads every second while every desktop is in view, three times a second while one is covered.
     private func pace() {
         let wanted: TimeInterval = levels.isEmpty ? 1 : 0.33
         if wanted != interval {
