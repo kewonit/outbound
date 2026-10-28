@@ -48,8 +48,8 @@ final class Preferences: ObservableObject {
     /// Hold still after five minutes without anyone at the Mac.
     @Published var restsWhenAway: Bool { didSet { save() } }
     /// Hold the flight while every display's desktop is hidden, as by full-screen apps, so nothing is drawn that nobody
-    /// can see: on by default. Off, it flies on unseen at full rate, and the view has moved on when the desktop comes
-    /// back.
+    /// can see: on by default. Off, it flies on unseen, at the 24 frames a second of a covered desktop, and the view
+    /// has moved on when the desktop comes back.
     @Published var pausesWhenHidden: Bool { didSet { save() } }
     /// The pale dry-brush border round the painting. Off until it is asked for.
     @Published var paperEdge: Bool { didSet { save() } }

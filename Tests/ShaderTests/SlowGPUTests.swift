@@ -51,6 +51,50 @@ struct SlowGPUTests {
         #expect(GroundCost(millisecondsPerMillion: 10, target: .nan).texelsPerPiece == 16_384)
     }
 
+    @Test func oneStallCutsPiecesOnce() {
+        var failures = GPUFailures()
+        func failed(_ sent: Int, _ tooLong: Bool, _ time: Double) -> Bool {
+            failures.failed(sent: sent, tooLong: tooLong, at: time)
+        }
+        // A stall takes down both displays' frames and two pieces: one cut.
+        #expect(failed(0, true, 100))
+        #expect(!failed(0, true, 100.01))
+        #expect(!failed(0, false, 100.02))
+        #expect(!failed(0, true, 104))
+        #expect(failures.cuts == 1)
+        // Right after it, what isn't a timeout is what the stall left behind, but work sent since that still runs too
+        // long cuts again.
+        for i in 0..<5 { #expect(!failed(1, false, 101 + Double(i) * 0.1)) }
+        #expect(failed(1, true, 102))
+        #expect(failures.cuts == 2)
+
+        // Other failures cut on the third within a minute, counting only work sent since the last cut.
+        #expect(!failed(2, false, 200))
+        #expect(!failed(1, false, 201))
+        #expect(!failed(2, false, 230))
+        #expect(failed(2, false, 259))
+        #expect(failures.cuts == 3)
+        // Spread over more than a minute, they don't.
+        #expect(!failed(3, false, 300))
+        #expect(!failed(3, false, 340))
+        #expect(!failed(3, false, 380))
+        #expect(!failed(3, false, 420))
+        #expect(failures.cuts == 3)
+    }
+
+    @Test func paintingThatCanWaitSlowsAndRecoversWithinBounds() {
+        var budget = PaintBudget()
+        #expect(budget.milliseconds == PaintBudget.usualMilliseconds)
+        budget.backOff()
+        #expect(budget.milliseconds == 2)
+        for _ in 0..<10 { budget.backOff() }
+        #expect(budget.milliseconds == 0.5)
+        budget.recover()
+        #expect(budget.milliseconds == 1)
+        for _ in 0..<10 { budget.recover() }
+        #expect(budget.milliseconds == PaintBudget.usualMilliseconds)
+    }
+
     @Test func piecesCoverEveryTexelOnceWithTheirOwnOrigins() {
         var random = SplitMix(seed: 7)
         func next(_ upTo: Int) -> Int { Int(random.next() * Double(upTo)) }

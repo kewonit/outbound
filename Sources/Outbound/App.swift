@@ -216,8 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let shown = displays.wallpapersInView
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
-        guard !world.isSweeping, !shown.isEmpty, !shown.contains(where: \.isRepainting),
-              CACurrentMediaTime() - unlockedAt > 3 else {
+        guard !world.isSweeping, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
             owesPainting = force
             return
         }
@@ -225,8 +224,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let stale = world.time != painted.time && CACurrentMediaTime() - painted.at > 300
         let renewed = force || leg != painted.leg || world.revision != painted.revision || stale
         guard renewed || !showsOneMoment else { return }
-        // Only a desktop come into view, or one showing something else: it gets the painting the others show.
+        // Only a desktop come into view, or one showing something else: it gets the painting the others show. That
+        // needs no GPU, so it needn't wait for the ground.
         if !renewed, stills.carry(shown) { return }
+        // A new painting is made from each display's ground, so it waits until that is all there in the present light.
+        guard !shown.contains(where: \.isRepainting) else {
+            owesPainting = force
+            return
+        }
         painted = (leg, world.revision, world.time, CACurrentMediaTime())
         owesPainting = false
         stills.paint(shown, at: world.moment())
