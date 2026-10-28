@@ -54,6 +54,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var unlockedAt = -TimeInterval.infinity
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
+    /// Outbound is quitting to open again at once, as when the GPU stopped taking its work, so the painting stays.
+    private var relaunching = false
 
     private var world: World { displays.world }
 
@@ -92,10 +94,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
-        let place = Place.named(preferences.lastPlace) ?? .first
-        let world = World(place: place, time: CACurrentMediaTime(), light: preferences.light)
-        displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
+        gpu.onRevoked = { [weak self] in self?.gpuRevoked() }
         stills = StillWriter(gpu: gpu)
+        // Opened over a painting the last run left on the desktop, as at login after a restart, the view carries on from
+        // the moment it shows, so the desktop picture gives way to the same view rather than another part of the place.
+        let now = CACurrentMediaTime()
+        let resumed = stills.momentLeft(orNewest: DisplayManager.screenIsLocked)
+            .flatMap { World(resuming: $0, at: now, light: preferences.light) }
+        if resumed != nil { Log.display.info("Opening on the moment the painting on the desktop shows") }
+        let world = resumed
+            ?? World(place: Place.named(preferences.lastPlace) ?? .first, time: now, light: preferences.light)
+        displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         #if !APPSTORE
         updates = Updates()
         updates.isQuiet = { [weak self] in self?.displays.isQuiet ?? false }
@@ -131,7 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installStatusItem()
         observePreferences()
         paintingTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshPainting(force: false) }
+            MainActor.assumeIsolated {
+                self?.displays.recheckLock()
+                self?.refreshPainting(force: false)
+            }
         }
 
         #if APPSTORE
@@ -234,8 +246,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let shown = displays.wallpapersInView
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
-        guard !world.isSweeping, !shown.isEmpty, !shown.contains(where: \.isRepainting),
-              CACurrentMediaTime() - unlockedAt > 3 else {
+        guard !world.isSweeping, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
             owesPainting = force
             return
         }
@@ -243,8 +254,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let stale = world.time != painted.time && CACurrentMediaTime() - painted.at > 300
         let renewed = force || leg != painted.leg || world.revision != painted.revision || stale
         guard renewed || !showsOneMoment else { return }
-        // Only a desktop come into view, or one showing something else: it gets the painting the others show.
+        // Only a desktop come into view, or one showing something else: it gets the painting the others show. That
+        // needs no GPU, so it needn't wait for the ground.
         if !renewed, stills.carry(shown) { return }
+        // A new painting is made from each display's ground, so it waits until that is all there in the present light.
+        guard !shown.contains(where: \.isRepainting) else {
+            owesPainting = force
+            return
+        }
         painted = (leg, world.revision, world.time, CACurrentMediaTime())
         owesPainting = false
         stills.paint(shown, at: world.moment())
@@ -340,8 +357,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
         // screens are asleep, as an update installs, and as the session ends when Outbound opens again at login,
         // for the login window; the next launch carries on from it.
-        let opensAgain = sessionEnding && SMAppService.mainApp.status == .enabled
+        let opensAgain = relaunching || sessionEnding && SMAppService.mainApp.status == .enabled
         if !opensAgain, !displays.isAsleep { restorePictures() }
+    }
+
+    /// The GPU takes no more of Outbound's work, after too much of it ran too long, so nothing it draws shows any more
+    /// until it starts afresh. It opens again, painting in smaller pieces now, and the painting stays on the desktop
+    /// meanwhile. At most once an hour; otherwise the menu says what happened.
+    private func gpuRevoked() {
+        // The App Store copy keeps to its sandbox, which needn't let it open itself again; the menu says to.
+        #if !APPSTORE
+        let key = "reopenedForGPU"
+        let now = Date.now.timeIntervalSince1970
+        guard now - UserDefaults.standard.double(forKey: key) > 3600 else { return }
+        let reopen = Process()
+        reopen.executableURL = URL(filePath: "/bin/sh")
+        // Only once this copy has quit, or the new one would find it running and quit itself.
+        reopen.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; "
+            + "exec /usr/bin/open \"$0\"", Bundle.main.bundlePath]
+        guard (try? reopen.run()) != nil else { return }
+        UserDefaults.standard.set(now, forKey: key)
+        Log.render.error("Opening Outbound again, to paint in smaller pieces")
+        relaunching = true
+        NSApp.terminate(nil)
+        #endif
     }
 
     // MARK: - Links from the thank-you page
@@ -409,11 +448,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func applyPreferences() {
         let journey = world.journey
-        if world.light != preferences.light { world.light = preferences.light }
+        // Whether the painting looks different now, which a held flight would otherwise only show once it carries on.
+        var looks = false
+        if world.light != preferences.light {
+            world.light = preferences.light
+            looks = true
+        }
         if journey.followsCalendar != preferences.followsCalendar {
             journey.followsCalendar = preferences.followsCalendar
             journey.refreshSeasons()
             world.repaint()
+            looks = true
         }
         if journey.speed != preferences.pace.speed {
             journey.setSpeed(preferences.pace.speed, at: world.time)
@@ -428,6 +473,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
+        if world.isHeld {
+            // The light and the seasons are baked into the ground; the border is only drawn over it.
+            if looks { displays.repaintHeld() } else if edgeChanged { displays.redrawHeld() }
+        }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
@@ -477,6 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(unlock)
             menu.addItem(feedbackItem())
             menu.addItem(.separator())
+            if let dev = devBuildItem() { menu.addItem(dev) }
             menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
         }
@@ -489,6 +539,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let season = NSMenuItem(title: leg.season.line, action: nil, keyEquivalent: "")
         season.isEnabled = false
         menu.addItem(season)
+        if let line = holdLine {
+            let held = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            held.isEnabled = false
+            menu.addItem(held)
+        }
         menu.addItem(.separator())
 
         let places = NSMenu()
@@ -534,6 +589,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         })
         menu.addItem(choices(String(localized: "Time at Each Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
                              current: preferences.stay) { preferences.stay = $0 })
+        menu.addItem(.separator())
+
+        // How it saves energy.
         menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
                              current: preferences.batteryMode) { preferences.batteryMode = $0 })
         let hidden = NSMenuItem(title: String(localized: "Pause When Hidden"), action: #selector(togglePausesWhenHidden),
@@ -546,6 +604,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        menu.addItem(.separator())
+        // Seldom wanted, so apart from Settings, as an app menu has About and updates apart from it.
         #if !APPSTORE
         let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         check.target = self
@@ -554,7 +614,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
+        if let dev = devBuildItem() { menu.addItem(dev) }
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    /// Why the painting holds still, when the Mac makes it rather than anyone choosing to: the GPU stopped taking its
+    /// work, Low Power Mode is on, the Mac is hot, or it is on battery with the choice to hold still there.
+    private var holdLine: String? {
+        if gpu.revoked { return String(localized: "The GPU stopped the painting. Quit and reopen Outbound.") }
+        switch displays.power.state.holdReason {
+        case .lowPower: return String(localized: "Holding still in Low Power Mode")
+        case .heat: return String(localized: "Holding still while the Mac cools down")
+        case .battery: return String(localized: "Holding still on battery")
+        case nil: return nil
+        }
     }
 
     /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
@@ -565,6 +638,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.keyEquivalentModifierMask = []
         item.target = self
         return item
+    }
+
+    /// Which build this is, in one made with `scripts/build-app.sh dev`: its version, build number and commit, so test
+    /// builds can be told apart. Shipped builds have none, and the line is never translated.
+    private func devBuildItem() -> NSMenuItem? {
+        guard let line = Self.devBuildLine(Bundle.main.infoDictionary) else { return nil }
+        let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    /// The line a dev build's Info.plist carries, and nil for any other build's.
+    nonisolated static func devBuildLine(_ info: [String: Any]?) -> String? {
+        guard let line = info?["OutboundDevBuild"] as? String, !line.isEmpty else { return nil }
+        return line
     }
 
     private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
@@ -598,10 +686,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func fly(to place: Place) {
         let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-        world.journey.fly(to: place, from: bottom, time: world.time)
+        // Held still, no time passes for the new place to sweep in, so it is there at once, painted as a still.
+        let held = world.isHeld
+        world.journey.fly(to: place, from: bottom, time: world.time, atOnce: held)
         preferences.lastPlace = place.id
+        if held { displays.repaintHeld() }
         // Once the new place has swept in.
-        DispatchQueue.main.asyncAfter(deadline: .now() + Journey.sweepDuration + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + (held ? 0 : Journey.sweepDuration) + 0.5) { [weak self] in
             self?.refreshPainting(force: true)
         }
     }
@@ -625,7 +716,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
-    /// message is about, and nothing else; from the App Store copy, also that the site should leave out its Buy button.
+    /// message is about, and how the painting runs on this Mac (see `diagnostics`), and nothing else; from the App Store
+    /// copy, also that the site should leave out its Buy button.
     @objc private func openFeedback() {
         #if APPSTORE
         let site = URL(string: "https://outbound.edbn.me")!
@@ -640,8 +732,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #if APPSTORE
         items.append(URLQueryItem(name: "from", value: "appstore"))
         #endif
+        if displays != nil { items.append(URLQueryItem(name: "diag", value: diagnostics)) }
         if !items.isEmpty { page.queryItems = items }
         if let url = page.url { NSWorkspace.shared.open(url) }
+    }
+
+    /// One line about how the painting runs here, for the feedback page, as a painting that won't move can't be seen
+    /// from anywhere else: the chip, macOS and how many displays, what holds the painting still, the last error the
+    /// GPU gave, what painting the ground costs (GPU milliseconds a million texels) and the piece of work it is cut to.
+    private var diagnostics: String {
+        var size = 0
+        sysctlbyname("machdep.cpu.brand_string", nil, &size, nil, 0)
+        var brand = [UInt8](repeating: 0, count: max(size, 1))
+        sysctlbyname("machdep.cpu.brand_string", &brand, &size, nil, 0)
+        let chip = String(decoding: brand.prefix { $0 != 0 }, as: UTF8.self)
+            .replacingOccurrences(of: "Apple ", with: "").replacingOccurrences(of: " ", with: "_")
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let holds = displays.holdNames
+        var parts = ["chip=\(chip.isEmpty ? "unknown" : chip)", "os=\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)",
+                     "displays=\(displays.wallpapers.count)", "holds=\(holds.isEmpty ? "none" : holds.joined(separator: ","))"]
+        if let reason = displays.power.state.holdReason { parts.append("power=\(reason)") }
+        if let error = gpu.lastError { parts.append("gpu=\(error.name):\(error.count)") }
+        parts.append("cost=\(Int(gpu.groundCost.millisecondsPerMillion.rounded()))")
+        parts.append("piece=\(gpu.groundCost.texelsPerPiece / 1000)k")
+        // Only what the page and the shop's server let through.
+        let line = parts.joined(separator: " ").filter { $0.isASCII && ($0.isLetter || $0.isNumber || " =:,._-".contains($0)) }
+        Log.display.info("Feedback diagnostics: \(line, privacy: .public)")
+        return String(line.prefix(160))
     }
 
     @objc private func togglePause() {
@@ -654,9 +771,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openSettings() {
         if settingsWindow == nil {
             #if APPSTORE
-            let view = SettingsView(preferences: preferences)
+            let view = SettingsView(preferences: preferences, sendFeedback: { [weak self] in self?.openFeedback() })
             #else
-            let view = SettingsView(preferences: preferences, license: license)
+            let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
+                                    checkForUpdates: { [weak self] in self?.checkForUpdates() },
+                                    sendFeedback: { [weak self] in self?.openFeedback() })
             #endif
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = String(localized: "Outbound Settings")

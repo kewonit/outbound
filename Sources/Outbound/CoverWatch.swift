@@ -1,27 +1,27 @@
 import AppKit
 import OutboundCore
 
-/// Works out, for each display, whether app windows hide its desktop (see `DesktopCover`), and says when that changes.
-/// One read of the window list serves every display: every second while each desktop is in view, three times a second
-/// while one is covered so coming back is noticed at once, and straight after anything that moves windows about, like
-/// switching desktops or apps. Each read takes a fraction of a millisecond.
+/// Works out, for each display, how much of its desktop app windows hide (see `DesktopCover`), and says when that
+/// changes. One read of the window list serves every display: every second while each desktop is in view, three times a
+/// second while one is covered so coming back is noticed at once, and straight after anything that moves
+/// windows about, like switching desktops or apps. Each read takes a fraction of a millisecond.
 @MainActor
 final class CoverWatch {
-    /// Called with a display and whether app windows now cover its desktop.
-    var onChange: (CGDirectDisplayID, Bool) -> Void = { _, _ in }
+    /// Called with a display and how much of its desktop now shows.
+    var onChange: (CGDirectDisplayID, DesktopCover.Level) -> Void = { _, _ in }
     /// The displays to watch.
     var displays: [CGDirectDisplayID] = [] {
         didSet {
             let gone = Set(oldValue).subtracting(displays)
             for id in gone {
                 debounces[id] = nil
-                covered.remove(id)
+                levels[id] = nil
             }
             if displays != oldValue { check() }
         }
     }
-    /// The displays whose desktops app windows cover.
-    private(set) var covered: Set<CGDirectDisplayID> = []
+    /// How much of each display's desktop shows, for those covered.
+    private(set) var levels: [CGDirectDisplayID: DesktopCover.Level] = [:]
     /// How long app windows must cover a desktop before it counts. Switching between apps covers and uncovers it all
     /// the time; only a cover that stays should still the painting, or it would stop and start with every switch.
     static let confirm: TimeInterval = 2
@@ -114,17 +114,28 @@ final class CoverWatch {
                                          top: max(frame.maxY - visible.maxY, screen.safeAreaInsets.top),
                                          left: visible.minX - frame.minX, bottom: visible.minY - frame.minY,
                                          right: frame.maxX - visible.maxX)
-            let reading = DesktopCover.covers(over[i], area: area)
+            var coverage = DesktopCover.coverage(over[i], area: area)
+            #if DEBUG
+            // OUTBOUND_COVER=open, hidden or edge (just covered enough) reads every desktop that way, to try each.
+            switch ProcessInfo.processInfo.environment["OUTBOUND_COVER"] {
+            case "open": coverage = 0
+            case "edge": coverage = DesktopCover.hidden
+            case "hidden": coverage = 1
+            default: break
+            }
+            #endif
             var debounce = debounces[id] ?? CoverDebounce(confirm: Self.confirm)
-            let counts = debounce.read(reading, at: time)
+            let covered = coverage >= DesktopCover.hidden
+            let hidden = debounce.read(covered, at: time)
             debounces[id] = debounce
-            if reading, !counts { unconfirmed = true }
-            guard counts != covered.contains(id) else { continue }
-            if counts { covered.insert(id) } else { covered.remove(id) }
+            if covered && !hidden { unconfirmed = true }
+            let level: DesktopCover.Level = hidden ? .hidden : .open
+            guard level != (levels[id] ?? .open) else { continue }
+            levels[id] = level == .open ? nil : level
             #if DEBUG
             Log.display.info("Display \(id) area \(String(describing: area), privacy: .public) under \(over[i].count) window(s): \(over[i].map { String(describing: $0) }.joined(separator: ", "), privacy: .public)")
             #endif
-            onChange(id, counts)
+            onChange(id, level)
         }
         // A first covered reading is confirmed by one once the cover has stayed, which needn't wait for the timer.
         if unconfirmed {
@@ -135,7 +146,7 @@ final class CoverWatch {
 
     /// Reads every second while every desktop is in view, three times a second while one is covered.
     private func pace() {
-        let wanted: TimeInterval = covered.isEmpty ? 1 : 0.33
+        let wanted: TimeInterval = levels.isEmpty ? 1 : 0.33
         if wanted != interval {
             interval = wanted
             timer?.invalidate()
@@ -147,10 +158,10 @@ final class CoverWatch {
             RunLoop.main.add(timer, forMode: .common)
             self.timer = timer
         }
-        if covered.isEmpty, let clicks {
+        if levels.isEmpty, let clicks {
             NSEvent.removeMonitor(clicks)
             self.clicks = nil
-        } else if !covered.isEmpty, clicks == nil {
+        } else if !levels.isEmpty, clicks == nil {
             clicks = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
                 MainActor.assumeIsolated { self?.check(now: false, after: [0.05, 0.4]) }
             }

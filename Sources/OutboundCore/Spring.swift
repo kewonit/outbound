@@ -2,7 +2,7 @@ import Foundation
 
 /// Daniel Holden's exact critically damped spring: eases a value towards a goal without overshoot,
 /// and gives the same motion whatever the frame rate.
-public struct Spring: Sendable {
+public struct Spring: Codable, Sendable {
     public var value: SIMD2<Double>
     public var velocity = SIMD2<Double>.zero
     /// Time to close half the distance to the goal.

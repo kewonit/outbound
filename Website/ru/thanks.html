@@ -8,29 +8,8 @@
 <title data-i18n="thanks.metaTitle">Спасибо · Outbound</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
-<link rel="stylesheet" href="/styles.css?v=22">
-<script>
-// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
-// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
-(function () {
-  var params = new URLSearchParams(location.search);
-  var id = params.get("checkout_id");
-  try {
-    if (id) sessionStorage.setItem("outbound-checkout", id);
-  } catch (error) {}
-  window.OUTBOUND_CHECKOUT = id || (function () {
-    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
-  })();
-  if (location.search) history.replaceState(null, "", location.pathname);
-})();
-</script>
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  // The address holds the checkout, which can fetch a key: Plausible only gets the page.
-  plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request } })
-</script>
 </head>
 <body>
 
@@ -53,6 +32,10 @@
       <li>
         <strong data-i18n="thanks.step2">Откройте Outbound, затем нажмите «Активировать».</strong> <span data-i18n="thanks.step2Detail">Браузер спросит, можно ли открыть Outbound. Разрешите.</span>
         <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" data-i18n="thanks.activate">Активировать</a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step3">Все настройки находятся в строке меню.</strong> <span data-i18n="thanks.step3Detail">Нажмите на чайку вверху экрана.</span>
+        <img class="menu-shot" src="/assets/menu/ru.webp?v=1" width="399" height="489" alt="Меню Outbound, открытое под чайкой в строке меню" data-i18n-attr="src=thanks.menuImage alt=thanks.menuAlt" loading="lazy" decoding="async">
       </li>
     </ol>
 
@@ -99,8 +82,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackLong":"Не больше 2000 символов.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."};</script>
-<script src="/app.js?v=15"></script>
-<script src="/thanks.js?v=7"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackLong":"Не больше 2000 символов.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

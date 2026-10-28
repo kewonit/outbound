@@ -2,8 +2,11 @@
 (function () {
   "use strict";
 
-  // A translated page carries these words in its own language in OUTBOUND_I18N.
-  var WORDS = window.OUTBOUND_I18N || {};
+  // A translated page carries these words in its own language, as JSON in #outbound-words.
+  var WORDS = (function () {
+    var block = document.getElementById("outbound-words");
+    try { return block ? JSON.parse(block.textContent) : {}; } catch (error) { return {}; }
+  })();
   function word(key, english) {
     return WORDS[key] || english;
   }
@@ -23,6 +26,9 @@
   // Opened from the app's menu, the address says which version, as ?app=1.3, and the message carries it along.
   var app = new URLSearchParams(location.search).get("app");
   if (!/^\d{1,3}(\.\d{1,3}){0,2}$/.test(app || "")) app = null;
+  // And one line about how the painting runs on that Mac, as ?diag=chip=M1 os=26.1 ..., for a painting that won't move.
+  var diag = new URLSearchParams(location.search).get("diag");
+  if (!/^[A-Za-z0-9 =:,._-]{1,160}$/.test(diag || "")) diag = null;
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
@@ -54,6 +60,7 @@
         email: email,
         lang: document.documentElement.lang.toLowerCase(),
         app: app,
+        diag: diag,
         hp: form.elements.hp.value
       })
     }).then(function (response) {

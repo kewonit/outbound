@@ -6,14 +6,23 @@ public enum FramePacing {
     /// this is the lowest fraction at or above the target (60 Hz: 30, 75 Hz: 37.5), unless that is more than half as
     /// much again, then the highest below it (50 Hz: 25). `slowest` is given for a panel that can refresh at any rate
     /// down to it for this window, like ProMotion, which then shows the target as it is.
-    public static func rate(target: Double, fastest: Double, slowest: Double? = nil) -> Double {
+    ///
+    /// With `lowest`, the rate above is taken only if it is within a fifth of the target; further over, the one below
+    /// serves as well and costs less, as long as it is still `lowest` or more (75 Hz: 25 rather than 37.5, but 60 Hz
+    /// keeps 30 for a target of 24, as 20 would be too few). Every frame costs the same, so frames over the target are
+    /// spent for nothing.
+    public static func rate(target: Double, fastest: Double, slowest: Double? = nil, lowest: Double? = nil) -> Double {
         guard target > 0, fastest.isFinite, fastest >= 20 else { return target }
         // Panels at 59.94 or 119.88 Hz are a hair under their round rates.
         let floor = target * (1 - 1.0 / 128)
         if let slowest, slowest < fastest, target >= slowest * (1 - 1.0 / 128) { return min(target, fastest) }
         let fractions = (1...Int((fastest / target).rounded(.up)) + 1).map { fastest / Double($0) }
-        if let above = fractions.last(where: { $0 >= floor }), above <= target * 1.5 { return above }
-        return fractions.first { $0 < floor } ?? fastest
+        let below = fractions.first { $0 < floor }
+        if let above = fractions.last(where: { $0 >= floor }), above <= target * 1.5 {
+            if let lowest, above > target * 1.2, let below, below >= lowest * (1 - 1.0 / 128) { return below }
+            return above
+        }
+        return below ?? fastest
     }
 }
 
@@ -38,6 +47,22 @@ public struct PowerState: Equatable, Sendable {
     }
 
     public init() {}
+
+    /// Why the wallpaper holds a still painting rather than flying, so the menu can say so.
+    public enum HoldReason: Sendable {
+        case lowPower
+        /// The Mac is running hot.
+        case heat
+        /// On battery, with the choice to hold still there.
+        case battery
+    }
+
+    public var holdReason: HoldReason? {
+        if lowPower { return .lowPower }
+        if thermal >= .serious { return .heat }
+        if onBattery && batteryMode == .still { return .battery }
+        return nil
+    }
 }
 
 public struct PowerTier: Equatable, Sendable {
@@ -51,10 +76,7 @@ public struct PowerTier: Equatable, Sendable {
     public var birdFramesPerSecond: Double = 60
 
     public static func choose(_ state: PowerState) -> PowerTier {
-        if state.lowPower || state.thermal >= .serious {
-            return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
-        }
-        if state.onBattery && state.batteryMode == .still {
+        if state.holdReason != nil {
             return PowerTier(framesPerSecond: 0, frozen: true, halfRateClouds: true)
         }
         // An even 30 a second, as the site's videos run, keeps the slow pan smooth; on battery 24, which the
@@ -78,9 +100,22 @@ public struct PaintBudget: Sendable {
     private var saved = 0.0
     private var savedAt: Double?
 
-    public init(milliseconds: Double = 4, costPerMillion: Double = 15) {
+    /// What painting that can wait may take when all is well.
+    public static let usualMilliseconds = 4.0
+
+    public init(milliseconds: Double = PaintBudget.usualMilliseconds, costPerMillion: Double = 15) {
         self.milliseconds = milliseconds
         self.costPerMillion = costPerMillion
+    }
+
+    /// The GPU is in trouble: half as much from now on, never under half a millisecond.
+    public mutating func backOff() {
+        milliseconds = max(milliseconds / 2, 0.5)
+    }
+
+    /// A step back towards the usual, after a while without trouble.
+    public mutating func recover() {
+        milliseconds = min(milliseconds * 2, Self.usualMilliseconds)
     }
 
     /// Texels per second.

@@ -28,7 +28,19 @@ final class PowerMonitor {
             CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
             runLoopSource = source
         }
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["OUTBOUND_POWER"] == "unplug" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak self] in
+                self?.unplugged = true
+                self?.read()
+            }
+        }
+        #endif
     }
+
+    #if DEBUG
+    private var unplugged = false
+    #endif
 
     var batteryMode: PowerState.BatteryMode {
         get { state.batteryMode }
@@ -49,8 +61,20 @@ final class PowerMonitor {
             let source = info.flatMap { IOPSGetProvidingPowerSourceType($0)?.takeUnretainedValue() as String? }
             state.onBattery = source == kIOPSBatteryPowerValue
             #if DEBUG
-            // OUTBOUND_POWER=ac or battery tries either tier whatever the Mac is running on.
-            if let forced = ProcessInfo.processInfo.environment["OUTBOUND_POWER"] { state.onBattery = forced == "battery" }
+            // OUTBOUND_POWER=ac or battery tries either tier whatever the Mac is running on; lowpower and hot hold the
+            // painting still as Low Power Mode and a hot Mac do; unplug comes off the charger twenty seconds in, into
+            // Low Power Mode, as a Mac set to it on battery does.
+            switch ProcessInfo.processInfo.environment["OUTBOUND_POWER"] {
+            case "lowpower": state.lowPower = true
+            case "hot": state.thermal = .serious
+            case "unplug":
+                if unplugged {
+                    state.onBattery = true
+                    state.lowPower = true
+                }
+            case let forced?: state.onBattery = forced == "battery"
+            case nil: break
+            }
             #endif
         }
     }

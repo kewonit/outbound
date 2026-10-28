@@ -7,6 +7,15 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.6</title>
+      <pubDate>Wed, 28 Oct 2026 20:08:29 +0000</pubDate>
+      <description><![CDATA[<p>Slower Macs now paint the landscape in small steps, which should fix the wallpaper standing still there after 1.5, and Outbound opens on the same view your desktop showed when you shut down. Pause When Hidden is now on by default and holds the painting while windows cover nearly all of every desktop, so it uses far less of your Mac while you work. The menu says why the painting is holding still, Settings has buttons for the website, support, feedback and updates, and feedback sent from the app notes how the painting runs on your Mac.</p>]]></description>
+      <sparkle:version>8</sparkle:version>
+      <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.6/Outbound-v1.6.dmg" type="application/octet-stream" sparkle:edSignature="bEcw1SGPoAHbzem+DbyCPlhA9NHBWkr4IuqEIvCHiMhlXZa3xV32lFxW7D2KWeAssTXXAesL/LDLfSmyK0NsDA==" length="5761102"/>
+    </item>
+    <item>
       <title>Outbound v1.5</title>
       <pubDate>Tue, 27 Oct 2026 23:34:22 +0000</pubDate>
       <description><![CDATA[<p>New Pause When Hidden option holds the flight while windows cover every desktop. A Feedback item in the menu lets you write to me directly, and the painted border now stays off unless you turn it on.</p>]]></description>

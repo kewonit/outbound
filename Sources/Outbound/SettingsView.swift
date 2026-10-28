@@ -7,17 +7,13 @@ struct SettingsView: View {
     @ObservedObject var preferences: Preferences
     #if !APPSTORE
     @ObservedObject var license: LicenseController
+    /// What the menu's Check for Updates does, so the button here does just the same. The App Store updates its copy.
+    let canCheckForUpdates: Bool
+    let checkForUpdates: () -> Void
     #endif
+    /// What the menu's Feedback does.
+    let sendFeedback: () -> Void
     @State private var opensAtLogin = LoginItem.isOn
-
-    private static let website = URL(string: "https://outbound.edbn.me")!
-    #if APPSTORE
-    // Opened from the App Store copy, the site leaves out every way to buy it there, and shows App Store help.
-    private static let support = URL(string: "https://outbound.edbn.me/support?from=appstore")!
-    #else
-    private static let support = URL(string: "https://outbound.edbn.me/support")!
-    #endif
-    private static let privacy = URL(string: "https://outbound.edbn.me/privacy")!
 
     var body: some View {
         Form {
@@ -58,7 +54,12 @@ struct SettingsView: View {
                 }
                 #endif
             } footer: {
-                about
+                #if APPSTORE
+                AboutFooter(sendFeedback: sendFeedback)
+                #else
+                AboutFooter(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
+                            sendFeedback: sendFeedback)
+                #endif
             }
         }
         .formStyle(.grouped)
@@ -66,42 +67,74 @@ struct SettingsView: View {
         .fixedSize()
     }
 
-    /// Which Outbound this is, what it does by itself, and where to find more.
-    private var about: some View {
+    private func setOpensAtLogin(_ on: Bool) {
+        LoginItem.set(on)
+        opensAtLogin = LoginItem.isOn
+    }
+}
+
+/// Under the settings: which Outbound this is, what it does by itself, and buttons for the site, help, feedback and
+/// updates, centred, as an About window has them.
+struct AboutFooter: View {
+    #if !APPSTORE
+    let canCheckForUpdates: Bool
+    let checkForUpdates: () -> Void
+    #endif
+    let sendFeedback: () -> Void
+
+    #if APPSTORE
+    // Opened from the App Store copy, the site leaves out every way to buy it there, and shows App Store help.
+    private static let support = URL(string: "https://outbound.edbn.me/support?from=appstore")!
+    private static let privacy = URL(string: "https://outbound.edbn.me/privacy?from=appstore")!
+    #else
+    private static let website = URL(string: "https://outbound.edbn.me")!
+    private static let support = URL(string: "https://outbound.edbn.me/support")!
+    #endif
+
+    var body: some View {
         VStack(spacing: 6) {
             Image(nsImage: .outboundGull)
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 24, height: 24)
+                .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             Text("Outbound \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
                 .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
             VStack(spacing: 2) {
                 Text("It pauses by itself while you're away.")
                 Text("Quit it and your own desktop picture comes back.")
             }
-            HStack(spacing: 6) {
-                // The website sells the direct download, which an App Store copy mustn't point to.
-                #if !APPSTORE
-                Link("Website", destination: Self.website)
-                Text("·").accessibilityHidden(true)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            // The same width each where the words allow, so the row sits even. The website sells the direct
+            // download, which an App Store copy mustn't point to, so that one has Privacy in its place.
+            HStack(spacing: 8) {
+                #if APPSTORE
+                link("Support", to: Self.support)
+                link("Privacy", to: Self.privacy)
+                #else
+                link("Website", to: Self.website)
+                link("Support", to: Self.support)
                 #endif
-                Link("Support", destination: Self.support)
-                Text("·").accessibilityHidden(true)
-                Link("Privacy", destination: Self.privacy)
+                Button(action: sendFeedback) { Text("Feedback").frame(minWidth: 72) }
             }
-            .padding(.top, 2)
+            .padding(.top, 8)
+            #if !APPSTORE
+            Button("Check for Updates…", action: checkForUpdates)
+                .disabled(!canCheckForUpdates)
+                .padding(.top, 2)
+            #endif
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        .buttonStyle(.bordered)
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
     }
 
-    private func setOpensAtLogin(_ on: Bool) {
-        LoginItem.set(on)
-        opensAtLogin = LoginItem.isOn
+    private func link(_ title: LocalizedStringKey, to url: URL) -> some View {
+        Button { NSWorkspace.shared.open(url) } label: { Text(title).frame(minWidth: 72) }
     }
 }
 

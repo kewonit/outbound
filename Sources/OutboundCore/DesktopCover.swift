@@ -25,12 +25,6 @@ public enum DesktopCover {
         }
     }
 
-    /// Apps that offer windows you can see through. The window list doesn't say whether a window's content is, so
-    /// theirs never count as covering: the painting behind a see-through terminal keeps moving.
-    public static let seeThrough: Set<String> = [
-        "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty", "net.kovidgoyal.kitty",
-        "com.github.wez.wezterm", "org.alacritty", "dev.warp.Warp-Stable",
-    ]
     /// The system's own windows over the desktop: the Dock (and Mission Control in it) and Stage Manager.
     public static let system: Set<String> = ["com.apple.dock", "com.apple.WindowManager"]
     /// Smaller windows than this, a palette or a widget, never hide a desktop on their own.
@@ -47,12 +41,13 @@ public enum DesktopCover {
     }
 
     /// The windows that hide what is under them: ordinary app windows, opaque and of some size, not Outbound's own nor
-    /// the system's, nor from an app whose windows may be see-through.
+    /// the system's. Terminals count like any other: neither the window list nor the window server says whether one
+    /// was set to be see-through, and they are opaque unless it was.
     public static func covering(_ windows: [Window], ownPID: Int32) -> [CGRect] {
         windows.filter { window in
             window.layer == 0 && window.alpha >= 0.99 && window.pid != ownPID
                 && window.frame.width >= smallest && window.frame.height >= smallest
-                && !(window.bundle.map { system.contains($0) || seeThrough.contains($0) } ?? false)
+                && !(window.bundle.map(system.contains) ?? false)
         }.map(\.frame)
     }
 
@@ -80,20 +75,38 @@ public enum DesktopCover {
     /// lets the narrow gaps of tiled windows and Split View's divider count as covered, as nobody sees a desktop
     /// through them.
     public static func covers(_ windows: [CGRect], area: CGRect, spacing: CGFloat = 32, inflate: CGFloat = 12) -> Bool {
-        guard !area.isNull, !area.isEmpty, !windows.isEmpty, spacing > 0 else { return false }
+        coverage(windows, area: area, spacing: spacing, inflate: inflate) >= 1
+    }
+
+    /// The share of the points of a `spacing` grid across `area` that `windows`, each grown by `inflate`, lie over.
+    public static func coverage(_ windows: [CGRect], area: CGRect, spacing: CGFloat = 32, inflate: CGFloat = 12) -> Double {
+        guard !area.isNull, !area.isEmpty, !windows.isEmpty, spacing > 0 else { return 0 }
         let grown = windows.map { $0.insetBy(dx: -inflate, dy: -inflate) }
+        var points = 0, under = 0
         var y = area.minY + min(spacing, area.height) / 2
         while y < area.maxY {
             var x = area.minX + min(spacing, area.width) / 2
             while x < area.maxX {
                 let point = CGPoint(x: x, y: y)
-                if !grown.contains(where: { $0.contains(point) }) { return false }
+                points += 1
+                if grown.contains(where: { $0.contains(point) }) { under += 1 }
                 x += spacing
             }
             y += spacing
         }
-        return true
+        return points == 0 ? 0 : Double(under) / Double(points)
     }
+
+    /// How much of a display's desktop shows.
+    public enum Level: Sendable, Equatable {
+        case open
+        /// Windows lie over all of it, or all but strips and corners under a fifth of it (see `hidden`).
+        case hidden
+    }
+
+    /// The share of a desktop under windows at which it counts as hidden: what still shows round them, under a fifth,
+    /// isn't what anyone is watching.
+    public static let hidden = 0.82
 }
 
 /// When a display counts as covered: covered readings `confirm` seconds apart, so a window passing over, or an app

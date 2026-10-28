@@ -61,7 +61,7 @@ struct DesktopCoverTests {
         #expect(DesktopCover.area(bounds: bounds, top: 600, left: 0, bottom: 600, right: 0).isNull)
     }
 
-    @Test func onlyOpaqueAppWindowsOfSomeSizeCount() {
+    @Test func opaqueAppWindowsOfSomeSizeCountTerminalsToo() {
         let frame = CGRect(x: 0, y: 0, width: 800, height: 600)
         let windows = [
             DesktopCover.Window(frame: frame, pid: 10, bundle: "com.apple.Safari"),
@@ -74,7 +74,9 @@ struct DesktopCoverTests {
             DesktopCover.Window(frame: frame, pid: 14, bundle: "com.apple.Terminal"),
             DesktopCover.Window(frame: CGRect(x: 0, y: 0, width: 40, height: 600), pid: 10),
         ]
-        #expect(DesktopCover.covering(windows, ownPID: 99) == [frame])
+        // Safari, Ghostty and Terminal; not Outbound's own, another layer's, a faded one, the Dock's, Stage Manager's,
+        // nor one too narrow to hide anything.
+        #expect(DesktopCover.covering(windows, ownPID: 99) == [frame, frame, frame])
     }
 
     @Test func eachWindowCountsWhereItShows() {
@@ -115,5 +117,31 @@ struct DesktopCoverTests {
         confirmed.restart()
         let still = confirmed.read(true, at: 3600)
         #expect(still)
+    }
+
+    @Test func coverageSaysHowMuchOfTheDesktopWindowsHide() {
+        #expect(DesktopCover.coverage([], area: Self.area) == 0)
+        #expect(DesktopCover.coverage([Self.area], area: Self.area) == 1)
+        // The left half, grown by the usual 12 points, lies over half the grid and a column more.
+        let (left, _) = Self.area.divided(atDistance: Self.area.width / 2, from: .minXEdge)
+        let half = DesktopCover.coverage([left], area: Self.area)
+        #expect(half > 0.48 && half < 0.55)
+        // A window leaving a strip down one side: hidden, though not every point is under it.
+        let (most, _) = Self.area.divided(atDistance: Self.area.width - 120, from: .minXEdge)
+        let strip = DesktopCover.coverage([most], area: Self.area)
+        #expect(strip >= DesktopCover.hidden && strip < 1)
+        #expect(!DesktopCover.covers([most], area: Self.area))
+        // Over 85% of it counts as hidden; over 75%, or a third, it doesn't.
+        func over(_ share: CGFloat) -> Double {
+            DesktopCover.coverage([Self.area.divided(atDistance: Self.area.width * share, from: .minXEdge).slice],
+                                  area: Self.area)
+        }
+        #expect(over(0.85) >= DesktopCover.hidden)
+        #expect(over(0.75) < DesktopCover.hidden)
+        #expect(over(1.0 / 3) < DesktopCover.hidden)
+        // One stopping a tenth short of the bottom.
+        let (top, _) = Self.area.divided(atDistance: Self.area.height * 0.9, from: .minYEdge)
+        #expect(DesktopCover.coverage([top], area: Self.area) >= DesktopCover.hidden)
+        #expect(DesktopCover.coverage([Self.area], area: .null) == 0)
     }
 }
