@@ -5,12 +5,14 @@
 //   node scripts/build-site-languages.mjs           checks Website/i18n/<language>.json against it, then writes
 //                                                    Website/<language>/index.html, support.html, thanks.html,
 //                                                    waitlist.html and feedback.html,
-//                                                    the hreflang links of every page and the sitemap
+//                                                    the hreflang links of every page and the sitemap,
+//                                                    and the hash of the pages' one inline script in _headers
 //
 // A translation keeps the English's markup exactly (the same tags with the same attributes), its prices and its
 // keyboard keys, and never uses an em dash. Place names stay in English. No dependencies.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -153,7 +155,10 @@ function translatePage(html, page, language, strings) {
   out = out.replace(/(<meta property="og:locale" content=")[^"]*"/, `$1${locale}"`);
   out = out.replace(`<option value="${folder}">`, `<option value="${folder}" selected>`);
   const words = Object.fromEntries(Object.entries(strings).filter(([key]) => key.startsWith("js.")));
-  out = out.replace(/<script src=/, `<script>window.OUTBOUND_I18N = ${JSON.stringify(words)};</script>\n<script src=`);
+  // As data, not a script, so the Content Security Policy needn't let any inline script run. A "<" is escaped so no
+  // word can close the block early.
+  const json = JSON.stringify(words).replace(/</g, "\\u003c");
+  out = out.replace(/<script>/, `<script type="application/json" id="outbound-words">${json}</script>\n$&`);
   const ld = LD.exec(out);
   if (ld) out = out.replace(LD, `$1${structuredData(ld[2], language, strings)}$3`);
   return out;
@@ -211,9 +216,11 @@ function sitemap() {
     for (const { folder } of LANGUAGES) urls.push(entry(page, folder));
   }
   const old = read("sitemap.xml");
-  for (const path of ["/privacy", "/license"]) {
+  // The English-only pages keep the date they last changed; one new to the sitemap starts from today.
+  for (const path of ["/privacy", "/license", "/terms"]) {
     const kept = new RegExp(`\\s*<url><loc>${site}${path}</loc><lastmod>[^<]*</lastmod></url>`).exec(old);
-    if (kept) urls.push(kept[0].trim().replace(/^/, "  "));
+    const today = new Date().toISOString().slice(0, 10);
+    urls.push(kept ? kept[0].trim().replace(/^/, "  ") : `  <url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`);
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
 }
@@ -256,4 +263,22 @@ for (const page of pages) {
   }
 }
 writeFileSync(join(root, "sitemap.xml"), sitemap());
-console.log(`Wrote ${pages.length} pages in ${LANGUAGES.length} languages, and the sitemap.`);
+
+// Every page, translated or not, runs one inline script, the same everywhere: the loader that starts its scripts.
+// The Content Security Policy in _headers names it by its hash, so that follows any change to it.
+const html = ["", ...LANGUAGES.map((language) => language.folder)]
+  .flatMap((folder) => readdirSync(join(root, folder)).filter((name) => name.endsWith(".html")).map((name) => join(folder, name)));
+const loaders = new Set(html.flatMap((path) => [...read(path).matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1])));
+const runs = html.filter((path) => !read(path).includes("<script>"));
+if (loaders.size !== 1 || runs.length) {
+  console.error(runs.length ? `No loader in ${runs.join(", ")}` : `Pages carry ${loaders.size} different inline scripts; keep the loader the same on every page`);
+  process.exit(1);
+}
+const hash = `'sha256-${createHash("sha256").update([...loaders][0]).digest("base64")}'`;
+const headers = read("_headers");
+if (!/'sha256-[\w+/=]+'/.test(headers)) {
+  console.error("_headers has no script hash to keep up to date");
+  process.exit(1);
+}
+writeFileSync(join(root, "_headers"), headers.replace(/'sha256-[\w+/=]+'/, hash));
+console.log(`Wrote ${pages.length} pages in ${LANGUAGES.length} languages, the sitemap, and the loader's hash ${hash}.`);

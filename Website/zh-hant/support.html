@@ -44,13 +44,8 @@
 <meta name="twitter:image:alt" content="Outbound：如畫的世界，在你的桌面後方飛過。" data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/styles.css?v=22">
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -72,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">寄信給支援</a>
     </div>
 
-    <h2 data-i18n="support.lost">找不到授權碼</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">從 Mac App Store 購買</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">更新會透過 App Store 提供。</li>
+      <li data-i18n="support.store2">在另一台 Mac 上，用同一個 Apple 帳號從 App Store 下載 Outbound。</li>
+      <li data-i18n="support.store3">如需退款，請前往 <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>。</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">找不到授權碼</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">它在你的<a href="https://polar.sh/edbnme/portal">客戶中心</a>。請用付款時的電子郵件登入。</li>
       <li data-i18n="support.lost2">如果你是在這個瀏覽器購買的，<a href="/zh-hant/">首頁</a>上也看得到。</li>
     </ul>
 
-    <h2 data-i18n="support.mac">換新 Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">換新 Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">一組授權碼可同時用於 3 台 Mac。</li>
       <li data-i18n="support.mac2">若要空出名額，請在 Outbound 的設定中按一下「停用」，或使用客戶中心。</li>
       <li data-i18n="support.mac3">在新的 Mac 上，從選單列選擇「解鎖 Outbound」，然後貼上你的授權碼。</li>
@@ -98,8 +102,8 @@
       <li data-i18n="support.remove2">接著把 Outbound 從「應用程式」檔案夾拖到垃圾桶。</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">收據</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">收據</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">都在你的<a href="https://polar.sh/edbnme/portal">客戶中心</a>。</li>
     </ul>
 
@@ -136,7 +140,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"已複製","js.copy":"複製","js.copyKey":"複製授權碼","js.copyKeyTitle":"複製你的授權碼","js.emailInvalid":"這個電子郵件地址看起來不太對。","js.feedbackEmpty":"請先寫點什麼。","js.feedbackLong":"最多 2000 個字。","js.feedbackSent":"謝謝，已經送出。","js.finding":"正在尋找你的授權碼…","js.formBusy":"嘗試次數過多，請稍候一分鐘。","js.formFailed":"沒有送出，請再試一次。","js.offline":"無法連上商店。試試按「啟用」，或查看你的客戶中心。","js.portal":"你的授權碼在下方的客戶中心裡。","js.pressCopy":"按 ⌘C 複製你的授權碼。","js.refunded":"這筆購買已經退款。","js.slow":"比平常久了一點。試試按「啟用」，或過一分鐘再查看你的客戶中心。","js.unfinished":"這次結帳沒有完成。","js.waitlistIos":"已加入名單。Outbound 推出 iPhone 版時，只寄一封信。","js.waitlistWindows":"已加入名單。Outbound 推出 Windows 版時，只寄一封信。"};</script>
-<script src="/app.js?v=15"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"已複製","js.copy":"複製","js.copyKey":"複製授權碼","js.copyKeyTitle":"複製你的授權碼","js.emailInvalid":"這個電子郵件地址看起來不太對。","js.feedbackEmpty":"請先寫點什麼。","js.feedbackLong":"最多 2000 個字。","js.feedbackSent":"謝謝，已經送出。","js.finding":"正在尋找你的授權碼…","js.formBusy":"嘗試次數過多，請稍候一分鐘。","js.formFailed":"沒有送出，請再試一次。","js.offline":"無法連上商店。試試按「啟用」，或查看你的客戶中心。","js.portal":"你的授權碼在下方的客戶中心裡。","js.pressCopy":"按 ⌘C 複製你的授權碼。","js.refunded":"這筆購買已經退款。","js.slow":"比平常久了一點。試試按「啟用」，或過一分鐘再查看你的客戶中心。","js.unfinished":"這次結帳沒有完成。","js.waitlistIos":"已加入名單。Outbound 推出 iPhone 版時，只寄一封信。","js.waitlistWindows":"已加入名單。Outbound 推出 Windows 版時，只寄一封信。"}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

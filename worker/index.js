@@ -4,6 +4,8 @@
 //   GET  /, /support, /thanks          The page in the visitor's language: their pick in the footer if they made
 //                                      one, else the first of their browser's languages the site speaks.
 //                                      Every page shows Outbound's price in the visitor's own money (PRICES).
+//                                      With ?from=appstore, as the Mac App Store copy opens them, without any way
+//                                      to buy or download it here (forAppStore).
 //   GET  /buy[?currency=usd][&twclid=] On to a new Polar checkout for Outbound, in that money, or in dollars,
 //                                      carrying the X ad click it came from, if any.
 //   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
@@ -47,46 +49,48 @@ const TWCLID = /^[\w.~-]{1,500}$/;
 // How long the store remembers an order X has heard of: longer than a checkout can still be claimed.
 const TOLD_FOR = 90 * 24 * 3600;
 // Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
-// the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
-// of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $4.99. The city is
+// the currency its checkout charges, how the pages write the price, and the usual price they show struck out beside
+// it, about as many times the price as $12.99 is $4.99. The Outbound product in Polar needs a price of that amount in
+// each currency. Everywhere else, and for anyone who asks for dollars, it's $4.99, down from $12.99. The city is
 // $99 everywhere. Turkish pages say "$4.99'a", which suits a lira price ending in 9 (dokuz).
-const priceIn = (currency, label) => ({ currency, label });
+const priceIn = (currency, label, was) => ({ currency, label, was });
 const EURO = [
   "AD", "AT", "AX", "BE", "BG", "CY", "DE", "EE", "ES", "FI", "FR", "GF", "GP", "GR", "HR", "IT", "LT", "LU", "LV",
   "MC", "ME", "MQ", "PT", "RE", "SI", "SK", "SM", "VA", "XK", "YT",
 ];
 const PRICES = {
-  ...Object.fromEntries(EURO.map((country) => [country, priceIn("eur", "4,49\u00a0€")])),
-  IE: priceIn("eur", "€4.49"), MT: priceIn("eur", "€4.49"), NL: priceIn("eur", "€4,49"),
-  ...Object.fromEntries(["GB", "GG", "IM", "JE"].map((country) => [country, priceIn("gbp", "£3.99")])),
-  CH: priceIn("chf", "CHF\u00a04.49"), LI: priceIn("chf", "CHF\u00a04.49"),
-  SE: priceIn("sek", "49\u00a0kr"),
-  CA: priceIn("cad", "CA$6.99"),
-  AU: priceIn("aud", "A$6.99"),
-  SG: priceIn("sgd", "S$6.49"),
-  HK: priceIn("hkd", "HK$39"),
-  JP: priceIn("jpy", "¥800"),
-  KR: priceIn("krw", "₩6,500"),
-  TW: priceIn("twd", "NT$150"),
-  CN: priceIn("cny", "¥29"),
-  SA: priceIn("sar", "SAR\u00a018.99"),
-  AE: priceIn("aed", "AED\u00a018.99"),
-  PL: priceIn("pln", "19\u00a0zł"),
-  MX: priceIn("mxn", "MX$79"),
-  BR: priceIn("brl", "R$10,99"),
-  TR: priceIn("try", "₺109"),
-  IN: priceIn("inr", "₹199"),
+  ...Object.fromEntries(EURO.map((country) => [country, priceIn("eur", "4,49\u00a0€", "11,99\u00a0€")])),
+  IE: priceIn("eur", "€4.49", "€11.99"), MT: priceIn("eur", "€4.49", "€11.99"), NL: priceIn("eur", "€4,49", "€11,99"),
+  ...Object.fromEntries(["GB", "GG", "IM", "JE"].map((country) => [country, priceIn("gbp", "£3.99", "£9.99")])),
+  CH: priceIn("chf", "CHF\u00a04.49", "CHF\u00a011.99"), LI: priceIn("chf", "CHF\u00a04.49", "CHF\u00a011.99"),
+  SE: priceIn("sek", "49\u00a0kr", "129\u00a0kr"),
+  CA: priceIn("cad", "CA$6.99", "CA$17.99"),
+  AU: priceIn("aud", "A$6.99", "A$17.99"),
+  SG: priceIn("sgd", "S$6.49", "S$16.99"),
+  HK: priceIn("hkd", "HK$39", "HK$99"),
+  JP: priceIn("jpy", "¥800", "¥2,000"),
+  KR: priceIn("krw", "₩6,500", "₩16,900"),
+  TW: priceIn("twd", "NT$150", "NT$390"),
+  CN: priceIn("cny", "¥29", "¥79"),
+  SA: priceIn("sar", "SAR\u00a018.99", "SAR\u00a048.99"),
+  AE: priceIn("aed", "AED\u00a018.99", "AED\u00a048.99"),
+  PL: priceIn("pln", "19\u00a0zł", "49\u00a0zł"),
+  MX: priceIn("mxn", "MX$79", "MX$199"),
+  BR: priceIn("brl", "R$10,99", "R$28,99"),
+  TR: priceIn("try", "₺109", "₺279"),
+  IN: priceIn("inr", "₹199", "₹499"),
 };
-// On a page, its $4.99, and the link to pay in dollars, which stays hidden where $4.99 is the price anyway.
-const PRICE_OR_DOLLARS = /(<a\b[^>]*\sdata-dollars\b[^>]*>)([\s\S]*?<\/a>)|\$4\.99(?![\d.,])/g;
+// On a page, its $4.99 and the $12.99 struck out beside it, and the link to pay in dollars, which stays hidden
+// where $4.99 is the price anyway.
+const PRICE_OR_DOLLARS = /(<a\b[^>]*\sdata-dollars\b[^>]*>)([\s\S]*?<\/a>)|\$(4|12)\.99(?![\d.,])/g;
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/download") return download(request, env);
     if (url.pathname === "/buy") return buy(request, env, url);
-    if (TRANSLATED.has(url.pathname)) return page(request, env, url);
-    if (!url.pathname.startsWith("/api/")) return priced(request, env);
+    if (TRANSLATED.has(url.pathname)) return forAppStore(url, await page(request, env, url));
+    if (!url.pathname.startsWith("/api/")) return forAppStore(url, await priced(request, env));
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
     try {
       if (url.pathname === "/api/checkout") return await checkout(request, env);
@@ -130,9 +134,10 @@ async function page(request, env, url) {
   return answer;
 }
 
-// A page with its $4.99 in the visitor's own money, where PRICES has one, and the offer to pay in dollars shown. The
-// page is always fetched in full, so a copy the browser kept from before, in dollars, can't be confirmed as current,
-// and the answer is cached only in that browser, never somewhere a visitor from another country could be handed it.
+// A page with its $4.99 and $12.99 in the visitor's own money, where PRICES has one, and the offer to pay in dollars
+// shown. The page is always fetched in full, so a copy the browser kept from before, in dollars, can't be confirmed as
+// current, and the answer is cached only in that browser, never somewhere a visitor from another country could be
+// handed it.
 async function priced(request, env) {
   const price = PRICES[request.cf?.country];
   if (!price) return env.ASSETS.fetch(request);
@@ -141,12 +146,28 @@ async function priced(request, env) {
   headers.delete("If-Modified-Since");
   const response = await env.ASSETS.fetch(new Request(request, { headers }));
   if (!response.ok || !response.headers.get("Content-Type")?.startsWith("text/html")) return response;
-  const html = (await response.text()).replace(PRICE_OR_DOLLARS, (match, link, rest) =>
-    link ? link.replace(/\shidden(?=[\s>])/, "") + rest : price.label);
+  const html = (await response.text()).replace(PRICE_OR_DOLLARS, (match, link, rest, dollars) =>
+    link ? link.replace(/\shidden(?=[\s>])/, "") + rest : dollars === "12" ? price.was : price.label);
   const answer = new Response(html, response);
   for (const name of ["ETag", "Last-Modified", "Content-Length"]) answer.headers.delete(name);
   if (!answer.headers.get("Cache-Control")?.includes("no-store")) answer.headers.set("Cache-Control", "private, no-cache");
   return answer;
+}
+
+const STORE_ONLY = [
+  'a[data-url="buy"]', 'a[data-url="download"]', 'a[data-url="city"]', "a[data-dollars]",
+  'a[href$="#buy"]', 'a[href$="#your-city"]', "[data-direct]",
+];
+
+// A page opened from the Mac App Store copy, whose rules keep it from pointing anywhere else to buy: without the Buy,
+// download and city links, the offer to pay in dollars, or anything marked data-direct (the price box, and help with
+// license keys an App Store copy doesn't have), and with the help marked data-appstore shown instead.
+function forAppStore(url, response) {
+  if (url.searchParams.get("from") !== "appstore") return response;
+  if (!response.headers.get("Content-Type")?.startsWith("text/html")) return response;
+  const rewriter = new HTMLRewriter().on("[data-appstore]", { element: (element) => element.removeAttribute("hidden") });
+  for (const selector of STORE_ONLY) rewriter.on(selector, { element: (element) => element.remove() });
+  return rewriter.transform(response);
 }
 
 // The folder of the language to show, or null for English: the footer's pick, kept in a cookie, wins; then the

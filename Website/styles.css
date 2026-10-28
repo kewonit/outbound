@@ -104,6 +104,8 @@ figure { margin: 0; }
 .btn-dark { color: var(--ink); background: var(--btn-dark); }
 .btn-dark:hover { background: var(--btn-dark-hover); }
 .btn-sm { height: 2rem; padding: 0 0.75rem; font-size: 0.875rem; }
+/* The part of a button that says who it is for, quieter than what it does. */
+.btn-quiet { margin-inline-end: 0.3em; color: var(--ink-mute); }
 
 /* ---------- Top bar ---------- */
 .topbar {
@@ -291,7 +293,19 @@ kbd {
 .tier-price { margin: 0; font-size: 1.875rem; font-weight: 500; }
 /* One piece, so where it doesn't fit beside a long price it moves below it whole, its leading space kept. */
 .tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 0.9375rem; font-weight: 500; color: var(--ink-mute); }
+/* What it usually costs, struck out and quieter than the price. On a narrow screen the line wraps in pieces, each
+   at its own height, so a note moved below sits close under the price. */
+.tier.featured .tier-price { display: flex; flex-wrap: wrap; align-items: baseline; }
+.tier-was {
+  margin-inline-end: 0.625rem;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  text-decoration-thickness: 1px;
+}
 .tier-desc { margin: 0; font-size: 1.125rem; color: var(--ink-soft); }
+/* That the price won't last, on a line of its own just under it. */
+.tier-offer { display: block; color: var(--accent-soft); }
 .tier ul {
   list-style: none;
   margin: 1.5rem 0;
@@ -332,8 +346,8 @@ kbd {
   transition: color 0.15s ease;
 }
 .tier-dollars:hover { color: var(--ink); }
-/* The city, below Outbound in the same box and kept small: its name and price on one line, a short note under
-   them, and a quiet button. */
+/* The city, last on a phone and below Outbound in the same box on a wider screen, kept small: its name and price on
+   one line, a short note under them, and a quiet button. */
 .tier-city {
   flex-direction: row;
   flex-wrap: wrap;
@@ -360,7 +374,7 @@ kbd {
   color: var(--ink-mute);
 }
 .tier-needs span { display: inline-flex; align-items: center; gap: 0.45rem; }
-/* For everyone not on a Mac: a tiny card at the end of the same line, on to the waitlist. */
+/* For everyone not on a Mac: a tiny card on the line below, on to the waitlist. */
 .tier-elsewhere {
   display: inline-flex;
   align-items: center;
@@ -459,6 +473,24 @@ kbd {
 }
 .prose code { font-size: 0.9em; color: var(--ink-soft); }
 .page-cta { margin-top: 2.5rem; }
+/* Privacy and Terms: long pages, so a date, a list of their sections, and smaller headings within a section. */
+.legal .updated { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-faint); }
+.legal .contents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.35rem 1.5rem;
+  margin: 2rem 0 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 0.9375rem;
+}
+.legal .contents a { color: var(--ink-mute); text-decoration: none; }
+.legal .contents a:hover { color: var(--ink); }
+.legal h2 { scroll-margin-top: 5rem; }
+.legal h3 { margin: 1.5rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+.legal li strong { color: var(--ink-soft); font-weight: 500; }
 
 /* ---------- Footer: a last call to action, then the map of the site ---------- */
 .footer { padding: 4rem 0 3rem; }
@@ -544,8 +576,6 @@ kbd {
   .tier-city .btn { grid-area: button; align-self: center; margin: 0; margin-inline-start: 1rem; }
   .tier-needs { grid-area: 3 / 1 / auto / -1; margin-top: 1rem; }
   .tier-needs { align-items: center; }
-  /* Its edges line up with the price box's, past the row's small inset. */
-  .tier-elsewhere { margin-inline: auto -0.25rem; }
   /* Without the download or the city, the box closes around what's left. */
   .price-grid:has(> .tier-side[hidden]) { grid-template-columns: 1fr; }
   .price-grid:has(> .tier-side[hidden]) .tier.featured { border-inline-end: 1px solid var(--line); border-start-end-radius: 12px; }
@@ -778,6 +808,20 @@ kbd {
 }
 .key-button code + span { padding-inline-start: 0.65rem; border-inline-start: 1px solid rgba(0, 0, 0, 0.15); }
 .hero .your-key { margin: 0.9rem 0 0; font-size: 0.92rem; }
+/* Under the buttons, the first thing people ask about a live wallpaper: what it costs the Mac. */
+.hero-light { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1.25rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+/* Level with the first line where a translation runs to two. */
+.hero-light svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: calc((1.6em - 18px) / 2);
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .thanks #status:empty { display: none; }
 

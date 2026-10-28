@@ -51,7 +51,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preload" as="image" href="assets/poster.jpg?v=4" fetchpriority="high">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=23">
 <!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
      both together. -->
 <script type="application/ld+json">
@@ -225,11 +225,6 @@
 }
 </script>
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -251,10 +246,11 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">A painted world,<br>flying by behind your desktop.</h1>
       <p class="lede" data-i18n="hero.lede">A live wallpaper for Mac. A little bird follows your cursor.</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $4.99</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Already yours?</span> Download</a>
       </div>
+      <p class="hero-light"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span data-i18n="hero.light">Light on CPU, GPU and battery.</span></p>
       <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
            where Buy was. -->
       <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">That's your key. Paste it into Outbound to unlock it.</span></p>
@@ -355,36 +351,38 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Get Outbound.</h2>
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price">$4.99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
-          <p class="tier-desc" data-i18n="buy.desc">Up to 3 Macs. No subscription.</p>
+          <p class="tier-price"><s class="tier-was"><span class="sr-only" data-i18n="buy.was">Regular price</span>$12.99</s> $4.99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
+          <p class="tier-desc"><span class="tier-offer" data-i18n="buy.offer">Limited-time price.</span> <span data-i18n="buy.desc">Up to 3 Macs. No subscription.</span></p>
           <div class="tier-actions">
             <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $4.99</a>
             <!-- Shown by the site's Worker where the price above is in the visitor's own money. -->
             <a class="tier-dollars" href="/buy?currency=usd" rel="nofollow" data-dollars hidden data-i18n="buy.dollars">Or pay $4.99 in US dollars</a>
           </div>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Your city</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Painted by the person who made Outbound, <br>in about a week. Outbound included.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Add your city for $99</a>
-        </article>
         <p class="tier-needs">
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura or later</span></span>
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span data-i18n="needs.light">Light on CPU, GPU and battery</span></span>
           <a class="tier-elsewhere" href="/waitlist"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.5h2"/></svg><span data-i18n="needs.elsewhere">On Windows or iPhone?</span><svg class="tier-elsewhere-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a>
         </p>
         <article class="tier tier-side" data-needs="download">
           <h3 class="tier-name" data-i18n="buy.already">Already bought it?</h3>
           <p class="tier-price" data-i18n="buy.download">Download</p>
           <p class="tier-desc" data-i18n="buy.paste">Open it and paste your key.</p>
-          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Already yours?</span> Download</a>
+        </article>
+        <article class="tier tier-city" id="your-city" data-needs="city">
+          <h3 class="tier-name" data-i18n="city.name">Your city</h3>
+          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
+          <p class="tier-desc" data-i18n="city.desc">Painted by the person who made Outbound, <br>in about a week. Outbound included.</p>
+          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Add your city for $99</a>
         </article>
       </div>
     </div>
@@ -419,7 +417,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">What happens to my own wallpaper?</button>
           <div class="faq-a"><p data-i18n="faq.a6">It comes back when you quit Outbound.</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Where do I find my key?</button>
           <div class="faq-a"><p data-i18n="faq.a7">It shows right after you pay, and stays in your <a href="https://polar.sh/edbnme/portal">customer portal</a>. Buy from inside the app and it unlocks by itself.</p></div>
         </div>
@@ -450,9 +448,9 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">Somewhere better to look.</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Coming soon" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Buy for $4.99</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">Download for Mac</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Already yours?</span> Download</a>
       </div>
     </div>
     <nav class="foot-cols" aria-label="Footer" data-i18n-attr="aria-label=footer.label">
@@ -477,6 +475,7 @@
         <h3 data-i18n="footer.legal">Legal</h3>
         <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
         <a href="/license" data-i18n="footer.license">License</a>
+        <a href="/terms" data-i18n="footer.terms">Terms</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Needs a Mac with Apple silicon and macOS 13 or newer</span><span data-i18n="footer.built">Built by <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>
@@ -504,6 +503,59 @@
   </div>
 </footer>
 
-<script src="app.js?v=15"></script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>
