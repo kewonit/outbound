@@ -545,6 +545,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         })
         menu.addItem(choices(String(localized: "Time at Each Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
                              current: preferences.stay) { preferences.stay = $0 })
+        menu.addItem(.separator())
+
+        // How it saves energy.
         menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
                              current: preferences.batteryMode) { preferences.batteryMode = $0 })
         let hidden = NSMenuItem(title: String(localized: "Pause When Hidden"), action: #selector(togglePausesWhenHidden),
@@ -557,6 +560,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
+        menu.addItem(.separator())
+        // Seldom wanted, so apart from Settings, as an app menu has About and updates apart from it.
         let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         check.target = self
         check.isEnabled = updates.canCheck
@@ -709,7 +714,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
-            let view = SettingsView(preferences: preferences, license: license)
+            let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
+                                    checkForUpdates: { [weak self] in self?.checkForUpdates() },
+                                    sendFeedback: { [weak self] in self?.openFeedback() })
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = String(localized: "Outbound Settings")
             window.styleMask = [.titled, .closable]

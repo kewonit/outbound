@@ -6,10 +6,11 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var preferences: Preferences
     @ObservedObject var license: LicenseController
+    /// What the menu's Check for Updates and Feedback do, so the buttons here do just the same.
+    let canCheckForUpdates: Bool
+    let checkForUpdates: () -> Void
+    let sendFeedback: () -> Void
     @State private var opensAtLogin = LoginItem.isOn
-
-    private static let website = URL(string: "https://outbound.edbn.me")!
-    private static let support = URL(string: "https://outbound.edbn.me/support")!
 
     var body: some View {
         Form {
@@ -48,7 +49,8 @@ struct SettingsView: View {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
             } footer: {
-                about
+                AboutFooter(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
+                            sendFeedback: sendFeedback)
             }
         }
         .formStyle(.grouped)
@@ -56,37 +58,54 @@ struct SettingsView: View {
         .fixedSize()
     }
 
-    /// Which Outbound this is, what it does by itself, and where to find more.
-    private var about: some View {
+    private func setOpensAtLogin(_ on: Bool) {
+        LoginItem.set(on)
+        opensAtLogin = LoginItem.isOn
+    }
+}
+
+/// Under the settings: which Outbound this is, what it does by itself, and buttons for the site, help, feedback and
+/// updates, centred, as an About window has them.
+struct AboutFooter: View {
+    let canCheckForUpdates: Bool
+    let checkForUpdates: () -> Void
+    let sendFeedback: () -> Void
+
+    private static let website = URL(string: "https://outbound.edbn.me")!
+    private static let support = URL(string: "https://outbound.edbn.me/support")!
+
+    var body: some View {
         VStack(spacing: 6) {
             Image(nsImage: .outboundGull)
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 24, height: 24)
+                .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             Text("Outbound \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
                 .font(.callout.weight(.medium))
+                .foregroundStyle(.secondary)
             VStack(spacing: 2) {
                 Text("It pauses by itself while you're away.")
                 Text("Quit it and your own desktop picture comes back.")
             }
-            HStack(spacing: 6) {
-                Link("Website", destination: Self.website)
-                Text("·").accessibilityHidden(true)
-                Link("Support", destination: Self.support)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            // The same width each where the words allow, so the row sits even.
+            HStack(spacing: 8) {
+                Button { NSWorkspace.shared.open(Self.website) } label: { Text("Website").frame(minWidth: 72) }
+                Button { NSWorkspace.shared.open(Self.support) } label: { Text("Support").frame(minWidth: 72) }
+                Button(action: sendFeedback) { Text("Feedback").frame(minWidth: 72) }
             }
-            .padding(.top, 2)
+            .padding(.top, 8)
+            Button("Check for Updates…", action: checkForUpdates)
+                .disabled(!canCheckForUpdates)
+                .padding(.top, 2)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        .buttonStyle(.bordered)
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
-    }
-
-    private func setOpensAtLogin(_ on: Bool) {
-        LoginItem.set(on)
-        opensAtLogin = LoginItem.isOn
     }
 }
 
