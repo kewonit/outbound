@@ -23,8 +23,6 @@ final class CoverWatch {
     }
     /// How much of each display's desktop shows, for those mostly or all covered.
     private(set) var levels: [CGDirectDisplayID: DesktopCover.Level] = [:]
-    /// The displays whose desktops app windows cover.
-    var covered: Set<CGDirectDisplayID> { Set(levels.filter { $0.value == .hidden }.keys) }
     /// How long app windows must cover a desktop before it counts. Switching between apps covers and uncovers it all
     /// the time; only a cover that stays should still the painting, or it would stop and start with every switch.
     static let confirm: TimeInterval = 2
