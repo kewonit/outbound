@@ -177,28 +177,36 @@ final class Wallpaper: NSObject {
     /// Paints the ground the view needs now, in pieces of GPU work of their own (see `ViewRenderer.catchUp`), then calls
     /// `then`. Nothing new is drawn meanwhile, so the screen keeps what it shows. Started over by a change to the view,
     /// it begins again at once; should a piece fail, it tries again a little later, for as long as the GPU takes work.
-    private func catchUp(then: @escaping @MainActor () -> Void) {
+    /// Without `then`, as frames ask, it starts now or not at all: frames ask again by themselves, and a display held
+    /// meanwhile paints what is still missing (see `paintHeldGround`).
+    private func catchUp(then: (@MainActor () -> Void)? = nil) {
         guard link != nil, !gpu.revoked else { return }
         let wait = catchUpAfter - CACurrentMediaTime()
         guard !renderer.isCatchingUp, wait <= 0 else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + max(wait, 0.1)) { [weak self] in self?.catchUp(then: then) }
+            if let then {
+                DispatchQueue.main.asyncAfter(deadline: .now() + max(wait, 0.1)) { [weak self] in self?.catchUp(then: then) }
+            }
             return
         }
         let time = world.renderTime(for: CACurrentMediaTime())
         // Painted meanwhile, say by another call.
         guard renderer.needsCatchUp(world: world, at: time) else {
-            then()
+            then?()
             return
         }
         renderer.catchUp(world: world, at: time) { [weak self] end in
             guard let self, link != nil else { return }
+            if end == .failed { catchUpAfter = CACurrentMediaTime() + 2 }
+            guard let then else {
+                if end != .painted { DispatchQueue.main.async { [weak self] in self?.paintHeldGround() } }
+                return
+            }
             switch end {
             case .painted:
                 then()
             case .superseded:
                 DispatchQueue.main.async { [weak self] in self?.catchUp(then: then) }
             case .failed:
-                catchUpAfter = CACurrentMediaTime() + 2
                 catchUp(then: then)
             }
         }
@@ -497,7 +505,7 @@ final class Wallpaper: NSObject {
         // it is all there, and nothing at all once the GPU takes no more work.
         guard !gpu.revoked, !renderer.isCatchingUp else { return }
         if renderer.needsCatchUp(world: world, at: moment) {
-            if CACurrentMediaTime() >= catchUpAfter { catchUp {} }
+            if CACurrentMediaTime() >= catchUpAfter { catchUp() }
             return
         }
         handOverBird(at: moment, presenting: presentTime)

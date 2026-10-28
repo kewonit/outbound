@@ -814,7 +814,16 @@ final class ViewRenderer {
         paintedTexels = 0
         while !strokes.isEmpty {
             let piece = strokes.take(texels: gpu.groundCost.texelsPerPiece)
-            guard let into = piece.first?.into, let commands = gpu.commandBuffer() else { return }
+            guard let into = piece.first?.into else { return }
+            guard let commands = gpu.commandBuffer() else {
+                // The rest isn't painted, so the next frame paints all of it again; an export stops here.
+                valid = nil
+                if waitsForPieces {
+                    pieceError = NSError(domain: MTLCommandBufferErrorDomain,
+                                         code: Int(MTLCommandBufferError.Code.internal.rawValue))
+                }
+                return
+            }
             paint(piece, into: work.targets[into], scene: work.scenes[into], clearing: false, commandBuffer: commands)
             if waitsForPieces {
                 commands.commit()

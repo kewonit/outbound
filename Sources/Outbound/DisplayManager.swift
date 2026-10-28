@@ -186,11 +186,7 @@ final class DisplayManager {
     private var holdsForFirstFrames = true
 
     private func firstFramesShown() {
-        guard holdsForFirstFrames, !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) else {
-            holdWorld()
-            return
-        }
-        holdsForFirstFrames = false
+        if !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) { holdsForFirstFrames = false }
         holdWorld()
     }
 
