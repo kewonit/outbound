@@ -344,8 +344,8 @@ kbd {
   transition: color 0.15s ease;
 }
 .tier-dollars:hover { color: var(--ink); }
-/* The city, below Outbound in the same box and kept small: its name and price on one line, a short note under
-   them, and a quiet button. */
+/* The city, last on a phone and below Outbound in the same box on a wider screen, kept small: its name and price on
+   one line, a short note under them, and a quiet button. */
 .tier-city {
   flex-direction: row;
   flex-wrap: wrap;
