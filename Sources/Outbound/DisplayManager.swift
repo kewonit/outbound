@@ -188,11 +188,7 @@ final class DisplayManager {
     private var holdsForFirstFrames = true
 
     private func firstFramesShown() {
-        guard holdsForFirstFrames, !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) else {
-            holdWorld()
-            return
-        }
-        holdsForFirstFrames = false
+        if !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) { holdsForFirstFrames = false }
         holdWorld()
     }
 
@@ -213,11 +209,8 @@ final class DisplayManager {
     /// wallpaper that is up paints its ground afresh and draws once. A change to the frame pass alone, like the border,
     /// only needs `redrawHeld`.
     func repaintHeld() {
-        for wallpaper in wallpapers.values {
-            wallpaper.repaint()
-            // One still painting its first frame paints it afresh by itself.
-            if !wallpaper.holds.contains(.starting) { wallpaper.redraw() }
-        }
+        // Each held one draws again by itself; one still painting its first frame paints it afresh anyway.
+        wallpapers.values.forEach { $0.repaint() }
     }
 
     func redrawHeld() {

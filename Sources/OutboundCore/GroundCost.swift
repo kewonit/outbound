@@ -43,3 +43,32 @@ public struct GroundCost: Codable, Equatable, Sendable {
         target = min(target * 2, Self.initial.target)
     }
 }
+
+/// When GPU work failing means pieces should be cut down. One stall fails everything on the GPU with it, each display's
+/// frame and the pieces under way, so pieces are cut once for it, not once for every piece of work it took down: work
+/// is stamped with `cuts` as it is sent, and only work sent since the last cut counts. For a moment after a cut only
+/// work stopped for running too long counts; anything else then is what the stall left behind.
+public struct GPUFailures: Sendable {
+    /// Times pieces were cut down since launch.
+    public private(set) var cuts = 0
+    private var cutAt = -Double.infinity
+    private var recent: [Double] = []
+
+    /// How long after a cut other failures are taken for what the stall left behind.
+    public static let settling: Double = 3
+    /// How many failures that aren't timeouts, in how many seconds, mean pieces should be cut down.
+    public static let tolerated = (count: 3, seconds: 60.0)
+
+    public init() {}
+
+    /// Work stamped `sent` failed at `time`, for running too long or not. Whether pieces should be cut down now.
+    public mutating func failed(sent: Int, tooLong: Bool, at time: Double) -> Bool {
+        guard sent == cuts, tooLong || time - cutAt >= Self.settling else { return false }
+        recent = recent.filter { time - $0 < Self.tolerated.seconds } + [time]
+        guard tooLong || recent.count >= Self.tolerated.count else { return false }
+        cuts += 1
+        cutAt = time
+        recent = []
+        return true
+    }
+}

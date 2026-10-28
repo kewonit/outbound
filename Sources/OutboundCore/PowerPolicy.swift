@@ -100,9 +100,22 @@ public struct PaintBudget: Sendable {
     private var saved = 0.0
     private var savedAt: Double?
 
-    public init(milliseconds: Double = 4, costPerMillion: Double = 15) {
+    /// What painting that can wait may take when all is well.
+    public static let usualMilliseconds = 4.0
+
+    public init(milliseconds: Double = PaintBudget.usualMilliseconds, costPerMillion: Double = 15) {
         self.milliseconds = milliseconds
         self.costPerMillion = costPerMillion
+    }
+
+    /// The GPU is in trouble: half as much from now on, never under half a millisecond.
+    public mutating func backOff() {
+        milliseconds = max(milliseconds / 2, 0.5)
+    }
+
+    /// A step back towards the usual, after a while without trouble.
+    public mutating func recover() {
+        milliseconds = min(milliseconds * 2, Self.usualMilliseconds)
     }
 
     /// Texels per second.
