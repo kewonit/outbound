@@ -138,7 +138,10 @@ final class GPU {
         let tooLong = code == .timeout || String(describing: error).contains("Interactivity")
         if code == .accessRevoked, !revoked {
             revoked = true
-            Log.render.error("The GPU takes no more of Outbound's work")
+            // What ran too long may not have said so, so the copy that opens next starts in smaller pieces.
+            groundCost.backOff()
+            saveCost()
+            Log.render.error("The GPU takes no more of Outbound's work; \(self.groundCost.texelsPerPiece) texels a piece next time")
             onRevoked()
         } else if failures.failed(sent: sent, tooLong: tooLong, at: ProcessInfo.processInfo.systemUptime) {
             groundCost.backOff()
