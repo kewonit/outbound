@@ -307,8 +307,9 @@ final class DisplayManager {
             // panels vary their refresh only for full-screen apps, so a window behind everything gets a fixed rate.
             let ranged = screen.maximumRefreshInterval > screen.minimumRefreshInterval + 0.0005
             let slowest = CGDisplayIsBuiltin(id) != 0 && ranged ? 1 / screen.maximumRefreshInterval : nil
+            // The landscape never takes a rate well over its target, nor one under 24, which still pans smoothly.
             wallpaper.framesPerSecond = Float(FramePacing.rate(target: tier.framesPerSecond, fastest: fastest,
-                                                               slowest: slowest))
+                                                               slowest: slowest, lowest: 24))
             wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, fastest: fastest,
                                                                    slowest: slowest))
             wallpaper.halfRateClouds = tier.halfRateClouds
