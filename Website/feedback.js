@@ -2,8 +2,11 @@
 (function () {
   "use strict";
 
-  // A translated page carries these words in its own language in OUTBOUND_I18N.
-  var WORDS = window.OUTBOUND_I18N || {};
+  // A translated page carries these words in its own language, as JSON in #outbound-words.
+  var WORDS = (function () {
+    var block = document.getElementById("outbound-words");
+    try { return block ? JSON.parse(block.textContent) : {}; } catch (error) { return {}; }
+  })();
   function word(key, english) {
     return WORDS[key] || english;
   }
