@@ -81,7 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Opened over a painting the last run left on the desktop, as at login after a restart, the view carries on from
         // the moment it shows, so the desktop picture gives way to the same view rather than another part of the place.
         let now = CACurrentMediaTime()
-        let resumed = stills.momentLeft().flatMap { World(resuming: $0, at: now, light: preferences.light) }
+        let resumed = stills.momentLeft(orNewest: DisplayManager.screenIsLocked)
+            .flatMap { World(resuming: $0, at: now, light: preferences.light) }
         if resumed != nil { Log.display.info("Opening on the moment the painting on the desktop shows") }
         let world = resumed
             ?? World(place: Place.named(preferences.lastPlace) ?? .first, time: now, light: preferences.light)
@@ -323,13 +324,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let key = "reopenedForGPU"
         let now = Date.now.timeIntervalSince1970
         guard now - UserDefaults.standard.double(forKey: key) > 3600 else { return }
-        UserDefaults.standard.set(now, forKey: key)
         let reopen = Process()
         reopen.executableURL = URL(filePath: "/bin/sh")
         // Only once this copy has quit, or the new one would find it running and quit itself.
         reopen.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; "
             + "exec /usr/bin/open \"$0\"", Bundle.main.bundlePath]
         guard (try? reopen.run()) != nil else { return }
+        UserDefaults.standard.set(now, forKey: key)
         Log.render.error("Opening Outbound again, to paint in smaller pieces")
         relaunching = true
         NSApp.terminate(nil)
@@ -423,7 +424,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
-        if looks || edgeChanged, world.isHeld { displays.repaintHeld() }
+        if world.isHeld {
+            // The light and the seasons are baked into the ground; the border is only drawn over it.
+            if looks { displays.repaintHeld() } else if edgeChanged { displays.redrawHeld() }
+        }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }

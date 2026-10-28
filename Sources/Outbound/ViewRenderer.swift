@@ -27,6 +27,10 @@ final class GPU {
     /// The last error the GPU gave and how many there have been, for the feedback page.
     private(set) var lastError: (name: String, count: Int)?
     private var recentErrors: [Date] = []
+    /// Since the last failure, or the last step back up after one: pieces grow back once all has gone well a while.
+    private var quietSince = Date.now
+    /// Command buffers say which of their passes failed only once one has, as asking costs a little on every one.
+    private var detailedErrors = false
     private static let costKey = "groundCost"
 
     init() throws {
@@ -43,7 +47,13 @@ final class GPU {
         self.birdQueue = birdQueue
         let saved = (UserDefaults.standard.dictionary(forKey: Self.costKey)?[device.name] as? [String: Double])
             .flatMap { saved in saved["cost"].flatMap { cost in saved["target"].map { (cost, $0) } } }
-        groundCost = saved.map { GroundCost(millisecondsPerMillion: $0.0, target: $0.1) } ?? .initial
+        // Only what a run could have saved, so a damaged value never stays to trouble every launch.
+        groundCost = saved.flatMap { cost, target in
+            cost.isFinite && target.isFinite && cost > 0 && target > 0
+                ? GroundCost(millisecondsPerMillion: min(max(cost, 0.5), 20_000),
+                             target: min(max(target, 1), GroundCost.initial.target))
+                : nil
+        } ?? .initial
         paintBudget = PaintBudget(costPerMillion: min(max(groundCost.millisecondsPerMillion, 1), 400))
         shaders = try ShaderLibrary(device: device)
 
@@ -70,22 +80,28 @@ final class GPU {
     /// A command buffer on the frames' queue that says which of its passes failed, should it fail.
     func commandBuffer() -> MTLCommandBuffer? {
         let descriptor = MTLCommandBufferDescriptor()
-        descriptor.errorOptions = .encoderExecutionStatus
+        if detailedErrors { descriptor.errorOptions = .encoderExecutionStatus }
         return queue.makeCommandBuffer(descriptor: descriptor)
     }
 
-    /// A piece of ground painting of `texels` took `milliseconds` of GPU time.
+    /// A piece of ground painting of `texels` took `milliseconds` of GPU time. After ten minutes without a failure,
+    /// pieces cut down by one grow back a step, so one bad moment doesn't shrink them for good.
     func learn(texels: Int, milliseconds: Double) {
         groundCost.finished(texels: texels, milliseconds: milliseconds)
         paintBudget.learn(milliseconds: milliseconds, painted: texels)
-        saveCost()
+        if groundCost.target < GroundCost.initial.target, Date.now.timeIntervalSince(quietSince) > 600 {
+            groundCost.recover()
+            quietSince = .now
+        }
     }
 
     /// GPU work failed. Work stopped for running too long, or failing again and again, means pieces a quarter the size
     /// from now on. Refused outright, the GPU will take nothing more, so nothing more is sent.
     func failed(_ outcome: GPUOutcome, doing what: String) {
         let error = outcome.error as NSError?
-        let code = error.flatMap { $0.domain == MTLCommandBufferErrorDomain ? MTLCommandBufferError.Code(rawValue: UInt($0.code)) : nil }
+        let code = error.flatMap { error in
+            error.domain == MTLCommandBufferErrorDomain ? UInt(exactly: error.code).flatMap(MTLCommandBufferError.Code.init) : nil
+        }
         let name = switch code {
         case .timeout: "timeout"
         case .accessRevoked: "revoked"
@@ -97,7 +113,11 @@ final class GPU {
         }
         let count = (lastError?.count ?? 0) + 1
         lastError = (name, count)
+        detailedErrors = true
+        // Refused already, nothing more is sent but what was on its way, whose failing says nothing new.
+        guard !revoked else { return }
         let now = Date.now
+        quietSince = now
         recentErrors = recentErrors.filter { now.timeIntervalSince($0) < 60 } + [now]
         // The first few in full, then now and then, as a GPU in trouble fails every frame.
         if count <= 5 || count % 100 == 0 {
@@ -119,7 +139,8 @@ final class GPU {
         }
     }
 
-    private func saveCost() {
+    /// Keeps what painting costs here for the next launch.
+    func saveCost() {
         var all = UserDefaults.standard.dictionary(forKey: Self.costKey) ?? [:]
         all[device.name] = ["cost": groundCost.millisecondsPerMillion, "target": groundCost.target]
         UserDefaults.standard.set(all, forKey: Self.costKey)
@@ -255,10 +276,19 @@ final class ViewRenderer {
         let scenes: [SceneGPU]
         var inFlight = 0
         var failed = false
-        let done: @MainActor (Bool) -> Void
+        /// Started over by `configure` or `invalidate`, which is no fault of the GPU's.
+        var superseded = false
+        let done: @MainActor (CatchUp) -> Void
         /// Pieces painted so far, and the longest GPU time one took, for the log.
         var pieces = 0
         var longest = 0.0
+    }
+    /// How painting the ground ahead of the frames ended.
+    enum CatchUp {
+        case painted
+        /// Something started it over, as a new display size or a change to the view does.
+        case superseded
+        case failed
     }
     /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
     private var settlesSweep = false
@@ -313,14 +343,14 @@ final class ViewRenderer {
         incoming = nil
         incomingFilled = nil
         sweepLeg = nil
-        chain?.failed = true
+        chain?.superseded = true
     }
 
     func invalidate() {
         valid = nil
         cloudCorner = nil
         paperDirty = true
-        chain?.failed = true
+        chain?.superseded = true
     }
 
     private func makeTexture(width: Int, height: Int, label: String,
@@ -340,24 +370,36 @@ final class ViewRenderer {
         revision != world.revision || repaintRow != nil || valid == nil || chain != nil
     }
 
-    /// The first world texel column and row of the cache the view at `t` needs.
-    private func needed(world: World, at t: TimeInterval) -> (x: Int, y: Int) {
+    /// The view's world bounds at `t`: its left and bottom edges and its top.
+    private func bounds(world: World, at t: TimeInterval) -> (x0: Double, y0: Double, top: Double) {
         let mpp = World.metresPerPoint
-        let texel = mpp / density
         let camera = world.camera(at: t)
-        let x0 = Double(frame.minX) * mpp + camera.x
-        let y0 = Double(frame.minY) * mpp + camera.y
-        return (Int((x0 / texel).rounded(.down)) - Self.pad, Int((y0 / texel).rounded(.down)) - Self.pad)
+        return (Double(frame.minX) * mpp + camera.x, Double(frame.minY) * mpp + camera.y,
+                Double(frame.maxY) * mpp + camera.y)
     }
 
-    /// Whether the frame at `t` would have to paint more ground than one piece of GPU work should hold, as when nothing
-    /// is cached yet or the view has jumped. Frames wait for `catchUp` then.
+    /// The first world texel column and row of the cache the view at `t` needs.
+    private func needed(world: World, at t: TimeInterval) -> (x: Int, y: Int) {
+        let texel = World.metresPerPoint / density
+        let view = bounds(world: world, at: t)
+        return (Int((view.x0 / texel).rounded(.down)) - Self.pad, Int((view.y0 / texel).rounded(.down)) - Self.pad)
+    }
+
+    /// Whether the frame at `t` has more ground to paint than it should take on itself: all of it, as when nothing is
+    /// cached yet, after a jump, or as a Fly To ends without the new place's cache whole, or over a quarter of it.
+    /// Frames wait for `catchUp` then. Anything less a frame paints itself, in pieces ahead of it if need be, so a slow
+    /// GPU falling a little behind, while a catch-up ran say, never stops drawing.
     func needsCatchUp(world: World, at t: TimeInterval) -> Bool {
         guard chain == nil, let valid else { return true }
         let need = needed(world: world, at: t)
         let dx = abs(need.x - valid.x), dy = abs(need.y - valid.y)
         guard dx < cacheWidth, dy < cacheHeight else { return true }
-        return dy * cacheWidth + dx * (cacheHeight - dy) > gpu.groundCost.texelsPerPiece
+        if lastSweepFront != nil, !incomingIsWhole {
+            let view = bounds(world: world, at: t)
+            if world.frame(bottom: view.y0, top: view.top, at: t).sweepFront == nil { return true }
+        }
+        let texels = dy * cacheWidth + dx * (cacheHeight - dy)
+        return texels > max(gpu.groundCost.texelsPerPiece, cacheWidth * cacheHeight / 4)
     }
 
     var isCatchingUp: Bool { chain != nil }
@@ -365,11 +407,11 @@ final class ViewRenderer {
     /// Paints the ground the frame at `t` needs in pieces of GPU work of their own, each sent as the one before
     /// finishes and sized from what it cost, two at most on the GPU at once, so none runs long on a slow GPU: macOS
     /// stops GPU work that does, and after enough of it takes no more from the app at all. Nothing is drawn from the
-    /// cache until it is whole. Calls `done` with whether it all painted; after a failure the cache is painted afresh.
-    func catchUp(world: World, at t: TimeInterval, done: @escaping @MainActor (Bool) -> Void) {
+    /// cache until it is whole. Calls `done` with how it ended; unless it painted, the cache is painted afresh.
+    func catchUp(world: World, at t: TimeInterval, done: @escaping @MainActor (CatchUp) -> Void) {
         guard chain == nil else { return }
         guard let work = prepareGround(world: world, at: t) else {
-            done(false)
+            done(.failed)
             return
         }
         // Frames learn what painting costs from what they paint themselves, and this isn't theirs.
@@ -382,7 +424,7 @@ final class ViewRenderer {
     /// failed.
     private func pump() {
         guard var chain else { return }
-        while chain.inFlight < 2, !chain.failed, !chain.strokes.isEmpty {
+        while chain.inFlight < 2, !chain.failed, !chain.superseded, !chain.strokes.isEmpty {
             let piece = chain.strokes.take(texels: gpu.groundCost.texelsPerPiece)
             guard let into = piece.first?.into, let commands = gpu.commandBuffer() else {
                 chain.failed = true
@@ -400,10 +442,12 @@ final class ViewRenderer {
         self.chain = chain
         guard chain.inFlight == 0 else { return }
         self.chain = nil
-        let painted = !chain.failed && chain.strokes.isEmpty
-        if !painted { valid = nil }
-        Log.render.info("Ground \(painted ? "painted" : "not painted", privacy: .public) in \(chain.pieces) pieces, the longest \(String(format: "%.1f", chain.longest), privacy: .public) ms; \(self.gpu.groundCost.texelsPerPiece) texels a piece now")
-        chain.done(painted)
+        let end: CatchUp = chain.failed ? .failed : chain.superseded ? .superseded
+            : chain.strokes.isEmpty ? .painted : .failed
+        if end != .painted { valid = nil }
+        gpu.saveCost()
+        Log.render.info("Ground \(String(describing: end), privacy: .public) in \(chain.pieces) pieces, the longest \(String(format: "%.1f", chain.longest), privacy: .public) ms; \(self.gpu.groundCost.texelsPerPiece) texels a piece now")
+        chain.done(end)
     }
 
     private func pieceFinished(_ outcome: GPUOutcome, texels: Int) {
@@ -752,6 +796,8 @@ final class ViewRenderer {
             }
             return
         }
+        // The frame's own GPU time leaves these out, so it mustn't count them as its painting.
+        paintedTexels = 0
         while !strokes.isEmpty {
             let piece = strokes.take(texels: gpu.groundCost.texelsPerPiece)
             guard let into = piece.first?.into, let commands = gpu.commandBuffer() else { return }
@@ -853,13 +899,19 @@ final class ViewRenderer {
             incomingFilled = nil
             sweepLeg = nil
         }
-        guard let incoming, let valid, let filled = incomingFilled, filled >= valid.y + cacheHeight,
-              incoming.color.width == cacheWidth, incoming.color.height == cacheHeight else {
+        guard incomingIsWhole, let incoming else {
             self.valid = nil
             return
         }
         color = incoming.color
         mask = incoming.mask
+    }
+
+    /// The new place's cache is painted all the way up, at the size of the ground's.
+    private var incomingIsWhole: Bool {
+        guard let incoming, let valid, let filled = incomingFilled else { return false }
+        return filled >= valid.y + cacheHeight && incoming.color.width == cacheWidth
+            && incoming.color.height == cacheHeight
     }
 
     /// The shortest offset between two points of the repeating cloud space.

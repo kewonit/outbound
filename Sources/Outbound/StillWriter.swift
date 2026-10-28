@@ -92,6 +92,8 @@ final class StillWriter {
     /// Paints the world as it is at `moment` for each wallpaper and makes it that display's desktop picture, on the
     /// desktop in view. The GPU mostly composites what is already cached, and the JPEG is encoded on a background queue.
     func paint(_ wallpapers: some Sequence<Wallpaper>, at moment: World.Moment) {
+        // The GPU takes no more work: nothing it painted would come back.
+        guard !gpu.revoked else { return }
         turn += 1
         let turn = turn
         waiting = 0
@@ -113,13 +115,17 @@ final class StillWriter {
             descriptor.usage = [.renderTarget, .shaderRead]
             descriptor.storageMode = .shared
             guard let target = gpu.device.makeTexture(descriptor: descriptor),
-                  let commands = gpu.queue.makeCommandBuffer() else { continue }
+                  let commands = gpu.commandBuffer() else { continue }
             wallpaper.encodeStill(at: moment.time, into: target, commandBuffer: commands)
             let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
-            commands.addCompletedHandler { [weak self] buffer in
+            commands.addCompletedHandler { [weak self, weak wallpaper] buffer in
                 let outcome = GPUOutcome(buffer)
                 guard outcome.completed else {
-                    DispatchQueue.main.async { self?.gpu.failed(outcome, doing: "painting the desktop picture") }
+                    DispatchQueue.main.async {
+                        self?.gpu.failed(outcome, doing: "painting the desktop picture")
+                        // The still painted into the display's ground too, which may not be there now.
+                        wallpaper?.repaint()
+                    }
                     return
                 }
                 DispatchQueue.global(qos: .utility).async {
@@ -379,14 +385,15 @@ final class StillWriter {
     // MARK: - Moments left on the desktop
 
     /// The moment the painting on the desktop in view shows, when the last run left one there, as it does through a
-    /// restart or as an update installs; failing that, the latest moment a painting still on some desktop shows. The
-    /// view opens on it, so the desktop picture gives way to the very same moment, which then flies on.
-    func momentLeft() -> World.Moment? {
+    /// restart. The view opens on it, so the desktop picture gives way to the very same moment, which then flies on.
+    /// With `orNewest`, as while the Mac is locked, when the desktop in view can't be told, the newest kept painting's.
+    func momentLeft(orNewest: Bool) -> World.Moment? {
         let kept = keptMoments
         let shown = Set(NSScreen.screens.compactMap { NSWorkspace.shared.desktopImageURL(for: $0)?.lastPathComponent })
         let made = { [folder] (name: String) in Self.made(folder.appending(path: name)) ?? .distantPast }
         // Those in view first, then the newest.
-        let names = kept.keys.sorted { (shown.contains($0) ? 1 : 0, made($0)) > (shown.contains($1) ? 1 : 0, made($1)) }
+        let names = kept.keys.filter { orNewest || shown.contains($0) }
+            .sorted { (shown.contains($0) ? 1 : 0, made($0)) > (shown.contains($1) ? 1 : 0, made($1)) }
         return names.lazy.compactMap { kept[$0].flatMap { try? JSONDecoder().decode(World.Moment.self, from: $0) } }.first
     }
 

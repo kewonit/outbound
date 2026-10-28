@@ -174,8 +174,8 @@ final class Wallpaper: NSObject {
     var onStarted: () -> Void = {}
 
     /// Paints the ground the view needs now, in pieces of GPU work of their own (see `ViewRenderer.catchUp`), then calls
-    /// `then`. Nothing new is drawn meanwhile, so the screen keeps what it shows. Should a piece fail, it tries again a
-    /// little later, for as long as the GPU still takes work.
+    /// `then`. Nothing new is drawn meanwhile, so the screen keeps what it shows. Started over by a change to the view,
+    /// it begins again at once; should a piece fail, it tries again a little later, for as long as the GPU takes work.
     private func catchUp(then: @escaping @MainActor () -> Void) {
         guard link != nil, !gpu.revoked else { return }
         let wait = catchUpAfter - CACurrentMediaTime()
@@ -189,11 +189,14 @@ final class Wallpaper: NSObject {
             then()
             return
         }
-        renderer.catchUp(world: world, at: time) { [weak self] painted in
+        renderer.catchUp(world: world, at: time) { [weak self] end in
             guard let self, link != nil else { return }
-            if painted {
+            switch end {
+            case .painted:
                 then()
-            } else {
+            case .superseded:
+                DispatchQueue.main.async { [weak self] in self?.catchUp(then: then) }
+            case .failed:
                 catchUpAfter = CACurrentMediaTime() + 2
                 catchUp(then: then)
             }
@@ -415,6 +418,7 @@ final class Wallpaper: NSObject {
     /// Moves the bird's layer and paints the bird in it as it is at `time`, both in one transaction, so the picture
     /// and its place always change together.
     private func drawBird(at time: TimeInterval) {
+        guard !gpu.revoked else { return }
         let frame = window.frame
         let pose = world.birdPose(at: time)
         let point = pose.position - SIMD2(Double(frame.minX), Double(frame.minY))

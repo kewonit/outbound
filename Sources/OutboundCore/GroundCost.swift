@@ -19,7 +19,8 @@ public struct GroundCost: Codable, Equatable, Sendable {
 
     /// Texels one piece of painting may hold, never so few that painting crawls.
     public var texelsPerPiece: Int {
-        max(Int(target / millisecondsPerMillion * 1e6), 16_384)
+        let texels = target / max(millisecondsPerMillion, 0.5) * 1e6
+        return texels.isFinite ? max(Int(min(texels, 1e9)), 16_384) : 16_384
     }
 
     /// A piece of `texels` took `milliseconds` of GPU time, and the next is sized from it, at most twice or half the
@@ -35,5 +36,10 @@ public struct GroundCost: Codable, Equatable, Sendable {
     /// The GPU stopped work for running too long: every piece from now on aims at a quarter of the time.
     public mutating func backOff() {
         target = max(target / 4, 1)
+    }
+
+    /// A step back towards the usual time a piece, after a while without trouble.
+    public mutating func recover() {
+        target = min(target * 2, Self.initial.target)
     }
 }

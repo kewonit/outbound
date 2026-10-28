@@ -69,6 +69,10 @@ final class DisplayManager {
             lockedAtLaunch = true
             set(.locked, true)
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.holdsForFirstFrames = false
+            self?.holdWorld()
+        }
         cover.onChange = { [weak self] id, covered in
             Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
             self?.wallpapers[id]?.coveredByWindows = covered
@@ -143,7 +147,7 @@ final class DisplayManager {
         }.map(\.displayID))
     }
 
-    private static var screenIsLocked: Bool {
+    static var screenIsLocked: Bool {
         let session = CGSessionCopyCurrentDictionary() as? [String: Any]
         return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
     }
@@ -171,10 +175,23 @@ final class DisplayManager {
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
     }
 
-    /// The flight waits while anything holds every display, and while a display's first frame is still being painted,
-    /// so it sets off from the moment that frame shows, gathering speed, rather than having flown on unseen.
+    /// The flight waits while anything holds every display, and as Outbound opens while a display's first frame is still
+    /// being painted, so it sets off from the moment that frame shows, gathering speed, rather than having flown on
+    /// unseen. A display added later never holds the others, nor does a first frame that takes over ten seconds.
     private func holdWorld() {
-        world.hold(!globalHolds.isEmpty || pausedHidden || wallpapers.values.contains { $0.holds.contains(.starting) })
+        let opening = holdsForFirstFrames && wallpapers.values.contains { $0.holds.contains(.starting) }
+        world.hold(!globalHolds.isEmpty || pausedHidden || opening)
+    }
+
+    private var holdsForFirstFrames = true
+
+    private func firstFramesShown() {
+        guard holdsForFirstFrames, !wallpapers.values.contains(where: { $0.holds.contains(.starting) }) else {
+            holdWorld()
+            return
+        }
+        holdsForFirstFrames = false
+        holdWorld()
     }
 
     /// The Mac was locked as Outbound opened, as it is when an update installs, and only an unlock it is told of lets
@@ -191,13 +208,18 @@ final class DisplayManager {
     }
 
     /// Shows a change to the view while the flight is held, which no frame would show until it carries on: each
-    /// wallpaper that is up paints its ground afresh and draws once.
+    /// wallpaper that is up paints its ground afresh and draws once. A change to the frame pass alone, like the border,
+    /// only needs `redrawHeld`.
     func repaintHeld() {
         for wallpaper in wallpapers.values {
             wallpaper.repaint()
             // One still painting its first frame paints it afresh by itself.
             if !wallpaper.holds.contains(.starting) { wallpaper.redraw() }
         }
+    }
+
+    func redrawHeld() {
+        for wallpaper in wallpapers.values where !wallpaper.holds.contains(.starting) { wallpaper.redraw() }
     }
 
     /// What holds the displays still, by name, for the feedback page.
@@ -245,7 +267,7 @@ final class DisplayManager {
                 if pausedHidden { wallpaper.set(.hidden, true) }
                 wallpaper.coveredByWindows = cover.covered.contains(id)
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
-                wallpaper.onStarted = { [weak self] in self?.holdWorld() }
+                wallpaper.onStarted = { [weak self] in self?.firstFramesShown() }
                 // Once every display's is up, so the first paintings are of one moment.
                 wallpaper.onReveal = { [weak self] in
                     guard let self,

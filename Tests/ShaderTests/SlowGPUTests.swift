@@ -30,12 +30,25 @@ struct SlowGPUTests {
         #expect(cost.target == 1)
         for _ in 0..<10 { cost.finished(texels: 1_000_000, milliseconds: 50_000) }
         #expect(cost.texelsPerPiece == 16_384)
+        // A while without trouble, and pieces grow back towards the usual time, never past it.
+        cost.recover()
+        #expect(cost.target == 2)
+        for _ in 0..<10 { cost.recover() }
+        #expect(cost.target == GroundCost.initial.target)
         // What can't be measured teaches nothing.
         let before = cost
         cost.finished(texels: 100, milliseconds: 1)
         cost.finished(texels: 1_000_000, milliseconds: .nan)
         cost.finished(texels: 1_000_000, milliseconds: 0)
         #expect(cost == before)
+    }
+
+    @Test func aDamagedCostStillCutsSensiblePieces() {
+        for cost in [0, -1, Double.nan, .infinity, 1e-300] {
+            #expect(GroundCost(millisecondsPerMillion: cost, target: 10).texelsPerPiece >= 16_384)
+        }
+        #expect(GroundCost(millisecondsPerMillion: 10, target: .infinity).texelsPerPiece >= 16_384)
+        #expect(GroundCost(millisecondsPerMillion: 10, target: .nan).texelsPerPiece == 16_384)
     }
 
     @Test func piecesCoverEveryTexelOnceWithTheirOwnOrigins() {
