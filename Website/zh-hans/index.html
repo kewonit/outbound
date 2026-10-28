@@ -256,6 +256,7 @@
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 购买</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下载 Mac 版</a>
       </div>
+      <p class="hero-light"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span data-i18n="hero.light">几乎不占 CPU 和 GPU，也省电。</span></p>
       <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
            where Buy was. -->
       <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">这是你的激活码。把它粘贴到 Outbound 中即可解锁。</span></p>
@@ -361,12 +362,9 @@
       <h2 data-i18n="buy.title">获取 Outbound。</h2>
       <div class="price-grid">
         <article class="tier featured">
-          <div class="tier-head">
-            <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-            <span class="tier-offer" data-i18n="buy.offer">限时优惠</span>
-          </div>
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
           <p class="tier-price"><s class="tier-was"><span class="sr-only" data-i18n="buy.was">原价</span>$12.99</s> $4.99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
-          <p class="tier-desc" data-i18n="buy.desc">最多 3 台 Mac。无需订阅。</p>
+          <p class="tier-desc"><span class="tier-offer" data-i18n="buy.offer">限时价格。</span> <span data-i18n="buy.desc">最多 3 台 Mac。无需订阅。</span></p>
           <div class="tier-actions">
             <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 购买</a>
             <!-- Shown by the site's Worker where the price above is in the visitor's own money. -->

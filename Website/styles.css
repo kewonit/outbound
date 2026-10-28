@@ -288,19 +288,6 @@ kbd {
   color: var(--ink-mute);
 }
 .tier.featured .tier-name { color: var(--accent-soft); }
-/* The name, and across from it the note that this price won't last. */
-.tier-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.tier-offer {
-  padding: 0.125rem 0.625rem;
-  border: 1px solid rgba(125, 180, 255, 0.28);
-  border-radius: 999px;
-  background: rgba(61, 134, 255, 0.1);
-  color: var(--accent-soft);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.5;
-  white-space: nowrap;
-}
 .tier-price { margin: 0; font-size: 1.875rem; font-weight: 500; }
 /* One piece, so where it doesn't fit beside a long price it moves below it whole, its leading space kept. */
 .tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 0.9375rem; font-weight: 500; color: var(--ink-mute); }
@@ -315,6 +302,8 @@ kbd {
   text-decoration-thickness: 1px;
 }
 .tier-desc { margin: 0; font-size: 1.125rem; color: var(--ink-soft); }
+/* That the price won't last, on a line of its own just under it. */
+.tier-offer { display: block; color: var(--accent-soft); }
 .tier ul {
   list-style: none;
   margin: 1.5rem 0;
@@ -801,6 +790,20 @@ kbd {
 }
 .key-button code + span { padding-inline-start: 0.65rem; border-inline-start: 1px solid rgba(0, 0, 0, 0.15); }
 .hero .your-key { margin: 0.9rem 0 0; font-size: 0.92rem; }
+/* Under the buttons, the first thing people ask about a live wallpaper: what it costs the Mac. */
+.hero-light { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1.25rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+/* Level with the first line where a translation runs to two. */
+.hero-light svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: calc((1.6em - 18px) / 2);
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .thanks #status:empty { display: none; }
 
