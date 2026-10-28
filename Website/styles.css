@@ -288,9 +288,32 @@ kbd {
   color: var(--ink-mute);
 }
 .tier.featured .tier-name { color: var(--accent-soft); }
+/* The name, and across from it the note that this price won't last. */
+.tier-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.tier-offer {
+  padding: 0.125rem 0.625rem;
+  border: 1px solid rgba(125, 180, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(61, 134, 255, 0.1);
+  color: var(--accent-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
 .tier-price { margin: 0; font-size: 1.875rem; font-weight: 500; }
 /* One piece, so where it doesn't fit beside a long price it moves below it whole, its leading space kept. */
 .tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 0.9375rem; font-weight: 500; color: var(--ink-mute); }
+/* What it usually costs, struck out and quieter than the price. On a narrow screen the line wraps in pieces, each
+   at its own height, so a note moved below sits close under the price. */
+.tier.featured .tier-price { display: flex; flex-wrap: wrap; align-items: baseline; }
+.tier-was {
+  margin-inline-end: 0.625rem;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  text-decoration-thickness: 1px;
+}
 .tier-desc { margin: 0; font-size: 1.125rem; color: var(--ink-soft); }
 .tier ul {
   list-style: none;
