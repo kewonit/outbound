@@ -100,6 +100,7 @@
   "js.formBusy": "Za dużo prób. Poczekaj minutę.",
   "js.formFailed": "Nie udało się wysłać. Spróbuj ponownie.",
   "js.offline": "Nie udało się połączyć ze sklepem. Kliknij Aktywuj lub zajrzyj do portalu klienta.",
+  "js.paste": "Otwórz i wklej klucz.",
   "js.portal": "Twój klucz jest w portalu klienta poniżej.",
   "js.pressCopy": "Naciśnij ⌘C, aby skopiować klucz.",
   "js.refunded": "Za ten zakup zwrócono pieniądze.",

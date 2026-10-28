@@ -100,6 +100,7 @@
   "js.formBusy": "Çok fazla deneme. Bir dakika bekle.",
   "js.formFailed": "Gönderilemedi. Tekrar dene.",
   "js.offline": "Mağazaya ulaşılamadı. Etkinleştir'i dene ya da müşteri portalına bak.",
+  "js.paste": "Aç ve anahtarını yapıştır.",
   "js.portal": "Anahtarın aşağıdaki müşteri portalında.",
   "js.pressCopy": "Anahtarını kopyalamak için ⌘C'ye bas.",
   "js.refunded": "Bu satın alma iade edildi.",
