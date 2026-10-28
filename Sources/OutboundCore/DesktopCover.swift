@@ -25,12 +25,6 @@ public enum DesktopCover {
         }
     }
 
-    /// Apps that offer windows you can see through. The window list doesn't say whether a window's content is, so
-    /// theirs never count as covering: the painting behind a see-through terminal keeps moving.
-    public static let seeThrough: Set<String> = [
-        "com.apple.Terminal", "com.googlecode.iterm2", "com.mitchellh.ghostty", "net.kovidgoyal.kitty",
-        "com.github.wez.wezterm", "org.alacritty", "dev.warp.Warp-Stable",
-    ]
     /// The system's own windows over the desktop: the Dock (and Mission Control in it) and Stage Manager.
     public static let system: Set<String> = ["com.apple.dock", "com.apple.WindowManager"]
     /// Smaller windows than this, a palette or a widget, never hide a desktop on their own.
@@ -47,12 +41,13 @@ public enum DesktopCover {
     }
 
     /// The windows that hide what is under them: ordinary app windows, opaque and of some size, not Outbound's own nor
-    /// the system's, nor from an app whose windows may be see-through.
+    /// the system's. Terminals count like any other: neither the window list nor the window server says whether one
+    /// was set to be see-through, and they are opaque unless it was.
     public static func covering(_ windows: [Window], ownPID: Int32) -> [CGRect] {
         windows.filter { window in
             window.layer == 0 && window.alpha >= 0.99 && window.pid != ownPID
                 && window.frame.width >= smallest && window.frame.height >= smallest
-                && !(window.bundle.map { system.contains($0) || seeThrough.contains($0) } ?? false)
+                && !(window.bundle.map(system.contains) ?? false)
         }.map(\.frame)
     }
 
@@ -105,13 +100,13 @@ public enum DesktopCover {
     /// How much of a display's desktop shows.
     public enum Level: Sendable, Equatable {
         case open
-        /// A strip or a corner shows, under a tenth of it.
-        case mostly
+        /// Windows lie over all of it, or all but strips and corners under a fifth of it (see `hidden`).
         case hidden
     }
 
-    /// The share of a desktop under windows at which only a strip of it shows.
-    public static let mostly = 0.9
+    /// The share of a desktop under windows at which it counts as hidden: what still shows round them, under a fifth,
+    /// isn't what anyone is watching.
+    public static let hidden = 0.82
 }
 
 /// When a display counts as covered: covered readings `confirm` seconds apart, so a window passing over, or an app
