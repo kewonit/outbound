@@ -117,7 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installStatusItem()
         observePreferences()
         paintingTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshPainting(force: false) }
+            MainActor.assumeIsolated {
+                self?.displays.recheckLock()
+                self?.refreshPainting(force: false)
+            }
         }
 
         license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }

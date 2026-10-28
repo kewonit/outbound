@@ -58,13 +58,17 @@ final class DisplayManager {
         for (name, on) in [("com.apple.screenIsLocked", true), ("com.apple.screenIsUnlocked", false)] {
             distributed.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
+                    self?.lockedAtLaunch = false
                     self?.set(.locked, on)
                     self?.onLockChange(on)
                 }
             }
         }
         // Launched while the Mac is locked, say to install an update, nothing says so later.
-        if Self.screenIsLocked { set(.locked, true) }
+        if Self.screenIsLocked {
+            lockedAtLaunch = true
+            set(.locked, true)
+        }
         cover.onChange = { [weak self] id, covered in
             Log.display.info("Display \(id) \(covered ? "covered by windows" : "no longer covered by windows", privacy: .public)")
             self?.wallpapers[id]?.coveredByWindows = covered
@@ -171,6 +175,19 @@ final class DisplayManager {
     /// so it sets off from the moment that frame shows, gathering speed, rather than having flown on unseen.
     private func holdWorld() {
         world.hold(!globalHolds.isEmpty || pausedHidden || wallpapers.values.contains { $0.holds.contains(.starting) })
+    }
+
+    /// The Mac was locked as Outbound opened, as it is when an update installs, and only an unlock it is told of lets
+    /// go of that. Should the session have said locked when it wasn't, say at login, nothing would ever let go, so
+    /// it is asked again now and then.
+    private var lockedAtLaunch = false
+
+    func recheckLock() {
+        guard lockedAtLaunch, globalHolds.contains(.locked), !Self.screenIsLocked else { return }
+        lockedAtLaunch = false
+        Log.display.info("Not locked after all: carrying on")
+        set(.locked, false)
+        onLockChange(false)
     }
 
     /// Shows a change to the view while the flight is held, which no frame would show until it carries on: each
