@@ -10,6 +10,9 @@ struct PreferencesTests {
         let name = "PreferencesTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
+        // A first launch.
+        #expect(Preferences(defaults: defaults).pausesWhenHidden)
+        #expect(!Preferences(defaults: defaults).paperEdge)
         // As saved by versions that had the border on, and holding while hidden off, for everyone.
         defaults.set(true, forKey: "paperEdge")
         defaults.set(false, forKey: "pausesWhenHidden")

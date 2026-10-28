@@ -20,8 +20,9 @@ final class DisplayManager {
             Log.display.info("\(self.pausedHidden ? "Every display is hidden: holding still" : "Carrying on", privacy: .public)")
         }
     }
-    /// Hold the flight while every display's desktop is hidden. Off, it flies on whether anyone can see it or not.
-    var pausesWhenHidden = false {
+    /// Hold the flight while every display's desktop is hidden, as Preferences has it by default. Off, it flies on
+    /// whether anyone can see it or not.
+    var pausesWhenHidden = true {
         didSet {
             guard pausesWhenHidden != oldValue else { return }
             watchCover()
