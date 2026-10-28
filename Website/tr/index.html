@@ -133,26 +133,10 @@
    "mainEntity": [
     {
      "@type": "Question",
-     "name": "Neye ihtiyacım var?",
+     "name": "Mac'imde çalışır mı?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Apple silicon işlemcili ve macOS 13 Ventura ya da daha yenisinin yüklü olduğu bir Mac."
-     }
-    },
-    {
-     "@type": "Question",
-     "name": "Sürekli tekrarlanan bir video mu?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Hayır. Mac'in manzarayı uçtukça canlı olarak boyar, bu yüzden hiç tekrarlanmaz."
-     }
-    },
-    {
-     "@type": "Question",
-     "name": "Nereye uçacağını seçebilir miyim?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Evet. Menü çubuğundan sekiz yerden istediğini ve her birinin üzerinde ne kadar kalacağını seç: altı dakikadan bir saate kadar. Ya da tek bir yerin üzerinde kalsın."
+      "text": "Mac'inde Apple silicon ve macOS 13 Ventura ya da daha yenisi varsa, evet. Intel Mac'lerde çalışmaz. Kontrol etmek için Apple menüsünden Bu Mac Hakkında'yı seç. Orada Apple M1 ya da daha yeni bir çip yazıyorsa sorun yok."
      }
     },
     {
@@ -160,7 +144,31 @@
      "name": "Mac'imi yavaşlatır ya da pilimi tüketir mi?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Hayır. Ekran uyuduğunda ya da Düşük Güç Modu açıkken duraklar; “Gizliyken Duraklat” açıksa masaüstü görünmediği sürece de duraklar. Pildeyken bunun yerine sabit bir tablo da gösterebilir."
+      "text": "Hafif olsun diye yapıldı ve kimse görmediğinde çizmeyi bırakır: pencereler masaüstünü kapattığında, beş dakika uzakta kalınca ve ekran uyurken. Pildeyken yavaşlar ya da istersen sabit bir tablo gösterir. Düşük Güç Modu'nda ve Mac'in çok ısındığında da durur."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Sürekli tekrarlanan bir video mu?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Hayır. Mac'in manzarayı gerçek tarlaların, nehirlerin ve kasabaların üzerinden uçarken boyar, bu yüzden görüntü sürekli değişir ve hiç tekrarlanmaz."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Nereye uçacağını seçebilir miyim?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Evet. Menü çubuğundaki martıya tıkla ve “Şuraya Uç” seçeneğini seç. Her yerin üzerinde ne kadar kalacağını da ayarlayabilirsin: altı dakikadan bir saate kadar. Ya da onu kalıcı olarak tek bir yerin üzerinde tutabilirsin."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Geceleri hava kararır mı?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Sadece sen istersen. Menü çubuğundaki Işık ayarını değiştirene kadar hep gündüz kalır. “Senin saatine göre” seçeneğini seçersen akşamlar sıcak renklere bürünür, hava kararınca da pencereler ve sokak lambaları yanar."
      }
     },
     {
@@ -168,7 +176,7 @@
      "name": "Birden fazla ekranla çalışır mı?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Evet. Tek bir manzara hepsine yayılır."
+      "text": "Evet. Tek bir manzara, ekranlarının dizilişine göre hepsine yayılır, böylece görüntü bir ekrandan diğerine kesintisiz devam eder."
      }
     },
     {
@@ -176,7 +184,23 @@
      "name": "Kendi duvar kâğıdıma ne olur?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Outbound'dan çıktığında geri gelir."
+      "text": "Hiçbir şey kaybolmaz. Outbound'dan çıktığında kendi resmin her masaüstüne geri gelir. Outbound çalışırken kilit ekranında tablonun sabit bir görüntüsü durur. Bunu Ayarlar'dan kapatabilirsin."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Abonelik mi?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Hayır. Bir kez ödersin ve senindir, tüm güncellemeler de ücretsiz. Güncellemeler kendiliğinden yüklenir."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Ya bana göre değilse?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "14 gün içinde outbound@edbn.me adresinden bana yaz, paranın tamamını iade ederim. Mac'inde çalışmasa da olur, sadece beklediğin gibi çıkmasa da."
      }
     },
     {
@@ -184,39 +208,47 @@
      "name": "Anahtarımı nerede bulurum?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Ödemenin hemen ardından görünür ve müşteri portalında durur. Uygulamanın içinden satın alırsan kilit kendiliğinden açılır."
+      "text": "Ödemeden hemen sonra gördüğün sayfada, bir de her zaman müşteri portalında. Oraya ödeme yaptığın e-postayla giriş yap. Uygulamanın içinden satın aldıysan anahtara ihtiyacın yok: Outbound'un kilidi kendiliğinden açılır."
      }
     },
     {
      "@type": "Question",
-     "name": "Kaç Mac'te kullanabilirim?",
+     "name": "Birden fazla Mac'te kullanabilir miyim?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Aynı anda üç. Anahtarını Ayarlar'dan ya da müşteri portalından yeni bir Mac'e taşıyabilirsin."
+      "text": "Evet, tek anahtarla aynı anda üç Mac'e kadar. Yeni bir Mac'e mi geçiyorsun? Eski Mac'te Outbound Ayarları'nda Devre Dışı Bırak'a tıkla ya da müşteri portalını kullan, sonra anahtarını yeni Mac'e yapıştır."
      }
     },
     {
      "@type": "Question",
-     "name": "Güncellemeler ücretsiz mi?",
+     "name": "“Senin şehrin” nedir?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Evet. Sen yokken kendiliğinden yüklenir."
+      "text": "Senin için önemli bir yer seç, ben de onu Outbound'a resmedeyim. Satın aldıktan sonra yeri birlikte belirlemek için sana e-posta atarım, genellikle de yaklaşık bir hafta sonra hazır olur. Outbound'un kendisi de dahil."
      }
     },
     {
      "@type": "Question",
-     "name": "Kod GitHub'da. Ücretsiz mi?",
+     "name": "Hakkımda bir şey topluyor mu?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Kodu herkes okuyabilir. Uygulamayı kullanmak içinse lisans gerekir."
+      "text": "Hayır. Uygulamada hesap da, analitik de, takip de yok; ekranını ya da dosyalarını görmek için de hiç izin istemez. Kuş imlecinin nerede olduğunu bilir ama bu bilgi Mac'inden çıkmaz. Ayrıntılar gizlilik politikasında."
      }
     },
     {
      "@type": "Question",
-     "name": "Yardım mı lazım?",
+     "name": "Kod GitHub'da. Ücretsiz kullanabilir miyim?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "outbound@edbn.me adresine yaz ya da Destek sayfasına bak."
+      "text": "Kodu okumakta, ondan öğrenmekte ve düzeltme göndermekte özgürsün. Ama duvar kâğıdı olarak kullanmak için, kendin derlesen bile lisans gerekir."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Başka bir şey mi var?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "outbound@edbn.me adresine yaz, yanıtı Outbound'u yapan kişiden, yani benden alırsın. Destek sayfasında kaybolan anahtarlar, yeni bir Mac'e geçiş ve daha fazlası da var."
      }
     }
    ],
@@ -395,48 +427,64 @@
       <h2 data-i18n="faq.title">SSS</h2>
       <div class="faq">
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">Neye ihtiyacım var?</button>
-          <div class="faq-a"><p data-i18n="faq.a1">Apple silicon işlemcili ve macOS 13 Ventura ya da daha yenisinin yüklü olduğu bir Mac.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">Mac'imde çalışır mı?</button>
+          <div class="faq-a"><p data-i18n="faq.a1">Mac'inde Apple silicon ve macOS 13 Ventura ya da daha yenisi varsa, evet. Intel Mac'lerde çalışmaz. Kontrol etmek için Apple menüsünden Bu Mac Hakkında'yı seç. Orada Apple M1 ya da daha yeni bir çip yazıyorsa sorun yok.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Sürekli tekrarlanan bir video mu?</button>
-          <div class="faq-a"><p data-i18n="faq.a2">Hayır. Mac'in manzarayı uçtukça canlı olarak boyar, bu yüzden hiç tekrarlanmaz.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Mac'imi yavaşlatır ya da pilimi tüketir mi?</button>
+          <div class="faq-a"><p data-i18n="faq.a2">Hafif olsun diye yapıldı ve kimse görmediğinde çizmeyi bırakır: pencereler masaüstünü kapattığında, beş dakika uzakta kalınca ve ekran uyurken. Pildeyken yavaşlar ya da istersen sabit bir tablo gösterir. Düşük Güç Modu'nda ve Mac'in çok ısındığında da durur.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Nereye uçacağını seçebilir miyim?</button>
-          <div class="faq-a"><p data-i18n="faq.a3">Evet. Menü çubuğundan sekiz yerden istediğini ve her birinin üzerinde ne kadar kalacağını seç: altı dakikadan bir saate kadar. Ya da tek bir yerin üzerinde kalsın.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Sürekli tekrarlanan bir video mu?</button>
+          <div class="faq-a"><p data-i18n="faq.a3">Hayır. Mac'in manzarayı gerçek tarlaların, nehirlerin ve kasabaların üzerinden uçarken boyar, bu yüzden görüntü sürekli değişir ve hiç tekrarlanmaz.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Mac'imi yavaşlatır ya da pilimi tüketir mi?</button>
-          <div class="faq-a"><p data-i18n="faq.a4">Hayır. Ekran uyuduğunda ya da Düşük Güç Modu açıkken duraklar; “Gizliyken Duraklat” açıksa masaüstü görünmediği sürece de duraklar. Pildeyken bunun yerine sabit bir tablo da gösterebilir.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Nereye uçacağını seçebilir miyim?</button>
+          <div class="faq-a"><p data-i18n="faq.a4">Evet. Menü çubuğundaki martıya tıkla ve “Şuraya Uç” seçeneğini seç. Her yerin üzerinde ne kadar kalacağını da ayarlayabilirsin: altı dakikadan bir saate kadar. Ya da onu kalıcı olarak tek bir yerin üzerinde tutabilirsin.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Birden fazla ekranla çalışır mı?</button>
-          <div class="faq-a"><p data-i18n="faq.a5">Evet. Tek bir manzara hepsine yayılır.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Geceleri hava kararır mı?</button>
+          <div class="faq-a"><p data-i18n="faq.a5">Sadece sen istersen. Menü çubuğundaki Işık ayarını değiştirene kadar hep gündüz kalır. “Senin saatine göre” seçeneğini seçersen akşamlar sıcak renklere bürünür, hava kararınca da pencereler ve sokak lambaları yanar.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Kendi duvar kâğıdıma ne olur?</button>
-          <div class="faq-a"><p data-i18n="faq.a6">Outbound'dan çıktığında geri gelir.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Birden fazla ekranla çalışır mı?</button>
+          <div class="faq-a"><p data-i18n="faq.a6">Evet. Tek bir manzara, ekranlarının dizilişine göre hepsine yayılır, böylece görüntü bir ekrandan diğerine kesintisiz devam eder.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Kendi duvar kâğıdıma ne olur?</button>
+          <div class="faq-a"><p data-i18n="faq.a7">Hiçbir şey kaybolmaz. Outbound'dan çıktığında kendi resmin her masaüstüne geri gelir. Outbound çalışırken kilit ekranında tablonun sabit bir görüntüsü durur. Bunu Ayarlar'dan kapatabilirsin.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">Abonelik mi?</button>
+          <div class="faq-a"><p data-i18n="faq.a8">Hayır. Bir kez ödersin ve senindir, tüm güncellemeler de ücretsiz. Güncellemeler kendiliğinden yüklenir.</p></div>
         </div>
         <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Anahtarımı nerede bulurum?</button>
-          <div class="faq-a"><p data-i18n="faq.a7">Ödemenin hemen ardından görünür ve <a href="https://polar.sh/edbnme/portal">müşteri portalında</a> durur. Uygulamanın içinden satın alırsan kilit kendiliğinden açılır.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">Ya bana göre değilse?</button>
+          <div class="faq-a"><p data-i18n="faq.a9">14 gün içinde <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> adresinden bana yaz, paranın tamamını iade ederim. Mac'inde çalışmasa da olur, sadece beklediğin gibi çıkmasa da.</p></div>
+        </div>
+        <div class="faq-item" data-direct>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">Anahtarımı nerede bulurum?</button>
+          <div class="faq-a"><p data-i18n="faq.a10">Ödemeden hemen sonra gördüğün sayfada, bir de her zaman <a href="https://polar.sh/edbnme/portal">müşteri portalında</a>. Oraya ödeme yaptığın e-postayla giriş yap. Uygulamanın içinden satın aldıysan anahtara ihtiyacın yok: Outbound'un kilidi kendiliğinden açılır.</p></div>
+        </div>
+        <div class="faq-item" data-direct>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Birden fazla Mac'te kullanabilir miyim?</button>
+          <div class="faq-a"><p data-i18n="faq.a11">Evet, tek anahtarla aynı anda üç Mac'e kadar. Yeni bir Mac'e mi geçiyorsun? Eski Mac'te Outbound Ayarları'nda Devre Dışı Bırak'a tıkla ya da müşteri portalını kullan, sonra anahtarını yeni Mac'e yapıştır.</p></div>
+        </div>
+        <div class="faq-item" data-direct>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">“Senin şehrin” nedir?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Senin için önemli bir yer seç, ben de onu Outbound'a resmedeyim. Satın aldıktan sonra yeri birlikte belirlemek için sana e-posta atarım, genellikle de yaklaşık bir hafta sonra hazır olur. Outbound'un kendisi de dahil.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">Kaç Mac'te kullanabilirim?</button>
-          <div class="faq-a"><p data-i18n="faq.a8">Aynı anda üç. Anahtarını Ayarlar'dan ya da müşteri portalından yeni bir Mac'e taşıyabilirsin.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Hakkımda bir şey topluyor mu?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Hayır. Uygulamada hesap da, analitik de, takip de yok; ekranını ya da dosyalarını görmek için de hiç izin istemez. Kuş imlecinin nerede olduğunu bilir ama bu bilgi Mac'inden çıkmaz. Ayrıntılar <a href="/privacy">gizlilik politikasında</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">Güncellemeler ücretsiz mi?</button>
-          <div class="faq-a"><p data-i18n="faq.a9">Evet. Sen yokken kendiliğinden yüklenir.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Kod GitHub'da. Ücretsiz kullanabilir miyim?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Kodu okumakta, ondan öğrenmekte ve düzeltme göndermekte özgürsün. Ama duvar kâğıdı olarak kullanmak için, kendin derlesen bile <a href="/license">lisans</a> gerekir.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">Kod GitHub'da. Ücretsiz mi?</button>
-          <div class="faq-a"><p data-i18n="faq.a10">Kodu herkes okuyabilir. Uygulamayı kullanmak içinse <a href="/license">lisans</a> gerekir.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Yardım mı lazım?</button>
-          <div class="faq-a"><p data-i18n="faq.a11"><a href="mailto:outbound@edbn.me">outbound@edbn.me</a> adresine yaz ya da <a href="/tr/support">Destek</a> sayfasına bak.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Başka bir şey mi var?</button>
+          <div class="faq-a"><p data-i18n="faq.a15"><a href="mailto:outbound@edbn.me">outbound@edbn.me</a> adresine yaz, yanıtı Outbound'u yapan kişiden, yani benden alırsın. <a href="/tr/support">Destek</a> sayfasında kaybolan anahtarlar, yeni bir Mac'e geçiş ve daha fazlası da var.</p></div>
         </div>
       </div>
     </div>
