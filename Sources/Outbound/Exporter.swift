@@ -134,6 +134,8 @@ enum Exporter {
             }
         }
         let renderer = ViewRenderer(gpu: gpu)
+        // Ground too much for one piece of GPU work is painted in pieces, each waited for.
+        renderer.waitsForPieces = true
         // --density sets ground texels per point and --ground-filter how they are read, as the app does on displays
         // that aren't Retina.
         renderer.configure(frame: frame, scale: scale, density: options["density"].flatMap(Double.init))
@@ -169,6 +171,7 @@ enum Exporter {
                 }
                 guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
                 renderer.encode(world: world, into: target, commandBuffer: commands)
+                if let error = renderer.pieceError { throw error }
                 commands.commit()
                 commands.waitUntilCompleted()
                 let milliseconds = (commands.gpuEndTime - commands.gpuStartTime) * 1000
@@ -192,6 +195,7 @@ enum Exporter {
         func paintFrame() throws -> Double {
             guard let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
             renderer.encode(world: world, into: target, commandBuffer: commands)
+            if let error = renderer.pieceError { throw error }
             commands.commit()
             commands.waitUntilCompleted()
             if let error = commands.error { throw error }
@@ -257,6 +261,7 @@ enum Exporter {
         world.advance(to: time)
         if let bird { world.poseBird(at: bird.0, heading: bird.1) }
         let renderer = ViewRenderer(gpu: gpu)
+        renderer.waitsForPieces = true
         renderer.configure(frame: frame, scale: scale)
         renderer.finish = SIMD4(1, 0, 0, 0)
         renderer.birdSize = bird == nil ? 0 : birdSize
@@ -268,8 +273,10 @@ enum Exporter {
         guard let target = gpu.device.makeTexture(descriptor: descriptor),
               let commands = gpu.queue.makeCommandBuffer() else { throw Failure(description: "No GPU") }
         renderer.encode(world: world, into: target, commandBuffer: commands)
+        if let error = renderer.pieceError { throw error }
         commands.commit()
         commands.waitUntilCompleted()
+        if let error = commands.error { throw error }
         return try image(target)
     }
 

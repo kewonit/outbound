@@ -136,11 +136,18 @@ final class Wallpaper: NSObject {
     }
 
     /// Paints the first frame straight away and puts the window up once it is presented, so the desktop picture gives way
-    /// to the painting itself, not to an empty window, and nothing waits for the display link. Called once the
-    /// wallpaper is set up, so that frame already has the right border and scale.
+    /// to the painting itself, not to an empty window, and nothing waits for the display link. The ground is painted
+    /// first, in pieces any GPU paints quickly, while the desktop picture still shows. Should the GPU fail, the window
+    /// stays down and the desktop picture with it. Called once the wallpaper is set up, so that frame already has the
+    /// right border and scale.
     func show() {
         view.layoutSubtreeIfNeeded()
         updateCaption()
+        world.advance(to: CACurrentMediaTime())
+        catchUp { [weak self] in self?.showFirstFrame() }
+    }
+
+    private func showFirstFrame() {
         let now = CACurrentMediaTime()
         world.advance(to: now)
         let drawn = draw(at: world.renderTime(for: now), showing: now, presentAt: nil) { [weak self] in
@@ -158,9 +165,44 @@ final class Wallpaper: NSObject {
         let milliseconds = Int((CACurrentMediaTime() - OutboundApp.launched) * 1000)
         Log.display.info("Display \(self.displayID) up \(milliseconds) ms after launch")
         set(.starting, false)
+        onStarted()
         revealing = true
         occlusionChanged()
     }
+
+    /// Called as the window goes up, once its first frame is painted.
+    var onStarted: () -> Void = {}
+
+    /// Paints the ground the view needs now, in pieces of GPU work of their own (see `ViewRenderer.catchUp`), then calls
+    /// `then`. Nothing new is drawn meanwhile, so the screen keeps what it shows. Should a piece fail, it tries again a
+    /// little later, for as long as the GPU still takes work.
+    private func catchUp(then: @escaping @MainActor () -> Void) {
+        guard link != nil, !gpu.revoked else { return }
+        let wait = catchUpAfter - CACurrentMediaTime()
+        guard !renderer.isCatchingUp, wait <= 0 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(wait, 0.1)) { [weak self] in self?.catchUp(then: then) }
+            return
+        }
+        let time = world.renderTime(for: CACurrentMediaTime())
+        // Painted meanwhile, say by another call.
+        guard renderer.needsCatchUp(world: world, at: time) else {
+            then()
+            return
+        }
+        renderer.catchUp(world: world, at: time) { [weak self] painted in
+            guard let self, link != nil else { return }
+            if painted {
+                then()
+            } else {
+                catchUpAfter = CACurrentMediaTime() + 2
+                catchUp(then: then)
+            }
+        }
+    }
+
+    /// When the ground may next be painted in pieces, a little after it failed, so a GPU in trouble isn't asked again
+    /// every frame.
+    private var catchUpAfter: CFTimeInterval = 0
 
     /// Up, and waiting to be seen: the window says so a moment after it goes up.
     private var revealing = false
@@ -244,9 +286,19 @@ final class Wallpaper: NSObject {
         renderer.drawsBird = drawsBird
     }
 
-    /// Draws the world as it is now, held, after it has gone back to an earlier moment, behind the lock screen.
+    /// Draws the world as it is now, held: after it has gone back to an earlier moment behind the lock screen, or
+    /// when something changes while it is held. Ground that has to be painted afresh is painted first, in pieces.
     func redraw() {
         updateCaption()
+        guard !renderer.needsCatchUp(world: world, at: world.time) else {
+            catchUp { [weak self] in self?.drawHeld() }
+            return
+        }
+        drawHeld()
+    }
+
+    private func drawHeld() {
+        guard !gpu.revoked else { return }
         draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
         if !renderer.drawsBird { drawBird(at: world.time) }
     }
@@ -420,6 +472,13 @@ final class Wallpaper: NSObject {
         #endif
         world.advance(to: onScreen)
         let moment = world.renderTime(for: onScreen)
+        // Ground still being painted in pieces, or more of it due than one frame should paint: nothing is drawn until
+        // it is all there, and nothing at all once the GPU takes no more work.
+        guard !gpu.revoked, !renderer.isCatchingUp else { return }
+        if renderer.needsCatchUp(world: world, at: moment) {
+            if CACurrentMediaTime() >= catchUpAfter { catchUp {} }
+            return
+        }
         handOverBird(at: moment, presenting: presentTime)
         if tick.targetTimestamp - captionUpdated > 0.5 {
             captionUpdated = tick.targetTimestamp
@@ -441,15 +500,24 @@ final class Wallpaper: NSObject {
         let asked = CACurrentMediaTime()
         #endif
         guard let drawable = view.metalLayer.nextDrawable(),
-              let commands = gpu.queue.makeCommandBuffer() else { return false }
+              let commands = gpu.commandBuffer() else { return false }
         #if DEBUG
         drawableWait = CACurrentMediaTime() - asked
         #endif
         renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands)
         let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
-            let milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
-            DispatchQueue.main.async { self?.renderer.finished(gpu: milliseconds, painted: painted) }
+            let outcome = GPUOutcome(buffer)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if outcome.completed {
+                    self.renderer.finished(gpu: outcome.milliseconds, painted: painted)
+                } else {
+                    // What the frame painted into the cache may not be there, so it is all painted again.
+                    self.gpu.failed(outcome, doing: "drawing a frame")
+                    self.renderer.invalidate()
+                }
+            }
         }
         #if DEBUG
         renderer.events.forEach { stats.note($0) }

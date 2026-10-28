@@ -16,7 +16,7 @@ final class DisplayManager {
         didSet {
             guard pausedHidden != oldValue else { return }
             wallpapers.values.forEach { $0.set(.hidden, pausedHidden) }
-            world.hold(!globalHolds.isEmpty || pausedHidden)
+            holdWorld()
             Log.display.info("\(self.pausedHidden ? "Every display is hidden: holding still" : "Carrying on", privacy: .public)")
         }
     }
@@ -163,8 +163,14 @@ final class DisplayManager {
         // Windows may have moved while nothing was drawn, so they are read again before any display starts once more.
         watchCover()
         wallpapers.values.forEach { $0.set(hold, on) }
-        world.hold(!globalHolds.isEmpty || pausedHidden)
+        holdWorld()
         if on, [.asleep, .locked, .inactive, .resting].contains(hold) { onQuiet() }
+    }
+
+    /// The flight waits while anything holds every display, and while a display's first frame is still being painted,
+    /// so it sets off from the moment that frame shows, gathering speed, rather than having flown on unseen.
+    private func holdWorld() {
+        world.hold(!globalHolds.isEmpty || pausedHidden || wallpapers.values.contains { $0.holds.contains(.starting) })
     }
 
     /// Reads which desktops app windows cover, only with Pause When Hidden on, and only while anything is drawn: not
@@ -207,6 +213,7 @@ final class DisplayManager {
                 if pausedHidden { wallpaper.set(.hidden, true) }
                 wallpaper.coveredByWindows = cover.covered.contains(id)
                 wallpaper.onOcclusionChange = { [weak self] in self?.checkOcclusion() }
+                wallpaper.onStarted = { [weak self] in self?.holdWorld() }
                 // Once every display's is up, so the first paintings are of one moment.
                 wallpaper.onReveal = { [weak self] in
                     guard let self,
@@ -226,6 +233,7 @@ final class DisplayManager {
         watchCover()
         checkOcclusion()
         refreshRates()
+        holdWorld()
         added.forEach { $0.show() }
     }
 

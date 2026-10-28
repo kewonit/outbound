@@ -117,7 +117,11 @@ final class StillWriter {
             wallpaper.encodeStill(at: moment.time, into: target, commandBuffer: commands)
             let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
             commands.addCompletedHandler { [weak self] buffer in
-                guard buffer.status == .completed else { return }
+                let outcome = GPUOutcome(buffer)
+                guard outcome.completed else {
+                    DispatchQueue.main.async { self?.gpu.failed(outcome, doing: "painting the desktop picture") }
+                    return
+                }
                 DispatchQueue.global(qos: .utility).async {
                     guard (try? Exporter.write(target, to: url, type: .jpeg)) != nil else { return }
                     DispatchQueue.main.async { self?.show(url, of: moment, on: id, covering: covered, turn: turn) }

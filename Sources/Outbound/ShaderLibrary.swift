@@ -57,6 +57,13 @@ final class ShaderLibrary {
         } else {
             options.fastMathEnabled = true
         }
+        #if DEBUG
+        // OUTBOUND_SLOW_GPU=n paints the ground n times over, to see how a GPU n times slower copes.
+        if let slow = ProcessInfo.processInfo.environment["OUTBOUND_SLOW_GPU"].flatMap(Int.init), slow > 1 {
+            options.preprocessorMacros = ["OUTBOUND_SLOW_GPU": NSNumber(value: slow)]
+            Log.render.info("Painting the ground \(slow) times over")
+        }
+        #endif
         let library = try device.makeLibrary(source: source, options: options)
 
         func pipeline(_ fragment: String, vertex: String = "fullscreen", formats: [MTLPixelFormat],

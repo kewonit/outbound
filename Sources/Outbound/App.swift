@@ -49,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var preferencesChanged: AnyCancellable?
     /// Links from the thank-you page that arrived before launch finished.
     private var earlyLinks: [ActivationLink] = []
+    /// Outbound is quitting to open again at once, as when the GPU stopped taking its work, so the painting stays.
+    private var relaunching = false
 
     private var world: World { displays.world }
 
@@ -74,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
+        gpu.onRevoked = { [weak self] in self?.gpuRevoked() }
         stills = StillWriter(gpu: gpu)
         // Opened over a painting the last run left on the desktop, as at login after a restart, the view carries on from
         // the moment it shows, so the desktop picture gives way to the same view rather than another part of the place.
@@ -306,8 +309,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
         // screens are asleep, as an update installs, and as the session ends when Outbound opens again at login,
         // for the login window; the next launch carries on from it.
-        let opensAgain = sessionEnding && SMAppService.mainApp.status == .enabled
+        let opensAgain = relaunching || sessionEnding && SMAppService.mainApp.status == .enabled
         if !opensAgain, !displays.isAsleep { restorePictures() }
+    }
+
+    /// The GPU takes no more of Outbound's work, after too much of it ran too long, so nothing it draws shows any more
+    /// until it starts afresh. It opens again, painting in smaller pieces now, and the painting stays on the desktop
+    /// meanwhile. At most once an hour; otherwise the menu says what happened.
+    private func gpuRevoked() {
+        let key = "reopenedForGPU"
+        let now = Date.now.timeIntervalSince1970
+        guard now - UserDefaults.standard.double(forKey: key) > 3600 else { return }
+        UserDefaults.standard.set(now, forKey: key)
+        let reopen = Process()
+        reopen.executableURL = URL(filePath: "/bin/sh")
+        // Only once this copy has quit, or the new one would find it running and quit itself.
+        reopen.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; "
+            + "exec /usr/bin/open \"$0\"", Bundle.main.bundlePath]
+        guard (try? reopen.run()) != nil else { return }
+        Log.render.error("Opening Outbound again, to paint in smaller pieces")
+        relaunching = true
+        NSApp.terminate(nil)
     }
 
     // MARK: - Links from the thank-you page

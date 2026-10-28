@@ -16,7 +16,18 @@ final class GPU {
     /// A small random lattice, so value noise in the frame pass is one texture fetch.
     let noise: MTLTexture
     /// What every display together may spend painting ground that can wait.
-    var paintBudget = PaintBudget()
+    var paintBudget: PaintBudget
+    /// What painting the ground costs on this GPU, which sets how much of it goes into one piece of GPU work. Kept
+    /// for the next launch, so a slow GPU starts in small pieces.
+    private(set) var groundCost: GroundCost
+    /// The GPU no longer takes Outbound's work, after too much of it ran too long: nothing it draws reaches the screen
+    /// again until Outbound starts afresh.
+    private(set) var revoked = false
+    var onRevoked: () -> Void = {}
+    /// The last error the GPU gave and how many there have been, for the feedback page.
+    private(set) var lastError: (name: String, count: Int)?
+    private var recentErrors: [Date] = []
+    private static let costKey = "groundCost"
 
     init() throws {
         // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
@@ -30,6 +41,10 @@ final class GPU {
         self.device = device
         self.queue = queue
         self.birdQueue = birdQueue
+        let saved = (UserDefaults.standard.dictionary(forKey: Self.costKey)?[device.name] as? [String: Double])
+            .flatMap { saved in saved["cost"].flatMap { cost in saved["target"].map { (cost, $0) } } }
+        groundCost = saved.map { GroundCost(millisecondsPerMillion: $0.0, target: $0.1) } ?? .initial
+        paintBudget = PaintBudget(costPerMillion: min(max(groundCost.millisecondsPerMillion, 1), 400))
         shaders = try ShaderLibrary(device: device)
 
         let descriptor = MTLSamplerDescriptor()
@@ -50,6 +65,129 @@ final class GPU {
         var random = SplitMix(seed: 150)
         let bytes = (0..<(256 * 256)).map { _ in UInt8(random.next() * 255) }
         noise.replace(region: MTLRegionMake2D(0, 0, 256, 256), mipmapLevel: 0, withBytes: bytes, bytesPerRow: 256)
+    }
+
+    /// A command buffer on the frames' queue that says which of its passes failed, should it fail.
+    func commandBuffer() -> MTLCommandBuffer? {
+        let descriptor = MTLCommandBufferDescriptor()
+        descriptor.errorOptions = .encoderExecutionStatus
+        return queue.makeCommandBuffer(descriptor: descriptor)
+    }
+
+    /// A piece of ground painting of `texels` took `milliseconds` of GPU time.
+    func learn(texels: Int, milliseconds: Double) {
+        groundCost.finished(texels: texels, milliseconds: milliseconds)
+        paintBudget.learn(milliseconds: milliseconds, painted: texels)
+        saveCost()
+    }
+
+    /// GPU work failed. Work stopped for running too long, or failing again and again, means pieces a quarter the size
+    /// from now on. Refused outright, the GPU will take nothing more, so nothing more is sent.
+    func failed(_ outcome: GPUOutcome, doing what: String) {
+        let error = outcome.error as NSError?
+        let code = error.flatMap { $0.domain == MTLCommandBufferErrorDomain ? MTLCommandBufferError.Code(rawValue: UInt($0.code)) : nil }
+        let name = switch code {
+        case .timeout: "timeout"
+        case .accessRevoked: "revoked"
+        case .pageFault: "fault"
+        case .outOfMemory: "memory"
+        case .notPermitted: "refused"
+        case .some: "error\(error?.code ?? 0)"
+        case nil: "other"
+        }
+        let count = (lastError?.count ?? 0) + 1
+        lastError = (name, count)
+        let now = Date.now
+        recentErrors = recentErrors.filter { now.timeIntervalSince($0) < 60 } + [now]
+        // The first few in full, then now and then, as a GPU in trouble fails every frame.
+        if count <= 5 || count % 100 == 0 {
+            let faulted = (error?.userInfo[MTLCommandBufferEncoderInfoErrorKey] as? [MTLCommandBufferEncoderInfo] ?? [])
+                .filter { $0.errorState == .faulted }.map(\.label).joined(separator: ", ")
+            Log.render.error("GPU error \(count) \(what, privacy: .public): \(String(describing: error), privacy: .public) in \(faulted.isEmpty ? "?" : faulted, privacy: .public)")
+        }
+        let tooLong = code == .timeout || String(describing: error).contains("Interactivity")
+        if code == .accessRevoked, !revoked {
+            revoked = true
+            Log.render.error("The GPU takes no more of Outbound's work")
+            onRevoked()
+        } else if tooLong || recentErrors.count >= 3 {
+            groundCost.backOff()
+            paintBudget.milliseconds = max(paintBudget.milliseconds / 2, 0.5)
+            recentErrors = []
+            saveCost()
+            Log.render.error("Painting in smaller pieces: \(self.groundCost.texelsPerPiece) texels")
+        }
+    }
+
+    private func saveCost() {
+        var all = UserDefaults.standard.dictionary(forKey: Self.costKey) ?? [:]
+        all[device.name] = ["cost": groundCost.millisecondsPerMillion, "target": groundCost.target]
+        UserDefaults.standard.set(all, forKey: Self.costKey)
+    }
+}
+
+/// How a command buffer went, read where Metal says so and handed on to the main thread.
+struct GPUOutcome: Sendable {
+    let completed: Bool
+    let milliseconds: Double
+    let error: (any Error)?
+
+    init(_ buffer: MTLCommandBuffer) {
+        completed = buffer.status == .completed
+        milliseconds = (buffer.gpuEndTime - buffer.gpuStartTime) * 1000
+        error = buffer.error
+    }
+}
+
+/// Ground to paint, draw by draw, handed out in pieces of GPU work no bigger than asked for. A draw too big for a piece
+/// is cut into bands of whole rows, each keeping the draw's own origin, so every texel comes out just as it would
+/// have in the one draw.
+struct GroundStrokes {
+    struct Stroke {
+        var params: GroundGPU
+        var scissor: MTLScissorRect
+        /// Which of the caches it paints: the ground's own, or, during a Fly To, the new place's.
+        var into: Int
+
+        var texels: Int { scissor.width * scissor.height }
+    }
+
+    private(set) var strokes: [Stroke]
+
+    init(_ strokes: [Stroke]) {
+        self.strokes = strokes.filter { $0.texels > 0 }
+    }
+
+    var isEmpty: Bool { strokes.isEmpty }
+    var texels: Int { strokes.reduce(0) { $0 + $1.texels } }
+
+    /// The next piece: draws for one cache, of `texels` at most, though never less than one row.
+    mutating func take(texels: Int) -> [Stroke] {
+        var piece: [Stroke] = []
+        var room = texels
+        while let head = strokes.first, room > 0, piece.first.map({ $0.into == head.into }) ?? true {
+            if head.texels <= room {
+                piece.append(head)
+                strokes.removeFirst()
+                room -= head.texels
+                continue
+            }
+            let rows = max(room / head.scissor.width, piece.isEmpty ? 1 : 0)
+            guard rows > 0 else { break }
+            guard rows < head.scissor.height else {
+                piece.append(head)
+                strokes.removeFirst()
+                room -= head.texels
+                continue
+            }
+            var band = head
+            band.scissor.height = rows
+            strokes[0].scissor.y += rows
+            strokes[0].scissor.height -= rows
+            piece.append(band)
+            room -= band.texels
+        }
+        return piece
     }
 }
 
@@ -109,6 +247,26 @@ final class ViewRenderer {
     private(set) var paintedTexels = 0
     /// GPU time of a frame here that paints next to nothing, to tell what painting costs.
     private var plainFrame: Double?
+    /// Ground being painted in pieces of GPU work of their own ahead of the frames, which wait for it (see `catchUp`).
+    private var chain: Chain?
+    private struct Chain {
+        var strokes: GroundStrokes
+        let targets: [[MTLTexture]]
+        let scenes: [SceneGPU]
+        var inFlight = 0
+        var failed = false
+        let done: @MainActor (Bool) -> Void
+        /// Pieces painted so far, and the longest GPU time one took, for the log.
+        var pieces = 0
+        var longest = 0.0
+    }
+    /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
+    private var settlesSweep = false
+    /// Ground a frame must paint that is too much for one piece of GPU work goes in pieces committed ahead of the
+    /// frame. The exporter waits for each, and learns nothing from them, so its pictures never vary.
+    var waitsForPieces = false
+    /// Why the last such piece failed, while waiting for them.
+    private(set) var pieceError: Error?
 
     /// A frame finished, taking `milliseconds` of GPU time and having painted `texels`: teaches the budget what
     /// painting costs on this GPU.
@@ -151,12 +309,18 @@ final class ViewRenderer {
         paperDirty = true
         cloudCorner = nil
         valid = nil
+        // The new place's cache is the old size, so a Fly To under way paints it again at the new one.
+        incoming = nil
+        incomingFilled = nil
+        sweepLeg = nil
+        chain?.failed = true
     }
 
     func invalidate() {
         valid = nil
         cloudCorner = nil
         paperDirty = true
+        chain?.failed = true
     }
 
     private func makeTexture(width: Int, height: Int, label: String,
@@ -170,9 +334,91 @@ final class ViewRenderer {
         return texture
     }
 
-    /// The ground isn't all painted in the world's present light yet: a repaint wave is crossing it, or about to.
+    /// The ground isn't all painted in the world's present light yet: a repaint wave is crossing it, or about to, or
+    /// it is still to be painted at all.
     func isRepainting(for world: World) -> Bool {
-        revision != world.revision || repaintRow != nil
+        revision != world.revision || repaintRow != nil || valid == nil || chain != nil
+    }
+
+    /// The first world texel column and row of the cache the view at `t` needs.
+    private func needed(world: World, at t: TimeInterval) -> (x: Int, y: Int) {
+        let mpp = World.metresPerPoint
+        let texel = mpp / density
+        let camera = world.camera(at: t)
+        let x0 = Double(frame.minX) * mpp + camera.x
+        let y0 = Double(frame.minY) * mpp + camera.y
+        return (Int((x0 / texel).rounded(.down)) - Self.pad, Int((y0 / texel).rounded(.down)) - Self.pad)
+    }
+
+    /// Whether the frame at `t` would have to paint more ground than one piece of GPU work should hold, as when nothing
+    /// is cached yet or the view has jumped. Frames wait for `catchUp` then.
+    func needsCatchUp(world: World, at t: TimeInterval) -> Bool {
+        guard chain == nil, let valid else { return true }
+        let need = needed(world: world, at: t)
+        let dx = abs(need.x - valid.x), dy = abs(need.y - valid.y)
+        guard dx < cacheWidth, dy < cacheHeight else { return true }
+        return dy * cacheWidth + dx * (cacheHeight - dy) > gpu.groundCost.texelsPerPiece
+    }
+
+    var isCatchingUp: Bool { chain != nil }
+
+    /// Paints the ground the frame at `t` needs in pieces of GPU work of their own, each sent as the one before
+    /// finishes and sized from what it cost, two at most on the GPU at once, so none runs long on a slow GPU: macOS
+    /// stops GPU work that does, and after enough of it takes no more from the app at all. Nothing is drawn from the
+    /// cache until it is whole. Calls `done` with whether it all painted; after a failure the cache is painted afresh.
+    func catchUp(world: World, at t: TimeInterval, done: @escaping @MainActor (Bool) -> Void) {
+        guard chain == nil else { return }
+        guard let work = prepareGround(world: world, at: t) else {
+            done(false)
+            return
+        }
+        // Frames learn what painting costs from what they paint themselves, and this isn't theirs.
+        paintedTexels = 0
+        chain = Chain(strokes: work.strokes, targets: work.targets, scenes: work.scenes, done: done)
+        pump()
+    }
+
+    /// Sends pieces while fewer than two are on the GPU, and ends the chain once none are and none are left, or one
+    /// failed.
+    private func pump() {
+        guard var chain else { return }
+        while chain.inFlight < 2, !chain.failed, !chain.strokes.isEmpty {
+            let piece = chain.strokes.take(texels: gpu.groundCost.texelsPerPiece)
+            guard let into = piece.first?.into, let commands = gpu.commandBuffer() else {
+                chain.failed = true
+                break
+            }
+            paint(piece, into: chain.targets[into], scene: chain.scenes[into], clearing: false, commandBuffer: commands)
+            let texels = piece.reduce(0) { $0 + $1.texels }
+            commands.addCompletedHandler { [weak self] buffer in
+                let outcome = GPUOutcome(buffer)
+                DispatchQueue.main.async { MainActor.assumeIsolated { self?.pieceFinished(outcome, texels: texels) } }
+            }
+            commands.commit()
+            chain.inFlight += 1
+        }
+        self.chain = chain
+        guard chain.inFlight == 0 else { return }
+        self.chain = nil
+        let painted = !chain.failed && chain.strokes.isEmpty
+        if !painted { valid = nil }
+        Log.render.info("Ground \(painted ? "painted" : "not painted", privacy: .public) in \(chain.pieces) pieces, the longest \(String(format: "%.1f", chain.longest), privacy: .public) ms; \(self.gpu.groundCost.texelsPerPiece) texels a piece now")
+        chain.done(painted)
+    }
+
+    private func pieceFinished(_ outcome: GPUOutcome, texels: Int) {
+        guard var chain else { return }
+        chain.inFlight -= 1
+        chain.pieces += 1
+        chain.longest = max(chain.longest, outcome.milliseconds)
+        if outcome.completed {
+            gpu.learn(texels: texels, milliseconds: outcome.milliseconds)
+        } else {
+            chain.failed = true
+            gpu.failed(outcome, doing: "painting the ground")
+        }
+        self.chain = chain
+        pump()
     }
 
     /// Draws the world as it is now, for stills and exports.
@@ -180,8 +426,21 @@ final class ViewRenderer {
         encode(world: world, at: world.time, into: target, commandBuffer: commandBuffer)
     }
 
-    /// Draws the world as it is at `t`, the moment this frame will be on screen.
-    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
+    /// The ground a frame paints before it draws: the draws, the caches they paint (the ground's own, and during a Fly
+    /// To the new place's), and the scene each is painted with.
+    private struct Prepared {
+        var worldFrame: World.Frame
+        var full: Bool
+        var x0: Double
+        var y0: Double
+        var top: Double
+        var strokes: GroundStrokes
+        var targets: [[MTLTexture]]
+        var scenes: [SceneGPU]
+    }
+
+    /// Works out the ground the frame at `t` paints, and moves the cache's bookkeeping on as if it were painted.
+    private func prepareGround(world: World, at t: TimeInterval) -> Prepared? {
         let mpp = World.metresPerPoint
         let texel = mpp / density
         let camera = world.camera(at: t)
@@ -189,13 +448,13 @@ final class ViewRenderer {
         let y0 = Double(frame.minY) * mpp + camera.y
         let top = Double(frame.maxY) * mpp + camera.y
         let worldFrame = world.frame(bottom: y0, top: top, at: t)
-        var scene = worldFrame.scene
+        let scene = worldFrame.scene
         lastScene = scene
         if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
-        guard let color, let mask, let clouds else { return }
+        guard let color, let mask, clouds != nil else { return nil }
 
         // Work out which world texel rectangles need painting.
-        let need = (x: Int((x0 / texel).rounded(.down)) - Self.pad, y: Int((y0 / texel).rounded(.down)) - Self.pad)
+        let need = needed(world: world, at: t)
         var full = valid == nil
         // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
         // from top to bottom, a budgeted number of rows a frame, so no single frame has to repaint the whole screen.
@@ -238,6 +497,11 @@ final class ViewRenderer {
                                        leg: worldFrame.legB.index, at: t)
         }
         valid = need
+        if settlesSweep {
+            // Painted afresh, in full, from the next frame on.
+            valid = nil
+            settlesSweep = false
+        }
         revision = world.revision
         lastSweepFront = worldFrame.sweepFront
         paintedTexels = (rects + incomingRects).reduce(0) { $0 + $1.w * $1.h }
@@ -248,17 +512,32 @@ final class ViewRenderer {
         if worldFrame.sweepFront != nil { events.append("sweep") }
         #endif
 
-        let pipelines = gpu.shaders.pipelines
-        paint(rects, into: [color, mask], scene: scene, clearing: full, texel: texel, reference: worldFrame.reference,
-              commandBuffer: commandBuffer)
+        var strokes = self.strokes(rects, into: 0, texel: texel, reference: worldFrame.reference)
+        var targets = [[color, mask]]
+        var scenes = [scene]
         if let incoming, !incomingRects.isEmpty {
             // The new place as it will be once the sweep is over.
             var settled = scene
             settled.morph.y = 0.001
             settled.morph.z = -1
-            paint(incomingRects, into: [incoming.color, incoming.mask], scene: settled, clearing: false, texel: texel,
-                  reference: worldFrame.reference, commandBuffer: commandBuffer)
+            strokes += self.strokes(incomingRects, into: 1, texel: texel, reference: worldFrame.reference)
+            targets.append([incoming.color, incoming.mask])
+            scenes.append(settled)
         }
+        return Prepared(worldFrame: worldFrame, full: full, x0: x0, y0: y0, top: top, strokes: GroundStrokes(strokes),
+                        targets: targets, scenes: scenes)
+    }
+
+    /// Draws the world as it is at `t`, the moment this frame will be on screen.
+    func encode(world: World, at t: TimeInterval, into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
+        guard let work = prepareGround(world: world, at: t), let color, let mask, let clouds else { return }
+        let mpp = World.metresPerPoint
+        let texel = mpp / density
+        let worldFrame = work.worldFrame
+        let (full, x0, y0, top) = (work.full, work.x0, work.y0, work.top)
+        var scene = worldFrame.scene
+        let pipelines = gpu.shaders.pipelines
+        paintGround(work, commandBuffer: commandBuffer)
 
         // Clouds never change shape, they only drift, so they are painted at a quarter of the resolution
         // with a margin and slid along until the margin runs out.
@@ -450,10 +729,65 @@ final class ViewRenderer {
 
     typealias Rect = (x: Int, y: Int, w: Int, h: Int)
 
-    /// Paints world texel rectangles of the ground into a cache.
-    private func paint(_ rects: [Rect], into targets: [MTLTexture], scene: SceneGPU, clearing: Bool, texel: Double,
-                       reference: Double, commandBuffer: MTLCommandBuffer) {
-        guard !rects.isEmpty else { return }
+    /// The draws that paint world texel rectangles of the ground into one of the caches.
+    private func strokes(_ rects: [Rect], into cache: Int, texel: Double, reference: Double) -> [GroundStrokes.Stroke] {
+        rects.flatMap(pieces).map { piece in
+            GroundStrokes.Stroke(
+                params: GroundGPU(origin: SIMD4(Float(piece.tx), Float(piece.ty), Float(Double(piece.wx) * texel),
+                                                Float(Double(piece.wy) * texel - reference)),
+                                  texel: SIMD4(Float(texel), 0, 0, 0)),
+                scissor: MTLScissorRect(x: piece.tx, y: piece.ty, width: piece.w, height: piece.h),
+                into: cache)
+        }
+    }
+
+    /// Paints a frame's ground: in the frame's own command buffer when it fits in one piece of GPU work, as it nearly
+    /// always does, or else in pieces of their own committed ahead of the frame.
+    private func paintGround(_ work: Prepared, commandBuffer: MTLCommandBuffer) {
+        var strokes = work.strokes
+        guard strokes.texels > gpu.groundCost.texelsPerPiece else {
+            for (i, targets) in work.targets.enumerated() {
+                paint(strokes.strokes.filter { $0.into == i }, into: targets, scene: work.scenes[i],
+                      clearing: i == 0 && work.full, commandBuffer: commandBuffer)
+            }
+            return
+        }
+        while !strokes.isEmpty {
+            let piece = strokes.take(texels: gpu.groundCost.texelsPerPiece)
+            guard let into = piece.first?.into, let commands = gpu.commandBuffer() else { return }
+            paint(piece, into: work.targets[into], scene: work.scenes[into], clearing: false, commandBuffer: commands)
+            if waitsForPieces {
+                commands.commit()
+                commands.waitUntilCompleted()
+                if let error = commands.error {
+                    pieceError = error
+                    return
+                }
+                continue
+            }
+            let texels = piece.reduce(0) { $0 + $1.texels }
+            commands.addCompletedHandler { [weak self] buffer in
+                let outcome = GPUOutcome(buffer)
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated {
+                        guard let self else { return }
+                        if outcome.completed {
+                            self.gpu.learn(texels: texels, milliseconds: outcome.milliseconds)
+                        } else {
+                            self.gpu.failed(outcome, doing: "painting the ground")
+                            self.invalidate()
+                        }
+                    }
+                }
+            }
+            commands.commit()
+        }
+    }
+
+    /// Paints ground into a cache.
+    private func paint(_ strokes: [GroundStrokes.Stroke], into targets: [MTLTexture], scene: SceneGPU, clearing: Bool,
+                       commandBuffer: MTLCommandBuffer) {
+        guard !strokes.isEmpty else { return }
         var scene = scene
         let pass = MTLRenderPassDescriptor()
         for (i, texture) in targets.enumerated() {
@@ -465,16 +799,11 @@ final class ViewRenderer {
         encoder.label = "Ground"
         encoder.setRenderPipelineState(gpu.shaders.pipelines.ground)
         encoder.setFragmentBytes(&scene, length: MemoryLayout<SceneGPU>.stride, index: 1)
-        for rect in rects {
-            for piece in pieces(rect) {
-                var params = GroundGPU(
-                    origin: SIMD4(Float(piece.tx), Float(piece.ty), Float(Double(piece.wx) * texel),
-                                  Float(Double(piece.wy) * texel - reference)),
-                    texel: SIMD4(Float(texel), 0, 0, 0))
-                encoder.setScissorRect(MTLScissorRect(x: piece.tx, y: piece.ty, width: piece.w, height: piece.h))
-                encoder.setFragmentBytes(&params, length: MemoryLayout<GroundGPU>.stride, index: 0)
-                encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            }
+        for stroke in strokes {
+            var params = stroke.params
+            encoder.setScissorRect(stroke.scissor)
+            encoder.setFragmentBytes(&params, length: MemoryLayout<GroundGPU>.stride, index: 0)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         }
         encoder.endEncoding()
     }
@@ -487,7 +816,7 @@ final class ViewRenderer {
         if sweepLeg != leg {
             // A Fly To during another: settle what the first had turned so far by repainting the ground, then begin
             // the new place afresh.
-            if sweepLeg != nil { valid = nil }
+            if sweepLeg != nil { settlesSweep = true }
             sweepLeg = leg
             incomingFilled = nil
             if incoming == nil || incoming?.color.width != cacheWidth || incoming?.color.height != cacheHeight,
