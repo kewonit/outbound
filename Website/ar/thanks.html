@@ -8,29 +8,8 @@
 <title data-i18n="thanks.metaTitle">شكرًا لك · Outbound</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
-<link rel="stylesheet" href="/styles.css?v=22">
-<script>
-// The checkout id, and any customer session token Polar adds, come off the address bar at once, so they
-// stay out of history, bookmarks and screenshots. The id lives on in this tab only.
-(function () {
-  var params = new URLSearchParams(location.search);
-  var id = params.get("checkout_id");
-  try {
-    if (id) sessionStorage.setItem("outbound-checkout", id);
-  } catch (error) {}
-  window.OUTBOUND_CHECKOUT = id || (function () {
-    try { return sessionStorage.getItem("outbound-checkout"); } catch (error) { return null; }
-  })();
-  if (location.search) history.replaceState(null, "", location.pathname);
-})();
-</script>
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  // The address holds the checkout, which can fetch a key: Plausible only gets the page.
-  plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request } })
-</script>
 </head>
 <body>
 
@@ -99,8 +78,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"تم النسخ","js.copy":"نسخ","js.copyKey":"نسخ المفتاح","js.copyKeyTitle":"انسخ مفتاحك","js.emailInvalid":"يبدو أن هذا البريد غير صحيح.","js.feedbackEmpty":"اكتب شيئًا أولًا.","js.feedbackLong":"2000 حرف كحد أقصى.","js.feedbackSent":"شكرًا. في طريقها إليه.","js.finding":"جارٍ البحث عن مفتاحك…","js.formBusy":"محاولات كثيرة. انتظر دقيقة.","js.formFailed":"لم يتم الإرسال. حاول مرة أخرى.","js.offline":"تعذّر الوصول إلى المتجر. جرّب «تفعيل»، أو راجع بوابة العملاء.","js.portal":"مفتاحك في بوابة العملاء أدناه.","js.pressCopy":"اضغط ⌘C لنسخ مفتاحك.","js.refunded":"تم استرداد مبلغ هذا الشراء.","js.slow":"يستغرق الأمر وقتًا أطول من المعتاد. جرّب «تفعيل»، أو راجع بوابة العملاء بعد دقيقة.","js.unfinished":"لم تكتمل عملية الدفع هذه.","js.waitlistIos":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى iPhone.","js.waitlistWindows":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى Windows."};</script>
-<script src="/app.js?v=15"></script>
-<script src="/thanks.js?v=7"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"تم النسخ","js.copy":"نسخ","js.copyKey":"نسخ المفتاح","js.copyKeyTitle":"انسخ مفتاحك","js.emailInvalid":"يبدو أن هذا البريد غير صحيح.","js.feedbackEmpty":"اكتب شيئًا أولًا.","js.feedbackLong":"2000 حرف كحد أقصى.","js.feedbackSent":"شكرًا. في طريقها إليه.","js.finding":"جارٍ البحث عن مفتاحك…","js.formBusy":"محاولات كثيرة. انتظر دقيقة.","js.formFailed":"لم يتم الإرسال. حاول مرة أخرى.","js.offline":"تعذّر الوصول إلى المتجر. جرّب «تفعيل»، أو راجع بوابة العملاء.","js.portal":"مفتاحك في بوابة العملاء أدناه.","js.pressCopy":"اضغط ⌘C لنسخ مفتاحك.","js.refunded":"تم استرداد مبلغ هذا الشراء.","js.slow":"يستغرق الأمر وقتًا أطول من المعتاد. جرّب «تفعيل»، أو راجع بوابة العملاء بعد دقيقة.","js.unfinished":"لم تكتمل عملية الدفع هذه.","js.waitlistIos":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى iPhone.","js.waitlistWindows":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى Windows."}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

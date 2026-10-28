@@ -1,7 +1,15 @@
+# Every page: HTTPS only, no sniffing, and a strict Content Security Policy. The one script it runs is the inline
+# loader every page ends with, by its hash (scripts/build-site-languages.mjs keeps it current), and what that starts;
+# https: and 'unsafe-inline' are only for browsers too old for hashes and 'strict-dynamic', which ignore them
+# otherwise. Translations travel as JSON, script addresses through Trusted Types, and style attributes stay allowed.
+# No page may be framed, and none shares a browsing context with a window from elsewhere.
 /*
-  Strict-Transport-Security: max-age=31536000
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'sha256-qFDinVTv50+5Co5saA3nfkDT11BbFaR/5SNtnPcZbaI=' 'strict-dynamic' https: 'unsafe-inline'; connect-src 'self' https://plausible.io; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
+  Cross-Origin-Opener-Policy: same-origin
+  X-Frame-Options: DENY
 
 /assets/*
   Cache-Control: public, max-age=86400
