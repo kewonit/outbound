@@ -51,7 +51,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
-<link rel="stylesheet" href="/styles.css?v=22">
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
      both together. -->
 <script type="application/ld+json">
@@ -226,11 +226,6 @@
 }
 </script>
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -252,10 +247,11 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">如画的世界，<br>在你的桌面背后缓缓飞过。</h1>
       <p class="lede" data-i18n="hero.lede">Mac 动态壁纸。一只小鸟会跟着你的光标飞。</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 购买</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下载 Mac 版</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已经拥有？</span> 下载</a>
       </div>
+      <p class="hero-light"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span data-i18n="hero.light">几乎不占 CPU 和 GPU，也省电。</span></p>
       <!-- Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
            where Buy was. -->
       <p class="your-key muted" id="your-key" hidden><span data-i18n="key.saved">这是你的激活码。把它粘贴到 Outbound 中即可解锁。</span></p>
@@ -356,36 +352,38 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">获取 Outbound。</h2>
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price">$4.99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
-          <p class="tier-desc" data-i18n="buy.desc">最多 3 台 Mac。无需订阅。</p>
+          <p class="tier-price"><s class="tier-was"><span class="sr-only" data-i18n="buy.was">原价</span>$12.99</s> $4.99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
+          <p class="tier-desc"><span class="tier-offer" data-i18n="buy.offer">限时价格。</span> <span data-i18n="buy.desc">最多 3 台 Mac。无需订阅。</span></p>
           <div class="tier-actions">
             <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 购买</a>
             <!-- Shown by the site's Worker where the price above is in the visitor's own money. -->
             <a class="tier-dollars" href="/buy?currency=usd" rel="nofollow" data-dollars hidden data-i18n="buy.dollars">或以美元支付 $4.99</a>
           </div>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">你的城市</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
-          <p class="tier-desc" data-i18n="city.desc">由 Outbound 的作者亲自绘制，<br>大约一周。含 Outbound。</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99 加入你的城市</a>
-        </article>
         <p class="tier-needs">
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura 或更高版本</span></span>
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span data-i18n="needs.silicon">Apple silicon</span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span data-i18n="needs.light">几乎不占 CPU 和 GPU，也省电</span></span>
           <a class="tier-elsewhere" href="/zh-hans/waitlist"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.5h2"/></svg><span data-i18n="needs.elsewhere">用 Windows 或 iPhone？</span><svg class="tier-elsewhere-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a>
         </p>
         <article class="tier tier-side" data-needs="download">
           <h3 class="tier-name" data-i18n="buy.already">已经购买？</h3>
           <p class="tier-price" data-i18n="buy.download">下载</p>
           <p class="tier-desc" data-i18n="buy.paste">打开 Outbound，粘贴你的激活码。</p>
-          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下载 Mac 版</a>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已经拥有？</span> 下载</a>
+        </article>
+        <article class="tier tier-city" id="your-city" data-needs="city">
+          <h3 class="tier-name" data-i18n="city.name">你的城市</h3>
+          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
+          <p class="tier-desc" data-i18n="city.desc">由 Outbound 的作者亲自绘制，<br>大约一周。含 Outbound。</p>
+          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99 加入你的城市</a>
         </article>
       </div>
     </div>
@@ -420,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">我原来的壁纸怎么办？</button>
           <div class="faq-a"><p data-i18n="faq.a6">退出 Outbound 后，它就会回来。</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">在哪里找到我的激活码？</button>
           <div class="faq-a"><p data-i18n="faq.a7">付款后会立即显示，并一直保存在你的<a href="https://polar.sh/edbnme/portal">客户中心</a>里。在 App 内购买的话，会自动解锁。</p></div>
         </div>
@@ -451,9 +449,9 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">给目光一个更好的去处。</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即将推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 购买</a>
-        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.button">下载 Mac 版</a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已经拥有？</span> 下载</a>
       </div>
     </div>
     <nav class="foot-cols" aria-label="页脚" data-i18n-attr="aria-label=footer.label">
@@ -478,6 +476,7 @@
         <h3 data-i18n="footer.legal">法律信息</h3>
         <a href="/privacy" data-i18n="footer.privacy">隐私政策（英文）</a>
         <a href="/license" data-i18n="footer.license">授权协议（英文）</a>
+        <a href="/terms" data-i18n="footer.terms">条款</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">需要搭载 Apple silicon、运行 macOS 13 或更高版本的 Mac</span><span data-i18n="footer.built">由 <a href="https://kew.edbn.me">kew.edbn.me</a> 打造</span></p>
@@ -505,7 +504,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"已复制","js.copy":"复制","js.copyKey":"复制激活码","js.copyKeyTitle":"复制你的激活码","js.emailInvalid":"这个邮箱地址看起来不对。","js.feedbackEmpty":"请先写点什么。","js.feedbackLong":"最多 2000 个字。","js.feedbackSent":"谢谢，已经发出。","js.finding":"正在查找你的激活码…","js.formBusy":"尝试次数过多，请等一分钟。","js.formFailed":"没有发送成功，请再试一次。","js.offline":"无法连接商店。试试点击“激活”，或查看你的客户中心。","js.portal":"你的激活码在下方的客户中心里。","js.pressCopy":"按 ⌘C 复制你的激活码。","js.refunded":"这笔购买已退款。","js.slow":"比平时花的时间长。试试点击“激活”，或过一分钟再查看你的客户中心。","js.unfinished":"这次付款没有完成。","js.waitlistIos":"已加入名单。Outbound 登陆 iPhone 时，只发一封邮件。","js.waitlistWindows":"已加入名单。Outbound 登陆 Windows 时，只发一封邮件。"};</script>
-<script src="/app.js?v=15"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"已复制","js.copy":"复制","js.copyKey":"复制激活码","js.copyKeyTitle":"复制你的激活码","js.emailInvalid":"这个邮箱地址看起来不对。","js.feedbackEmpty":"请先写点什么。","js.feedbackLong":"最多 2000 个字。","js.feedbackSent":"谢谢，已经发出。","js.finding":"正在查找你的激活码…","js.formBusy":"尝试次数过多，请等一分钟。","js.formFailed":"没有发送成功，请再试一次。","js.offline":"无法连接商店。试试点击“激活”，或查看你的客户中心。","js.portal":"你的激活码在下方的客户中心里。","js.pressCopy":"按 ⌘C 复制你的激活码。","js.refunded":"这笔购买已退款。","js.slow":"比平时花的时间长。试试点击“激活”，或过一分钟再查看你的客户中心。","js.unfinished":"这次付款没有完成。","js.waitlistIos":"已加入名单。Outbound 登陆 iPhone 时，只发一封邮件。","js.waitlistWindows":"已加入名单。Outbound 登陆 Windows 时，只发一封邮件。"}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

@@ -44,13 +44,8 @@
 <meta name="twitter:image:alt" content="Outbound: een geschilderde wereld die achter je bureaublad voorbijvliegt." data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/styles.css?v=22">
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -72,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Stuur een e-mail</a>
     </div>
 
-    <h2 data-i18n="support.lost">Sleutel kwijt</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Uit de Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Updates komen via de App Store.</li>
+      <li data-i18n="support.store2">Op een andere Mac haal je Outbound uit de App Store met dezelfde Apple Account.</li>
+      <li data-i18n="support.store3">Voor terugbetaling gebruik je <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Sleutel kwijt</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Die staat in je <a href="https://polar.sh/edbnme/portal">klantportaal</a>. Log in met het e-mailadres waarmee je hebt betaald.</li>
       <li data-i18n="support.lost2">Heb je Outbound in deze browser gekocht, dan staat je sleutel ook op de <a href="/nl/">startpagina</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Nieuwe Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Nieuwe Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Eén sleutel werkt op 3 Macs tegelijk.</li>
       <li data-i18n="support.mac2">Om er een vrij te maken, klik je op Deactiveer in de instellingen van Outbound, of gebruik je je klantportaal.</li>
       <li data-i18n="support.mac3">Kies op de nieuwe Mac Ontgrendel Outbound in de menubalk en plak je sleutel.</li>
@@ -98,8 +102,8 @@
       <li data-i18n="support.remove2">Sleep Outbound daarna van Apps naar de prullenmand.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Facturen</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Facturen</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Die staan in je <a href="https://polar.sh/edbnme/portal">klantportaal</a>.</li>
     </ul>
 
@@ -136,7 +140,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Gekopieerd","js.copy":"Kopieer","js.copyKey":"Kopieer sleutel","js.copyKeyTitle":"Kopieer je sleutel","js.emailInvalid":"Dat e-mailadres lijkt niet te kloppen.","js.feedbackEmpty":"Schrijf eerst iets.","js.feedbackLong":"Maximaal 2000 tekens.","js.feedbackSent":"Bedankt. Het is onderweg.","js.finding":"Je sleutel wordt opgehaald…","js.formBusy":"Te veel pogingen. Wacht een minuut.","js.formFailed":"Dat is niet gelukt. Probeer het opnieuw.","js.offline":"Kan de winkel niet bereiken. Klik op Activeer, of kijk in je klantportaal.","js.portal":"Je sleutel staat hieronder in je klantportaal.","js.pressCopy":"Druk op ⌘C om je sleutel te kopiëren.","js.refunded":"Deze aankoop is terugbetaald.","js.slow":"Dit duurt langer dan normaal. Klik op Activeer, of kijk over een minuut in je klantportaal.","js.unfinished":"Deze betaling is niet afgerond.","js.waitlistIos":"Je staat op de lijst. Eén e-mail zodra Outbound naar iPhone komt.","js.waitlistWindows":"Je staat op de lijst. Eén e-mail zodra Outbound naar Windows komt."};</script>
-<script src="/app.js?v=15"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"Gekopieerd","js.copy":"Kopieer","js.copyKey":"Kopieer sleutel","js.copyKeyTitle":"Kopieer je sleutel","js.emailInvalid":"Dat e-mailadres lijkt niet te kloppen.","js.feedbackEmpty":"Schrijf eerst iets.","js.feedbackLong":"Maximaal 2000 tekens.","js.feedbackSent":"Bedankt. Het is onderweg.","js.finding":"Je sleutel wordt opgehaald…","js.formBusy":"Te veel pogingen. Wacht een minuut.","js.formFailed":"Dat is niet gelukt. Probeer het opnieuw.","js.offline":"Kan de winkel niet bereiken. Klik op Activeer, of kijk in je klantportaal.","js.portal":"Je sleutel staat hieronder in je klantportaal.","js.pressCopy":"Druk op ⌘C om je sleutel te kopiëren.","js.refunded":"Deze aankoop is terugbetaald.","js.slow":"Dit duurt langer dan normaal. Klik op Activeer, of kijk over een minuut in je klantportaal.","js.unfinished":"Deze betaling is niet afgerond.","js.waitlistIos":"Je staat op de lijst. Eén e-mail zodra Outbound naar iPhone komt.","js.waitlistWindows":"Je staat op de lijst. Eén e-mail zodra Outbound naar Windows komt."}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

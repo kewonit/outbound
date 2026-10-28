@@ -44,13 +44,8 @@
 <meta name="twitter:image:alt" content="Outbound: masaüstünün ardından süzülen, tablo gibi bir dünya." data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/styles.css?v=22">
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -72,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">E-posta gönder</a>
     </div>
 
-    <h2 data-i18n="support.lost">Anahtarını mı kaybettin</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Mac App Store'dan</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Güncellemeler App Store üzerinden gelir.</li>
+      <li data-i18n="support.store2">Başka bir Mac'te Outbound'u aynı Apple Hesabı ile App Store'dan indir.</li>
+      <li data-i18n="support.store3">Para iadesi için <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a> adresini kullan.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Anahtarını mı kaybettin</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1"><a href="https://polar.sh/edbnme/portal">Müşteri portalında</a> duruyor. Ödeme yaptığın e-postayla giriş yap.</li>
       <li data-i18n="support.lost2">Bu tarayıcıdan satın aldıysan anahtarın <a href="/tr/">ana sayfada</a> da var.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Yeni Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Yeni Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Bir anahtar aynı anda 3 Mac'te çalışır.</li>
       <li data-i18n="support.mac2">Birini boşaltmak için Outbound Ayarları'nda Devre Dışı Bırak'a tıkla ya da müşteri portalını kullan.</li>
       <li data-i18n="support.mac3">Yeni Mac'te menü çubuğundan Outbound'un Kilidini Aç'ı seç ve anahtarını yapıştır.</li>
@@ -98,8 +102,8 @@
       <li data-i18n="support.remove2">Sonra Outbound'u Uygulamalar'dan Çöp Sepeti'ne sürükle.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Faturalar</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Faturalar</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1"><a href="https://polar.sh/edbnme/portal">Müşteri portalında</a> duruyorlar.</li>
     </ul>
 
@@ -136,7 +140,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Kopyalandı","js.copy":"Kopyala","js.copyKey":"Anahtarı kopyala","js.copyKeyTitle":"Anahtarını kopyala","js.emailInvalid":"Bu e-posta adresi doğru görünmüyor.","js.feedbackEmpty":"Önce bir şey yaz.","js.feedbackLong":"En fazla 2000 karakter.","js.feedbackSent":"Teşekkürler. Yola çıktı.","js.finding":"Anahtarın aranıyor…","js.formBusy":"Çok fazla deneme. Bir dakika bekle.","js.formFailed":"Gönderilemedi. Tekrar dene.","js.offline":"Mağazaya ulaşılamadı. Etkinleştir'i dene ya da müşteri portalına bak.","js.portal":"Anahtarın aşağıdaki müşteri portalında.","js.pressCopy":"Anahtarını kopyalamak için ⌘C'ye bas.","js.refunded":"Bu satın alma iade edildi.","js.slow":"Her zamankinden uzun sürüyor. Etkinleştir'i dene ya da bir dakika sonra müşteri portalına bak.","js.unfinished":"Bu ödeme tamamlanmadı.","js.waitlistIos":"Listedesin. Outbound iPhone'a geldiğinde tek bir e-posta.","js.waitlistWindows":"Listedesin. Outbound Windows'a geldiğinde tek bir e-posta."};</script>
-<script src="/app.js?v=15"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"Kopyalandı","js.copy":"Kopyala","js.copyKey":"Anahtarı kopyala","js.copyKeyTitle":"Anahtarını kopyala","js.emailInvalid":"Bu e-posta adresi doğru görünmüyor.","js.feedbackEmpty":"Önce bir şey yaz.","js.feedbackLong":"En fazla 2000 karakter.","js.feedbackSent":"Teşekkürler. Yola çıktı.","js.finding":"Anahtarın aranıyor…","js.formBusy":"Çok fazla deneme. Bir dakika bekle.","js.formFailed":"Gönderilemedi. Tekrar dene.","js.offline":"Mağazaya ulaşılamadı. Etkinleştir'i dene ya da müşteri portalına bak.","js.portal":"Anahtarın aşağıdaki müşteri portalında.","js.pressCopy":"Anahtarını kopyalamak için ⌘C'ye bas.","js.refunded":"Bu satın alma iade edildi.","js.slow":"Her zamankinden uzun sürüyor. Etkinleştir'i dene ya da bir dakika sonra müşteri portalına bak.","js.unfinished":"Bu ödeme tamamlanmadı.","js.waitlistIos":"Listedesin. Outbound iPhone'a geldiğinde tek bir e-posta.","js.waitlistWindows":"Listedesin. Outbound Windows'a geldiğinde tek bir e-posta."}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>

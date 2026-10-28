@@ -14,7 +14,7 @@
     "not_found_handling": "404-page",
     "run_worker_first": [
       "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/waitlist", "/feedback", "/*/", "/*/support", "/*/thanks",
-      "/*/waitlist", "/*/feedback", "/license", "/privacy"
+      "/*/waitlist", "/*/feedback", "/license", "/privacy", "/terms"
     ]
   },
   "vars": {
