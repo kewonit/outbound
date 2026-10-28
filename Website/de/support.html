@@ -44,13 +44,8 @@
 <meta name="twitter:image:alt" content="Outbound: eine gemalte Welt, die hinter deinem Schreibtisch vorbeizieht." data-i18n-attr="content=meta.imageAlt">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/styles.css?v=22">
+<link rel="stylesheet" href="/styles.css?v=23">
 <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js"></script>
-<script>
-  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-  plausible.init()
-</script>
 </head>
 <body>
 
@@ -72,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">E-Mail an den Support</a>
     </div>
 
-    <h2 data-i18n="support.lost">Schlüssel verloren</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Aus dem Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Updates kommen über den App Store.</li>
+      <li data-i18n="support.store2">Auf einem anderen Mac lädst du Outbound mit demselben Apple Account aus dem App Store.</li>
+      <li data-i18n="support.store3">Für eine Rückerstattung nutze <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Schlüssel verloren</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Er steht in deinem <a href="https://polar.sh/edbnme/portal">Kundenportal</a>. Melde dich mit der E-Mail-Adresse an, mit der du bezahlt hast.</li>
       <li data-i18n="support.lost2">Wenn du in diesem Browser gekauft hast, steht er auch auf der <a href="/de/">Startseite</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Neuer Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Neuer Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Ein Schlüssel funktioniert auf 3 Macs gleichzeitig.</li>
       <li data-i18n="support.mac2">Um einen freizugeben, klicke in den Einstellungen von Outbound auf „Deaktivieren“ oder nutze dein Kundenportal.</li>
       <li data-i18n="support.mac3">Wähle auf dem neuen Mac in der Menüleiste „Outbound freischalten“ und füge deinen Schlüssel ein.</li>
@@ -98,8 +102,8 @@
       <li data-i18n="support.remove2">Zieh Outbound dann aus dem Ordner „Programme“ in den Papierkorb.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Belege</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Belege</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Sie liegen in deinem <a href="https://polar.sh/edbnme/portal">Kundenportal</a>.</li>
     </ul>
 
@@ -136,7 +140,60 @@
   </div>
 </footer>
 
-<script>window.OUTBOUND_I18N = {"js.copied":"Kopiert","js.copy":"Kopieren","js.copyKey":"Schlüssel kopieren","js.copyKeyTitle":"Deinen Schlüssel kopieren","js.emailInvalid":"Diese E-Mail-Adresse sieht nicht richtig aus.","js.feedbackEmpty":"Schreib zuerst etwas.","js.feedbackLong":"Höchstens 2000 Zeichen.","js.feedbackSent":"Danke. Es ist unterwegs.","js.finding":"Dein Schlüssel wird gesucht …","js.formBusy":"Zu viele Versuche. Warte eine Minute.","js.formFailed":"Das hat nicht geklappt. Versuch es noch mal.","js.offline":"Der Shop war nicht erreichbar. Probier es mit „Aktivieren“ oder sieh in deinem Kundenportal nach.","js.portal":"Dein Schlüssel steht unten in deinem Kundenportal.","js.pressCopy":"Drücke ⌘C, um deinen Schlüssel zu kopieren.","js.refunded":"Dieser Kauf wurde erstattet.","js.slow":"Das dauert länger als üblich. Probier es mit „Aktivieren“ oder sieh in einer Minute in deinem Kundenportal nach.","js.unfinished":"Dieser Bezahlvorgang wurde nicht abgeschlossen.","js.waitlistIos":"Du stehst auf der Liste. Eine einzige E-Mail, wenn Outbound aufs iPhone kommt.","js.waitlistWindows":"Du stehst auf der Liste. Eine einzige E-Mail, wenn Outbound auf Windows kommt."};</script>
-<script src="/app.js?v=15"></script>
+<script type="application/json" id="outbound-words">{"js.copied":"Kopiert","js.copy":"Kopieren","js.copyKey":"Schlüssel kopieren","js.copyKeyTitle":"Deinen Schlüssel kopieren","js.emailInvalid":"Diese E-Mail-Adresse sieht nicht richtig aus.","js.feedbackEmpty":"Schreib zuerst etwas.","js.feedbackLong":"Höchstens 2000 Zeichen.","js.feedbackSent":"Danke. Es ist unterwegs.","js.finding":"Dein Schlüssel wird gesucht …","js.formBusy":"Zu viele Versuche. Warte eine Minute.","js.formFailed":"Das hat nicht geklappt. Versuch es noch mal.","js.offline":"Der Shop war nicht erreichbar. Probier es mit „Aktivieren“ oder sieh in deinem Kundenportal nach.","js.portal":"Dein Schlüssel steht unten in deinem Kundenportal.","js.pressCopy":"Drücke ⌘C, um deinen Schlüssel zu kopieren.","js.refunded":"Dieser Kauf wurde erstattet.","js.slow":"Das dauert länger als üblich. Probier es mit „Aktivieren“ oder sieh in einer Minute in deinem Kundenportal nach.","js.unfinished":"Dieser Bezahlvorgang wurde nicht abgeschlossen.","js.waitlistIos":"Du stehst auf der Liste. Eine einzige E-Mail, wenn Outbound aufs iPhone kommt.","js.waitlistWindows":"Du stehst auf der Liste. Eine einzige E-Mail, wenn Outbound auf Windows kommt."}</script>
+<script>
+// Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
+// starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
+// scripts/build-site-languages.mjs checks every page carries it unchanged and writes its hash into _headers.
+(function () {
+  var missing = document.documentElement.getAttribute("data-page") === "404";
+  var page = missing ? null : (location.pathname.match(/(?:^|\/)(thanks|feedback|waitlist)(?:\.html)?$/) || [])[1];
+  // The checkout id, and any customer session token Polar adds, come off the address bar at once, so they stay out
+  // of history, bookmarks and screenshots. The id lives on in this tab only.
+  if (page === "thanks") {
+    var id = new URLSearchParams(location.search).get("checkout_id");
+    try {
+      if (id) sessionStorage.setItem("outbound-checkout", id);
+      else id = sessionStorage.getItem("outbound-checkout");
+    } catch (error) {}
+    window.OUTBOUND_CHECKOUT = id;
+    if (location.search) history.replaceState(null, "", location.pathname);
+  }
+  // Plausible's queue, ready before its script arrives. A thank-you page gives it only the page, since its address
+  // can hold a checkout that fetches a key; a missing page counts as a 404, with the address asked for.
+  window.plausible = window.plausible || function () { (plausible.q = plausible.q || []).push(arguments); };
+  plausible.init = plausible.init || function (i) { plausible.o = i || {}; };
+  if (page === "thanks") {
+    plausible.init({ transformRequest: function (request) { request.u = request.u.split("?")[0]; return request; } });
+  } else {
+    plausible.init();
+  }
+  if (missing) plausible("404");
+  // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
+  var urls = {
+    plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
+    app: "/app.js?v=16",
+    thanks: "/thanks.js?v=8",
+    feedback: "/feedback.js?v=2",
+    waitlist: "/waitlist.js?v=3"
+  };
+  var policy = window.trustedTypes && trustedTypes.createPolicy("outbound", {
+    createScriptURL: function (url) {
+      for (var name in urls) if (urls[name] === url) return url;
+      throw new TypeError("Not one of Outbound's scripts: " + url);
+    }
+  });
+  function start(name, async) {
+    var script = document.createElement("script");
+    script.src = policy ? policy.createScriptURL(urls[name]) : urls[name];
+    script.async = async;
+    document.body.appendChild(script);
+  }
+  start("plausible", true);
+  // The page's own scripts run in this order, as they would from tags here.
+  start("app", false);
+  if (page) start(page, false);
+})();
+</script>
 </body>
 </html>
