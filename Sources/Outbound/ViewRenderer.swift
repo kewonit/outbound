@@ -218,6 +218,13 @@ struct GroundStrokes {
 @MainActor
 final class ViewRenderer {
     private static let pad = 2
+    /// Texels of ground painted ahead of the view each way, so it is painted a band at a time as the view moves on, not
+    /// a thin strip on almost every frame. Each strip was a render pass of its own, slow for what it painted, and its
+    /// encoding cost the main thread more than the whole frame pass.
+    static let ahead = 16
+    /// World texels across and down that the view itself needs, with its pad: the cache holds `ahead` more each way.
+    private var viewWidth = 0
+    private var viewHeight = 0
 
     private let gpu: GPU
     /// The view in global desktop points.
@@ -325,8 +332,10 @@ final class ViewRenderer {
         self.frame = frame
         self.scale = scale
         self.density = density
-        cacheWidth = Int((Double(frame.width) * density).rounded(.up)) + Self.pad * 2 + 2
-        cacheHeight = Int((Double(frame.height) * density).rounded(.up)) + Self.pad * 2 + 2
+        viewWidth = Int((Double(frame.width) * density).rounded(.up)) + Self.pad * 2 + 2
+        viewHeight = Int((Double(frame.height) * density).rounded(.up)) + Self.pad * 2 + 2
+        cacheWidth = viewWidth + Self.ahead
+        cacheHeight = viewHeight + Self.ahead
         color = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground")
         mask = makeTexture(width: cacheWidth, height: cacheHeight, label: "Ground at night",
                            format: ShaderLibrary.nightFormat)
@@ -385,13 +394,30 @@ final class ViewRenderer {
         return (Int((view.x0 / texel).rounded(.down)) - Self.pad, Int((view.y0 / texel).rounded(.down)) - Self.pad)
     }
 
+    /// Where the cache's window of world texels sits for a view whose first texels are `view`: where it is, while the
+    /// view still lies inside it, or else moved just far enough along each way the view has gone out of it to leave all
+    /// the room ahead on that side.
+    private func window(for view: (x: Int, y: Int)) -> (x: Int, y: Int) {
+        Self.window(for: view, from: valid, room: (cacheWidth - viewWidth, cacheHeight - viewHeight))
+    }
+
+    static func window(for view: (x: Int, y: Int), from valid: (x: Int, y: Int)?, room: (x: Int, y: Int)) -> (x: Int, y: Int) {
+        guard let valid else { return view }
+        func place(_ view: Int, _ at: Int, _ room: Int) -> Int {
+            if view < at { return view - room }
+            if view > at + room { return view }
+            return at
+        }
+        return (place(view.x, valid.x, room.x), place(view.y, valid.y, room.y))
+    }
+
     /// Whether the frame at `t` has more ground to paint than it should take on itself: all of it, as when nothing is
     /// cached yet, after a jump, or as a Fly To ends without the new place's cache whole, or over a quarter of it.
     /// Frames wait for `catchUp` then. Anything less a frame paints itself, in pieces ahead of it if need be, so a slow
     /// GPU falling a little behind, while a catch-up ran say, never stops drawing.
     func needsCatchUp(world: World, at t: TimeInterval) -> Bool {
         guard chain == nil, let valid else { return true }
-        let need = needed(world: world, at: t)
+        let need = window(for: needed(world: world, at: t))
         let dx = abs(need.x - valid.x), dy = abs(need.y - valid.y)
         guard dx < cacheWidth, dy < cacheHeight else { return true }
         if lastSweepFront != nil, !incomingIsWhole {
@@ -497,8 +523,8 @@ final class ViewRenderer {
         if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
         guard let color, let mask, clouds != nil else { return nil }
 
-        // Work out which world texel rectangles need painting.
-        let need = needed(world: world, at: t)
+        // Work out which world texel rectangles need painting: what the cache's window gains as it moves on.
+        let need = window(for: needed(world: world, at: t))
         var full = valid == nil
         // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
         // from top to bottom, a budgeted number of rows a frame, so no single frame has to repaint the whole screen.
