@@ -26,7 +26,9 @@ final class GPU {
     var onRevoked: () -> Void = {}
     /// The last error the GPU gave and how many there have been, for the feedback page.
     private(set) var lastError: (name: String, count: Int)?
-    private var recentErrors: [Date] = []
+    /// Which failures cut pieces down. Work is stamped with `cuts` as it is sent, and its failing passes that back.
+    private var failures = GPUFailures()
+    var cuts: Int { failures.cuts }
     /// Since the last failure, or the last step back up after one: pieces grow back once all has gone well a while.
     private var quietSince = Date.now
     /// Command buffers say which of their passes failed only once one has, as asking costs a little on every one.
@@ -84,20 +86,30 @@ final class GPU {
         return queue.makeCommandBuffer(descriptor: descriptor)
     }
 
-    /// A piece of ground painting of `texels` took `milliseconds` of GPU time. After ten minutes without a failure,
-    /// pieces cut down by one grow back a step, so one bad moment doesn't shrink them for good.
+    /// A piece of ground painting of `texels` took `milliseconds` of GPU time.
     func learn(texels: Int, milliseconds: Double) {
         groundCost.finished(texels: texels, milliseconds: milliseconds)
         paintBudget.learn(milliseconds: milliseconds, painted: texels)
-        if groundCost.target < GroundCost.initial.target, Date.now.timeIntervalSince(quietSince) > 600 {
-            groundCost.recover()
-            quietSince = .now
-        }
+        recoverIfQuiet()
     }
 
-    /// GPU work failed. Work stopped for running too long, or failing again and again, means pieces a quarter the size
-    /// from now on. Refused outright, the GPU will take nothing more, so nothing more is sent.
-    func failed(_ outcome: GPUOutcome, doing what: String) {
+    /// GPU work went well. After ten minutes without a failure, pieces and the painting that can wait, cut down by one,
+    /// grow back a step, so one bad moment doesn't slow them for good. Asked by frames as well as pieces, as steady
+    /// flying paints few pieces.
+    func recoverIfQuiet() {
+        guard groundCost.target < GroundCost.initial.target || paintBudget.milliseconds < PaintBudget.usualMilliseconds,
+              Date.now.timeIntervalSince(quietSince) > 600 else { return }
+        groundCost.recover()
+        paintBudget.recover()
+        quietSince = .now
+        saveCost()
+        Log.render.info("Painting in bigger pieces again: \(self.groundCost.texelsPerPiece) texels")
+    }
+
+    /// GPU work stamped with `sent` (see `cuts`) failed. Work stopped for running too long, or failing again and
+    /// again, means pieces a quarter the size from now on, once for each time it happens (see `GPUFailures`). Refused
+    /// outright, the GPU will take nothing more, so nothing more is sent.
+    func failed(_ outcome: GPUOutcome, doing what: String, sent: Int) {
         let error = outcome.error as NSError?
         let code = error.flatMap { error in
             error.domain == MTLCommandBufferErrorDomain ? UInt(exactly: error.code).flatMap(MTLCommandBufferError.Code.init) : nil
@@ -116,9 +128,7 @@ final class GPU {
         detailedErrors = true
         // Refused already, nothing more is sent but what was on its way, whose failing says nothing new.
         guard !revoked else { return }
-        let now = Date.now
-        quietSince = now
-        recentErrors = recentErrors.filter { now.timeIntervalSince($0) < 60 } + [now]
+        quietSince = .now
         // The first few in full, then now and then, as a GPU in trouble fails every frame.
         if count <= 5 || count % 100 == 0 {
             let faulted = (error?.userInfo[MTLCommandBufferEncoderInfoErrorKey] as? [MTLCommandBufferEncoderInfo] ?? [])
@@ -130,10 +140,9 @@ final class GPU {
             revoked = true
             Log.render.error("The GPU takes no more of Outbound's work")
             onRevoked()
-        } else if tooLong || recentErrors.count >= 3 {
+        } else if failures.failed(sent: sent, tooLong: tooLong, at: ProcessInfo.processInfo.systemUptime) {
             groundCost.backOff()
-            paintBudget.milliseconds = max(paintBudget.milliseconds / 2, 0.5)
-            recentErrors = []
+            paintBudget.backOff()
             saveCost()
             Log.render.error("Painting in smaller pieces: \(self.groundCost.texelsPerPiece) texels")
         }
@@ -432,11 +441,14 @@ final class ViewRenderer {
                 chain.failed = true
                 break
             }
+            let sent = gpu.cuts
             paint(piece, into: chain.targets[into], scene: chain.scenes[into], clearing: false, commandBuffer: commands)
             let texels = piece.reduce(0) { $0 + $1.texels }
             commands.addCompletedHandler { [weak self] buffer in
                 let outcome = GPUOutcome(buffer)
-                DispatchQueue.main.async { MainActor.assumeIsolated { self?.pieceFinished(outcome, texels: texels) } }
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { self?.pieceFinished(outcome, texels: texels, sent: sent) }
+                }
             }
             commands.commit()
             chain.inFlight += 1
@@ -452,7 +464,7 @@ final class ViewRenderer {
         chain.done(end)
     }
 
-    private func pieceFinished(_ outcome: GPUOutcome, texels: Int) {
+    private func pieceFinished(_ outcome: GPUOutcome, texels: Int, sent: Int) {
         guard var chain else { return }
         chain.inFlight -= 1
         chain.pieces += 1
@@ -461,7 +473,7 @@ final class ViewRenderer {
             gpu.learn(texels: texels, milliseconds: outcome.milliseconds)
         } else {
             chain.failed = true
-            gpu.failed(outcome, doing: "painting the ground")
+            gpu.failed(outcome, doing: "painting the ground", sent: sent)
         }
         self.chain = chain
         pump()
@@ -814,6 +826,7 @@ final class ViewRenderer {
                 continue
             }
             let texels = piece.reduce(0) { $0 + $1.texels }
+            let sent = gpu.cuts
             commands.addCompletedHandler { [weak self] buffer in
                 let outcome = GPUOutcome(buffer)
                 DispatchQueue.main.async {
@@ -822,7 +835,7 @@ final class ViewRenderer {
                         if outcome.completed {
                             self.gpu.learn(texels: texels, milliseconds: outcome.milliseconds)
                         } else {
-                            self.gpu.failed(outcome, doing: "painting the ground")
+                            self.gpu.failed(outcome, doing: "painting the ground", sent: sent)
                             self.invalidate()
                             self.onGroundLost()
                         }

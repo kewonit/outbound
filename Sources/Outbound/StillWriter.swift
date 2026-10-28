@@ -116,13 +116,14 @@ final class StillWriter {
             descriptor.storageMode = .shared
             guard let target = gpu.device.makeTexture(descriptor: descriptor),
                   let commands = gpu.commandBuffer() else { continue }
+            let sent = gpu.cuts
             wallpaper.encodeStill(at: moment.time, into: target, commandBuffer: commands)
             let url = folder.appending(path: "painting-\(id)-\(stamp).jpg")
             commands.addCompletedHandler { [weak self, weak wallpaper] buffer in
                 let outcome = GPUOutcome(buffer)
                 guard outcome.completed else {
                     DispatchQueue.main.async {
-                        self?.gpu.failed(outcome, doing: "painting the desktop picture")
+                        self?.gpu.failed(outcome, doing: "painting the desktop picture", sent: sent)
                         // The still painted into the display's ground too, which may not be there now.
                         wallpaper?.repaint()
                     }

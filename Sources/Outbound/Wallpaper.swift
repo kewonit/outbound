@@ -525,6 +525,7 @@ final class Wallpaper: NSObject {
         #if DEBUG
         drawableWait = CACurrentMediaTime() - asked
         #endif
+        let sent = gpu.cuts
         renderer.encode(world: world, at: moment, into: drawable.texture, commandBuffer: commands)
         let painted = renderer.paintedTexels
         commands.addCompletedHandler { [weak self] buffer in
@@ -533,9 +534,12 @@ final class Wallpaper: NSObject {
                 guard let self else { return }
                 if outcome.completed {
                     self.renderer.finished(gpu: outcome.milliseconds, painted: painted)
+                    self.gpu.recoverIfQuiet()
                 } else {
-                    // What the frame painted into the cache may not be there, so it is all painted again.
-                    self.gpu.failed(outcome, doing: "drawing a frame")
+                    // What the frame painted into the cache may not be there, so it is all painted again, a little
+                    // later, as a GPU in trouble shouldn't be handed a catch-up straight away.
+                    self.gpu.failed(outcome, doing: "drawing a frame", sent: sent)
+                    self.catchUpAfter = CACurrentMediaTime() + 2
                     self.repaint()
                 }
             }
