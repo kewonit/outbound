@@ -1,97 +1,97 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "$7 + tax, once. Up to 3 Macs.": {
-      "comment": "Under the Buy button. Keep $7 as is.",
+    "$4.99 + tax, once. Up to 3 Macs.": {
+      "comment": "Under the Buy button. Keep $4.99 as is.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + الضريبة، مرة واحدة. حتى 3 أجهزة Mac."
+            "value": "$4.99 + الضريبة، مرة واحدة. حتى 3 أجهزة Mac."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + Steuern, einmalig. Für bis zu 3 Macs."
+            "value": "$4.99 + Steuern, einmalig. Für bis zu 3 Macs."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + impuestos, pago único. Hasta 3 Mac."
+            "value": "$4.99 + impuestos, pago único. Hasta 3 Mac."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + taxes, paiement unique. Jusqu'à 3 Mac."
+            "value": "$4.99 + taxes, paiement unique. Jusqu'à 3 Mac."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + टैक्स, सिर्फ़ एक बार। 3 Mac तक।"
+            "value": "$4.99 + टैक्स, सिर्फ़ एक बार। 3 Mac तक।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + tasse, una tantum. Fino a 3 Mac."
+            "value": "$4.99 + tasse, una tantum. Fino a 3 Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7（税別）の買い切り。Mac 3台まで使えます。"
+            "value": "$4.99（税別）の買い切り。Mac 3台まで使えます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7(세금 별도), 한 번만 결제. Mac 최대 3대."
+            "value": "$4.99(세금 별도), 한 번만 결제. Mac 최대 3대."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + btw, eenmalig. Voor maximaal 3 Macs."
+            "value": "$4.99 + btw, eenmalig. Voor maximaal 3 Macs."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + podatek, jednorazowo. Do 3 komputerów Mac."
+            "value": "$4.99 + podatek, jednorazowo. Do 3 komputerów Mac."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + impostos, pagamento único. Até 3 Macs."
+            "value": "$4.99 + impostos, pagamento único. Até 3 Macs."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + налог, один раз. До 3 Mac."
+            "value": "$4.99 + налог, один раз. До 3 Mac."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + vergi, tek seferlik. 3 Mac'e kadar."
+            "value": "$4.99 + vergi, tek seferlik. 3 Mac'e kadar."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + 税费，一次买断。最多可用于 3 台 Mac。"
+            "value": "$4.99 + 税费，一次买断。最多可用于 3 台 Mac。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "$7 + 稅，一次買斷。最多 3 台 Mac。"
+            "value": "$4.99 + 稅，一次買斷。最多 3 台 Mac。"
           }
         }
       }

@@ -1,6 +1,6 @@
 # Outbound
 
-> A live wallpaper for Mac. A painted landscape flies by behind your desktop, over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor. $7 plus tax, once, for up to 3 Macs. Needs a Mac with Apple silicon and macOS 13 Ventura or later.
+> A live wallpaper for Mac. A painted landscape flies by behind your desktop, over eight real places. The light follows your clock, the seasons are real, and a little bird follows your cursor. $4.99 plus tax, once, for up to 3 Macs. Needs a Mac with Apple silicon and macOS 13 Ventura or later.
 
 - Your Mac paints it live with Metal as it flies, so it never loops.
 - The places: Punjab (India), Niigata (Japan), the Serengeti (Tanzania), Normandy (France), Lisse (Netherlands), La Pampa (Argentina), Lapland (Finland) and Kansas (United States).

@@ -92,7 +92,7 @@ function english() {
 
 // What can't change in translation: the markup, prices and keyboard keys.
 const markup = (html) => [...html.matchAll(/<\/?\w+[^>]*>/g)].map((m) => m[0]).sort();
-const fixed = (text) => [...text.matchAll(/\$\d+|⌘\w/g)].map((m) => m[0]).sort();
+const fixed = (text) => [...text.matchAll(/\$\d+(?:\.\d+)?|⌘\w/g)].map((m) => m[0]).sort();
 
 function check(source, language, strings) {
   const problems = [];
