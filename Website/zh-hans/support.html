@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">发邮件联系支持</a>
     </div>
 
-    <h2 data-i18n="support.lost">激活码丢了</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">从 Mac App Store 购买</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">更新会通过 App Store 推送。</li>
+      <li data-i18n="support.store2">在另一台 Mac 上，用同一个 Apple 账户从 App Store 下载 Outbound。</li>
+      <li data-i18n="support.store3">如需退款，请前往 <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>。</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">激活码丢了</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">它在你的<a href="https://polar.sh/edbnme/portal">客户中心</a>里。用付款时的邮箱登录即可。</li>
       <li data-i18n="support.lost2">如果你是在这个浏览器中购买的，<a href="/zh-hans/">首页</a>上也能看到。</li>
     </ul>
 
-    <h2 data-i18n="support.mac">换了新 Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">换了新 Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">一个激活码可同时用于 3 台 Mac。</li>
       <li data-i18n="support.mac2">要空出一个名额，请在 Outbound 的设置中点击“取消激活”，或使用客户中心。</li>
       <li data-i18n="support.mac3">在新 Mac 上，从菜单栏中选择“解锁 Outbound”，然后粘贴你的激活码。</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">然后把 Outbound 从“应用程序”文件夹拖到废纸篓。</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">收据</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">收据</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">它们都在你的<a href="https://polar.sh/edbnme/portal">客户中心</a>里。</li>
     </ul>
 

@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">Masaüstünün ardından süzülen,<br>tablo gibi bir dünya.</h1>
       <p class="lede" data-i18n="hero.lede">Mac için canlı duvar kâğıdı. Küçük bir kuş imlecini izler.</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Çok yakında" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99'a satın al</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Zaten senin mi?</span> İndir</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Outbound'u edin.</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Kendi duvar kâğıdıma ne olur?</button>
           <div class="faq-a"><p data-i18n="faq.a6">Outbound'dan çıktığında geri gelir.</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Anahtarımı nerede bulurum?</button>
           <div class="faq-a"><p data-i18n="faq.a7">Ödemenin hemen ardından görünür ve <a href="https://polar.sh/edbnme/portal">müşteri portalında</a> durur. Uygulamanın içinden satın alırsan kilit kendiliğinden açılır.</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">Bakmak için daha güzel bir yer.</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Çok yakında" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99'a satın al</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Zaten senin mi?</span> İndir</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">Yasal</h3>
         <a href="/privacy" data-i18n="footer.privacy">Gizlilik (İngilizce)</a>
         <a href="/license" data-i18n="footer.license">Lisans (İngilizce)</a>
+        <a href="/terms" data-i18n="footer.terms">Koşullar</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Apple silicon ve macOS 13 ya da daha yenisi olan bir Mac gerekir</span><span data-i18n="footer.built"><a href="https://kew.edbn.me">kew.edbn.me</a> tarafından yapıldı</span></p>

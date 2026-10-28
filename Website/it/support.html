@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Scrivi al supporto</a>
     </div>
 
-    <h2 data-i18n="support.lost">Hai perso la chiave?</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Dal Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Gli aggiornamenti arrivano dall'App Store.</li>
+      <li data-i18n="support.store2">Su un altro Mac, scarica Outbound dall'App Store con lo stesso Account Apple.</li>
+      <li data-i18n="support.store3">Per un rimborso, usa <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Hai perso la chiave?</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">È nel tuo <a href="https://polar.sh/edbnme/portal">portale clienti</a>. Accedi con l'email con cui hai pagato.</li>
       <li data-i18n="support.lost2">Se l'hai acquistato in questo browser, la trovi anche nella <a href="/it/">home page</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Nuovo Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Nuovo Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Una chiave funziona su 3 Mac alla volta.</li>
       <li data-i18n="support.mac2">Per liberarne uno, fai clic su Disattiva nelle Impostazioni di Outbound o usa il tuo portale clienti.</li>
       <li data-i18n="support.mac3">Sul nuovo Mac, scegli Sblocca Outbound nella barra dei menu e incolla la chiave.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Poi trascina Outbound da Applicazioni al Cestino.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Ricevute</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Ricevute</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Sono nel tuo <a href="https://polar.sh/edbnme/portal">portale clienti</a>.</li>
     </ul>
 

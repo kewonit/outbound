@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Escribir a soporte</a>
     </div>
 
-    <h2 data-i18n="support.lost">¿Perdiste tu clave?</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Desde la Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Las actualizaciones llegan por la App Store.</li>
+      <li data-i18n="support.store2">En otra Mac, descarga Outbound de la App Store con la misma cuenta de Apple.</li>
+      <li data-i18n="support.store3">Para pedir un reembolso, usa <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">¿Perdiste tu clave?</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Está en tu <a href="https://polar.sh/edbnme/portal">portal de cliente</a>. Inicia sesión con el correo con el que pagaste.</li>
       <li data-i18n="support.lost2">Si lo compraste en este navegador, también está en la <a href="/es/">página de inicio</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Mac nuevo</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Mac nuevo</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Una clave funciona en 3 Mac a la vez.</li>
       <li data-i18n="support.mac2">Para liberar uno, haz clic en Desactivar en los Ajustes de Outbound o usa tu portal de cliente.</li>
       <li data-i18n="support.mac3">En el Mac nuevo, elige Desbloquear Outbound en la barra de menús y pega tu clave.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Después, arrastra Outbound de Aplicaciones a la Papelera.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Recibos</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Recibos</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Están en tu <a href="https://polar.sh/edbnme/portal">portal de cliente</a>.</li>
     </ul>
 

@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">सहायता के लिए ईमेल करें</a>
     </div>
 
-    <h2 data-i18n="support.lost">कुंजी खो गई</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Mac App Store से लिया हो तो</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">अपडेट App Store से आते हैं।</li>
+      <li data-i18n="support.store2">दूसरे Mac पर, उसी Apple खाते से App Store से Outbound डाउनलोड करें।</li>
+      <li data-i18n="support.store3">रिफ़ंड के लिए <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a> पर जाएँ।</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">कुंजी खो गई</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">यह आपके <a href="https://polar.sh/edbnme/portal">कस्टमर पोर्टल</a> में है। जिस ईमेल से भुगतान किया था, उसी से साइन इन करें।</li>
       <li data-i18n="support.lost2">अगर आपने इसी ब्राउज़र में ख़रीदा था, तो यह <a href="/hi/">होमपेज</a> पर भी है।</li>
     </ul>
 
-    <h2 data-i18n="support.mac">नया Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">नया Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">एक कुंजी एक साथ 3 Mac पर चलती है।</li>
       <li data-i18n="support.mac2">एक जगह ख़ाली करने के लिए, Outbound की सेटिंग्ज़ में “निष्क्रिय करें” पर क्लिक करें, या अपना कस्टमर पोर्टल इस्तेमाल करें।</li>
       <li data-i18n="support.mac3">नए Mac पर, मेनू बार में “Outbound अनलॉक करें” चुनें और अपनी कुंजी पेस्ट करें।</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">फिर Outbound को ऐप्लिकेशन फ़ोल्डर से ट्रैश में ड्रैग करें।</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">रसीदें</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">रसीदें</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">वे आपके <a href="https://polar.sh/edbnme/portal">कस्टमर पोर्टल</a> में हैं।</li>
     </ul>
 

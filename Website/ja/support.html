@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">メールで問い合わせる</a>
     </div>
 
-    <h2 data-i18n="support.lost">キーをなくしたら</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Mac App Storeで購入した場合</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">アップデートはApp Storeから届きます。</li>
+      <li data-i18n="support.store2">ほかのMacでは、同じApple AccountでApp StoreからOutboundをダウンロードしてください。</li>
+      <li data-i18n="support.store3">返金は<a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>からリクエストできます。</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">キーをなくしたら</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1"><a href="https://polar.sh/edbnme/portal">カスタマーポータル</a>にあります。お支払いに使ったメールアドレスでサインインしてください。</li>
       <li data-i18n="support.lost2">このブラウザで購入した場合は、<a href="/ja/">ホームページ</a>にも表示されます。</li>
     </ul>
 
-    <h2 data-i18n="support.mac">新しいMac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">新しいMac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">1つのキーで、同時に3台のMacで使えます。</li>
       <li data-i18n="support.mac2">空きを作るには、Outboundの設定で「無効にする」をクリックするか、カスタマーポータルを使ってください。</li>
       <li data-i18n="support.mac3">新しいMacでは、メニューバーから「Outboundのロックを解除」を選び、キーをペーストしてください。</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">そのあと、「アプリケーション」フォルダからOutboundをゴミ箱にドラッグしてください。</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">領収書</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">領収書</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1"><a href="https://polar.sh/edbnme/portal">カスタマーポータル</a>にあります。</li>
     </ul>
 

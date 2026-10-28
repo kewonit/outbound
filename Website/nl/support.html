@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Stuur een e-mail</a>
     </div>
 
-    <h2 data-i18n="support.lost">Sleutel kwijt</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Uit de Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Updates komen via de App Store.</li>
+      <li data-i18n="support.store2">Op een andere Mac haal je Outbound uit de App Store met dezelfde Apple Account.</li>
+      <li data-i18n="support.store3">Voor terugbetaling gebruik je <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Sleutel kwijt</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Die staat in je <a href="https://polar.sh/edbnme/portal">klantportaal</a>. Log in met het e-mailadres waarmee je hebt betaald.</li>
       <li data-i18n="support.lost2">Heb je Outbound in deze browser gekocht, dan staat je sleutel ook op de <a href="/nl/">startpagina</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Nieuwe Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Nieuwe Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Eén sleutel werkt op 3 Macs tegelijk.</li>
       <li data-i18n="support.mac2">Om er een vrij te maken, klik je op Deactiveer in de instellingen van Outbound, of gebruik je je klantportaal.</li>
       <li data-i18n="support.mac3">Kies op de nieuwe Mac Ontgrendel Outbound in de menubalk en plak je sleutel.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Sleep Outbound daarna van Apps naar de prullenmand.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Facturen</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Facturen</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Die staan in je <a href="https://polar.sh/edbnme/portal">klantportaal</a>.</li>
     </ul>
 

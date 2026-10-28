@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">그림 속 세상이<br>데스크탑 뒤로 흘러갑니다.</h1>
       <p class="lede" data-i18n="hero.lede">Mac을 위한 라이브 배경화면. 작은 새가 커서를 따라다닙니다.</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99에 구입하기</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">이미 갖고 계신가요?</span> 다운로드</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Outbound 구입하기.</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">원래 배경화면은 어떻게 되나요?</button>
           <div class="faq-a"><p data-i18n="faq.a6">Outbound를 종료하면 다시 돌아옵니다.</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">키는 어디서 찾나요?</button>
           <div class="faq-a"><p data-i18n="faq.a7">결제 직후 바로 표시되며, <a href="https://polar.sh/edbnme/portal">고객 포털</a>에도 보관됩니다. 앱 안에서 구입하면 자동으로 잠금 해제됩니다.</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">시선이 머물 더 좋은 곳.</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="곧 출시" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99에 구입하기</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">이미 갖고 계신가요?</span> 다운로드</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">법적 고지</h3>
         <a href="/privacy" data-i18n="footer.privacy">개인정보 처리방침(영문)</a>
         <a href="/license" data-i18n="footer.license">라이선스(영문)</a>
+        <a href="/terms" data-i18n="footer.terms">이용 약관</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Apple silicon 및 macOS 13 이상이 설치된 Mac 필요</span><span data-i18n="footer.built">만든 사람: <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>

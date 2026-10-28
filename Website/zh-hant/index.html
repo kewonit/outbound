@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">如畫的世界，<br>在你的桌面後方緩緩飛過。</h1>
       <p class="lede" data-i18n="hero.lede">Mac 動態桌布。一隻小鳥會跟著你的游標飛。</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 購買</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已經擁有？</span> 下載</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">取得 Outbound。</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">我原本的桌布會怎樣？</button>
           <div class="faq-a"><p data-i18n="faq.a6">結束 Outbound 後就會換回來。</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">在哪裡可以找到我的授權碼？</button>
           <div class="faq-a"><p data-i18n="faq.a7">付款後會立即顯示，也會一直保存在你的<a href="https://polar.sh/edbnme/portal">客戶中心</a>。在 App 內購買的話，會自動解鎖。</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">讓目光有個更好的去處。</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="即將推出" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 購買</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已經擁有？</span> 下載</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">法律資訊</h3>
         <a href="/privacy" data-i18n="footer.privacy">隱私權政策（英文）</a>
         <a href="/license" data-i18n="footer.license">授權條款（英文）</a>
+        <a href="/terms" data-i18n="footer.terms">條款</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">需要搭載 Apple silicon、執行 macOS 13 或以上版本的 Mac</span><span data-i18n="footer.built">由 <a href="https://kew.edbn.me">kew.edbn.me</a> 打造</span></p>

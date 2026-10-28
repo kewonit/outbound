@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Написать в поддержку</a>
     </div>
 
-    <h2 data-i18n="support.lost">Потеряли ключ</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Из Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Обновления приходят через App Store.</li>
+      <li data-i18n="support.store2">На другом Mac скачайте Outbound из App Store с тем же Аккаунтом Apple.</li>
+      <li data-i18n="support.store3">Чтобы вернуть деньги, откройте <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Потеряли ключ</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Он в вашем <a href="https://polar.sh/edbnme/portal">кабинете покупателя</a>. Войдите с той почтой, которую указали при оплате.</li>
       <li data-i18n="support.lost2">Если вы покупали в этом браузере, ключ есть и на <a href="/ru/">главной странице</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Новый Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Новый Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Один ключ работает на 3 Mac одновременно.</li>
       <li data-i18n="support.mac2">Чтобы освободить место, нажмите «Деактивировать» в настройках Outbound или воспользуйтесь кабинетом покупателя.</li>
       <li data-i18n="support.mac3">На новом Mac выберите «Разблокировать Outbound» в строке меню и вставьте ключ.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Затем перетащите Outbound из папки «Программы» в Корзину.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Чеки</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Чеки</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Они в вашем <a href="https://polar.sh/edbnme/portal">кабинете покупателя</a>.</li>
     </ul>
 

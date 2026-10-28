@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">راسل الدعم</a>
     </div>
 
-    <h2 data-i18n="support.lost">أضعت مفتاحك</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">من Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">تصل التحديثات عبر App Store.</li>
+      <li data-i18n="support.store2">على جهاز Mac آخر، نزّل Outbound من App Store بحساب Apple نفسه.</li>
+      <li data-i18n="support.store3">لطلب استرداد المبلغ، استخدم <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">أضعت مفتاحك</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">تجده في <a href="https://polar.sh/edbnme/portal">بوابة العملاء</a>. سجّل الدخول بالبريد الإلكتروني الذي دفعت به.</li>
       <li data-i18n="support.lost2">إذا اشتريته من هذا المتصفح، فستجد مفتاحك أيضًا في <a href="/ar/">الصفحة الرئيسية</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">جهاز Mac جديد</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">جهاز Mac جديد</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">يعمل المفتاح الواحد على 3 أجهزة Mac في الوقت نفسه.</li>
       <li data-i18n="support.mac2">لتحرير أحدها، انقر على «إلغاء التفعيل» في إعدادات Outbound، أو استخدم بوابة العملاء.</li>
       <li data-i18n="support.mac3">على جهاز Mac الجديد، اختر «فتح قفل Outbound» من شريط القوائم، ثم الصق مفتاحك.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">ثم اسحب Outbound من مجلد التطبيقات إلى سلة المهملات.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">الإيصالات</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">الإيصالات</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">تجدها في <a href="https://polar.sh/edbnme/portal">بوابة العملاء</a>.</li>
     </ul>
 

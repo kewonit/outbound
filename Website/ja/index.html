@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">描かれた世界が、<br>デスクトップの奥を流れていく。</h1>
       <p class="lede" data-i18n="hero.lede">Macのための動く壁紙。小さな鳥が、カーソルについてきます。</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="近日公開" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99で購入</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">お持ちの方は</span> ダウンロード</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Outboundを、あなたのMacに。</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">元の壁紙はどうなりますか？</button>
           <div class="faq-a"><p data-i18n="faq.a6">Outboundを終了すれば、元の壁紙に戻ります。</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">ライセンスキーはどこにありますか？</button>
           <div class="faq-a"><p data-i18n="faq.a7">お支払いの直後に表示され、<a href="https://polar.sh/edbnme/portal">カスタマーポータル</a>にも保存されます。アプリ内から購入すれば、自動でロックが解除されます。</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">視線の先に、もっといい景色を。</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="近日公開" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99で購入</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">お持ちの方は</span> ダウンロード</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">法的情報</h3>
         <a href="/privacy" data-i18n="footer.privacy">プライバシー（英語）</a>
         <a href="/license" data-i18n="footer.license">ライセンス（英語）</a>
+        <a href="/terms" data-i18n="footer.terms">利用規約</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Apple silicon搭載、macOS 13以降のMacが必要です</span><span data-i18n="footer.built">制作：<a href="https://kew.edbn.me">kew.edbn.me</a></span></p>

@@ -4,6 +4,8 @@
 //   GET  /, /support, /thanks          The page in the visitor's language: their pick in the footer if they made
 //                                      one, else the first of their browser's languages the site speaks.
 //                                      Every page shows Outbound's price in the visitor's own money (PRICES).
+//                                      With ?from=appstore, as the Mac App Store copy opens them, without any way
+//                                      to buy or download it here (forAppStore).
 //   GET  /buy[?currency=usd][&twclid=] On to a new Polar checkout for Outbound, in that money, or in dollars,
 //                                      carrying the X ad click it came from, if any.
 //   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
@@ -87,8 +89,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/download") return download(request, env);
     if (url.pathname === "/buy") return buy(request, env, url);
-    if (TRANSLATED.has(url.pathname)) return page(request, env, url);
-    if (!url.pathname.startsWith("/api/")) return priced(request, env);
+    if (TRANSLATED.has(url.pathname)) return forAppStore(url, await page(request, env, url));
+    if (!url.pathname.startsWith("/api/")) return forAppStore(url, await priced(request, env));
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
     try {
       if (url.pathname === "/api/checkout") return await checkout(request, env);
@@ -150,6 +152,22 @@ async function priced(request, env) {
   for (const name of ["ETag", "Last-Modified", "Content-Length"]) answer.headers.delete(name);
   if (!answer.headers.get("Cache-Control")?.includes("no-store")) answer.headers.set("Cache-Control", "private, no-cache");
   return answer;
+}
+
+const STORE_ONLY = [
+  'a[data-url="buy"]', 'a[data-url="download"]', 'a[data-url="city"]', "a[data-dollars]",
+  'a[href$="#buy"]', 'a[href$="#your-city"]', "[data-direct]",
+];
+
+// A page opened from the Mac App Store copy, whose rules keep it from pointing anywhere else to buy: without the Buy,
+// download and city links, the offer to pay in dollars, or anything marked data-direct (the price box, and help with
+// license keys an App Store copy doesn't have), and with the help marked data-appstore shown instead.
+function forAppStore(url, response) {
+  if (url.searchParams.get("from") !== "appstore") return response;
+  if (!response.headers.get("Content-Type")?.startsWith("text/html")) return response;
+  const rewriter = new HTMLRewriter().on("[data-appstore]", { element: (element) => element.removeAttribute("hidden") });
+  for (const selector of STORE_ONLY) rewriter.on(selector, { element: (element) => element.remove() });
+  return rewriter.transform(response);
 }
 
 // The folder of the language to show, or null for English: the footer's pick, kept in a cookie, wins; then the

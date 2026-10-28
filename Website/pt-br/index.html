@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">Um mundo pintado<br>voando atrás da sua área de trabalho.</h1>
       <p class="lede" data-i18n="hero.lede">Um papel de parede animado para Mac. Um passarinho segue o seu cursor.</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Em breve" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Comprar por $4.99</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Já é seu?</span> Baixar</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Leve o Outbound.</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">O que acontece com o meu papel de parede?</button>
           <div class="faq-a"><p data-i18n="faq.a6">Ele volta quando você encerra o Outbound.</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Onde encontro minha chave?</button>
           <div class="faq-a"><p data-i18n="faq.a7">Ela aparece logo depois do pagamento e fica no seu <a href="https://polar.sh/edbnme/portal">portal do cliente</a>. Se você comprar pelo app, o Outbound se desbloqueia sozinho.</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">Um lugar melhor para olhar.</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Em breve" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Comprar por $4.99</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Já é seu?</span> Baixar</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">Legal</h3>
         <a href="/privacy" data-i18n="footer.privacy">Privacidade (em inglês)</a>
         <a href="/license" data-i18n="footer.license">Licença (em inglês)</a>
+        <a href="/terms" data-i18n="footer.terms">Termos</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Requer um Mac com Apple silicon e macOS 13 ou mais recente</span><span data-i18n="footer.built">Feito por <a href="https://kew.edbn.me">kew.edbn.me</a></span></p>

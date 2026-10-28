@@ -473,6 +473,24 @@ kbd {
 }
 .prose code { font-size: 0.9em; color: var(--ink-soft); }
 .page-cta { margin-top: 2.5rem; }
+/* Privacy and Terms: long pages, so a date, a list of their sections, and smaller headings within a section. */
+.legal .updated { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-faint); }
+.legal .contents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.35rem 1.5rem;
+  margin: 2rem 0 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 0.9375rem;
+}
+.legal .contents a { color: var(--ink-mute); text-decoration: none; }
+.legal .contents a:hover { color: var(--ink); }
+.legal h2 { scroll-margin-top: 5rem; }
+.legal h3 { margin: 1.5rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+.legal li strong { color: var(--ink-soft); font-weight: 500; }
 
 /* ---------- Footer: a last call to action, then the map of the site ---------- */
 .footer { padding: 4rem 0 3rem; }

@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Enviar e-mail ao suporte</a>
     </div>
 
-    <h2 data-i18n="support.lost">Perdeu sua chave?</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Pela Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">As atualizações chegam pela App Store.</li>
+      <li data-i18n="support.store2">Em outro Mac, baixe o Outbound na App Store com a mesma Conta Apple.</li>
+      <li data-i18n="support.store3">Para pedir reembolso, use <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Perdeu sua chave?</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Ela está no seu <a href="https://polar.sh/edbnme/portal">portal do cliente</a>. Entre com o e-mail que você usou para pagar.</li>
       <li data-i18n="support.lost2">Se você comprou neste navegador, ela também está na <a href="/pt-br/">página inicial</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Mac novo</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Mac novo</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Uma chave funciona em 3 Macs ao mesmo tempo.</li>
       <li data-i18n="support.mac2">Para liberar um, clique em Desativar nos Ajustes do Outbound ou use seu portal do cliente.</li>
       <li data-i18n="support.mac3">No Mac novo, escolha Desbloquear o Outbound na barra de menus e cole sua chave.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Depois, arraste o Outbound de Aplicativos para o Lixo.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Recibos</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Recibos</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Eles estão no seu <a href="https://polar.sh/edbnme/portal">portal do cliente</a>.</li>
     </ul>
 

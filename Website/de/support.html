@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">E-Mail an den Support</a>
     </div>
 
-    <h2 data-i18n="support.lost">Schlüssel verloren</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">Aus dem Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Updates kommen über den App Store.</li>
+      <li data-i18n="support.store2">Auf einem anderen Mac lädst du Outbound mit demselben Apple Account aus dem App Store.</li>
+      <li data-i18n="support.store3">Für eine Rückerstattung nutze <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Schlüssel verloren</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">Er steht in deinem <a href="https://polar.sh/edbnme/portal">Kundenportal</a>. Melde dich mit der E-Mail-Adresse an, mit der du bezahlt hast.</li>
       <li data-i18n="support.lost2">Wenn du in diesem Browser gekauft hast, steht er auch auf der <a href="/de/">Startseite</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">Neuer Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">Neuer Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">Ein Schlüssel funktioniert auf 3 Macs gleichzeitig.</li>
       <li data-i18n="support.mac2">Um einen freizugeben, klicke in den Einstellungen von Outbound auf „Deaktivieren“ oder nutze dein Kundenportal.</li>
       <li data-i18n="support.mac3">Wähle auf dem neuen Mac in der Menüleiste „Outbound freischalten“ und füge deinen Schlüssel ein.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Zieh Outbound dann aus dem Ordner „Programme“ in den Papierkorb.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Belege</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Belege</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">Sie liegen in deinem <a href="https://polar.sh/edbnme/portal">Kundenportal</a>.</li>
     </ul>
 

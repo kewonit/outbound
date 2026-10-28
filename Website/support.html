@@ -67,14 +67,23 @@
       <a class="btn btn-light" href="mailto:outbound@edbn.me" data-i18n="support.email">Email support</a>
     </div>
 
-    <h2 data-i18n="support.lost">Lost your key</h2>
-    <ul>
+    <!-- data-direct: help for the copy sold here, left out for visitors from the Mac App Store copy, who get the
+         data-appstore help instead (see the Worker). -->
+    <h2 data-appstore hidden data-i18n="support.store">From the Mac App Store</h2>
+    <ul data-appstore hidden>
+      <li data-i18n="support.store1">Updates come through the App Store.</li>
+      <li data-i18n="support.store2">On another Mac, get Outbound from the App Store with the same Apple Account.</li>
+      <li data-i18n="support.store3">For a refund, use <a href="https://reportaproblem.apple.com/">reportaproblem.apple.com</a>.</li>
+    </ul>
+
+    <h2 data-direct data-i18n="support.lost">Lost your key</h2>
+    <ul data-direct>
       <li data-i18n="support.lost1">It's in your <a href="https://polar.sh/edbnme/portal">customer portal</a>. Sign in with the email you paid with.</li>
       <li data-i18n="support.lost2">If you bought it in this browser, it's also on the <a href="/">homepage</a>.</li>
     </ul>
 
-    <h2 data-i18n="support.mac">New Mac</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.mac">New Mac</h2>
+    <ul data-direct>
       <li data-i18n="support.mac1">One key works on 3 Macs at once.</li>
       <li data-i18n="support.mac2">To free one up, click Deactivate in Outbound's Settings, or use your customer portal.</li>
       <li data-i18n="support.mac3">On the new Mac, choose Unlock Outbound in the menu bar and paste your key.</li>
@@ -93,8 +102,8 @@
       <li data-i18n="support.remove2">Then drag Outbound from Applications to the Trash.</li>
     </ul>
 
-    <h2 data-i18n="support.receipts">Receipts</h2>
-    <ul>
+    <h2 data-direct data-i18n="support.receipts">Receipts</h2>
+    <ul data-direct>
       <li data-i18n="support.receipts1">They're in your <a href="https://polar.sh/edbnme/portal">customer portal</a>.</li>
     </ul>
 

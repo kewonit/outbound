@@ -247,7 +247,7 @@
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h1 data-i18n="hero.title">रंगों से बनी एक दुनिया,<br>आपके डेस्कटॉप के पीछे उड़ती हुई।</h1>
       <p class="lede" data-i18n="hero.lede">Mac के लिए लाइव वॉलपेपर। एक छोटी-सी चिड़िया आपके कर्सर के पीछे-पीछे उड़ती है।</p>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="जल्द आ रहा है" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 में ख़रीदें</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">पहले से आपका है?</span> डाउनलोड करें</a>
       </div>
@@ -352,7 +352,8 @@
   </section>
 
   <!-- ============ BUY ============ -->
-  <section class="section" id="buy">
+  <!-- data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker). -->
+  <section class="section" id="buy" data-direct>
     <div class="wrap-narrow">
       <h2 data-i18n="buy.title">Outbound पाएँ।</h2>
       <div class="price-grid">
@@ -417,7 +418,7 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">मेरे अपने वॉलपेपर का क्या होगा?</button>
           <div class="faq-a"><p data-i18n="faq.a6">Outbound बंद करते ही वह लौट आता है।</p></div>
         </div>
-        <div class="faq-item">
+        <div class="faq-item" data-direct>
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">मेरी कुंजी कहाँ मिलेगी?</button>
           <div class="faq-a"><p data-i18n="faq.a7">भुगतान के तुरंत बाद दिखती है, और आपके <a href="https://polar.sh/edbnme/portal">कस्टमर पोर्टल</a> में रहती है। ऐप के अंदर से ख़रीदें, तो यह अपने-आप अनलॉक हो जाता है।</p></div>
         </div>
@@ -448,7 +449,7 @@
     <div class="foot-cta">
       <p><span class="mark mark-lg" aria-hidden="true"></span></p>
       <h2><span data-i18n="footer.tagline">नज़र टिकाने की एक बेहतर जगह।</span><span class="caret" aria-hidden="true"></span></h2>
-      <div class="cta-row">
+      <div class="cta-row" data-direct>
         <a class="btn btn-light" href="#buy" data-url="buy" data-soon="जल्द आ रहा है" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">$4.99 में ख़रीदें</a>
         <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">पहले से आपका है?</span> डाउनलोड करें</a>
       </div>
@@ -475,6 +476,7 @@
         <h3 data-i18n="footer.legal">क़ानूनी</h3>
         <a href="/privacy" data-i18n="footer.privacy">गोपनीयता (अंग्रेज़ी)</a>
         <a href="/license" data-i18n="footer.license">लाइसेंस (अंग्रेज़ी)</a>
+        <a href="/terms" data-i18n="footer.terms">शर्तें</a>
       </div>
     </nav>
     <p class="foot-base"><span data-i18n="footer.needs">Apple silicon और macOS 13 या उससे नए वर्ज़न वाला Mac ज़रूरी है</span><span data-i18n="footer.built"><a href="https://kew.edbn.me">kew.edbn.me</a> ने बनाया</span></p>
