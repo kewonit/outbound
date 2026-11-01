@@ -51,7 +51,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
-<link rel="stylesheet" href="/styles.css?v=23">
+<link rel="stylesheet" href="/styles.css?v=24">
 <!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
      both together. -->
 <script type="application/ld+json">
@@ -391,13 +391,14 @@
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price"><s class="tier-was"><span class="sr-only" data-i18n="buy.was">Preço normal</span>$12.99</s> $4.99<span class="per" data-i18n="buy.per"> + impostos, pagamento único</span></p>
-          <p class="tier-desc"><span class="tier-offer" data-i18n="buy.offer">Preço por tempo limitado.</span> <span data-i18n="buy.desc">Até 3 Macs. Sem assinatura.</span></p>
+          <p class="tier-price">$4.99<span class="per" data-i18n="buy.per"> + impostos, pagamento único</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">Até 3 Macs. Sem assinatura.</p>
           <div class="tier-actions">
             <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Em breve" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Comprar por $4.99</a>
             <!-- Shown by the site's Worker where the price above is in the visitor's own money. -->
             <a class="tier-dollars" href="/buy?currency=usd" rel="nofollow" data-dollars hidden data-i18n="buy.dollars">Ou pague $4.99 em dólares americanos</a>
           </div>
+          <p class="tier-seller" data-i18n="buy.seller">Vendido pela Polar, nossa revendedora, que cuida do pagamento e dos impostos.</p>
         </article>
         <p class="tier-needs">
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura ou mais recente</span></span>
@@ -584,7 +585,7 @@
   // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
   var urls = {
     plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
-    app: "/app.js?v=16",
+    app: "/app.js?v=17",
     thanks: "/thanks.js?v=8",
     feedback: "/feedback.js?v=2",
     waitlist: "/waitlist.js?v=3"

@@ -7,7 +7,7 @@
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'sha256-qFDinVTv50+5Co5saA3nfkDT11BbFaR/5SNtnPcZbaI=' 'strict-dynamic' https: 'unsafe-inline'; connect-src 'self' https://plausible.io; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
+  Content-Security-Policy: default-src 'self'; script-src 'sha256-gBkGjvNaRcY43av0bi+hi/ed6MBhHsICHQ3pHSmzpts=' 'strict-dynamic' https: 'unsafe-inline'; connect-src 'self' https://plausible.io; style-src 'self' 'unsafe-inline'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'
   Cross-Origin-Opener-Policy: same-origin
   X-Frame-Options: DENY
 
