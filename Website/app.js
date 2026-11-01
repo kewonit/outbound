@@ -77,7 +77,8 @@
     }
   });
 
-  // An X ad's click id that an older version of the site kept here, which nothing uses any more.
+  // An X ad's click id that the site kept until November 2026, which nothing uses any more. Kept for a month at
+  // most, so this can go once December 2026 is out.
   try {
     localStorage.removeItem("outbound-twclid");
   } catch (error) {}
