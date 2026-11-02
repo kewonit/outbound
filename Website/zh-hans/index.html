@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "“你的城市”是什么？",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "选一个对你有意义的地方，我会把它画进 Outbound。你购买后，我会发邮件和你一起确定地点，通常大约一周后就能画好。Outbound 本身也包含在内。"
-     }
-    },
-    {
-     "@type": "Question",
      "name": "它会收集我的信息吗？",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">打开 Outbound，粘贴你的激活码。</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">已经拥有？</span> 下载</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">你的城市</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + 税费，一次买断</span></p>
-          <p class="tier-desc" data-i18n="city.desc">由 Outbound 的作者亲自绘制，<br>大约一周。含 Outbound。</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99 加入你的城市</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">可以在多台 Mac 上使用吗？</button>
           <div class="faq-a"><p data-i18n="faq.a11">可以，一个激活码最多可同时用于三台。要换新 Mac？在旧 Mac 上，到 Outbound 的设置中点击“取消激活”，或者使用客户中心，然后在新 Mac 上粘贴你的激活码。</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">“你的城市”是什么？</button>
-          <div class="faq-a"><p data-i18n="faq.a12">选一个对你有意义的地方，我会把它画进 Outbound。你购买后，我会发邮件和你一起确定地点，通常大约一周后就能画好。Outbound 本身也包含在内。</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">它会收集我的信息吗？</button>
+          <div class="faq-a"><p data-i18n="faq.a12">不会。这个 App 没有账户，没有统计分析，也没有追踪，也从不要求查看你的屏幕或文件。小鸟知道你的光标在哪儿，但这些信息只留在你的 Mac 上。详情请看<a href="/privacy">隐私政策</a>。</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">它会收集我的信息吗？</button>
-          <div class="faq-a"><p data-i18n="faq.a13">不会。这个 App 没有账户，没有统计分析，也没有追踪，也从不要求查看你的屏幕或文件。小鸟知道你的光标在哪儿，但这些信息只留在你的 Mac 上。详情请看<a href="/privacy">隐私政策</a>。</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">代码在 GitHub 上，可以免费使用吗？</button>
+          <div class="faq-a"><p data-i18n="faq.a13">欢迎你阅读代码、从中学习，也欢迎提交修复。不过，要把它用作壁纸，即使是你自己编译的，也需要<a href="/license">授权</a>。</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">代码在 GitHub 上，可以免费使用吗？</button>
-          <div class="faq-a"><p data-i18n="faq.a14">欢迎你阅读代码、从中学习，也欢迎提交修复。不过，要把它用作壁纸，即使是你自己编译的，也需要<a href="/license">授权</a>。</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">还有别的问题？</button>
-          <div class="faq-a"><p data-i18n="faq.a15">发邮件到 <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>，回复你的会是我，也就是 Outbound 的开发者本人。<a href="/zh-hans/support">支持</a>页面还介绍了激活码丢失、换新 Mac 等更多内容。</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">还有别的问题？</button>
+          <div class="faq-a"><p data-i18n="faq.a14">发邮件到 <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>，回复你的会是我，也就是 Outbound 的开发者本人。<a href="/zh-hans/support">支持</a>页面还介绍了激活码丢失、换新 Mac 等更多内容。</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">地点</a>
         <a href="#buy" data-i18n="footer.buy">购买</a>
         <a href="#faq" data-i18n="faq.title">常见问题</a>
-        <a href="#your-city" data-i18n="footer.city">你的城市</a>
         <a href="/zh-hans/waitlist" data-i18n="footer.elsewhere">Windows 和 iPhone</a>
         <a href="/zh-hans/feedback" data-i18n="footer.feedback">反馈</a>
         <a href="/zh-hans/support" data-i18n="footer.support">支持</a>

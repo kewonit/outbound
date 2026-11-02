@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "ما هي «مدينتك»؟",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "اختر مكانًا يعني لك شيئًا، وسأرسمه في Outbound. بعد الشراء سأراسلك لنتفق على المكان، وعادةً يكون جاهزًا بعد أسبوع تقريبًا. ويشمل ذلك Outbound نفسه."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "هل يجمع أي شيء عني؟",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">افتحه والصق مفتاحك.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">لديك بالفعل؟</span> تنزيل</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">مدينتك</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + الضريبة، مرة واحدة</span></p>
-          <p class="tier-desc" data-i18n="city.desc">يرسمها صانع Outbound بنفسه، <br>خلال أسبوع تقريبًا. Outbound مشمول.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">أضف مدينتك مقابل $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">هل يمكنني استخدامه على أكثر من جهاز Mac؟</button>
           <div class="faq-a"><p data-i18n="faq.a11">نعم، على ما يصل إلى ثلاثة أجهزة في الوقت نفسه بمفتاح واحد. تنتقل إلى جهاز Mac جديد؟ انقر على «إلغاء التفعيل» في إعدادات Outbound على الجهاز القديم، أو استخدم بوابة العملاء، ثم الصق مفتاحك على الجهاز الجديد.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">ما هي «مدينتك»؟</button>
-          <div class="faq-a"><p data-i18n="faq.a12">اختر مكانًا يعني لك شيئًا، وسأرسمه في Outbound. بعد الشراء سأراسلك لنتفق على المكان، وعادةً يكون جاهزًا بعد أسبوع تقريبًا. ويشمل ذلك Outbound نفسه.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">هل يجمع أي شيء عني؟</button>
+          <div class="faq-a"><p data-i18n="faq.a12">لا. لا حساب في التطبيق، ولا تحليلات، ولا تتبّع، ولا يطلب أبدًا رؤية شاشتك أو ملفاتك. يعرف الطائر مكان المؤشر، لكن ذلك يبقى على جهاز Mac لديك. التفاصيل في <a href="/privacy">سياسة الخصوصية</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">هل يجمع أي شيء عني؟</button>
-          <div class="faq-a"><p data-i18n="faq.a13">لا. لا حساب في التطبيق، ولا تحليلات، ولا تتبّع، ولا يطلب أبدًا رؤية شاشتك أو ملفاتك. يعرف الطائر مكان المؤشر، لكن ذلك يبقى على جهاز Mac لديك. التفاصيل في <a href="/privacy">سياسة الخصوصية</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">الشيفرة على GitHub. هل يمكنني استخدامه مجانًا؟</button>
+          <div class="faq-a"><p data-i18n="faq.a13">يسعدني أن تقرأها وتتعلّم منها وترسل إصلاحات. أما استخدامه خلفيةً لسطح مكتبك فيتطلب <a href="/license">ترخيصًا</a>، حتى لو بنيت التطبيق بنفسك.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">الشيفرة على GitHub. هل يمكنني استخدامه مجانًا؟</button>
-          <div class="faq-a"><p data-i18n="faq.a14">يسعدني أن تقرأها وتتعلّم منها وترسل إصلاحات. أما استخدامه خلفيةً لسطح مكتبك فيتطلب <a href="/license">ترخيصًا</a>، حتى لو بنيت التطبيق بنفسك.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">شيء آخر؟</button>
-          <div class="faq-a"><p data-i18n="faq.a15">راسلني على <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> وسيصلك الرد مني، أنا الشخص الذي صنع Outbound. وتتناول صفحة <a href="/ar/support">الدعم</a> أيضًا المفاتيح المفقودة، والانتقال إلى جهاز Mac جديد، وغير ذلك.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">شيء آخر؟</button>
+          <div class="faq-a"><p data-i18n="faq.a14">راسلني على <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> وسيصلك الرد مني، أنا الشخص الذي صنع Outbound. وتتناول صفحة <a href="/ar/support">الدعم</a> أيضًا المفاتيح المفقودة، والانتقال إلى جهاز Mac جديد، وغير ذلك.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">الأماكن</a>
         <a href="#buy" data-i18n="footer.buy">شراء</a>
         <a href="#faq" data-i18n="faq.title">الأسئلة الشائعة</a>
-        <a href="#your-city" data-i18n="footer.city">مدينتك</a>
         <a href="/ar/waitlist" data-i18n="footer.elsewhere">Windows و iPhone</a>
         <a href="/ar/feedback" data-i18n="footer.feedback">ملاحظات</a>
         <a href="/ar/support" data-i18n="footer.support">الدعم</a>

@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "Wat is ‘Jouw stad’?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Kies een plek die iets voor je betekent, dan schilder ik hem erbij in Outbound. Na je aankoop mail ik je om samen af te spreken welke plek het wordt, en meestal is hij ongeveer een week later klaar. Outbound zelf zit erbij."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "Verzamelt het iets over mij?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Open het en plak je sleutel.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Heb je het al?</span> Download</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Jouw stad</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + btw, eenmalig</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Geschilderd door de maker van Outbound, <br>in ongeveer een week. Inclusief Outbound.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Voeg je stad toe voor $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Kan ik het op meer dan één Mac gebruiken?</button>
           <div class="faq-a"><p data-i18n="faq.a11">Ja, op maximaal drie tegelijk met één sleutel. Stap je over op een nieuwe Mac? Ga op je oude Mac naar de Instellingen van Outbound en klik op Deactiveer, of gebruik je klantportaal. Plak daarna je sleutel op de nieuwe.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Wat is ‘Jouw stad’?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">Kies een plek die iets voor je betekent, dan schilder ik hem erbij in Outbound. Na je aankoop mail ik je om samen af te spreken welke plek het wordt, en meestal is hij ongeveer een week later klaar. Outbound zelf zit erbij.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Verzamelt het iets over mij?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Nee. De app heeft geen account, geen gebruiksstatistieken en geen tracking, en vraagt nooit om je scherm of je bestanden te zien. De vogel weet waar je cursor is, maar dat blijft op je Mac. In het <a href="/privacy">privacybeleid</a> lees je alle details.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Verzamelt het iets over mij?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">Nee. De app heeft geen account, geen gebruiksstatistieken en geen tracking, en vraagt nooit om je scherm of je bestanden te zien. De vogel weet waar je cursor is, maar dat blijft op je Mac. In het <a href="/privacy">privacybeleid</a> lees je alle details.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">De code staat op GitHub. Mag ik het gratis gebruiken?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Je mag de code gerust lezen, ervan leren en verbeteringen insturen. Om het als achtergrond te gebruiken heb je een <a href="/license">licentie</a> nodig, ook als je het zelf bouwt.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">De code staat op GitHub. Mag ik het gratis gebruiken?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">Je mag de code gerust lezen, ervan leren en verbeteringen insturen. Om het als achtergrond te gebruiken heb je een <a href="/license">licentie</a> nodig, ook als je het zelf bouwt.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Nog iets anders?</button>
-          <div class="faq-a"><p data-i18n="faq.a15">Mail naar <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, dan krijg je antwoord van mij, degene die Outbound heeft gemaakt. Op de pagina <a href="/nl/support">Ondersteuning</a> lees je ook wat je doet bij een kwijtgeraakte sleutel, een nieuwe Mac en meer.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Nog iets anders?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Mail naar <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, dan krijg je antwoord van mij, degene die Outbound heeft gemaakt. Op de pagina <a href="/nl/support">Ondersteuning</a> lees je ook wat je doet bij een kwijtgeraakte sleutel, een nieuwe Mac en meer.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">Plekken</a>
         <a href="#buy" data-i18n="footer.buy">Kopen</a>
         <a href="#faq" data-i18n="faq.title">Veelgestelde vragen</a>
-        <a href="#your-city" data-i18n="footer.city">Jouw stad</a>
         <a href="/nl/waitlist" data-i18n="footer.elsewhere">Windows en iPhone</a>
         <a href="/nl/feedback" data-i18n="footer.feedback">Feedback</a>
         <a href="/nl/support" data-i18n="footer.support">Ondersteuning</a>

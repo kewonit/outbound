@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "Что такое «Ваш город»?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Выберите место, которое вам дорого, и я нарисую его в Outbound. После покупки я напишу вам, чтобы договориться о месте, и обычно оно готово примерно через неделю. Сам Outbound входит в цену."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "Он собирает что-то обо мне?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Откройте и вставьте ключ.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Уже ваш?</span> Скачать</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Ваш город</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + налог, один раз</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Его нарисует автор Outbound, <br>примерно за неделю. Outbound входит в цену.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Добавить свой город за $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Можно ли пользоваться им на нескольких Mac?</button>
           <div class="faq-a"><p data-i18n="faq.a11">Да, до трёх одновременно с одним ключом. Переходите на новый Mac? На старом откройте «Настройки» Outbound и нажмите «Деактивировать» или воспользуйтесь кабинетом покупателя, а потом вставьте ключ на новом.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Что такое «Ваш город»?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">Выберите место, которое вам дорого, и я нарисую его в Outbound. После покупки я напишу вам, чтобы договориться о месте, и обычно оно готово примерно через неделю. Сам Outbound входит в цену.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Он собирает что-то обо мне?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Нет. В приложении нет аккаунта, аналитики и отслеживания, и оно никогда не просит доступа к вашему экрану или файлам. Птица знает, где ваш курсор, но эти данные не покидают ваш Mac. Подробности в <a href="/privacy">политике конфиденциальности</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Он собирает что-то обо мне?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">Нет. В приложении нет аккаунта, аналитики и отслеживания, и оно никогда не просит доступа к вашему экрану или файлам. Птица знает, где ваш курсор, но эти данные не покидают ваш Mac. Подробности в <a href="/privacy">политике конфиденциальности</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Код лежит на GitHub. Можно пользоваться бесплатно?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Его можно свободно читать, учиться на нём и присылать исправления. А чтобы поставить Outbound на обои, нужна <a href="/license">лицензия</a>, даже если вы собрали его сами.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Код лежит на GitHub. Можно пользоваться бесплатно?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">Его можно свободно читать, учиться на нём и присылать исправления. А чтобы поставить Outbound на обои, нужна <a href="/license">лицензия</a>, даже если вы собрали его сами.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Что-то ещё?</button>
-          <div class="faq-a"><p data-i18n="faq.a15">Напишите на <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, и вам отвечу я, человек, который сделал Outbound. А на странице <a href="/ru/support">Поддержка</a> есть ещё о потерянном ключе, переходе на новый Mac и многом другом.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Что-то ещё?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Напишите на <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, и вам отвечу я, человек, который сделал Outbound. А на странице <a href="/ru/support">Поддержка</a> есть ещё о потерянном ключе, переходе на новый Mac и многом другом.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">Места</a>
         <a href="#buy" data-i18n="footer.buy">Купить</a>
         <a href="#faq" data-i18n="faq.title">Вопросы и ответы</a>
-        <a href="#your-city" data-i18n="footer.city">Ваш город</a>
         <a href="/ru/waitlist" data-i18n="footer.elsewhere">Windows и iPhone</a>
         <a href="/ru/feedback" data-i18n="footer.feedback">Отзыв</a>
         <a href="/ru/support" data-i18n="footer.support">Поддержка</a>
