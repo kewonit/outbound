@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "Was ist „Deine Stadt“?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Such dir einen Ort aus, der dir etwas bedeutet, und ich male ihn in Outbound hinein. Nach dem Kauf schreibe ich dir, damit wir den Ort abstimmen, und meistens ist er etwa eine Woche später fertig. Outbound selbst ist inklusive."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "Sammelt es irgendetwas über mich?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Öffne es und füge deinen Schlüssel ein.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Schon deins?</span> Herunterladen</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Deine Stadt</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + Steuern, einmalig</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Gemalt von dem, der Outbound gemacht hat, <br>in etwa einer Woche. Outbound inklusive.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Deine Stadt für $99 hinzufügen</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Kann ich es auf mehr als einem Mac nutzen?</button>
           <div class="faq-a"><p data-i18n="faq.a11">Ja, mit einem Schlüssel auf bis zu drei gleichzeitig. Du ziehst auf einen neuen Mac um? Klicke auf dem alten in den Einstellungen von Outbound auf „Deaktivieren“ oder nutze dein Kundenportal, und füge dann deinen Schlüssel auf dem neuen ein.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Was ist „Deine Stadt“?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">Such dir einen Ort aus, der dir etwas bedeutet, und ich male ihn in Outbound hinein. Nach dem Kauf schreibe ich dir, damit wir den Ort abstimmen, und meistens ist er etwa eine Woche später fertig. Outbound selbst ist inklusive.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Sammelt es irgendetwas über mich?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Nein. Die App hat kein Konto, keine Analyse und kein Tracking, und sie fragt nie nach Zugriff auf deinen Bildschirm oder deine Dateien. Der Vogel weiß, wo dein Mauszeiger ist, aber das bleibt auf deinem Mac. Die Details stehen in der <a href="/privacy">Datenschutzerklärung</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Sammelt es irgendetwas über mich?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">Nein. Die App hat kein Konto, keine Analyse und kein Tracking, und sie fragt nie nach Zugriff auf deinen Bildschirm oder deine Dateien. Der Vogel weiß, wo dein Mauszeiger ist, aber das bleibt auf deinem Mac. Die Details stehen in der <a href="/privacy">Datenschutzerklärung</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Der Code ist auf GitHub. Kann ich es kostenlos nutzen?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Du darfst ihn gern lesen, daraus lernen und Korrekturen schicken. Für die Nutzung als Hintergrundbild brauchst du eine <a href="/license">Lizenz</a>, auch wenn du die App selbst baust.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Der Code ist auf GitHub. Kann ich es kostenlos nutzen?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">Du darfst ihn gern lesen, daraus lernen und Korrekturen schicken. Für die Nutzung als Hintergrundbild brauchst du eine <a href="/license">Lizenz</a>, auch wenn du die App selbst baust.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Noch etwas anderes?</button>
-          <div class="faq-a"><p data-i18n="faq.a15">Schreib an <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, dann bekommst du eine Antwort von mir, der Person, die Outbound gemacht hat. Auf der Seite <a href="/de/support">Support</a> geht es außerdem um verlorene Schlüssel, den Umzug auf einen neuen Mac und mehr.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Noch etwas anderes?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Schreib an <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, dann bekommst du eine Antwort von mir, der Person, die Outbound gemacht hat. Auf der Seite <a href="/de/support">Support</a> geht es außerdem um verlorene Schlüssel, den Umzug auf einen neuen Mac und mehr.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">Orte</a>
         <a href="#buy" data-i18n="footer.buy">Kaufen</a>
         <a href="#faq" data-i18n="faq.title">FAQ</a>
-        <a href="#your-city" data-i18n="footer.city">Deine Stadt</a>
         <a href="/de/waitlist" data-i18n="footer.elsewhere">Windows und iPhone</a>
         <a href="/de/feedback" data-i18n="footer.feedback">Feedback</a>
         <a href="/de/support" data-i18n="footer.support">Support</a>

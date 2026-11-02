@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "What is Your city?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Pick a place that matters to you, and I'll paint it into Outbound. After you buy, I'll email you to agree on the place, and it's usually ready about a week later. Outbound itself is included."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "Does it collect anything about me?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -411,12 +403,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Open it and paste your key.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Already yours?</span> Download</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Your city</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + tax, once</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Painted by the person who made Outbound, <br>in about a week. Outbound included.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Add your city for $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -470,21 +456,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Can I use it on more than one Mac?</button>
           <div class="faq-a"><p data-i18n="faq.a11">Yes, on up to three at once with one key. Moving to a new Mac? Click Deactivate in Outbound's Settings on the old one, or use your customer portal, then paste your key on the new one.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">What is Your city?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">Pick a place that matters to you, and I'll paint it into Outbound. After you buy, I'll email you to agree on the place, and it's usually ready about a week later. Outbound itself is included.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Does it collect anything about me?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">No. The app has no account, no analytics and no tracking, and it never asks to see your screen or your files. The bird knows where your cursor is, but that stays on your Mac. The <a href="/privacy">privacy policy</a> has the details.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Does it collect anything about me?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">No. The app has no account, no analytics and no tracking, and it never asks to see your screen or your files. The bird knows where your cursor is, but that stays on your Mac. The <a href="/privacy">privacy policy</a> has the details.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">The code is on GitHub. Can I use it for free?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">You're welcome to read it, learn from it and send fixes. Using it as your wallpaper needs a <a href="/license">license</a>, even if you build it yourself.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">The code is on GitHub. Can I use it for free?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">You're welcome to read it, learn from it and send fixes. Using it as your wallpaper needs a <a href="/license">license</a>, even if you build it yourself.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Something else?</button>
-          <div class="faq-a"><p data-i18n="faq.a15">Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> and you'll hear back from me, the person who made Outbound. The <a href="/support">Support</a> page also covers lost keys, moving to a new Mac and more.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Something else?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Email <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> and you'll hear back from me, the person who made Outbound. The <a href="/support">Support</a> page also covers lost keys, moving to a new Mac and more.</p></div>
         </div>
       </div>
     </div>
@@ -509,7 +491,6 @@
         <a href="#places" data-i18n="footer.places">Places</a>
         <a href="#buy" data-i18n="footer.buy">Buy</a>
         <a href="#faq" data-i18n="faq.title">FAQ</a>
-        <a href="#your-city" data-i18n="footer.city">Your city</a>
         <a href="/waitlist" data-i18n="footer.elsewhere">Windows and iPhone</a>
         <a href="/feedback" data-i18n="footer.feedback">Feedback</a>
         <a href="/support" data-i18n="footer.support">Support</a>

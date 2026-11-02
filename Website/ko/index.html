@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "‘내 도시’는 뭔가요?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "자신에게 소중한 곳을 골라 주세요. 제가 그곳을 Outbound에 그려 넣을게요. 구입하시면 장소를 함께 정하려고 제가 이메일을 드려요. 보통 일주일쯤 뒤에 완성돼요. Outbound도 포함되어 있어요."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "내 정보를 수집하나요?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Outbound를 열고 키를 붙여넣으세요.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">이미 갖고 계신가요?</span> 다운로드</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">내 도시</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per">(세금 별도), 한 번만 결제</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Outbound를 만든 사람이 <br>일주일쯤 걸려 그립니다. Outbound 포함.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">$99에 내 도시 추가하기</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Mac 여러 대에서 쓸 수 있나요?</button>
           <div class="faq-a"><p data-i18n="faq.a11">네, 키 하나로 동시에 3대까지 쓸 수 있어요. 새 Mac으로 옮기나요? 기존 Mac의 Outbound 설정에서 ‘비활성화’를 클릭하거나 고객 포털을 이용한 다음, 새 Mac에 키를 붙여넣으세요.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">‘내 도시’는 뭔가요?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">자신에게 소중한 곳을 골라 주세요. 제가 그곳을 Outbound에 그려 넣을게요. 구입하시면 장소를 함께 정하려고 제가 이메일을 드려요. 보통 일주일쯤 뒤에 완성돼요. Outbound도 포함되어 있어요.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">내 정보를 수집하나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">아니요. 앱에는 계정도, 분석 도구도, 추적 기능도 없고, 화면이나 파일을 보여 달라고 요청하지도 않아요. 새는 커서가 어디 있는지 알지만, 그 정보는 Mac 밖으로 나가지 않아요. 자세한 내용은 <a href="/privacy">개인정보 처리방침</a>에 있어요.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">내 정보를 수집하나요?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">아니요. 앱에는 계정도, 분석 도구도, 추적 기능도 없고, 화면이나 파일을 보여 달라고 요청하지도 않아요. 새는 커서가 어디 있는지 알지만, 그 정보는 Mac 밖으로 나가지 않아요. 자세한 내용은 <a href="/privacy">개인정보 처리방침</a>에 있어요.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">코드가 GitHub에 있던데, 무료로 써도 되나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">코드를 읽고, 배우고, 수정 사항을 보내 주시는 건 언제든 환영해요. 다만 배경화면으로 쓰려면 직접 빌드하더라도 <a href="/license">라이선스</a>가 필요해요.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">코드가 GitHub에 있던데, 무료로 써도 되나요?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">코드를 읽고, 배우고, 수정 사항을 보내 주시는 건 언제든 환영해요. 다만 배경화면으로 쓰려면 직접 빌드하더라도 <a href="/license">라이선스</a>가 필요해요.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">그 밖에 궁금한 게 있나요?</button>
-          <div class="faq-a"><p data-i18n="faq.a15"><a href="mailto:outbound@edbn.me">outbound@edbn.me</a>로 이메일을 보내 주세요. Outbound를 만든 제가 직접 답장해 드려요. <a href="/ko/support">지원</a> 페이지에는 키를 잃어버렸을 때나 새 Mac으로 옮길 때 등에 관한 안내도 있어요.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">그 밖에 궁금한 게 있나요?</button>
+          <div class="faq-a"><p data-i18n="faq.a14"><a href="mailto:outbound@edbn.me">outbound@edbn.me</a>로 이메일을 보내 주세요. Outbound를 만든 제가 직접 답장해 드려요. <a href="/ko/support">지원</a> 페이지에는 키를 잃어버렸을 때나 새 Mac으로 옮길 때 등에 관한 안내도 있어요.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">장소</a>
         <a href="#buy" data-i18n="footer.buy">구입</a>
         <a href="#faq" data-i18n="faq.title">자주 묻는 질문</a>
-        <a href="#your-city" data-i18n="footer.city">내 도시</a>
         <a href="/ko/waitlist" data-i18n="footer.elsewhere">Windows 및 iPhone</a>
         <a href="/ko/feedback" data-i18n="footer.feedback">피드백</a>
         <a href="/ko/support" data-i18n="footer.support">지원</a>

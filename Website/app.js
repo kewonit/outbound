@@ -7,7 +7,6 @@
   var URLS = {
     download: "/download",
     buy: "/buy",
-    city: "https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b",
     github: "https://github.com/kewonit/outbound"
   };
 
@@ -85,7 +84,7 @@
 
   // Counts the clicks that lead to a purchase or a download. A "Coming soon" link has no address, so it counts
   // nothing.
-  var MOMENTS = { buy: "Buy", download: "Download", city: "City" };
+  var MOMENTS = { buy: "Buy", download: "Download" };
   document.querySelectorAll("a[data-url], a[data-dollars]").forEach(function (link) {
     var name = link.hasAttribute("data-dollars") ? "Buy" : MOMENTS[link.getAttribute("data-url")];
     if (!name) return;

@@ -221,14 +221,6 @@
     },
     {
      "@type": "Question",
-     "name": "Czym jest „Twoje miasto”?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Wybierz miejsce, które jest dla Ciebie ważne, a ja namaluję je w Outbound. Po zakupie napiszę do Ciebie, żebyśmy ustalili miejsce, a zwykle jest gotowe mniej więcej tydzień później. Sam Outbound jest w cenie."
-     }
-    },
-    {
-     "@type": "Question",
      "name": "Czy zbiera o mnie jakieś dane?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -412,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Otwórz i wklej klucz.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Już masz?</span> Pobierz</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Twoje miasto</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + podatek, jednorazowo</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Namaluje je twórca Outbound, <br>w mniej więcej tydzień. Outbound w cenie.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Dodaj swoje miasto za $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -471,21 +457,17 @@
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Czy mogę go używać na więcej niż jednym Macu?</button>
           <div class="faq-a"><p data-i18n="faq.a11">Tak, na maksymalnie trzech naraz z jednym kluczem. Przesiadasz się na nowego Maca? Na starym kliknij Dezaktywuj w Ustawieniach Outbound albo skorzystaj z portalu klienta, a potem wklej klucz na nowym.</p></div>
         </div>
-        <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Czym jest „Twoje miasto”?</button>
-          <div class="faq-a"><p data-i18n="faq.a12">Wybierz miejsce, które jest dla Ciebie ważne, a ja namaluję je w Outbound. Po zakupie napiszę do Ciebie, żebyśmy ustalili miejsce, a zwykle jest gotowe mniej więcej tydzień później. Sam Outbound jest w cenie.</p></div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Czy zbiera o mnie jakieś dane?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Nie. Aplikacja nie ma konta, analityki ani śledzenia i nigdy nie prosi o wgląd w Twój ekran ani pliki. Ptaszek wie, gdzie jest Twój kursor, ale ta informacja zostaje na Twoim Macu. Szczegóły znajdziesz w <a href="/privacy">polityce prywatności</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Czy zbiera o mnie jakieś dane?</button>
-          <div class="faq-a"><p data-i18n="faq.a13">Nie. Aplikacja nie ma konta, analityki ani śledzenia i nigdy nie prosi o wgląd w Twój ekran ani pliki. Ptaszek wie, gdzie jest Twój kursor, ale ta informacja zostaje na Twoim Macu. Szczegóły znajdziesz w <a href="/privacy">polityce prywatności</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Kod jest na GitHubie. Czy mogę używać go za darmo?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Śmiało możesz go czytać, uczyć się z niego i przysyłać poprawki. Ale żeby używać Outbound jako tapety, potrzebujesz <a href="/license">licencji</a>, nawet jeśli zbudujesz go samodzielnie.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Kod jest na GitHubie. Czy mogę używać go za darmo?</button>
-          <div class="faq-a"><p data-i18n="faq.a14">Śmiało możesz go czytać, uczyć się z niego i przysyłać poprawki. Ale żeby używać Outbound jako tapety, potrzebujesz <a href="/license">licencji</a>, nawet jeśli zbudujesz go samodzielnie.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q15">Coś jeszcze?</button>
-          <div class="faq-a"><p data-i18n="faq.a15">Napisz na <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, a odpowiem Ci ja, osoba, która stworzyła Outbound. W <a href="/pl/support">Pomocy</a> znajdziesz też informacje o zgubionych kluczach, przenosinach na nowego Maca i nie tylko.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Coś jeszcze?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Napisz na <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, a odpowiem Ci ja, osoba, która stworzyła Outbound. W <a href="/pl/support">Pomocy</a> znajdziesz też informacje o zgubionych kluczach, przenosinach na nowego Maca i nie tylko.</p></div>
         </div>
       </div>
     </div>
@@ -510,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">Miejsca</a>
         <a href="#buy" data-i18n="footer.buy">Kup</a>
         <a href="#faq" data-i18n="faq.title">Częste pytania</a>
-        <a href="#your-city" data-i18n="footer.city">Twoje miasto</a>
         <a href="/pl/waitlist" data-i18n="footer.elsewhere">Windows i iPhone</a>
         <a href="/pl/feedback" data-i18n="footer.feedback">Opinie</a>
         <a href="/pl/support" data-i18n="footer.support">Pomoc</a>
