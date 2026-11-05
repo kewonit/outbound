@@ -629,13 +629,12 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float chance = row == 0 ? mix(b.e.w * 0.33, 0.85, village) : 0.7 * village;
     if (hash11(id, seed + 60u) > chance) return false;
     float worldY = world.y + (yC - local.y);
-    float2 own = ownCourse(worldY, scene, wander);
-    float2 along = normalize(float2(roadSlope(worldY, scene, own), 1.0));
+    float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
     float2 away = float2(along.y, -along.x) * side;
     float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
     float out = b.e.x * 0.5 + size.x + (row == 0 ? 4.0 + 6.0 * hash11(id, seed + 63u) : 34.0 + 10.0 * hash11(id, seed + 63u));
-    h.center = float2(roadX(worldY, scene, own), worldY) + away * out;
-    if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, own)) < ownRiverHalf(worldY, scene, b.d.z * 0.5) + b.i.w + 16.0 + size.y) return false;
+    h.center = float2(roadX(worldY, scene, wander), worldY) + away * out;
+    if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0 + size.y) return false;
     // Nor in a pond.
     float2 pond;
     float pondRadius;
@@ -646,6 +645,14 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     h.id = id;
     h.village = village;
     return true;
+}
+
+// The course a house in slot `k` follows. Through a handover the course changes from row to row, and a house worked out
+// from each of its own pixels would come out sheared, so it goes by its slot, the same for all of them. Trees keeping
+// clear of a house go by the pixel, a metre or two out at worst: they have the room, and this is the deepest the ground
+// shader goes, where every extra value costs GPU memory for each thread that can run at once.
+inline float2 slotCourse(float k, float2 world, float2 local, constant Scene &scene, float2 wander) {
+    return ownCourse(world.y + ((k + 0.5) * 30.0 - local.y), scene, wander);
 }
 
 // Whether a crown of radius `r` at `world` keeps off every house, its shed and its yard.
@@ -700,10 +707,8 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
 inline bool landmarkStands(int kind, float2 centerWorld, constant Biome &b, constant Scene &scene, float riverHalf,
                            float2 wander) {
     float radius = landmarkRadius(kind);
-    float2 own = ownCourse(centerWorld.y, scene, wander);
-    float ownHalf = ownRiverHalf(centerWorld.y, scene, riverHalf);
-    if (ownHalf > 0.25 && abs(riverDistance(centerWorld, scene, own)) < ownHalf + radius * 0.8 + 15.0) return false;
-    return abs(roadDistance(centerWorld, scene, own)) >= b.e.x * 0.5 + radius * 0.8 + 6.0;
+    if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return false;
+    return abs(roadDistance(centerWorld, scene, wander)) >= b.e.x * 0.5 + radius * 0.8 + 6.0;
 }
 
 // How far outside a lake's shore `d` (from its centre) lies, as a share of its radius.
@@ -771,10 +776,9 @@ inline bool clearOfLandmarks(float2 local, float2 shift, float r, Keepouts near,
 
 inline bool clearSpot(float2 at, float2 atWorld, float r, Keepouts near, constant Biome &b, constant Scene &scene,
                       uint seed, float riverHalf, float2 wander) {
-    float2 own = ownCourse(atWorld.y, scene, wander);
-    if (near.river && abs(riverDistance(atWorld, scene, own)) < ownRiverHalf(atWorld.y, scene, riverHalf) + r + 5.0) return false;
+    if (near.river && abs(riverDistance(atWorld, scene, wander)) < riverHalf + r + 5.0) return false;
     if (near.road) {
-        if (abs(roadDistance(atWorld, scene, own)) < b.e.x * 0.5 + r + 1.5) return false;
+        if (abs(roadDistance(atWorld, scene, wander)) < b.e.x * 0.5 + r + 1.5) return false;
         if (!clearOfHouses(atWorld, at, r, b, scene, seed, wander)) return false;
     }
     return clearOfLandmarks(at, atWorld - at, r, near, b, scene, seed, riverHalf, wander);
@@ -872,12 +876,10 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     if (village > 0.5 && b.h.y > 0.0 && abs(fract(y / 34.0) - 0.5) * 34.0 < 4.5) continue;
                     float r = r0 * (0.85 + 0.3 * jh);
                     float worldY = y + shift.y;
-                    float2 own = ownCourse(worldY, scene, wander);
-                    float2 along = normalize(float2(roadSlope(worldY, scene, own), 1.0));
-                    float2 at = float2(roadX(worldY, scene, own), worldY) - shift
+                    float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
+                    float2 at = float2(roadX(worldY, scene, wander), worldY) - shift
                               + float2(along.y, -along.x) * sign * (halfRoad + r + 1.2 + (jh - 0.5) * 0.6);
-                    float ownHalf = ownRiverHalf(worldY, scene, riverHalf);
-                    if (ownHalf > 0.25 && abs(riverDistance(at + shift, scene, own)) < ownHalf + r + 8.0) continue;
+                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 8.0) continue;
                     if (!clearOfHouses(at + shift, at, r, b, scene, seed, wander)) continue;
                     plant(k, local, at, r, r * 2.4, broadleaf, fract(jh * 9.1), leaves, scene);
                 }
@@ -1032,7 +1034,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
     for (int dk = -1; dk <= 1; dk++) {
         for (int row = 0; row < 2; row++) {
             Plot h;
-            if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) continue;
+            if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, slotCourse(k0 + float(dk), world, local, scene, wander))) continue;
             c = house(c, rotate(world - h.center, -h.angle), h.angle, h.size, h.id, b, scene, seed, cover, light, lightID);
             // Where homesteads keep a windbreak, an L of dark evergreens behind and beside the house.
             if (b.l.x > 0.5 && hash11(h.id, seed + 71u) < 0.85) {
@@ -1319,7 +1321,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float r;
     if (!pondSite(local, b, seed, center, r)) return c;
     float2 centerWorld = world + (center - local);
-    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, ownCourse(centerWorld.y, scene, wander))) < 90.0 + r) return c;
+    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, wander)) < 90.0 + r) return c;
     float size = max(b.k.w, 1.0);
     float2 d = local - center;
     if (dot(d, d) > r * r * 4.0) return c;
@@ -1416,9 +1418,8 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 float2 centre = (float2(cell) + 0.5) * spacing + (hash22(cell, seed + 12u) - 0.5) * 1.6;
                 float r = b.c.z * 0.3 * (0.85 + 0.3 * hash21(cell, seed + 13u));
                 float2 at = rotate(centre, -angle);
-                float2 own = ownCourse(at.y + shift.y, scene, wander);
-                if (near.river && abs(riverDistance(at + shift, scene, own)) < ownRiverHalf(at.y + shift.y, scene, riverHalf) + r + 5.0) continue;
-                if (near.road && (abs(roadDistance(at + shift, scene, own)) < b.e.x * 0.5 + r + 1.5
+                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 5.0) continue;
+                if (near.road && (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 1.5
                                   || !clearOfHouses(at + shift, at, r, b, scene, seed, wander))) continue;
                 // Fallen petals in the grass round trees in flower.
                 if (b.d.y > 0.0 && b.blossom.w > 0.5) {
@@ -1877,10 +1878,16 @@ inline float landmarkClaim(int kind) {
          : kind == markCorral ? 18.0 : min(landmarkRadius(kind) * 0.8, 90.0);
 }
 
+// How far past its `reach` a claim fades out, as soft as the patches' own edges. No further, as both places are painted
+// wherever it pulls the land across the line.
+inline float claimEdge(float reach) {
+    return reach + min(reach, 24.0);
+}
+
 // Claims the ground `away` from something standing at `at`, for the old place (x) or the new (y): all of it out to
-// `reach`, then less and less, as soft as the patches' own edges.
+// `reach`, then less and less.
 inline void claim(thread float2 &claims, float2 away, float reach, float2 at, constant Scene &scene) {
-    float pull = 1.0 - smoothstep(reach, reach * 2.0, length(away));
+    float pull = 1.0 - smoothstep(reach, claimEdge(reach), length(away));
     if (pull <= 0.0) return;
     if (landTurn(at.y, scene) >= patchThreshold(at, scene)) claims.y = max(claims.y, pull);
     else claims.x = max(claims.x, pull);
@@ -1900,7 +1907,7 @@ inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, consta
         int2 id;
         if (reach <= 0.0 || !landmarkSite(kind, i == 0 ? b.j.y : b.j.w, local, b, seed + uint(i) * 17u, center, id)) continue;
         float2 away = local - center;
-        if (dot(away, away) >= reach * reach * 4.0) continue;
+        if (length(away) >= claimEdge(reach)) continue;
         if (landmarkStands(kind, center + shift, b, scene, riverHalf, wander)) claim(claims, away, reach, center + shift, scene);
     }
     float2 pond;
@@ -1908,7 +1915,7 @@ inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, consta
     if (pondSite(local, b, seed, pond, pondRadius) && pondRadius < 60.0) {
         float2 away = local - pond;
         float reach = pondRadius * 1.1 + 3.0;
-        if (dot(away, away) < reach * reach * 4.0) claim(claims, away, reach, pond + shift, scene);
+        if (length(away) < claimEdge(reach)) claim(claims, away, reach, pond + shift, scene);
     }
     // The line moves too little across a house for one far from it to reach this pixel.
     if ((b.e.w <= 0.0 && b.i.x <= 0.0) || abs(turnedBy) > 0.3) return;
@@ -1919,7 +1926,7 @@ inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, consta
     for (int dk = -1; dk <= 1; dk++) {
         for (int row = 0; row < 2; row++) {
             Plot h;
-            if (plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) {
+            if (plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, slotCourse(k0 + float(dk), world, local, scene, wander))) {
                 claim(claims, world - h.center, 13.0, h.center, scene);
             }
         }

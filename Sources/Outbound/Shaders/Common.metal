@@ -338,16 +338,9 @@ inline float riverWidth(constant Scene &scene, float m) {
     return (a < 0.5) != (b < 0.5) ? max(a, b) : mix(a, b, m);
 }
 
-// What decides whether something stands is its own row, not the pixel being painted: through a handover the course
-// and the river change from row to row, and a house judged from each of its pixels would come out sheared. A Fly To
-// repaints everything as the sweep passes, so it keeps the pixel's.
+// The course at row `y` while flying. A Fly To repaints everything as the sweep passes, so it keeps the pixel's.
 inline float2 ownCourse(float y, constant Scene &scene, float2 wander) {
     return scene.morph.z < 0.0 ? course(scene, landTurn(y, scene)) : wander;
-}
-
-inline float ownRiverHalf(float y, constant Scene &scene, float riverHalf) {
-    if (riverHalf <= 0.25 || scene.morph.z >= 0.0) return riverHalf;
-    return riverWidth(scene, landTurn(y, scene)) * 0.5;
 }
 
 // MARK: - Traffic
