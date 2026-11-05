@@ -202,6 +202,7 @@ final class Bench {
     let shipped: MTLLibrary
     private var made: [Scene]?
     private var handoversMade: [Scene]?
+    private var handoverWorlds: [String: World] = [:]
 
     init() throws {
         gpu = try GPU()
@@ -285,11 +286,20 @@ final class Bench {
                 time += 2
                 world.advance(to: time)
             }
+            handoverWorlds[place.id] = world
             let bottom = world.camera.y
             let view = world.frame(bottom: bottom, top: bottom + Double(frame.height) * World.metresPerPoint)
             return Scene(place: place.id, gpu: view.scene, bottom: Float(bottom - view.reference))
         }
         return handoversMade!
+    }
+
+    /// The handover out of a place as it stands `seconds` later, over the same view.
+    func handover(_ id: String, after seconds: Double) throws -> SceneGPU {
+        _ = try handovers()
+        let world = try #require(handoverWorlds[id])
+        let bottom = world.camera.y
+        return world.frame(bottom: bottom, top: bottom + 982 * World.metresPerPoint, at: world.time + seconds).scene
     }
 
     /// Three views as the frame pass gets them on a 1512 by 982 display, one for each kind of flock: a skein, a
