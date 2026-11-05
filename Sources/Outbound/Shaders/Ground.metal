@@ -26,6 +26,8 @@ struct Land {
     float lightID;
     /// How much is roof or crown, which cars on the road pass under.
     float cover;
+    /// How much of that is a crown.
+    float crown;
 };
 
 inline float3 cropColor(constant Biome &b, float h) {
@@ -1653,6 +1655,7 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.herd *= 1.0 - cover;
     l.water *= 1.0 - cover;
     l.cover = cover;
+    l.crown = saturate(cover - roofs);
 
     // A broad wash, like paint laid on unevenly across the sheet.
     l.color *= 1.0 + 0.08 * (fbm(local / 340.0, 3, seed + 99u) - 0.5);
@@ -1984,17 +1987,27 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     Land l = first == 1 ? b : a;
     if (first != last) {
+        // Too many trees to settle one by one, so where a crown of one place meets bare land of the other it is
+        // left solid rather than half there, but for the very edges, where the other place stops being painted. A
+        // Fly To's frame pass can't tell crowns from land, so there the plain blend stands.
+        float mixed = blend;
+        if (scene.morph.z < 0.0) {
+            float lean = b.crown - a.crown;
+            float strength = smoothstep(0.0, 0.25, min(blend, 1.0 - blend));
+            mixed += lean * strength * (lean > 0.0 ? 1.0 - blend : blend);
+        }
         l = a;
-        l.color = mix(a.color, b.color, blend);
-        l.water = mix(a.water, b.water, blend);
-        l.sway = mix(a.sway, b.sway, blend);
-        l.herd = mix(a.herd, b.herd, blend);
-        l.road = mix(a.road, b.road, blend);
-        l.light = mix(a.light, b.light, blend);
-        l.cover = mix(a.cover, b.cover, blend);
-        l.lightID = blend > 0.5 ? b.lightID : a.lightID;
+        l.color = mix(a.color, b.color, mixed);
+        l.water = mix(a.water, b.water, mixed);
+        l.sway = mix(a.sway, b.sway, mixed);
+        l.herd = mix(a.herd, b.herd, mixed);
+        l.road = mix(a.road, b.road, mixed);
+        l.light = mix(a.light, b.light, mixed);
+        l.cover = mix(a.cover, b.cover, mixed);
+        // The lamp whose light this mostly is, which needn't be the place with most of the land here.
+        l.lightID = b.light * mixed > a.light * (1.0 - mixed) ? b.lightID : a.lightID;
         // A darker tide line where the two paints meet.
-        l.color *= 1.0 - 0.12 * (1.0 - abs(blend * 2.0 - 1.0));
+        l.color *= 1.0 - 0.12 * (1.0 - abs(mixed * 2.0 - 1.0));
     }
 
     float onRoad = l.road;
