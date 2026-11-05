@@ -201,6 +201,7 @@ final class Bench {
     /// The shaders as they shipped in v1.0.
     let shipped: MTLLibrary
     private var made: [Scene]?
+    private var handoversMade: [Scene]?
 
     init() throws {
         gpu = try GPU()
@@ -259,6 +260,38 @@ final class Bench {
         return made!
     }
 
+    /// Each place turning into the next, at the middle of the view, on the shortest stay at the slowest pace: the
+    /// settings that show the most of a handover. Flown in small steps, as a long one would run past where the journey
+    /// means the next place to begin.
+    func handovers() throws -> [Scene] {
+        if let handoversMade { return handoversMade }
+        let frame = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        let noon = Date(timeIntervalSince1970: 1_782_907_200)
+        handoversMade = Place.all.map { place in
+            let world = World(place: place, time: 0, date: noon, light: .alwaysDay)
+            world.pointer = { nil }
+            world.isDesktop = { _ in false }
+            world.now = { noon }
+            world.home = frame
+            world.desktop = frame
+            world.centreRiver(on: frame)
+            world.journey.followsCalendar = false
+            world.journey.refreshSeasons(date: noon)
+            world.journey.setSpeed(4.2, at: 0)
+            world.journey.legLength = 6 * 60 * 4.2
+            var time = 20.0
+            world.advance(to: time)
+            while !world.handoverPassing, time < 7200 {
+                time += 2
+                world.advance(to: time)
+            }
+            let bottom = world.camera.y
+            let view = world.frame(bottom: bottom, top: bottom + Double(frame.height) * World.metresPerPoint)
+            return Scene(place: place.id, gpu: view.scene, bottom: Float(bottom - view.reference))
+        }
+        return handoversMade!
+    }
+
     /// Three views as the frame pass gets them on a 1512 by 982 display, one for each kind of flock: a skein, a
     /// loose group and birds circling.
     static let views: [CompositeGPU] = (0..<3).map { formation in
@@ -310,11 +343,18 @@ final class Bench {
 
     /// A square of ground 256 texels across, a point to a texel, around the river at the bottom of the view.
     func renderGround(_ scene: Scene, in library: MTLLibrary) throws -> (color: [UInt8], night: [UInt8]) {
+        try renderGround(scene, from: scene.bottom, width: 256, height: 256, in: library)
+    }
+
+    /// Ground `width` by `height` texels, a point to a texel, around the river and rising from world y `from`.
+    func renderGround(_ scene: Scene, from y: Float, width: Int, height: Int,
+                      in library: MTLLibrary) throws -> (color: [UInt8], night: [UInt8]) {
         let texel = Float(World.metresPerPoint)
-        var params = GroundGPU(origin: SIMD4(0, 0, scene.gpu.road.x - 128 * texel, scene.bottom),
+        var params = GroundGPU(origin: SIMD4(0, 0, scene.gpu.road.x - Float(width / 2) * texel, y),
                                texel: SIMD4(texel, 0, 0, 0))
         var gpu = scene.gpu
-        let images = try render("ground", in: library, formats: [ShaderLibrary.cacheFormat, ShaderLibrary.nightFormat]) {
+        let images = try render("ground", in: library, formats: [ShaderLibrary.cacheFormat, ShaderLibrary.nightFormat],
+                                width: width, height: height) {
             $0.setFragmentBytes(&params, length: MemoryLayout<GroundGPU>.stride, index: 0)
             $0.setFragmentBytes(&gpu, length: MemoryLayout<SceneGPU>.stride, index: 1)
         }
@@ -336,10 +376,9 @@ final class Bench {
         }[0]
     }
 
-    /// Draws one fragment over a 256 by 256 target per format and reads every target back.
-    private func render(_ fragment: String, in library: MTLLibrary, formats: [MTLPixelFormat],
-                        bind: (MTLRenderCommandEncoder) -> Void) throws -> [[UInt8]] {
-        let size = 256
+    /// Draws one fragment over a target per format, 256 by 256 unless asked otherwise, and reads every target back.
+    private func render(_ fragment: String, in library: MTLLibrary, formats: [MTLPixelFormat], width: Int = 256,
+                        height: Int = 256, bind: (MTLRenderCommandEncoder) -> Void) throws -> [[UInt8]] {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = library.makeFunction(name: "fullscreen")
         descriptor.fragmentFunction = library.makeFunction(name: fragment)
@@ -347,7 +386,7 @@ final class Bench {
         var targets: [MTLTexture] = []
         for (i, format) in formats.enumerated() {
             descriptor.colorAttachments[i].pixelFormat = format
-            let texture = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: size, height: size,
+            let texture = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: width, height: height,
                                                                    mipmapped: false)
             texture.usage = .renderTarget
             texture.storageMode = .shared
@@ -369,8 +408,8 @@ final class Bench {
         if let error = commands.error { throw error }
         return zip(targets, formats).map { target, format in
             let bytes = format == .rg8Unorm ? 2 : 4
-            var pixels = [UInt8](repeating: 0, count: size * size * bytes)
-            target.getBytes(&pixels, bytesPerRow: size * bytes, from: MTLRegionMake2D(0, 0, size, size),
+            var pixels = [UInt8](repeating: 0, count: width * height * bytes)
+            target.getBytes(&pixels, bytesPerRow: width * bytes, from: MTLRegionMake2D(0, 0, width, height),
                             mipmapLevel: 0)
             return pixels
         }

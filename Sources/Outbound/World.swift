@@ -447,6 +447,11 @@ final class World {
             locomotive: color(railway.locomotive))
     }
 
+    /// Whether the middle of the main display has reached the middle of the first turn into another place.
+    var handoverPassing: Bool {
+        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint - Journey.morphLength / 2).index > 0
+    }
+
     /// Whether a train is passing the middle of the main display.
     var trainPassing: Bool {
         train(reference: 0, at: time).rail.w > 0
