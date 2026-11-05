@@ -2021,11 +2021,23 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     // Bridges only where the river is still painted.
     float crossingHalf = riverShown > 0.5 ? riverHalf : 0.0;
-    constant Leg &railLeg = blend > 0.5 ? scene.legB : scene.legA;
-    c = railway(c, world, railLeg, scene, texel, crossingHalf, wander, herd, water);
+    float turn = scene.morph.z < 0.0 ? railTurn(world.y, scene) : (blend > 0.5 ? 1.0 : 0.0);
+    int firstRail = turn >= 1.0 ? 1 : 0, lastRail = turn <= 0.0 ? 0 : 1;
+    #pragma clang loop unroll(disable)
+    for (int i = firstRail; i <= lastRail; i++) {
+        float share = i == 0 ? 1.0 - turn : turn;
+        float railHerd = herd, railWater = water;
+        float3 railed = railway(c, world, i == 0 ? scene.legA : scene.legB, scene, texel, crossingHalf, wander, railHerd, railWater);
+        c = mix(c, railed, share);
+        herd = mix(herd, railHerd, share);
+        water = mix(water, railWater, share);
+    }
     float traffic = 0.0;
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, crossingHalf, wander, onRoad, traffic, water, herd);
-    c = railOverRoad(c, world, railLeg, onRoad, texel);
+    #pragma clang loop unroll(disable)
+    for (int i = firstRail; i <= lastRail; i++) {
+        c = mix(c, railOverRoad(c, world, i == 0 ? scene.legA : scene.legB, onRoad, texel), i == 0 ? 1.0 - turn : turn);
+    }
 
     GroundOut out;
     out.color = float4(saturate(c), packGround(water, l.sway, traffic > 0.5 && l.cover < 0.5, herd > 0.5));

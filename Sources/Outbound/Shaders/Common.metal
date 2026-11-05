@@ -34,7 +34,7 @@ struct Train {
     float4 rail;   // origin (relative to the reference), angle, active
     float4 shape;  // wiggle amplitude, wavelength, phase
     float4 run;    // nose along the rail, direction, car length, cars
-    float4 info;   // locomotives, kind
+    float4 info;   // locomotives, kind, whose line it is through a handover (0 either, 1 the old place, 2 the new)
     float4 body, stripe, roof, locomotive;
 };
 
@@ -194,6 +194,12 @@ inline float landTurn(float y, constant Scene &scene) {
     if (y < boundary) return 0.0;
     if (scene.morph.z < 0.0) return smoothstep(boundary, boundary + scene.morph.y, y);
     return saturate((scene.morph.z * (scene.morph.w + 400.0) - (y - boundary)) / 400.0);
+}
+
+// How much of the railway at world y is the new place's while flying, 0 to 1. Two places' lines have nothing to do with
+// each other and each runs on for ever, so each has to end somewhere: once, as the land turns halfway, not at every patch.
+inline float railTurn(float y, constant Scene &scene) {
+    return smoothstep(0.42, 0.58, landTurn(y, scene));
 }
 
 // How far the land must have turned before the new place reaches `world`, 0 to 1: the line its patches spread along.

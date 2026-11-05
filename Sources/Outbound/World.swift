@@ -370,7 +370,7 @@ final class World {
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase, 0),
             traffic: SIMD4(cars.north, cars.south, boats.north, boats.south),
             bends: bends,
-            train: train(reference: reference, at: t),
+            train: train(reference: reference, at: t, turningInto: legA.index != legB.index ? legB.index : nil),
             legA: gpu(legA, reference: reference),
             legB: gpu(legB, reference: reference))
         return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
@@ -421,10 +421,20 @@ final class World {
         return line
     }
 
-    /// The train passing the middle of the main display at `t`, if one is.
-    private func train(reference: Double, at t: TimeInterval) -> TrainGPU {
+    /// The leg whose railway is shown at world y. A place's line carries on halfway through the turn into the next.
+    private func railLeg(at y: Double) -> Leg {
+        let leg = journey.leg(at: y)
+        if leg.sweepStart == nil, y < leg.start + Journey.morphLength / 2, let previous = journey.leg(before: leg) {
+            return previous
+        }
+        return leg
+    }
+
+    /// The train passing the middle of the main display at `t`, if one is. `turningInto` is the leg the land is turning
+    /// into, if it is turning.
+    private func train(reference: Double, at t: TimeInterval, turningInto: Int? = nil) -> TrainGPU {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
-        let leg = journey.leg(at: centre.y)
+        let leg = railLeg(at: centre.y)
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
         // When the middle of the main display passes over the line, following the camera's real path.
         let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
@@ -442,7 +452,8 @@ final class World {
             rail: SIMD4(Float(line.origin.x), Float(line.origin.y + leg.start - reference), Float(line.angle), 1),
             shape: SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase), 0),
             run: SIMD4(Float(run.head), Float(run.direction), Float(railway.carLength), Float(railway.cars)),
-            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), 0, 0),
+            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue),
+                        turningInto.map { $0 == leg.index ? 2 : 1 } ?? 0, 0),
             body: color(railway.body), stripe: color(railway.stripe), roof: color(railway.roof),
             locomotive: color(railway.locomotive))
     }

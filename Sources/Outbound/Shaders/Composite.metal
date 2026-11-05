@@ -409,7 +409,16 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
-            c = train(c, world, scene.train, scene, mpp, light);
+            // Through a handover a train goes no further than its line does.
+            float turn = railTurn(world.y, scene);
+            float shown = scene.train.info.z < 0.5 || scene.morph.z >= 0.0 ? 1.0
+                        : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
+            if (shown > 0.0) {
+                float3 lit = light;
+                float3 passing = train(c, world, scene.train, scene, mpp, lit);
+                c = mix(c, passing, shown);
+                light = mix(light, lit, shown);
+            }
         }
     }
 
