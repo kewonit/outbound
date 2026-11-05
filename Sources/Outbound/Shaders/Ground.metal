@@ -1861,6 +1861,82 @@ inline float3 railOverRoad(float3 c, float2 world, constant Leg &leg, float onRo
     return mix(c, float3(0.78, 0.78, 0.80), fill(abs(ad - 0.72) - 0.06, max(0.08, texel * 0.6)) * onRoad);
 }
 
+// MARK: - Handover
+
+// The land turns into the next place in patches, along a line that knows nothing of what stands on it. Left to itself
+// the line would cut through a house and leave half of it a ghost. So everything that has to stay in one piece claims
+// the ground it stands on for the side its own centre is on: it stands whole in the place it belongs to, or that side's
+// land covers it whole. Nothing is taken away from either place, and no bare strip follows the line.
+//
+// How far a landmark has to stay in one piece. Lakes, burns and feedlots lie over the land like washes, and go with it.
+inline float landmarkClaim(int kind) {
+    return kind == markLake || kind == markBurn || kind == markFeedlot ? 0.0
+         : kind == markCorral ? 18.0 : min(landmarkRadius(kind) * 0.8, 90.0);
+}
+
+// Claims the ground `away` from something standing at `at`, for the old place (x) or the new (y): all of it out to
+// `reach`, then less and less, as soft as the patches' own edges.
+inline void claim(thread float2 &claims, float2 away, float reach, float2 at, constant Scene &scene) {
+    float pull = 1.0 - smoothstep(reach, reach * 2.0, length(away));
+    if (pull <= 0.0) return;
+    if (landTurn(at.y, scene) >= patchThreshold(at, scene)) claims.y = max(claims.y, pull);
+    else claims.x = max(claims.x, pull);
+}
+
+// What stands in one place near `world`, as houses(), ponds() and landmark() would find it.
+inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, constant Leg &leg, constant Scene &scene,
+                     float riverHalf, float2 wander) {
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 local = float2(world.x, world.y - leg.info.x);
+    float2 shift = world - local;
+    for (int i = 0; i < 2; i++) {
+        int kind = int(i == 0 ? b.j.x : b.j.z);
+        float reach = landmarkClaim(kind);
+        float2 center;
+        int2 id;
+        if (reach <= 0.0 || !landmarkSite(kind, i == 0 ? b.j.y : b.j.w, local, b, seed + uint(i) * 17u, center, id)) continue;
+        float2 away = local - center;
+        if (dot(away, away) >= reach * reach * 4.0) continue;
+        if (landmarkStands(kind, center + shift, b, scene, riverHalf, wander)) claim(claims, away, reach, center + shift, scene);
+    }
+    float2 pond;
+    float pondRadius;
+    if (pondSite(local, b, seed, pond, pondRadius) && pondRadius < 60.0) {
+        float2 away = local - pond;
+        float reach = pondRadius * 1.1 + 3.0;
+        if (dot(away, away) < reach * reach * 4.0) claim(claims, away, reach, pond + shift, scene);
+    }
+    // The line moves too little across a house for one far from it to reach this pixel.
+    if ((b.e.w <= 0.0 && b.i.x <= 0.0) || abs(turnedBy) > 0.3) return;
+    float rx = roadX(world.y, scene, wander);
+    if (abs(world.x - rx) > b.e.x * 0.5 + 80.0) return;
+    float side = world.x > rx ? 1.0 : -1.0;
+    float k0 = floor(local.y / 30.0);
+    for (int dk = -1; dk <= 1; dk++) {
+        for (int row = 0; row < 2; row++) {
+            Plot h;
+            if (plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) {
+                claim(claims, world - h.center, 13.0, h.center, scene);
+            }
+        }
+    }
+}
+
+// `blend` where it has been settled by what stands here.
+inline float settled(float blend, float2 world, float turnedBy, constant Scene &scene, float halfA, float halfB,
+                     float2 wander) {
+    float2 claims = 0.0;
+    // Never unrolled, as with land(): one copy of all this, not two.
+    #pragma clang loop unroll(disable)
+    for (int i = 0; i < 2; i++) {
+        claimsOf(claims, world, turnedBy, i == 0 ? scene.legA : scene.legB, scene, i == 0 ? halfA : halfB, wander);
+    }
+    // The stronger claim wins, so a house keeps the ground it stands on from a neighbour's fading edge; only where the
+    // two are nearly level do they share it, so the change between them is soft rather than a cut.
+    return mix(blend, saturate(0.5 + 2.5 * (claims.y - claims.x)), max(claims.x, claims.y));
+}
+
 fragment GroundOut ground(VertexOut in [[stage_in]],
                           constant GroundParams &params [[buffer(0)]],
                           constant Scene &scene [[buffer(1)]]) {
@@ -1877,12 +1953,15 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     float2 wander = course(scene, m);
     float widthA = scene.legA.biome.d.z, widthB = scene.legB.biome.d.z;
     float width = riverWidth(scene, m);
+    float riverHalf = width * 0.5;
+    float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
+    // Only where the land is turning can the line be anywhere near. A Fly To's own sweep is left as it is: the frame
+    // pass has to blend its two paintings just as this does, and can't tell what stands where.
+    if (scene.morph.z < 0.0 && m > 0.03 && m < 0.97) blend = settled(blend, world, m - threshold, scene, halfA, halfB, wander);
     // Between a place with a river and one without, the river is painted over in the same creeping patches as
     // the land, rather than narrowing to a point in the middle of a field.
     float riverShown = 1.0;
     if ((widthA < 0.5) != (widthB < 0.5)) riverShown = widthA >= 0.5 ? 1.0 - blend : blend;
-    float riverHalf = width * 0.5;
-    float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
     // Each place shown here is painted from the one call, in a loop of one or two, so the shader holds a single copy
     // of everything land() works with. Every copy costs memory for each thread the GPU can run at once, hundreds of
     // megabytes in all.
