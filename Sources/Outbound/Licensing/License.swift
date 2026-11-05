@@ -1,3 +1,5 @@
+// Copies from the App Store are paid for there, so they have no license key to check.
+#if !APPSTORE
 import AppKit
 import Combine
 import OutboundCore
@@ -255,3 +257,4 @@ final class LicenseController: ObservableObject {
         if unlocks != was { onChange(unlocks) }
     }
 }
+#endif

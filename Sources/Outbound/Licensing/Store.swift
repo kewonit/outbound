@@ -1,3 +1,5 @@
+// Copies from the App Store are paid for there, so they have no license key to check.
+#if !APPSTORE
 import Foundation
 import OutboundCore
 import Security
@@ -238,3 +240,4 @@ enum LicenseKeychain {
         SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)
     }
 }
+#endif

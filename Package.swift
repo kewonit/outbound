@@ -2,6 +2,10 @@
 import Foundation
 import PackageDescription
 
+// OUTBOUND_APPSTORE=1 builds the Mac App Store edition, which the App Store sells and updates: it leaves out
+// Sparkle and the license store.
+let appStore = ProcessInfo.processInfo.environment["OUTBOUND_APPSTORE"] != nil
+
 let package = Package(
     name: "Outbound",
     platforms: [.macOS(.v13)],
@@ -12,8 +16,10 @@ let package = Package(
     targets: [
         .target(name: "OutboundCore"),
         // Shaders ship as source and are compiled at launch, so they can be edited live while developing.
-        .executableTarget(name: "Outbound", dependencies: ["OutboundCore", .product(name: "Sparkle", package: "Sparkle")],
-                          resources: [.copy("Shaders")]),
+        .executableTarget(name: "Outbound",
+                          dependencies: ["OutboundCore"] + (appStore ? [] : [.product(name: "Sparkle", package: "Sparkle")]),
+                          resources: [.copy("Shaders")],
+                          swiftSettings: appStore ? [.define("APPSTORE")] : []),
         // Runs the shaders on the GPU, next to a frozen copy of how they shipped. Reads its .metal files from the
         // source tree.
         .testTarget(name: "ShaderTests", dependencies: ["Outbound", "OutboundCore"],

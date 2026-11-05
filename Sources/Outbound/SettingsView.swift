@@ -5,10 +5,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var preferences: Preferences
+    #if !APPSTORE
     @ObservedObject var license: LicenseController
-    /// What the menu's Check for Updates and Feedback do, so the buttons here do just the same.
+    /// What the menu's Check for Updates does, so the button here does just the same. The App Store updates its copy.
     let canCheckForUpdates: Bool
     let checkForUpdates: () -> Void
+    #endif
+    /// What the menu's Feedback does.
     let sendFeedback: () -> Void
     @State private var opensAtLogin = LoginItem.isOn
 
@@ -29,6 +32,7 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section {
+                #if !APPSTORE
                 if !LicenseController.isGated {
                     LabeledContent("License", value: String(localized: "Development build"))
                 } else if license.record == nil {
@@ -48,9 +52,14 @@ struct SettingsView: View {
                 if let message = license.message {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
+                #endif
             } footer: {
+                #if APPSTORE
+                AboutFooter(sendFeedback: sendFeedback)
+                #else
                 AboutFooter(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
                             sendFeedback: sendFeedback)
+                #endif
             }
         }
         .formStyle(.grouped)
@@ -67,12 +76,20 @@ struct SettingsView: View {
 /// Under the settings: which Outbound this is, what it does by itself, and buttons for the site, help, feedback and
 /// updates, centred, as an About window has them.
 struct AboutFooter: View {
+    #if !APPSTORE
     let canCheckForUpdates: Bool
     let checkForUpdates: () -> Void
+    #endif
     let sendFeedback: () -> Void
 
+    #if APPSTORE
+    // Opened from the App Store copy, the site leaves out every way to buy it there, and shows App Store help.
+    private static let support = URL(string: "https://outbound.edbn.me/support?from=appstore")!
+    private static let privacy = URL(string: "https://outbound.edbn.me/privacy?from=appstore")!
+    #else
     private static let website = URL(string: "https://outbound.edbn.me")!
     private static let support = URL(string: "https://outbound.edbn.me/support")!
+    #endif
 
     var body: some View {
         VStack(spacing: 6) {
@@ -91,21 +108,33 @@ struct AboutFooter: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            // The same width each where the words allow, so the row sits even.
+            // The same width each where the words allow, so the row sits even. The website sells the direct
+            // download, which an App Store copy mustn't point to, so that one has Privacy in its place.
             HStack(spacing: 8) {
-                Button { NSWorkspace.shared.open(Self.website) } label: { Text("Website").frame(minWidth: 72) }
-                Button { NSWorkspace.shared.open(Self.support) } label: { Text("Support").frame(minWidth: 72) }
+                #if APPSTORE
+                link("Support", to: Self.support)
+                link("Privacy", to: Self.privacy)
+                #else
+                link("Website", to: Self.website)
+                link("Support", to: Self.support)
+                #endif
                 Button(action: sendFeedback) { Text("Feedback").frame(minWidth: 72) }
             }
             .padding(.top, 8)
+            #if !APPSTORE
             Button("Check for Updates…", action: checkForUpdates)
                 .disabled(!canCheckForUpdates)
                 .padding(.top, 2)
+            #endif
         }
         .buttonStyle(.bordered)
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
+    }
+
+    private func link(_ title: LocalizedStringKey, to url: URL) -> some View {
+        Button { NSWorkspace.shared.open(url) } label: { Text(title).frame(minWidth: 72) }
     }
 }
 

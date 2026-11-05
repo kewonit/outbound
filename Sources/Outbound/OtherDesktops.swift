@@ -1,5 +1,7 @@
 import AppKit
 
+// Not in the App Store copy, whose sandbox keeps it out of the system's wallpaper store.
+#if !APPSTORE
 /// Puts the user's own pictures back on the desktops that aren't in view. macOS keeps a picture for every desktop
 /// (Space) on every display, and an app can only change the ones in view, so a painting left on another desktop as
 /// Outbound quits would stay there. WallpaperAgent keeps all those pictures in a store of its own, which this edits:
@@ -185,3 +187,4 @@ enum OtherDesktops {
         }
     }
 }
+#endif

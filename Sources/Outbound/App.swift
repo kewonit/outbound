@@ -13,8 +13,11 @@ enum OutboundApp {
 
     static func main() {
         launched = CACurrentMediaTime()
+        #if !APPSTORE
+        // The renderer behind the site's pictures; the App Store copy is only the wallpaper.
         let arguments = CommandLine.arguments
         if Exporter.handles(arguments) { exit(Exporter.run(arguments)) }
+        #endif
         let app = NSApplication.shared
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
@@ -28,11 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var displays: DisplayManager!
     private var stills: StillWriter!
     private let preferences = Preferences()
+    #if !APPSTORE
     private let license = LicenseController()
-    private var activation: ActivationWindow?
-    private var gpu: GPU!
     private var updates: Updates!
     private var licenseTimer: Timer?
+    /// Links from the thank-you page that arrived before launch finished.
+    private var earlyLinks: [ActivationLink] = []
+    #endif
+    private var activation: ActivationWindow?
+    private var gpu: GPU!
     private var settingsWindow: NSWindow?
     private var stillsWereOn = false
     private var paintingTimer: Timer?
@@ -47,12 +54,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var unlockedAt = -TimeInterval.infinity
     private var signals: [DispatchSourceSignal] = []
     private var preferencesChanged: AnyCancellable?
-    /// Links from the thank-you page that arrived before launch finished.
-    private var earlyLinks: [ActivationLink] = []
     /// Outbound is quitting to open again at once, as when the GPU stopped taking its work, so the painting stays.
     private var relaunching = false
 
     private var world: World { displays.world }
+
+    /// Whether this copy may fly. One from the App Store always may: the store sold it.
+    private var unlocked: Bool {
+        #if APPSTORE
+        true
+        #else
+        license.unlocks
+        #endif
+    }
+
+    #if APPSTORE
+    private static let welcomedKey = "welcomed"
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if isAlreadyRunning {
@@ -87,13 +105,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let world = resumed
             ?? World(place: Place.named(preferences.lastPlace) ?? .first, time: now, light: preferences.light)
         displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
+        #if !APPSTORE
         updates = Updates()
         updates.isQuiet = { [weak self] in self?.displays.isQuiet ?? false }
         displays.onQuiet = { [weak self] in self?.updates.installIfQuiet() }
+        #endif
         stillsWereOn = preferences.matchingStill
         applyPreferences()
+        #if !APPSTORE
         if !LicenseController.isGated { displays.note = String(localized: "Development build") }
-        displays.running = license.unlocks
+        #endif
+        displays.running = unlocked
         displays.onReveal = { [weak self] in self?.refreshPainting(force: false) }
         displays.start()
         // Only Outbound's own windows need it, so it waits until the wallpapers' first frames are on their way.
@@ -124,6 +146,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
 
+        #if APPSTORE
+        // Says where Outbound lives, once: it has no Dock icon, only the gull in the menu bar.
+        if !UserDefaults.standard.bool(forKey: Self.welcomedKey) {
+            UserDefaults.standard.set(true, forKey: Self.welcomedKey)
+            showActivation()
+        }
+        #else
         license.onChange = { [weak self] unlocked in self?.licenseChanged(unlocked) }
         if !license.unlocks {
             showActivation()
@@ -140,6 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         earlyLinks.forEach(handle)
         earlyLinks = []
+        #endif
         #if DEBUG
         if ProcessInfo.processInfo.environment["OUTBOUND_EXERCISE"] != nil { exercise() }
         #endif
@@ -194,7 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Whether the desktop picture is a painting of the view while Outbound runs.
     private var paintsDesktop: Bool {
-        preferences.matchingStill && license.unlocks
+        preferences.matchingStill && unlocked
     }
 
     /// Keeps the painting on the desktop close to the view, so the moment it shows is never far behind: on a new place
@@ -275,6 +305,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.display.info("Locked: back \(String(format: "%.1f", back), privacy: .public) s to the painting's moment")
     }
 
+    #if !APPSTORE
     private func licenseChanged(_ unlocked: Bool) {
         if unlocked {
             displays.running = true
@@ -286,17 +317,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showActivation()
         }
     }
+    #endif
 
     /// Puts the user's own pictures back: on the desktops in view, leaving any painting that may still be on a desktop
-    /// under a full-screen app, then on every desktop out of view where the system allows it, that one included.
+    /// under a full-screen app, then on every desktop out of view where the system allows it, that one included. The
+    /// App Store copy can't reach the system's wallpaper store, so its other desktops get theirs back as each is shown.
     private func restorePictures() {
         stills.restore(keeping: displays.occludedDisplays)
+        #if !APPSTORE
         stills.restoreOtherDesktops()
+        #endif
     }
 
     private func showActivation() {
         if activation == nil {
+            #if APPSTORE
+            let window = ActivationWindow(world: world, gpu: gpu)
+            #else
             let window = ActivationWindow(license: license, world: world, gpu: gpu)
+            #endif
             window.onDone = { [weak self] in self?.activation = nil }
             window.paperEdge = preferences.paperEdge
             activation = window
@@ -326,6 +365,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// until it starts afresh. It opens again, painting in smaller pieces now, and the painting stays on the desktop
     /// meanwhile. At most once an hour; otherwise the menu says what happened.
     private func gpuRevoked() {
+        // The App Store copy keeps to its sandbox, which needn't let it open itself again; the menu says to.
+        #if !APPSTORE
         let key = "reopenedForGPU"
         let now = Date.now.timeIntervalSince1970
         guard now - UserDefaults.standard.double(forKey: key) > 3600 else { return }
@@ -339,10 +380,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Log.render.error("Opening Outbound again, to paint in smaller pieces")
         relaunching = true
         NSApp.terminate(nil)
+        #endif
     }
 
     // MARK: - Links from the thank-you page
 
+    #if !APPSTORE
     func application(_ application: NSApplication, open urls: [URL]) {
         // Any web page can open these, so only the exact activation link is acted on.
         guard let link = urls.lazy.compactMap({ ActivationLink($0) }).last else {
@@ -379,10 +422,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
     }
+    #endif
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard displays != nil else { return false }
-        if license.unlocks { openSettings() } else { showActivation() }
+        if unlocked { openSettings() } else { showActivation() }
         return false
     }
 
@@ -476,7 +520,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        guard license.unlocks else {
+        guard unlocked else {
             let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
             unlock.target = self
             menu.addItem(unlock)
@@ -562,10 +606,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(settings)
         menu.addItem(.separator())
         // Seldom wanted, so apart from Settings, as an app menu has About and updates apart from it.
+        #if !APPSTORE
         let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         check.target = self
         check.isEnabled = updates.canCheck
         menu.addItem(check)
+        #endif
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
         if let dev = devBuildItem() { menu.addItem(dev) }
@@ -659,25 +705,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preferences.pausesWhenHidden.toggle()
     }
 
+    #if !APPSTORE
     @objc private func checkForUpdates() {
         updates.checkNow()
     }
+    #endif
 
     @objc private func openActivation() {
         showActivation()
     }
 
     /// The feedback page in the browser, on the same site as the shop. Its address says which version of Outbound the
-    /// message is about, and how the painting runs on this Mac (see `diagnostics`), and nothing else.
+    /// message is about, and how the painting runs on this Mac (see `diagnostics`), and nothing else; from the App Store
+    /// copy, also that the site should leave out its Buy button.
     @objc private func openFeedback() {
+        #if APPSTORE
+        let site = URL(string: "https://outbound.edbn.me")!
+        #else
         let site = Store.shop.deletingLastPathComponent()
+        #endif
         guard var page = URLComponents(url: site.appendingPathComponent("feedback"), resolvingAgainstBaseURL: false) else { return }
         var items: [URLQueryItem] = []
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
             items.append(URLQueryItem(name: "app", value: version))
         }
+        #if APPSTORE
+        items.append(URLQueryItem(name: "from", value: "appstore"))
+        #endif
         if displays != nil { items.append(URLQueryItem(name: "diag", value: diagnostics)) }
-        page.queryItems = items
+        if !items.isEmpty { page.queryItems = items }
         if let url = page.url { NSWorkspace.shared.open(url) }
     }
 
@@ -714,9 +770,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSettings() {
         if settingsWindow == nil {
+            #if APPSTORE
+            let view = SettingsView(preferences: preferences, sendFeedback: { [weak self] in self?.openFeedback() })
+            #else
             let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
                                     checkForUpdates: { [weak self] in self?.checkForUpdates() },
                                     sendFeedback: { [weak self] in self?.openFeedback() })
+            #endif
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = String(localized: "Outbound Settings")
             window.styleMask = [.titled, .closable]
