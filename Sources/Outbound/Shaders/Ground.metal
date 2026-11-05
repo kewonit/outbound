@@ -627,12 +627,13 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float chance = row == 0 ? mix(b.e.w * 0.33, 0.85, village) : 0.7 * village;
     if (hash11(id, seed + 60u) > chance) return false;
     float worldY = world.y + (yC - local.y);
-    float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
+    float2 own = ownCourse(worldY, scene, wander);
+    float2 along = normalize(float2(roadSlope(worldY, scene, own), 1.0));
     float2 away = float2(along.y, -along.x) * side;
     float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
     float out = b.e.x * 0.5 + size.x + (row == 0 ? 4.0 + 6.0 * hash11(id, seed + 63u) : 34.0 + 10.0 * hash11(id, seed + 63u));
-    h.center = float2(roadX(worldY, scene, wander), worldY) + away * out;
-    if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0 + size.y) return false;
+    h.center = float2(roadX(worldY, scene, own), worldY) + away * out;
+    if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, own)) < ownRiverHalf(worldY, scene, b.d.z * 0.5) + b.i.w + 16.0 + size.y) return false;
     // Nor in a pond.
     float2 pond;
     float pondRadius;
@@ -697,8 +698,10 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
 inline bool landmarkStands(int kind, float2 centerWorld, constant Biome &b, constant Scene &scene, float riverHalf,
                            float2 wander) {
     float radius = landmarkRadius(kind);
-    if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return false;
-    return abs(roadDistance(centerWorld, scene, wander)) >= b.e.x * 0.5 + radius * 0.8 + 6.0;
+    float2 own = ownCourse(centerWorld.y, scene, wander);
+    float ownHalf = ownRiverHalf(centerWorld.y, scene, riverHalf);
+    if (ownHalf > 0.25 && abs(riverDistance(centerWorld, scene, own)) < ownHalf + radius * 0.8 + 15.0) return false;
+    return abs(roadDistance(centerWorld, scene, own)) >= b.e.x * 0.5 + radius * 0.8 + 6.0;
 }
 
 // How far outside a lake's shore `d` (from its centre) lies, as a share of its radius.
@@ -766,9 +769,10 @@ inline bool clearOfLandmarks(float2 local, float2 shift, float r, Keepouts near,
 
 inline bool clearSpot(float2 at, float2 atWorld, float r, Keepouts near, constant Biome &b, constant Scene &scene,
                       uint seed, float riverHalf, float2 wander) {
-    if (near.river && abs(riverDistance(atWorld, scene, wander)) < riverHalf + r + 5.0) return false;
+    float2 own = ownCourse(atWorld.y, scene, wander);
+    if (near.river && abs(riverDistance(atWorld, scene, own)) < ownRiverHalf(atWorld.y, scene, riverHalf) + r + 5.0) return false;
     if (near.road) {
-        if (abs(roadDistance(atWorld, scene, wander)) < b.e.x * 0.5 + r + 1.5) return false;
+        if (abs(roadDistance(atWorld, scene, own)) < b.e.x * 0.5 + r + 1.5) return false;
         if (!clearOfHouses(atWorld, at, r, b, scene, seed, wander)) return false;
     }
     return clearOfLandmarks(at, atWorld - at, r, near, b, scene, seed, riverHalf, wander);
@@ -866,10 +870,12 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     if (village > 0.5 && b.h.y > 0.0 && abs(fract(y / 34.0) - 0.5) * 34.0 < 4.5) continue;
                     float r = r0 * (0.85 + 0.3 * jh);
                     float worldY = y + shift.y;
-                    float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
-                    float2 at = float2(roadX(worldY, scene, wander), worldY) - shift
+                    float2 own = ownCourse(worldY, scene, wander);
+                    float2 along = normalize(float2(roadSlope(worldY, scene, own), 1.0));
+                    float2 at = float2(roadX(worldY, scene, own), worldY) - shift
                               + float2(along.y, -along.x) * sign * (halfRoad + r + 1.2 + (jh - 0.5) * 0.6);
-                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 8.0) continue;
+                    float ownHalf = ownRiverHalf(worldY, scene, riverHalf);
+                    if (ownHalf > 0.25 && abs(riverDistance(at + shift, scene, own)) < ownHalf + r + 8.0) continue;
                     if (!clearOfHouses(at + shift, at, r, b, scene, seed, wander)) continue;
                     plant(k, local, at, r, r * 2.4, broadleaf, fract(jh * 9.1), leaves, scene);
                 }
@@ -1311,7 +1317,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float r;
     if (!pondSite(local, b, seed, center, r)) return c;
     float2 centerWorld = world + (center - local);
-    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, wander)) < 90.0 + r) return c;
+    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, ownCourse(centerWorld.y, scene, wander))) < 90.0 + r) return c;
     float size = max(b.k.w, 1.0);
     float2 d = local - center;
     if (dot(d, d) > r * r * 4.0) return c;
@@ -1408,8 +1414,9 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 float2 centre = (float2(cell) + 0.5) * spacing + (hash22(cell, seed + 12u) - 0.5) * 1.6;
                 float r = b.c.z * 0.3 * (0.85 + 0.3 * hash21(cell, seed + 13u));
                 float2 at = rotate(centre, -angle);
-                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 5.0) continue;
-                if (near.road && (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 1.5
+                float2 own = ownCourse(at.y + shift.y, scene, wander);
+                if (near.river && abs(riverDistance(at + shift, scene, own)) < ownRiverHalf(at.y + shift.y, scene, riverHalf) + r + 5.0) continue;
+                if (near.road && (abs(roadDistance(at + shift, scene, own)) < b.e.x * 0.5 + r + 1.5
                                   || !clearOfHouses(at + shift, at, r, b, scene, seed, wander))) continue;
                 // Fallen petals in the grass round trees in flower.
                 if (b.d.y > 0.0 && b.blossom.w > 0.5) {
@@ -1864,20 +1871,16 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     float m = landTurn(world.y, scene);
     // The new place spreads in organic patches, like wet paint creeping across the sheet. Inside the
     // soft edge both places are painted and blended; elsewhere only one is.
-    float2 localB = float2(world.x, world.y - scene.legB.info.x);
-    float threshold = 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
+    float threshold = patchThreshold(world, scene);
     float blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
 
     float2 wander = course(scene, m);
     float widthA = scene.legA.biome.d.z, widthB = scene.legB.biome.d.z;
-    float width = mix(widthA, widthB, m);
+    float width = riverWidth(scene, m);
     // Between a place with a river and one without, the river is painted over in the same creeping patches as
     // the land, rather than narrowing to a point in the middle of a field.
     float riverShown = 1.0;
-    if ((widthA < 0.5) != (widthB < 0.5)) {
-        width = max(widthA, widthB);
-        riverShown = widthA >= 0.5 ? 1.0 - blend : blend;
-    }
+    if ((widthA < 0.5) != (widthB < 0.5)) riverShown = widthA >= 0.5 ? 1.0 - blend : blend;
     float riverHalf = width * 0.5;
     float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
     // Each place shown here is painted from the one call, in a loop of one or two, so the shader holds a single copy
