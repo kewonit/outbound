@@ -572,21 +572,56 @@ inline float taperedSegment(float2 p, float2 a, float2 b, float ra, float rb) {
     return length(pa - ba * h) - mix(ra, rb, h);
 }
 
-// A gull seen from above, facing +y, wingtips at x = ±1. Each wing is an inner arm that reaches slightly
-// forward to the wrist and a hand that sweeps back to a fine point.
+// How far a wing reaches: it shortens on the side the bird banks towards, and folds in on the upstroke.
+inline float wingReach(float x, float spread, float bank) {
+    return (0.76 + 0.24 * spread) * (x < 0.0 ? 1.0 + bank * 0.22 : 1.0 - bank * 0.22);
+}
+
+// The front and back edges of a wing at `x` along it, 0 at the shoulder and 1 at the tip. The front reaches forward to
+// the wrist and sweeps back; the back runs nearly straight out, then curves in to meet it at a fine point.
+inline float2 wingEdges(float x, float fold) {
+    float wrist = 0.135 + 0.07 * fold;
+    float tip = -0.15 - 0.16 * fold;
+    float inner = saturate(x / 0.46);
+    float front = x < 0.46 ? mix(0.05, wrist, inner * (2.0 - inner)) : mix(wrist, tip, pow((x - 0.46) / 0.54, 1.5));
+    float back = x < 0.5 ? mix(-0.125, -0.07 + 0.05 * fold, x / 0.5)
+                         : mix(-0.07 + 0.05 * fold, tip, pow((x - 0.5) / 0.5, 2.2));
+    return float2(front, back);
+}
+
+// A gull seen from above, facing +y, wingtips at x = ±1: long wings with a wrist and a pointed hand, the feathers
+// parting a little along the back of it, a body narrowing into the head and bill, and a short square tail.
 inline float birdShape(float2 p, float spread, float bank) {
-    // Wings shorten on the side the bird banks towards; a wingbeat only shortens the span a little.
-    float side = p.x < 0.0 ? 1.0 - bank * 0.3 : 1.0 + bank * 0.3;
-    float span = (0.82 + 0.18 * spread) * side;
-    float2 q = float2(abs(p.x) / span, p.y);
-    float wrist = 0.08 + 0.07 * (1.0 - spread);
-    float inner = taperedSegment(q, float2(0.03, 0.02), float2(0.5, wrist), 0.12, 0.085);
-    float hand = taperedSegment(q, float2(0.5, wrist), float2(1.0, -0.1), 0.085, 0.01);
-    float wing = min(inner, hand) * span;
-    float body = (length(p / float2(0.078, 0.31)) - 1.0) * 0.078;
-    float head = length(p - float2(0.0, 0.27)) - 0.06;
-    float tail = sdBox(p - float2(0.0, -0.31), float2(0.05 + 0.3 * max(-p.y - 0.27, 0.0), 0.06));
-    return smin(smin(body, head, 0.06), min(wing, tail), 0.05);
+    float span = wingReach(p.x, spread, bank);
+    float x = abs(p.x) / span;
+    float2 edge = wingEdges(x, 1.0 - spread);
+    edge.y += 0.012 * abs(sin(x * 44.0)) * smoothstep(0.5, 0.75, x);
+    float wing = max(max(p.y - edge.x, edge.y - p.y), x - 1.0) * 0.85 * span;
+    float body = taperedSegment(p, float2(0.0, 0.11), float2(0.0, -0.2), 0.108, 0.06);
+    float head = taperedSegment(p, float2(0.0, 0.22), float2(0.0, 0.3), 0.066, 0.05);
+    float bill = taperedSegment(p, float2(0.0, 0.335), float2(0.0, 0.4), 0.02, 0.005);
+    float tail = taperedSegment(p, float2(0.0, -0.2), float2(0.0, -0.285), 0.052, 0.06);
+    return smin(smin(smin(smin(body, head, 0.07), tail, 0.05), bill, 0.02), wing, 0.07);
+}
+
+// The gull's colours from above, painted rather than filled: white head and tail, a soft grey back and wings with rows
+// of feathers showing, a pale edge along the back of the arm, and dark tips with a small white mirror each.
+inline float3 gullColour(float2 p, float spread, float bank) {
+    float x = abs(p.x) / wingReach(p.x, spread, bank);
+    float2 edge = wingEdges(x, 1.0 - spread);
+    float rear = p.y - edge.y;
+    float depth = saturate(rear / max(edge.x - edge.y, 0.02));
+    float saddle = smoothstep(0.2, 0.09, p.y) * smoothstep(-0.24, -0.12, p.y);
+    float grey = max(smoothstep(0.06, 0.14, x), saddle);
+    grey *= 1.0 - 0.75 * (1.0 - smoothstep(0.012, 0.05, rear)) * (1.0 - smoothstep(0.5, 0.7, x));
+    float feathers = sin(x * 53.0 + p.y * 17.0) * sin(x * 19.0 + p.y * 7.0 + 1.7);
+    float3 c = mix(float3(0.95, 0.945, 0.92), float3(0.6, 0.64, 0.7) * (0.92 + 0.16 * depth), grey);
+    c *= 1.0 + 0.04 * feathers * grey;
+    float mirror = 1.0 - smoothstep(0.012, 0.034, length(float2(x - 0.9, p.y - mix(edge.x, edge.y, 0.5))));
+    c = mix(c, float3(0.12, 0.12, 0.14), smoothstep(0.72, 0.84, x) * (1.0 - 0.85 * mirror));
+    c = mix(c, float3(0.9, 0.72, 0.26), smoothstep(0.325, 0.35, p.y));
+    // The raised wing of a turn catches a little more of the sky.
+    return c * (1.0 + 0.07 * bank * (p.x < 0.0 ? 1.0 : -1.0));
 }
 
 // MARK: - Flocks
@@ -605,7 +640,7 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
             float a = p.flock.z * (0.8 + 0.3 * hash11(i, 702u)) + float(i) * 6.283 / float(n);
             float r = radius * (0.75 + 0.5 * hash11(i, 703u));
             float2 rel = rotate(pixel - p.flock.xy - float2(cos(a), sin(a)) * r, -a);
-            float d = birdShape(rel / size, 1.0, 0.6) * size;
+            float d = birdShape(rel / size, 1.0, -0.6) * size;
             if (d < best) { best = d; q = rel / size; spread = 1.0; }
         }
         return best;
@@ -689,7 +724,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         float2 offset = pixel - shadowPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
-            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.9 / scale) * 0.55 * birdVisible, scene);
+            // Soft, as a shadow is from that high up.
+            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.45 * birdVisible, scene);
         }
     }
 
@@ -725,14 +761,10 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
             float sb = birdShape(q, params.wings.x, params.bird.w);
-            float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
-            float3 feathers = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
-            // Dark wingtips, as gulls have.
-            feathers = mix(feathers, float3(0.24, 0.25, 0.28), smoothstep(0.8, 0.9, abs(q.x)) * 0.85);
             float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
-            // A faint darker rim keeps the white bird readable over pale ground and cloud.
-            c = mix(c, c * 0.72, fill(sb - 0.025, 0.9 / scale) * 0.45 * through);
-            c = mix(c, feathers, fill(sb, 0.8 / scale) * through);
+            // A breath of shade round it keeps the white of the bird apart from pale ground and cloud.
+            c = mix(c, c * 0.8, fill(sb - 0.014, 1.6 / scale) * 0.3 * through);
+            c = mix(c, gullColour(q, params.wings.x, params.bird.w), fill(sb, 0.8 / scale) * through);
         }
     }
 
@@ -770,11 +802,9 @@ fragment float4 birdSprite(VertexOut in [[stage_in]],
     float scale = params.wings.z;
     float2 q = rotate(pixel - params.bird.xy, -params.bird.z) / scale;
     float sb = birdShape(q, params.wings.x, params.bird.w);
-    float underside = saturate(0.5 - q.y * 0.6 + params.bird.w * q.x * 0.5);
-    float3 c = mix(float3(0.99, 0.99, 0.98), float3(0.78, 0.81, 0.87), underside * 0.6);
-    c = mix(c, float3(0.24, 0.25, 0.28), smoothstep(0.8, 0.9, abs(q.x)) * 0.85);
+    float3 c = gullColour(q, params.wings.x, params.bird.w);
     float body = fill(sb, 0.8 / scale);
-    float rim = fill(sb - 0.025, 0.9 / scale) * 0.32;
+    float rim = fill(sb - 0.014, 1.6 / scale) * 0.09;
     float alpha = max(body, rim);
     c = mix(float3(0.0), c, body / max(alpha, 1e-4));
     float night = scene.time.w;

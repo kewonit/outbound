@@ -198,9 +198,9 @@ final class World {
             }
             lastPointer = point
         }
-        chasing = t - pointerMoved < 6
+        chasing = t - pointerMoved < 10
         let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
-        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t))
+        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t), hurrying: target != nil)
         birdTrail.record(bird.pose, at: t)
         if t - sunUpdated > 20 { updateSun(force: false) }
     }
