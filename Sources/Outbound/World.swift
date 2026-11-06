@@ -16,8 +16,8 @@ final class World {
     static let roadOffset = 150.0
     /// Height of the cloud layer, which sets how far cloud shadows fall from their clouds.
     static let cloudHeight = 70.0
-    static let wind = SIMD2<Double>(2.6, 1.1)
-    static let carSpeed = 11.0
+    static let wind = SIMD2<Double>(1.3, 0.55)
+    static let carSpeed = 5.5
 
     enum Light: String, CaseIterable {
         /// The sun as it stands at the place at your clock's time of day.
@@ -392,7 +392,7 @@ final class World {
                       rail: rail, railShape: shape)
     }
 
-    static let boatSpeed = 2.5
+    static let boatSpeed = 1.25
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0
