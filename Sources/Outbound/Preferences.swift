@@ -18,17 +18,18 @@ final class Preferences: ObservableObject {
         /// Metres per second over the ground.
         var speed: Double {
             switch self {
-            case .slow: 2.2
-            case .gentle: 3.3
-            case .brisk: 5
+            case .slow: 1.4
+            case .gentle: 2.2
+            case .brisk: 3.3
             }
         }
     }
 
-    /// Minutes over each place, or none to stay over the one in view. At Slow, twelve minutes is about the least that
-    /// leaves a place room to turn into the next with the view clear of the turn before, so six, offered once, is not.
+    /// Minutes over each place, or none to stay over the one in view. At Slow, twenty minutes is about the least that
+    /// leaves a place room to turn into the next with the view clear of the turn before, so six and twelve, offered
+    /// once, are not.
     enum Stay: Int, CaseIterable, Identifiable {
-        case medium = 12, long = 30, hour = 60, forever = 0
+        case short = 20, long = 30, hour = 60, forever = 0
         var id: Self { self }
         var title: String {
             switch self {
@@ -70,7 +71,7 @@ final class Preferences: ObservableObject {
         // Kept under a new name since every pace slowed down and Slow became the default: everyone starts there once,
         // whatever they flew at before, and can choose again.
         pace = Pace(rawValue: defaults.string(forKey: "flightPace") ?? "") ?? .slow
-        stay = (defaults.object(forKey: "stay") as? Int).flatMap(Stay.init(rawValue:)) ?? .medium
+        stay = (defaults.object(forKey: "stay") as? Int).flatMap(Stay.init(rawValue:)) ?? .short
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
         restsWhenAway = defaults.object(forKey: "restsWhenAway") as? Bool ?? true

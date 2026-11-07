@@ -84,7 +84,7 @@ struct HandoverTests {
     func aHandoverPaintsTheSameAfterTheReferenceStepsOn(_ id: String) throws {
         let scene = try #require(try bench.handovers().first { $0.place == id })
         var later = scene
-        later.gpu = try bench.handover(id, after: 2048 / 4.2)
+        later.gpu = try bench.handover(id, after: 2048 / Preferences.Pace.slow.speed)
         let step = scene.gpu.morph.x - later.gpu.morph.x
         #expect(step == 2048)
         let now = try bench.renderGround(scene, from: Self.start(scene), width: Self.width, height: Self.height,

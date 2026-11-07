@@ -250,7 +250,7 @@ final class Bench {
             world.journey.refreshSeasons(date: noon)
             var time = 120.0
             world.advance(to: time)
-            while place.railway != nil, !world.trainPassing, time < 7200 {
+            while place.railway != nil, !world.trainPassing || world.handoverPassing, time < 7200 {
                 time += 2
                 world.advance(to: time)
             }
@@ -278,8 +278,8 @@ final class Bench {
             world.centreRiver(on: frame)
             world.journey.followsCalendar = false
             world.journey.refreshSeasons(date: noon)
-            world.journey.setSpeed(4.2, at: 0)
-            world.journey.legLength = 6 * 60 * 4.2
+            world.journey.setSpeed(Preferences.Pace.slow.speed, at: 0)
+            world.journey.legLength = Double(Preferences.Stay.short.rawValue) * 60 * Preferences.Pace.slow.speed
             var time = 20.0
             world.advance(to: time)
             while !world.handoverPassing, time < 7200 {

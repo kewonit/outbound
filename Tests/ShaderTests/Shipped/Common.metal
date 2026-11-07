@@ -40,7 +40,7 @@ struct Train {
     float4 rail;   // origin (relative to the reference), angle, active
     float4 shape;  // wiggle amplitude, wavelength, phase
     float4 run;    // nose along the rail, direction, car length, cars
-    float4 info;   // locomotives, kind
+    float4 info;   // locomotives, kind, whose line it is through a handover (0 either, 1 the old place, 2 the new)
     float4 body, stripe, roof, locomotive;
 };
 
@@ -202,12 +202,23 @@ inline float landTurn(float y, constant Scene &scene) {
     return saturate((scene.morph.z * (scene.morph.w + 400.0) - (y - boundary)) / 400.0);
 }
 
+// How much of the railway at world y is the new place's while flying, 0 to 1. Two places' lines have nothing to do with
+// each other and each runs on for ever, so each has to end somewhere: once, as the land turns halfway, not at every patch.
+inline float railTurn(float y, constant Scene &scene) {
+    return smoothstep(0.42, 0.58, landTurn(y, scene));
+}
+
+// How far the land must have turned before the new place reaches `world`, 0 to 1: the line its patches spread along.
+inline float patchThreshold(float2 world, constant Scene &scene) {
+    float2 localB = float2(world.x, world.y - scene.legB.info.x);
+    return 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
+}
+
 inline float sweepBlend(float2 world, constant Scene &scene) {
     if (scene.morph.z < 0.0) return 0.0;
     float m = landTurn(world.y, scene);
     if (m <= 0.0) return 0.0;
-    float2 localB = float2(world.x, world.y - scene.legB.info.x);
-    float threshold = 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
+    float threshold = patchThreshold(world, scene);
     return smoothstep(threshold - 0.05, threshold + 0.05, m);
 }
 
@@ -324,6 +335,18 @@ inline float roadSlope(float y, constant Scene &scene, float2 wander) {
 // The place's course where the land has turned `m` of the way from leg A to leg B.
 inline float2 course(constant Scene &scene, float m) {
     return mix(float2(scene.legA.biome.d.w, scene.legA.biome.k.z), float2(scene.legB.biome.d.w, scene.legB.biome.k.z), m);
+}
+
+// The river's width where the land has turned `m` of the way from leg A to leg B. Between a place with a river and one
+// without it keeps its width, and is painted over in patches instead.
+inline float riverWidth(constant Scene &scene, float m) {
+    float a = scene.legA.biome.d.z, b = scene.legB.biome.d.z;
+    return (a < 0.5) != (b < 0.5) ? max(a, b) : mix(a, b, m);
+}
+
+// The course at row `y` while flying. A Fly To repaints everything as the sweep passes, so it keeps the pixel's.
+inline float2 ownCourse(float y, constant Scene &scene, float2 wander) {
+    return scene.morph.z < 0.0 ? course(scene, landTurn(y, scene)) : wander;
 }
 
 // MARK: - Traffic

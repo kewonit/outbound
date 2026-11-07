@@ -63,10 +63,11 @@ struct PreferencesTests {
         }
     }
 
-    @Test func sixMinutesOverEachPlaceBecomesTwelve() throws {
+    @Test(arguments: [6, 12])
+    func stayOfMinutesNoLongerOfferedBecomesTwenty(minutes: Int) throws {
         try withDefaults { defaults in
-            defaults.set(6, forKey: "stay")
-            #expect(Preferences(defaults: defaults).stay == .medium)
+            defaults.set(minutes, forKey: "stay")
+            #expect(Preferences(defaults: defaults).stay == .short)
         }
     }
 
