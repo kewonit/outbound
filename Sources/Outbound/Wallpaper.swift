@@ -101,6 +101,11 @@ final class Wallpaper: NSObject {
     private var observers: [NSObjectProtocol] = []
     /// A line under the caption, for development builds and licensing.
     var note: String?
+    /// Whether the place's name, and any line under it, shows in the corner. Changed while the desktop is up, it
+    /// fades; before, it is simply so.
+    var showsPlaceName = true {
+        didSet { label.show(showsPlaceName, animated: window.isVisible) }
+    }
     var framesPerSecond: Float = 30 {
         didSet { if framesPerSecond != oldValue { applyFrameRate() } }
     }

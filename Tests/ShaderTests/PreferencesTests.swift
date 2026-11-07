@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import OutboundCore
 import Testing
@@ -44,6 +45,39 @@ struct PreferencesTests {
             preferences.paperEdge = true
             #expect(Preferences(defaults: defaults).paperEdge)
         }
+    }
+
+    @Test func thePlaceNameShowsUntilTurnedOff() throws {
+        try withDefaults { defaults in
+            let preferences = Preferences(defaults: defaults)
+            #expect(preferences.showsPlaceName)
+            // Nothing saved until someone chooses.
+            preferences.pace = .brisk
+            #expect(defaults.object(forKey: "showsPlaceName") == nil)
+            preferences.showsPlaceName = false
+            #expect(!Preferences(defaults: defaults).showsPlaceName)
+            preferences.showsPlaceName = true
+            #expect(Preferences(defaults: defaults).showsPlaceName)
+        }
+    }
+
+    /// Hidden before the desktop is up, the name never shows, not even fading out; changed after, it fades.
+    @Test func theCaptionHidesAtOnceOrFades() throws {
+        // In a window, as on the desktop: a layer outside one is never animated.
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 200, height: 100), styleMask: .borderless,
+                              backing: .buffered, defer: false)
+        let caption = CaptionView(frame: .zero)
+        window.contentView?.addSubview(caption)
+        caption.update(place: "Lapland", note: nil)
+        let text = try #require(caption.layer?.sublayers?.first)
+        // A layer only animates once it has been on screen.
+        CATransaction.flush()
+        caption.show(false, animated: false)
+        #expect(text.opacity == 0)
+        #expect(text.animation(forKey: "opacity") == nil)
+        caption.show(true, animated: true)
+        #expect(text.opacity == 1)
+        #expect(text.animation(forKey: "opacity") != nil)
     }
 
     @Test func holdingWhenHiddenChosenIn15StaysOn() throws {

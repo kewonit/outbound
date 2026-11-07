@@ -21,6 +21,9 @@ struct SettingsView: View {
                 Toggle(isOn: $preferences.matchingStill) {
                     Described("Show the painting on the lock screen", "A still of the current view, kept as the desktop picture.")
                 }
+                Toggle(isOn: $preferences.showsPlaceName) {
+                    Described("Show the place's name", "In small type in the corner of the desktop.")
+                }
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             } footer: {
                 Text("Light, seasons, pace and the rest of the choices are in the menu bar, under the gull.")

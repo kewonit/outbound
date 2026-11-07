@@ -57,6 +57,8 @@ final class Preferences: ObservableObject {
     @Published var pausesWhenHidden: Bool { didSet { defaults.set(pausesWhenHidden, forKey: "holdsWhenHidden") } }
     /// The pale dry-brush border round the painting. Off until it is asked for.
     @Published var paperEdge: Bool { didSet { defaults.set(paperEdge, forKey: "paperBorder") } }
+    /// The place's name in the corner of the desktop. On until it is turned off.
+    @Published var showsPlaceName: Bool { didSet { defaults.set(showsPlaceName, forKey: "showsPlaceName") } }
     /// The place to start from next launch.
     @Published var lastPlace: String { didSet { defaults.set(lastPlace, forKey: "lastPlace") } }
 
@@ -77,6 +79,7 @@ final class Preferences: ObservableObject {
         // Kept under a new name since the border went off by default: the old one was saved as on for everyone who
         // had run Outbound by then, whether they asked for it or not.
         paperEdge = defaults.object(forKey: "paperBorder") as? Bool ?? false
+        showsPlaceName = defaults.object(forKey: "showsPlaceName") as? Bool ?? true
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
         // What the old names hold says nothing about what anyone chose.
         defaults.removeObject(forKey: "pausesWhenHidden")
