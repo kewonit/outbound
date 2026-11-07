@@ -476,14 +476,18 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
         // Cell sizes that divide the gust space's period; bent by a slower noise so they never show its grid.
         float2 gust = params.world.zw + pixel * mpp;
-        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(53.3333, 40.0)) - 0.5,
-                                           latticeNoise(noise, wrap, gust.yx / float2(40.0, 53.3333) + 31.0) - 0.5);
+        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(53.3333, 44.0)) - 0.5,
+                                           latticeNoise(noise, wrap, gust.yx / float2(44.0, 53.3333) + 31.0) - 0.5);
         float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(26.6667, 20.0))
                    + 0.35 * latticeNoise(noise, wrap, bent / float2(13.3333, 10.0));
         c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, paws) * 0.12);
-        if (water > 0.99) {
-            float across = world.x - riverX(world.y, scene, course(scene, landTurn(world.y, scene)));
-            c *= 1.0 + 0.07 * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
+        if (water > 0.9) {
+            float turned = landTurn(world.y, scene);
+            float across = world.x - riverX(world.y, scene, course(scene, turned));
+            float bank = max(riverWidth(scene, turned) * 0.5, 0.001);
+            float current = smoothstep(0.9, 1.0, water) * (1.0 - smoothstep(0.8, 1.0, abs(across) / bank));
+            c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
         }
     }
 

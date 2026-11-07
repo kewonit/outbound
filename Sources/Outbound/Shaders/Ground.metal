@@ -523,13 +523,15 @@ constant float crossroadSpacing = 1450.0;
 
 // Which cross-road a stretch of the world holds and how far along y it runs at `x`. A cross-road is only built if it
 // meets the main road on dry land, as a junction can't stand in a river.
-inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
+inline float crossroadY(float2 p, constant Scene &scene, thread bool &built, float reach = 1e9) {
     float k = floor((p.y + scene.road.w) / crossroadSpacing);
     // Which one it is is counted from the world's origin, or it would shift or vanish as the reference stepped on.
     float which = k + scene.bends.w;
     built = hash11(int(which), 70u) < 0.55;
     float middle = (k + 0.5) * crossroadSpacing - scene.road.w;
-    if (built) {
+    float line = middle + 40.0 * sin(p.x / 380.0 + which);
+    // Further than `reach` from it, whether it was ever built makes no difference to the caller.
+    if (built && abs(p.y - line) < reach) {
         float turned = landTurn(middle, scene);
         float2 wander = course(scene, turned);
         float y = middle + 40.0 * sin(roadX(middle, scene, wander) / 380.0 + which);
@@ -537,7 +539,7 @@ inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
         built = width < 0.5 || abs(riverDistance(junction, scene, wander)) > width * 0.5 + 30.0;
     }
-    return middle + 40.0 * sin(p.x / 380.0 + which);
+    return line;
 }
 
 // How far `at` lies from the middle of its stretch's cross-road, and how far `local` lies from the middle of the place's
@@ -991,7 +993,7 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
                     float2 at = float2(roadX(worldY, scene, wander), worldY) - shift
                               + float2(along.y, -along.x) * sign * (halfRoad + r + 1.2 + (jh - 0.5) * 0.6);
-                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 8.0) continue;
+                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + b.i.w + r + 8.0) continue;
                     if (crossGap(at + shift, scene) < halfRoad * 0.9 + r + 2.5) continue;
                     if (railGap(at, b) < r + 3.0) continue;
                     if (!clearOfHouses(at + shift, at, r, b, scene, seed, wander)) continue;
@@ -1503,10 +1505,10 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float2 center;
     float r;
     if (!pondSite(local, b, seed, center, r)) return c;
-    if (!pondStands(center, r, world - local, b, scene, wander)) return c;
     float size = max(b.k.w, 1.0);
     float2 d = local - center;
     if (dot(d, d) > r * r * 4.0) return c;
+    if (!pondStands(center, r, world - local, b, scene, wander)) return c;
     float shape = length(d * float2(1.0, 1.25)) / r - 1.0 + 0.45 * (fbm(local / (16.0 * size), 3, seed + 83u) - 0.5);
     float dist = shape * r;
     float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, b.shallows.rgb, 0.35) : b.water.rgb;
@@ -1600,7 +1602,7 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 float2 centre = (float2(cell) + 0.5) * spacing + (hash22(cell, seed + 12u) - 0.5) * 1.6;
                 float r = b.c.z * 0.3 * (0.85 + 0.3 * hash21(cell, seed + 13u));
                 float2 at = rotate(centre, -angle);
-                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 5.0) continue;
+                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + b.i.w + r + 5.0) continue;
                 if (near.road && (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 1.5
                                   || !clearOfHouses(at + shift, at, r, b, scene, seed, wander))) continue;
                 if (near.crossNear && crossGap(at + shift, scene) < b.e.x * 0.45 + r + 1.5) continue;
@@ -1965,7 +1967,7 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
 
     // A crossroad now and then.
     bool hasCross;
-    float crossY = crossroadY(p, scene, hasCross);
+    float crossY = crossroadY(p, scene, hasCross, halfWidth + 20.0);
     float dc = hasCross ? abs(p.y - crossY) - halfWidth * 0.9 : 1e6;
 
     // Roads meet in rounded corners.
@@ -2161,23 +2163,11 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     // Bridges only where the river is still painted.
     float crossingHalf = riverShown > 0.5 ? riverHalf : 0.0;
-    float turn = blend > 0.5 ? 1.0 : 0.0;
-    int firstRail = turn >= 1.0 ? 1 : 0, lastRail = turn <= 0.0 ? 0 : 1;
-    #pragma clang loop unroll(disable)
-    for (int i = firstRail; i <= lastRail; i++) {
-        float share = i == 0 ? 1.0 - turn : turn;
-        float railHerd = herd, railWater = water;
-        float3 railed = railway(c, world, i == 0 ? scene.legA : scene.legB, scene, texel, crossingHalf, wander, railHerd, railWater);
-        c = mix(c, railed, share);
-        herd = mix(herd, railHerd, share);
-        water = mix(water, railWater, share);
-    }
+    constant Leg &railLeg = blend > 0.5 ? scene.legB : scene.legA;
+    c = railway(c, world, railLeg, scene, texel, crossingHalf, wander, herd, water);
     float traffic = 0.0;
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, crossingHalf, wander, onRoad, traffic, water, herd);
-    #pragma clang loop unroll(disable)
-    for (int i = firstRail; i <= lastRail; i++) {
-        c = mix(c, railOverRoad(c, world, i == 0 ? scene.legA : scene.legB, onRoad, texel), i == 0 ? 1.0 - turn : turn);
-    }
+    c = railOverRoad(c, world, railLeg, onRoad, texel);
 
     GroundOut out;
     out.color = float4(saturate(c), packGround(water, l.sway, traffic > 0.5 && l.cover < 0.5, herd > 0.5));

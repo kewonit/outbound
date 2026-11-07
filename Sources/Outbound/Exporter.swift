@@ -103,7 +103,9 @@ enum Exporter {
         }
         if let pace = options["pace"].flatMap(Double.init) { world.journey.setSpeed(pace, at: 0) }
         // How many minutes each place lasts at that pace, as Stay sets it in the app.
-        if let stay = options["stay"].flatMap(Double.init) { world.journey.legLength = stay * 60 * world.journey.speed }
+        if let stay = options["stay"].flatMap(Double.init), stay > 0, world.journey.speed > 0 {
+            world.journey.legLength = stay * 60 * world.journey.speed
+        }
         // A pointer that wanders over the frame and rests now and then, for the bird to chase.
         let cursor = options["cursor"] != nil
         var clockTime = time
