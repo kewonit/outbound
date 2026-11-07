@@ -21,6 +21,8 @@ struct Biome {
     float4 k; // sodium lamps, lamps off late, river bends, pond size
     float4 blossom, blossomLight; // orchard trees in flower; blossom.w is 1 when only orchards flower
     float4 l; // evergreen gardens
+    float4 railLine;  // the leg's railway: origin (leg-local x, y), cos and sin of its angle
+    float4 railCurve; // its wiggle: amplitude, 1 / wavelength, phase, then whether there is one
 };
 
 struct Leg {

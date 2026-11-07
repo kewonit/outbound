@@ -384,12 +384,15 @@ final class World {
         let biome = legCache[leg.index] ?? BiomeGPU(leg.season.biome)
         legCache[leg.index] = biome
         var rail = SIMD4<Float>.zero, shape = SIMD4<Float>.zero
+        var keeping = biome
         if let line = railLine(for: leg) {
             rail = SIMD4(Float(line.origin.x), Float(line.origin.y), Float(line.angle), 1)
             shape = SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase),
                           leg.place.railway?.electrified == true ? 1 : 0)
+            keeping.railLine = SIMD4(rail.x, rail.y, Float(cos(line.angle)), Float(sin(line.angle)))
+            keeping.railCurve = SIMD4(shape.x, 1 / shape.y, shape.z, 1)
         }
-        return LegGPU(biome: biome, info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0),
+        return LegGPU(biome: keeping, info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0),
                       rail: rail, railShape: shape)
     }
 

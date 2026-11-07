@@ -45,12 +45,16 @@ constant int canopySize = 10;
 
 struct Canopy {
     float2 at[canopySize];    // trunks, in leg-local metres
-    float4 shape[canopySize]; // crown radius, height, kind, tone
-    int foliage[canopySize];
+    float4 shape[canopySize]; // crown radius, height, kind and foliage (see treeKind), tone
     int count;
     // The longest shadow any of them casts, so the few cells round a point hold every tree that can shade it.
     float reach;
 };
+
+// A tree's kind and its foliage share a number in its shape, as everything in a Canopy costs memory for every thread.
+inline int treeKind(float4 shape) {
+    return int(shape.z) & 3;
+}
 
 inline Canopy canopy(float reach) {
     Canopy k;
@@ -80,7 +84,7 @@ inline float treeSun(float4 shape, float reach, constant Scene &scene) {
 // spike from its base to the shadow of its tip.
 inline float shadowOf(float2 q, float4 shape, float level, float z, float2 u) {
     float r = shape.x, h = shape.y;
-    if (int(shape.z) == spruce) {
+    if (treeKind(shape) == spruce) {
         float tip = (h - level) * z;
         if (tip <= 0.0) return 0.0;
         float2 a = -u * max(0.1 * h - level, 0.0) * z, b = -u * tip;
@@ -88,7 +92,7 @@ inline float shadowOf(float2 q, float4 shape, float level, float z, float2 u) {
         float t = saturate(dot(pa, ba) / max(dot(ba, ba), 1e-4));
         return fill(length(pa - ba * t) - r * 0.9 * (1.0 - t) - 0.08, 0.2 + 0.03 * tip * t);
     }
-    float vert = int(shape.z) == pine ? 0.55 : 0.95;
+    float vert = treeKind(shape) == pine ? 0.55 : 0.95;
     float above = h - vert * r - level;
     if (above + vert * r <= 0.0) return 0.0;
     float2 across = float2(-u.y, u.x);
@@ -111,13 +115,13 @@ inline float crownAt(float2 q, float4 shape, thread float &height) {
     float len = length(q);
     float a = atan2(q.y, q.x);
     float t = saturate(len / r);
-    if (int(shape.z) == spruce) {
+    if (treeKind(shape) == spruce) {
         // Branches in whorls make a star from above.
         float star = 0.5 + 0.5 * cos(a * 7.0 + tone * 40.0);
         height = h * (1.0 - 0.9 * t);
         return len - r * (0.74 + 0.26 * star * star);
     }
-    float vert = int(shape.z) == pine ? 0.55 : 0.95;
+    float vert = treeKind(shape) == pine ? 0.55 : 0.95;
     height = h - vert * r + vert * r * sqrt(1.0 - t * t);
     float lobes = 0.5 * sin(a * 3.0 + tone * 23.0) + 0.35 * sin(a * 5.0 + tone * 61.0) + 0.2 * sin(a * 11.0 + tone * 97.0);
     return len - r * (0.88 + 0.13 * lobes);
@@ -141,21 +145,21 @@ inline float3 crownColour(thread Canopy &k, int i, float2 p, float level, consta
     float tone = shape.w;
     uint ts = seed + 300u + uint(tone * 997.0);
     float3 dark, light;
-    foliageColours(k.foliage[i], b, dark, light);
+    foliageColours(int(shape.z) >> 2, b, dark, light);
     float2 u = scene.sun.xy;
     float elevation = max(scene.sun.w, 0.15);
     float3 sun = float3(u * cos(elevation), sin(elevation));
     float len = length(q);
     float3 n;
-    if (int(shape.z) == spruce) {
+    if (treeKind(shape) == spruce) {
         n = normalize(float3(q / max(len, 1e-3) * 0.85, 0.5));
     } else {
-        float vert = int(shape.z) == pine ? 0.55 : 0.95;
+        float vert = treeKind(shape) == pine ? 0.55 : 0.95;
         n = normalize(float3(q, sqrt(saturate(1.0 - len * len)) / vert));
     }
     float lit = dot(n, sun);
     // Turned its own way in every tree, so no two crowns show the noise's lattice lined up.
-    float2 cq = rotate(q, tone * 6.283) * (int(shape.z) == spruce ? 3.2 : 2.3) + tone * 37.0;
+    float2 cq = rotate(q, tone * 6.283) * (treeKind(shape) == spruce ? 3.2 : 2.3) + tone * 37.0;
     float clump = vnoise(cq, ts);
     float bump = vnoise(cq + u * 0.3, ts) - clump;
     float3 c = mix(dark, light, saturate(0.6 * lit + 0.08 + 2.3 * bump + 0.35 * (clump - 0.5)));
@@ -183,11 +187,12 @@ inline void plant(thread Canopy &k, float2 p, float2 at, float r, float h, int k
     if (k.count >= canopySize) return;
     float2 q = p - at;
     float len = min(h * scene.sun.z, k.reach);
+    // The last places are kept for crowns over p: a crown lost would leave a hole, a shadow lost only a little light.
     if (dot(q, q) > (r * 1.1 + 0.4) * (r * 1.1 + 0.4)
-        && segmentDistance(q, 0.0, -scene.sun.xy * len) > r * (1.0 + 0.85 * scene.sun.z) + 0.5) return;
+        && (k.count >= canopySize - 3
+            || segmentDistance(q, 0.0, -scene.sun.xy * len) > r * (1.0 + 0.85 * scene.sun.z) + 0.5)) return;
     k.at[k.count] = at;
-    k.shape[k.count] = float4(r, h, float(kind), tone);
-    k.foliage[k.count] = foliage;
+    k.shape[k.count] = float4(r, h, float(kind + foliage * 4), tone);
     k.count++;
 }
 
@@ -224,7 +229,10 @@ inline float3 grow(thread Canopy &k, float3 c, float2 p, constant Biome &b, cons
 inline void window(float2 p, float spacing, float margin, float2 toward, thread int2 &lo, thread int2 &hi) {
     float2 a = min(p, p + toward) - margin, b = max(p, p + toward) + margin;
     lo = int2(floor(a / spacing));
-    hi = min(int2(floor(b / spacing)), lo + 4);
+    hi = int2(floor(b / spacing));
+    // If that is too many, the far end towards the sun goes, never the cells round p.
+    lo = select(lo, max(lo, hi - 4), toward < 0.0);
+    hi = select(min(hi, lo + 4), hi, toward < 0.0);
 }
 
 // MARK: - Field layouts
@@ -508,6 +516,52 @@ inline float roadDistance(float2 p, constant Scene &scene, float2 wander) {
     return (p.x - roadX(p.y, scene, wander)) / sqrt(1.0 + s * s);
 }
 
+// MARK: - What is already there
+
+// Everything placed on the land gives way to what came before it: the river, the main road, the cross-roads, the
+// railway, then lakes, ponds and landmarks, then houses and their paths, then trees. Each decides from its own position.
+
+constant float crossroadSpacing = 1450.0;
+
+// Which cross-road a stretch of the world holds and how far along y it runs at `x`. A cross-road is only built if it
+// meets the main road on dry land, as a junction can't stand in a river.
+inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
+    float k = floor((p.y + scene.road.w) / crossroadSpacing);
+    // Which one it is is counted from the world's origin, or it would shift or vanish as the reference stepped on.
+    float which = k + scene.bends.w;
+    built = hash11(int(which), 70u) < 0.55;
+    float middle = (k + 0.5) * crossroadSpacing - scene.road.w;
+    if (built) {
+        float turned = landTurn(middle, scene);
+        float2 wander = course(scene, turned);
+        float2 junction = float2(roadX(middle, scene, wander), middle);
+        junction.y += 40.0 * sin(junction.x / 380.0 + which);
+        float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
+        built = width < 0.5 || abs(riverDistance(junction, scene, wander)) > width * 0.5 + 30.0;
+    }
+    return middle + 40.0 * sin(p.x / 380.0 + which);
+}
+
+// How far `at` lies from the middle of its stretch's cross-road, and how far `local` lies from the middle of the place's
+// railway. These run for every house and tree and sit in the deepest part of the shader, where anything held across them
+// costs memory for every thread, so they work from what is already to hand and hold nothing. Telling legA from legB by
+// the address of `b`, or keeping a pointer to a leg, takes a launch from a second to over a minute, which is why the
+// railway rides along in the Biome. A cross-road dropped for its junction still counts here, which costs a stretch of
+// empty land at worst.
+inline float crossGap(float2 at, constant Scene &scene) {
+    float k = floor((at.y + scene.road.w) / crossroadSpacing);
+    float which = k + scene.bends.w;
+    if (hash11(int(which), 70u) >= 0.55) return 1e6;
+    return abs(at.y - (k + 0.5) * crossroadSpacing + scene.road.w - 40.0 * sin(at.x / 380.0 + which));
+}
+
+inline float railGap(float2 local, constant Biome &b) {
+    if (b.railCurve.w < 0.5) return 1e6;
+    float2 d = local - b.railLine.xy;
+    float2 q = float2(dot(d, b.railLine.zw), dot(d, float2(-b.railLine.w, b.railLine.z)));
+    return abs(q.y - b.railCurve.x * sin(q.x * b.railCurve.y + b.railCurve.z));
+}
+
 // How far a leg-local point is outside the strip a pivot must keep clear of: the main road and the railway.
 inline float pivotClearance(float2 p, constant Leg &leg, constant Scene &scene, float2 wander) {
     float2 world = float2(p.x, p.y + leg.info.x);
@@ -610,6 +664,15 @@ inline bool pondSite(float2 local, constant Biome &b, uint seed, thread float2 &
     return true;
 }
 
+// Whether the pond of a cell at `center`, of radius `r`, is dug: not in the river, on a road or on the railway.
+inline bool pondStands(float2 center, float r, float2 shift, constant Biome &b, constant Scene &scene, float2 wander) {
+    float2 at = center + shift;
+    if (b.d.z > 0.5 && abs(riverDistance(at, scene, wander)) < 90.0 + r) return false;
+    float reach = r * 1.4 + 6.0;
+    if (min(abs(roadDistance(at, scene, wander)), crossGap(at, scene)) < b.e.x * 0.5 + reach) return false;
+    return railGap(center, b) >= reach;
+}
+
 // One house beside the road: house-local x points away from the road, so the porch faces it and the shed and the
 // yard lamp stand behind; `size` is half its depth (x) and half its length along the road (y).
 struct Plot {
@@ -638,10 +701,13 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float out = b.e.x * 0.5 + size.x + (row == 0 ? 4.0 + 6.0 * hash11(id, seed + 63u) : 34.0 + 10.0 * hash11(id, seed + 63u));
     h.center = float2(roadX(worldY, scene, wander), worldY) + away * out;
     if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0 + size.y) return false;
+    // Nor on a cross-road or the railway, with room for its yard.
+    float room = length(size) + 7.0;
+    float2 at = h.center - (world - local);
+    if (crossGap(h.center, scene) < b.e.x * 0.45 + room || railGap(at, b) < room + 5.0) return false;
     // Nor in a pond.
     float2 pond;
     float pondRadius;
-    float2 at = h.center - (world - local);
     if (pondSite(at, b, seed, pond, pondRadius) && length((at - pond) * float2(1.0, 1.25)) < pondRadius * 1.4 + 6.0 + size.y) return false;
     h.angle = atan2(away.y, away.x) + (hash11(id, seed + 64u) - 0.5) * (0.12 + village * 0.12);
     h.size = size;
@@ -707,11 +773,24 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
 }
 
 // Whether a landmark whose cell holds one at `center` is built: not on the river, nor on the road.
-inline bool landmarkStands(int kind, float2 centerWorld, constant Biome &b, constant Scene &scene, float riverHalf,
-                           float2 wander) {
+inline bool landmarkStands(int kind, float2 centerWorld, float2 shift, constant Biome &b, constant Scene &scene,
+                           float riverHalf, float2 wander, uint seed) {
     float radius = landmarkRadius(kind);
+    // Of a place's two kinds, the second gives way to the first. Each stays inside its own cell, so one look will do.
+    if (kind == int(b.j.z) && b.j.y > 0.0) {
+        int first = int(b.j.x);
+        float2 at = centerWorld - shift, other;
+        int2 cell;
+        if (landmarkSite(first, b.j.y, at, b, seed - 17u, other, cell)
+            && length(at - other) < landmarkRadius(first) + radius) return false;
+    }
     if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return false;
-    return abs(roadDistance(centerWorld, scene, wander)) >= b.e.x * 0.5 + radius * 0.8 + 6.0;
+    float reach = radius * 0.95 + 6.0;
+    // Where people live by the road it keeps clear of their homes too, front and back row.
+    float homes = b.e.w > 0.0 || b.i.x > 0.0 ? 62.0 : 0.0;
+    if (abs(roadDistance(centerWorld, scene, wander)) < b.e.x * 0.5 + reach + homes) return false;
+    if (crossGap(centerWorld, scene) < b.e.x * 0.5 + reach) return false;
+    return railGap(centerWorld - shift, b) >= reach + 4.0;
 }
 
 // How far outside a lake's shore `d` (from its centre) lies, as a share of its radius.
@@ -724,6 +803,10 @@ inline float lakeShore(float2 d, float radius, uint s) {
 struct Keepouts {
     bool road;
     bool river;
+    bool crossNear;
+    bool rail;
+    // False where this point's cell has a pond that was never dug, so trees needn't keep off it.
+    bool dug;
     int2 cell[2];
     bool standing[2];
     float2 center[2];
@@ -733,12 +816,19 @@ inline Keepouts keepouts(float2 world, float2 local, float span, constant Biome 
                          uint seed, float riverHalf, float2 wander) {
     Keepouts k;
     k.road = abs(roadDistance(world, scene, wander)) < b.e.x * 0.5 + 75.0 + span;
-    k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + 20.0 + span;
+    k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + b.i.w + 20.0 + span;
+    k.crossNear = crossGap(world, scene) < b.e.x * 0.5 + 20.0 + span;
+    k.rail = railGap(local, b) < 20.0 + span;
+    float2 pond;
+    float pondRadius;
+    k.dug = !pondSite(local, b, seed, pond, pondRadius)
+         || pondStands(pond, pondRadius, world - local, b, scene, wander);
     for (int i = 0; i < 2; i++) {
         int kind = int(i == 0 ? b.j.x : b.j.z);
         float density = i == 0 ? b.j.y : b.j.w;
         k.standing[i] = landmarkSite(kind, density, local, b, seed + uint(i) * 17u, k.center[i], k.cell[i])
-                     && landmarkStands(kind, k.center[i] + (world - local), b, scene, riverHalf, wander);
+                     && landmarkStands(kind, k.center[i] + (world - local), world - local, b, scene, riverHalf, wander,
+                                       seed + uint(i) * 17u);
     }
     return k;
 }
@@ -754,7 +844,7 @@ inline bool clearOfLandmark(int kind, float density, float2 local, float2 shift,
     if (any(int2(floor(local / landmarkCell(kind))) != knownCell)) {
         int2 id;
         standing = landmarkSite(kind, density, local, b, seed, center, id)
-                && landmarkStands(kind, center + shift, b, scene, riverHalf, wander);
+                && landmarkStands(kind, center + shift, shift, b, scene, riverHalf, wander, seed);
     }
     if (!standing) return true;
     float radius = landmarkRadius(kind);
@@ -773,17 +863,21 @@ inline bool clearOfLandmarks(float2 local, float2 shift, float r, Keepouts near,
                          near.standing[1], near.center[1])) return false;
     float2 pc;
     float pr;
-    if (pondSite(local, b, seed, pc, pr) && length((local - pc) * float2(1.0, 1.25)) < pr * 1.4 + 6.0 + r) return false;
+    // A pond that was never dug leaves no bare patch among the trees.
+    if (pondSite(local, b, seed, pc, pr) && length((local - pc) * float2(1.0, 1.25)) < pr * 1.4 + 6.0 + r
+        && near.dug) return false;
     return true;
 }
 
 inline bool clearSpot(float2 at, float2 atWorld, float r, Keepouts near, constant Biome &b, constant Scene &scene,
                       uint seed, float riverHalf, float2 wander) {
-    if (near.river && abs(riverDistance(atWorld, scene, wander)) < riverHalf + r + 5.0) return false;
+    if (near.river && abs(riverDistance(atWorld, scene, wander)) < riverHalf + b.i.w + r + 7.0) return false;
     if (near.road) {
         if (abs(roadDistance(atWorld, scene, wander)) < b.e.x * 0.5 + r + 1.5) return false;
         if (!clearOfHouses(atWorld, at, r, b, scene, seed, wander)) return false;
     }
+    if (near.crossNear && crossGap(atWorld, scene) < b.e.x * 0.45 + r + 1.5) return false;
+    if (near.rail && railGap(at, b) < r + 2.5) return false;
     return clearOfLandmarks(at, atWorld - at, r, near, b, scene, seed, riverHalf, wander);
 }
 
@@ -883,6 +977,8 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     float2 at = float2(roadX(worldY, scene, wander), worldY) - shift
                               + float2(along.y, -along.x) * sign * (halfRoad + r + 1.2 + (jh - 0.5) * 0.6);
                     if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 8.0) continue;
+                    if (crossGap(at + shift, scene) < halfRoad * 0.9 + r + 2.5) continue;
+                    if (railGap(at, b) < r + 3.0) continue;
                     if (!clearOfHouses(at + shift, at, r, b, scene, seed, wander)) continue;
                     plant(k, local, at, r, r * 2.4, broadleaf, fract(jh * 9.1), leaves, scene);
                 }
@@ -1106,7 +1202,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
             if (b.l.x > 0.5 && hash11(h.id, seed + 71u) < 0.85) {
                 for (int t = 0; t < 4; t++) {
                     float tr = 2.4 + 1.0 * hash11(h.id * 4 + t, seed + 76u);
-                    float2 offset = t < 3 ? float2(h.size.x + 5.5 + tr, h.size.y * (0.9 - 0.9 * float(t)))
+                    float2 offset = t < 3 ? float2(h.size.x + 6.2 + tr, h.size.y * (0.9 - 0.9 * float(t)))
                                           : float2(h.size.x * 0.2, h.size.y + 2.0 + tr);
                     float2 at = h.center + rotate(offset, h.angle) - (world - local);
                     plant(trees, local, at, tr, tr * 3.4, broadleaf, hash11(h.id * 4 + t, seed + 77u), cedar, scene);
@@ -1116,7 +1212,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
             // A garden tree behind village houses, on the far side from the shed, short of the next row.
             if (h.village > 0.3 && hash11(h.id, seed + 71u) < 0.6) {
                 float r = 2.4 + 1.4 * hash11(h.id, seed + 74u);
-                float2 offset = float2(h.size.x + 3.0 + r + 1.5 * hash11(h.id, seed + 72u),
+                float2 offset = float2(h.size.x + 3.6 + r + 1.0 * hash11(h.id, seed + 72u),
                                        h.size.y * (0.15 + 0.4 * hash11(h.id, seed + 73u)));
                 float2 at = h.center + rotate(offset, h.angle) - (world - local);
                 plant(trees, local, at, r, r * 2.5, broadleaf, hash11(h.id, seed + 75u), leaves, scene);
@@ -1160,7 +1256,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     float2 d = local - center;
     float bound = radius * 1.3 + trees.reach;
     if (dot(d, d) > bound * bound) return c;
-    if (!landmarkStands(kind, world + (center - local), b, scene, riverHalf, wander)) return c;
+    if (!landmarkStands(kind, world + (center - local), world - local, b, scene, riverHalf, wander, seed)) return c;
     float angle = hash21(id2, s + 2u) * 6.283;
     float2 r = rotate(d, -angle);
 
@@ -1393,8 +1489,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float2 center;
     float r;
     if (!pondSite(local, b, seed, center, r)) return c;
-    float2 centerWorld = world + (center - local);
-    if (b.d.z > 0.5 && abs(riverDistance(centerWorld, scene, wander)) < 90.0 + r) return c;
+    if (!pondStands(center, r, world - local, b, scene, wander)) return c;
     float size = max(b.k.w, 1.0);
     float2 d = local - center;
     if (dot(d, d) > r * r * 4.0) return c;
@@ -1494,6 +1589,8 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 5.0) continue;
                 if (near.road && (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 1.5
                                   || !clearOfHouses(at + shift, at, r, b, scene, seed, wander))) continue;
+                if (near.crossNear && crossGap(at + shift, scene) < b.e.x * 0.45 + r + 1.5) continue;
+                if (near.rail && railGap(at, b) < r + 2.5) continue;
                 // Fallen petals in the grass round trees in flower.
                 if (b.d.y > 0.0 && b.blossom.w > 0.5) {
                     float petal = hash21(int2(floor(p / 0.9)), seed + 46u);
@@ -1854,13 +1951,9 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float d = roadDistance(p, scene, wander);
 
     // A crossroad now and then.
-    float spacing = 1450.0;
-    float k = floor((p.y + scene.road.w) / spacing);
-    // Which one it is is counted from the world's origin, or it would shift or vanish as the reference stepped on.
-    float which = k + scene.bends.w;
-    float crossY = (k + 0.5) * spacing - scene.road.w + 40.0 * sin(p.x / 380.0 + which);
-    float hasCross = step(hash11(int(which), 70u), 0.55);
-    float dc = mix(1e6, abs(p.y - crossY) - halfWidth * 0.9, hasCross);
+    bool hasCross;
+    float crossY = crossroadY(p, scene, hasCross);
+    float dc = hasCross ? abs(p.y - crossY) - halfWidth * 0.9 : 1e6;
 
     // Roads meet in rounded corners.
     float dd = smin(abs(d) - halfWidth, dc, 3.0);
@@ -2025,7 +2118,7 @@ inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, consta
         if (reach <= 0.0 || !landmarkSite(kind, i == 0 ? b.j.y : b.j.w, local, b, seed + uint(i) * 17u, center, id)) continue;
         float2 away = local - center;
         if (length(away) >= claimEdge(reach)) continue;
-        if (landmarkStands(kind, center + shift, b, scene, riverHalf, wander)) claim(claims, away, reach, center + shift, scene);
+        if (landmarkStands(kind, center + shift, shift, b, scene, riverHalf, wander, seed + uint(i) * 17u)) claim(claims, away, reach, center + shift, scene);
     }
     float2 pond;
     float pondRadius;

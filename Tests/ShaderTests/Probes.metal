@@ -756,3 +756,126 @@ kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &
                      beyond(fract(p.y / alongSpacing(7.0)) - fract((p.y + referenceStep) / alongSpacing(7.0)), 2e-3),
                      outside(n, 0.0, 1.0), 0.0);
 }
+
+// MARK: - Nothing stands on anything else
+
+// Kernels named audit… walk a long way along the place in legB and write how far each thing intrudes on what it should
+// give way to, 0 when it keeps clear.
+
+inline float auditCross(float2 at, constant Scene &scene) { return crossGap(at, scene); }
+inline float auditRail(float2 at, constant Scene &scene) { return railGap(at - float2(0.0, scene.legB.info.x), scene.legB.biome); }
+
+// A house in each thread: 1024 slots either side of the road, front and back row. Parts: into a cross-road, onto the
+// railway, into a pond, into a landmark.
+kernel void auditHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    uint seed = uint(scene.legB.info.y);
+    float2 wander = course(scene, 1.0);
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    int row = int((id >> 1) & 1u);
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    float2 world = local + float2(0.0, scene.legB.info.x);
+    out[id] = float4(0.0);
+    Plot h;
+    if (!plot(h, k, row, side, world, local, b, scene, seed, wander)) return;
+    float2 shift = world - local;
+    float2 at = h.center - shift;
+    float reach = length(h.size) + 6.0;
+    float4 hit = float4(0.0);
+    hit.x = max(b.e.x * 0.45 + reach - auditCross(h.center, scene), 0.0);
+    hit.y = max(reach + 4.0 - auditRail(h.center, scene), 0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(at, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, shift, b, scene, wander)) {
+        hit.z = max(pondRadius * 1.25 + length(h.size) - length((at - pond) * float2(1.0, 1.25)), 0.0);
+    }
+    for (int i = 0; i < 2; i++) {
+        int kind = int(i == 0 ? b.j.x : b.j.z);
+        float density = i == 0 ? b.j.y : b.j.w;
+        float2 center;
+        int2 cell;
+        uint s = seed + uint(i) * 17u;
+        if (landmarkSite(kind, density, at, b, s, center, cell)
+            && landmarkStands(kind, center + shift, shift, b, scene, b.d.z * 0.5, wander, s)) {
+            hit.w = max(hit.w, landmarkRadius(kind) * 0.9 + reach - length(at - center));
+        }
+    }
+    out[id] = hit;
+}
+
+// A spot for a tree in each thread, scattered round the things it must keep off, in a place's open land. Parts: on a
+// cross-road, on the railway, on a pond, and on the main road.
+kernel void auditTrees(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float r = 3.0;
+    float2 world = float2(roadX(scene.legB.info.x + 700.0, scene, wander), scene.legB.info.x + 700.0);
+    world += (float2(probeRandom(id, 40u), probeRandom(id, 41u)) - 0.5) * float2(1800.0, 6000.0);
+    bool built;
+    float cross = crossroadY(world, scene, built);
+    // Half the spots are moved close to the cross-road, the things that are thin enough to be missed otherwise.
+    if (built && probeRandom(id, 42u) < 0.5) world.y = cross + (probeRandom(id, 43u) - 0.5) * 16.0;
+    float2 local = world - float2(0.0, leg.info.x);
+    if (leg.rail.w > 0.5 && probeRandom(id, 44u) > 0.7) {
+        float along;
+        float d = railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along);
+        float2 toward = float2(-sin(leg.rail.z), cos(leg.rail.z));
+        local -= toward * (d - (probeRandom(id, 45u) - 0.5) * 12.0);
+        world = local + float2(0.0, leg.info.x);
+    }
+    Keepouts near = keepouts(world, local, 40.0, b, scene, seed, b.d.z * 0.5, wander);
+    out[id] = float4(0.0);
+    if (!clearSpot(local, world, r, near, b, scene, seed, b.d.z * 0.5, wander)) return;
+    float4 hit = float4(0.0);
+    hit.x = max(b.e.x * 0.45 + r + 0.5 - auditCross(world, scene), 0.0);
+    hit.y = max(r + 1.5 - auditRail(world, scene), 0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(local, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, world - local, b, scene, wander)) {
+        hit.z = max(pondRadius * 0.9 + r - length((local - pond) * float2(1.0, 1.25)), 0.0);
+    }
+    hit.w = max(b.e.x * 0.5 + r - abs(roadDistance(world, scene, wander)), 0.0);
+    out[id] = hit;
+}
+
+// A pond or a landmark in each thread. Parts: a pond on a road, a pond on the railway, a landmark on a cross-road, and a
+// landmark on the railway.
+kernel void auditLandmarks(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float2 world = float2(roadX(leg.info.x + 700.0, scene, wander), leg.info.x + 700.0);
+    world += (float2(id % probeSide, id / probeSide) / float(probeSide) - 0.5) * float2(6000.0, 60000.0);
+    float2 local = world - float2(0.0, leg.info.x);
+    float2 shift = world - local;
+    float4 hit = float4(0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(local, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, shift, b, scene, wander)) {
+        float2 at = pond + shift;
+        float gap = min(abs(roadDistance(at, scene, wander)), auditCross(at, scene)) - b.e.x * 0.5;
+        hit.x = max(pondRadius * 1.3 - gap, 0.0);
+        hit.y = max(pondRadius * 1.3 - auditRail(at, scene), 0.0);
+    }
+    for (int i = 0; i < 2; i++) {
+        int kind = int(i == 0 ? b.j.x : b.j.z);
+        float density = i == 0 ? b.j.y : b.j.w;
+        float2 center;
+        int2 cell;
+        if (landmarkSite(kind, density, local, b, seed + uint(i) * 17u, center, cell)
+            && landmarkStands(kind, center + shift, shift, b, scene, b.d.z * 0.5, wander,
+                              seed + uint(i) * 17u)) {
+            float reach = landmarkRadius(kind) * 0.8;
+            hit.z = max(hit.z, reach - auditCross(center + shift, scene));
+            hit.w = max(hit.w, reach - auditRail(center + shift, scene));
+        }
+    }
+    out[id] = hit;
+}

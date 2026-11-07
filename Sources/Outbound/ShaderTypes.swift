@@ -35,6 +35,9 @@ struct BiomeGPU {
     var blossom, blossomLight: SIMD4<Float>
     /// evergreen gardens, unused, unused, unused
     var l: SIMD4<Float>
+    /// The leg's railway again, for what has to keep clear of it (see railGap in Ground.metal): origin, cos and sin of
+    /// its angle; then amplitude, 1 / wavelength, phase, and 1 if there is one.
+    var railLine = SIMD4<Float>.zero, railCurve = SIMD4<Float>.zero
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
