@@ -1563,6 +1563,61 @@ inline float3 rocks(float3 c, float2 p, constant Biome &b, constant Scene &scene
     return mix(c, rock, a);
 }
 
+// A track out to the road from a farm, kiln, feedlot, estancia, water point or corral, which would otherwise stand in the
+// middle of a field with no way to it: a pale rutted line straight to the main road along the line between two house
+// plots, which no house reaches, so where there are homes it is their lane. In pivot country it runs down the quarter
+// line between the circles to the section road. Where a river lies between, there is none rather than a ford.
+inline float3 landmarkTrack(float3 c, int kind, float density, float2 local, float2 world, constant Biome &b,
+                            constant Scene &scene, uint seed, float2 wander, float riverHalf, thread float &herd) {
+    if (kind != markFarmstead && kind != markKiln && kind != markFeedlot && kind != markGrove
+        && kind != markWaterPoint && kind != markCorral) return c;
+    float2 shift = world - local;
+    float d = 1e6;
+    if (int(b.a.x) == layoutPivots) {
+        float mile = b.a.y * 2.0;
+        float2 grid = float2(b.l.y, 0.0);
+        float2 middle = (floor((local - grid) / mile) + 0.5) * mile + grid;
+        if (abs(local.x - middle.x) > 4.0 || local.y > middle.y) return c;
+        float2 center;
+        int2 id;
+        if (!landmarkSite(kind, density, middle, b, seed, center, id) || length(center - middle) > 1.0) return c;
+        if (!landmarkStands(kind, center + shift, shift, b, scene, riverHalf, wander, seed)) return c;
+        d = abs(local.x - middle.x);
+    } else {
+        float cell = landmarkCell(kind);
+        for (int i = -1; i <= 1; i++) {
+            float2 center;
+            int2 id;
+            if (!landmarkSite(kind, density, local + float2(float(i) * cell, 0.0), b, seed, center, id)) continue;
+            float lineY = round(center.y / 30.0) * 30.0;
+            if (abs(local.y - lineY) > 4.0 && (abs(local.x - center.x) > 4.0 || (local.y - center.y) * (local.y - lineY) > 0.0)) {
+                continue;
+            }
+            float2 centerWorld = center + shift;
+            float rx = roadX(lineY + shift.y, scene, wander) - shift.x;
+            if (riverHalf > 0.25) {
+                float riverAt = riverX(lineY + shift.y, scene, wander) - shift.x;
+                if ((riverAt - center.x) * (riverAt - rx) < 0.0) continue;
+            }
+            if (!landmarkStands(kind, centerWorld, shift, b, scene, riverHalf, wander, seed)) continue;
+            // Out along the plot line to the road, and a short spur from the yard to it.
+            float along = (local.x - center.x) * sign(rx - center.x);
+            if (along >= 0.0 && along <= abs(rx - center.x)) d = min(d, abs(local.y - lineY));
+            if (abs(local.x - center.x) < 4.0 && (local.y - center.y) * (local.y - lineY) <= 0.0) {
+                d = min(d, abs(local.x - center.x));
+            }
+        }
+    }
+    if (d > 3.0) return c;
+    // Two wheel ruts in a worn strip, paler where nothing grows.
+    float worn = fill(d - 1.7, 0.5);
+    float3 dirt = mix(c, b.road.rgb * (0.92 + 0.12 * vnoise(local / 1.3, seed + 81u)), 0.55);
+    c = mix(c, dirt, worn);
+    c = mix(c, c * 0.86, fill(abs(d - 0.75) - 0.22, 0.2) * worn);
+    herd *= 1.0 - worn;
+    return c;
+}
+
 // The crown of a hedge nearest `p`, as a share of its radius, with its radius, where `p` lies from its middle, and its
 // tone.
 inline float hedgeCrowns(float2 p, float crownSize, uint seed, thread float &radius, thread float2 &offset,
@@ -1905,6 +1960,8 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.herd *= 1.0 - smoothstep(0.0, 0.5, water - l.water);
     l.water = water;
     float cover = 0.0;
+    l.color = landmarkTrack(l.color, int(b.j.x), b.j.y, local, world, b, scene, seed, wander, riverHalf, l.herd);
+    l.color = landmarkTrack(l.color, int(b.j.z), b.j.w, local, world, b, scene, seed + 17u, wander, riverHalf, l.herd);
     l.color = landmark(l.color, int(b.j.x), b.j.y, local, world, b, scene, seed, wander, riverHalf, trees, l.herd,
                        l.water, cover, l.light, l.lightID);
     l.color = landmark(l.color, int(b.j.z), b.j.w, local, world, b, scene, seed + 17u, wander, riverHalf, trees, l.herd,
