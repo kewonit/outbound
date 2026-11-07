@@ -765,6 +765,19 @@ kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &
 inline float auditCross(float2 at, constant Scene &scene) { return crossGap(at, scene); }
 inline float auditRail(float2 at, constant Scene &scene) { return railGap(at - float2(0.0, scene.legB.info.x), scene.legB.biome); }
 
+// A house in each thread, as auditHomes walks them, for how many a place builds. Part: whether it stands.
+kernel void countHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    Plot h;
+    bool stands = plot(h, k, int((id >> 1) & 1u), side, local + float2(0.0, scene.legB.info.x), local, b, scene,
+                       uint(scene.legB.info.y), course(scene, 1.0));
+    out[id] = float4(stands ? 1.0 : 0.0, 0.0, 0.0, 0.0);
+}
+
 // A house in each thread: 1024 slots either side of the road, front and back row. Parts: into a cross-road, onto the
 // railway, into a pond, into a landmark.
 kernel void auditHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],

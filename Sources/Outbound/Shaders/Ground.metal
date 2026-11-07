@@ -690,16 +690,22 @@ struct Plot {
     float reach;
 };
 
+// How much the road at `y` runs through a village, 0 to 1. A place's `villages` sets how much of its road does: about a
+// fifth at most, in short stretches, and next to none in the empty places.
+inline float villageAt(float y, constant Biome &b, uint seed) {
+    float from = 0.79 - b.i.x * 0.28;
+    return smoothstep(from, from + 0.08, vnoise(float2(y / 1100.0, 0.5), seed + 70u)) * step(0.001, b.i.x);
+}
+
 // The house in slot `k` on one side of the road, in the row by the road (0) or behind it (1), if one stands there.
 // Slots are 30 m long and a house at most 19 m, and the rows are set back far enough, so no two ever touch.
 inline bool plot(thread Plot &h, float k, int row, float side, float2 world, float2 local, constant Biome &b,
                  constant Scene &scene, uint seed, float2 wander) {
     const float slot = 30.0;
     float yC = (k + 0.5 + 0.3 * (hash11(int(k), seed + 62u) - 0.5)) * slot;
-    float village = smoothstep(0.62 - b.i.x * 0.22, 0.7 - b.i.x * 0.22, vnoise(float2(yC / 1100.0, 0.5), seed + 70u))
-                  * step(0.001, b.i.x);
+    float village = villageAt(yC, b, seed);
     int id = (int(k) * 2 + (side > 0.0 ? 1 : 0)) * 2 + row;
-    float chance = row == 0 ? mix(b.e.w * 0.33, 0.85, village) : 0.7 * village;
+    float chance = row == 0 ? mix(b.e.w * 0.33, 0.6, village) : 0.3 * village;
     if (hash11(id, seed + 60u) > chance) return false;
     float worldY = world.y + (yC - local.y);
     float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
@@ -989,7 +995,7 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     if (hash11(int(floor(y / 240.0)) * 2 + side, seed + 56u) >= b.i.y) continue;
                     float jh = hash11(int(j) * 2 + side, seed + 57u);
                     if (jh < 0.12) continue;
-                    float village = smoothstep(0.62 - b.i.x * 0.22, 0.7 - b.i.x * 0.22, vnoise(float2(y / 1100.0, 0.5), seed + 70u));
+                    float village = villageAt(y, b, seed);
                     if (village > 0.5 && b.h.y > 0.0 && abs(fract(y / 34.0) - 0.5) * 34.0 < 4.5) continue;
                     float r = r0 * (0.85 + 0.3 * jh);
                     float worldY = y + shift.y;
@@ -1152,7 +1158,7 @@ inline float3 streetLamps(float3 c, float2 local, float2 world, constant Biome &
     for (int dj = -1; dj <= 1; dj++) {
         float j = j0 + float(dj);
         float y = (j + 0.5) * spacing;
-        float village = smoothstep(0.62 - b.i.x * 0.22, 0.7 - b.i.x * 0.22, vnoise(float2(y / 1100.0, 0.5), seed + 70u));
+        float village = villageAt(y, b, seed);
         // Lamps run the length of a village, with the odd gap where a pole is missing.
         if (village < 0.5 || hash11(int(j), seed + 67u) > 0.55 + b.h.y * 0.45) continue;
         int stretch = int(floor(y / 520.0));
