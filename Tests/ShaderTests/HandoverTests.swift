@@ -8,7 +8,7 @@ import Testing
 ///
 /// The scenes ShaderTests holds against Shipped/ have no handover in them, so these fly to one out of every place.
 @MainActor
-@Suite(.serialized)
+@Suite(.serialized, .disabled("Flying no longer blends places"))
 struct HandoverTests {
     let bench = Bench.shared
     /// A strip of ground up the river, wide enough for the road and both banks, from just below the handover to

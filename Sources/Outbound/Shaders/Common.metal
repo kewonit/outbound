@@ -64,6 +64,9 @@ struct CloudParams {
     float4 origin;  // cloud space xy, metres per pixel, cover
     float4 offsets; // light xy, shadow xy
     float4 view;    // height px
+    float4 deck;    // a crossing: how far closed, how far cleared, the bottom row's height above the desktop's bottom,
+                    // the desktop's height, both in metres
+    float4 flow;    // how far the crossing's cloud and the veil under it have slid, metres, then the sun's reach unused
 };
 
 struct CompositeParams {

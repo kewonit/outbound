@@ -189,8 +189,13 @@ final class World {
         let change = journey.carryOn(at: t, bottom: bottom - 50, behind: bottom - 1500 - Self.reach)
         if change != .none {
             // The light of the new place, now, while the cloud hides it, rather than whenever the sun is next looked at.
+            let left = (light: sun.light, night: sun.night, toSun: sun.direction)
             updateSun(force: false)
+            lightLeft = nil
             if change == .atOnce { repaint() }
+            if change == .sweeping, let opens = journey.crossing?.opens {
+                lightLeft = (left.light, left.night, left.toSun, t, opens)
+            }
         }
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
@@ -478,6 +483,30 @@ final class World {
     var crossingUnderWay: Bool {
         journey.crossing?.isUnderWay(at: time) == true
     }
+
+    /// How a crossing's cloud stands at `t`, if any of it is in the sky.
+    func crossingCloud(at t: TimeInterval) -> (closure: Double, clearing: Double, age: TimeInterval)? {
+        guard let crossing = journey.crossing, crossing.isUnderWay(at: t) else { return nil }
+        return (crossing.closure(at: t), crossing.clearing(at: t), t - crossing.start)
+    }
+
+    /// The sky's light as the land changed, which the new place's takes over from while the cloud is still closed. Places
+    /// keep their own hours, so it can be day on one side of a crossing and night on the other.
+    private var lightLeft: (light: SIMD4<Double>, night: Double, toSun: SIMD2<Double>, start: TimeInterval, end: TimeInterval)?
+
+    /// The light in the sky at `t`. Only the sky goes by this: the ground is painted in the new place's own light.
+    func skyLight(at t: TimeInterval) -> (light: SIMD4<Double>, night: Double, toSun: SIMD2<Double>) {
+        guard let left = lightLeft, t < left.end else { return (sun.light, sun.night, sun.direction) }
+        let along = max(0, min(1, (t - left.start) / (left.end - left.start)))
+        let k = along * along * (3 - 2 * along)
+        return (left.light + (sun.light - left.light) * k, left.night + (sun.night - left.night) * k,
+                left.toSun + (sun.direction - left.toSun) * k)
+    }
+
+    /// How fast a crossing's cloud slides over the land, and the veil under it, in metres a second: nearer the camera
+    /// than the ground, so faster than it.
+    static let deckSpeed = 6.0
+    static let veilSpeed = 3.5
 
     /// Whether a train is passing the middle of the main display.
     var trainPassing: Bool {

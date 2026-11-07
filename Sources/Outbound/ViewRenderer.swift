@@ -311,6 +311,8 @@ final class ViewRenderer {
     }
     /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
     private var settlesSweep = false
+    /// The cloud texture has a crossing's cloud in it.
+    private var cloudsHoldCrossing = false
     /// Ground a frame must paint that is too much for one piece of GPU work goes in pieces committed ahead of the
     /// frame. The exporter waits for each, and learns nothing from them, so its pictures never vary.
     var waitsForPieces = false
@@ -625,6 +627,9 @@ final class ViewRenderer {
         var scene = worldFrame.scene
         let pipelines = gpu.shaders.pipelines
         paintGround(work, commandBuffer: commandBuffer)
+        let sky = world.skyLight(at: t)
+        scene.light = SIMD4<Float>(sky.light)
+        scene.time.w = Float(sky.night)
 
         // Clouds never change shape, they only drift, so they are painted at a quarter of the resolution
         // with a margin and slid along until the margin runs out.
@@ -634,16 +639,27 @@ final class ViewRenderer {
         let viewCloud = world.cloudSpace(origin, at: t)
         var offset = cloudCorner.map { Self.wrapped(viewCloud - $0) } ?? .zero
         let marginMetres = Double(Self.cloudMargin) * cloudPixel
-        if cloudCorner == nil || full || offset.x < 0 || offset.y < 0
+        // A crossing's cloud changes from frame to frame, so it is painted every frame and once more when it has gone.
+        let crossing = world.crossingCloud(at: t)
+        let crossingPainted = cloudsHoldCrossing
+        cloudsHoldCrossing = crossing != nil
+        if crossing != nil || crossingPainted || cloudCorner == nil || full || offset.x < 0 || offset.y < 0
             || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
             let corner = viewCloud - SIMD2(marginMetres, marginMetres)
-            let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
+            let toSun = sky.toSun
             var cloudParams = CloudsGPU(
                 origin: SIMD4(Float(corner.x.positiveRemainder(16384)), Float(corner.y.positiveRemainder(16384)),
                               Float(cloudPixel), Float(world.cloudCover)),
                 offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
                                Float(toSun.y * World.cloudHeight)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
+            if let crossing {
+                let desktop = world.desktop
+                cloudParams.deck = SIMD4(Float(crossing.closure), Float(crossing.clearing),
+                                         Float(origin.y - Double(desktop.minY) * mpp - marginMetres),
+                                         Float(Double(desktop.height) * mpp))
+                cloudParams.flow = SIMD4(Float(crossing.age * World.deckSpeed), Float(crossing.age * World.veilSpeed), 0, 0)
+            }
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds
             cloudPass.colorAttachments[0].loadAction = .dontCare

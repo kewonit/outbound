@@ -830,10 +830,23 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         }
     }
 
-    float cloudAlpha = smoothstep(0.02, 0.6, cloud.x);
+    // How much of the cloud here is the bank of a crossing, which the gull flies above, and which hides the land whole.
+    float bank = 1.0 - cloud.w;
+    float cloudAlpha = mix(smoothstep(0.02, 0.6, cloud.x), cloud.x, bank);
     if (cloudAlpha > 0.0) {
         float3 cloudColor = mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, cloud.y));
-        c = mix(c, cloudColor, cloudAlpha);
+        // Kept off pure white, so a desktop under it glows rather than glares.
+        float3 bankColor = mix(float3(0.64, 0.7, 0.82), float3(0.985, 0.975, 0.95), smoothstep(0.1, 1.0, cloud.y));
+        c = mix(c, mix(cloudColor, bankColor, bank), cloudAlpha);
+    }
+
+    // The gull's shadow falls close beneath it on the bank.
+    if (birdVisible > 0.0 && bank * cloudAlpha > 0.0) {
+        float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
+        if (dot(offset, offset) < scale * scale * 1.6) {
+            float2 q = rotate(offset, -params.bird.z) / scale;
+            c = mix(c, c * float3(0.74, 0.78, 0.86), fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * bank * cloudAlpha);
+        }
     }
 
     // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
@@ -842,7 +855,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
             float sb = birdShape(q, params.wings.x, params.bird.w);
-            float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
+            float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x) * (1.0 - bank));
             // A breath of shade round it keeps the white of the bird apart from pale ground and cloud.
             c = mix(c, c * 0.8, fill(sb - 0.014, 1.6 / scale) * 0.3 * through);
             c = mix(c, gullColour(q, params.wings.x, params.bird.w, rotate(scene.sun.xy, -params.bird.z)),
@@ -861,10 +874,11 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float3 lit = c * scene.light.rgb * scene.light.w;
     if (night > 0.0) {
         float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.44, 0.54, 0.76) * 0.78 + float3(0.015, 0.02, 0.045);
-        // Clouds hold far less moonlight than their daytime white suggests.
-        moonlit *= 1.0 - 0.42 * cloudAlpha;
+        // Clouds hold far less moonlight than their daytime white suggests, though a bank seen from above still stands
+        // paler than the land it hides, or it would be a curtain drawn over it.
+        moonlit *= 1.0 - mix(0.42, 0.16, bank) * cloudAlpha;
         c = mix(lit, moonlit, night);
-        c += lamplight.rgb * night * (1.0 - 0.85 * cloudAlpha);
+        c += lamplight.rgb * night * (1.0 - mix(0.85, 1.0, bank) * cloudAlpha);
     } else {
         c = lit;
     }

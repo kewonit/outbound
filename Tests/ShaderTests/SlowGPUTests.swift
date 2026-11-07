@@ -175,7 +175,7 @@ struct SlowGPUTests {
         let frame = world.frame(bottom: bottom + 50, top: top)
         #expect(frame.sweepFront == nil)
         #expect(frame.legB.place.id == next.id)
-        // The old place ends below the view, at once rather than over a morph.
-        #expect(frame.scene.morph.y < 0.01)
+        // The old place ends below the view, so the new one has it all to itself.
+        #expect(frame.legA.index == frame.legB.index)
     }
 }

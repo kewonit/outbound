@@ -19,7 +19,7 @@ public struct Leg: Sendable {
 public struct Crossing: Equatable, Sendable {
     /// How long the cloud takes to close, stays closed, and takes to clear, whatever the pace.
     public static let closing: TimeInterval = 25
-    public static let closed: TimeInterval = 10
+    public static let closed: TimeInterval = 6
     public static let opening: TimeInterval = 25
 
     /// When the first wisps come in.
