@@ -102,6 +102,8 @@ enum Exporter {
             world.journey.refreshSeasons()
         }
         if let pace = options["pace"].flatMap(Double.init) { world.journey.setSpeed(pace, at: 0) }
+        // How many minutes each place lasts at that pace, as Stay sets it in the app.
+        if let stay = options["stay"].flatMap(Double.init) { world.journey.legLength = stay * 60 * world.journey.speed }
         // A pointer that wanders over the frame and rests now and then, for the bird to chase.
         let cursor = options["cursor"] != nil
         var clockTime = time
@@ -110,10 +112,12 @@ enum Exporter {
             world.pointer = { cursorPoint(at: clockTime, in: frame) }
         }
         world.advance(to: time)
-        // With --find train or --find flock, fly on until one is in view.
+        // With --find train, --find flock or --find handover, fly on until one is in view. Small steps get there as
+        // the app would: one long one would run past the place the journey means to turn into the next.
         if let event = options["find"] {
             while time < 7200 {
-                if event == "train" ? world.trainPassing : world.flock != nil { break }
+                if event == "train" ? world.trainPassing
+                    : event == "handover" ? world.handoverPassing : world.flock != nil { break }
                 time += 2
                 world.advance(to: time)
             }

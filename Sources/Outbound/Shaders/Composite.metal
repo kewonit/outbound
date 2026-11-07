@@ -107,6 +107,15 @@ inline float lowBeam(float2 p, float kerb) {
     return (hot + spread) * shown * h / (d2 * sqrt(d2)) / 0.00042;
 }
 
+// How much of a car with chance `h` is on the road where the land has turned `m`, 0 to 1. Places differ in how busy
+// their roads are, so as a car drives through a handover the road can get too quiet for it, or busy enough. It goes or
+// comes over about 30 m rather than in one frame. Where the two places agree there is nothing to fade: all or nothing.
+inline float carPresence(float h, float m, float busyA, float busyB) {
+    float busy = min(mix(busyA, busyB, m) * 1.6, 0.75);
+    float soft = abs(busyB - busyA) * 1.6 * 0.06 * smoothstep(0.0, 0.06, min(m, 1.0 - m));
+    return soft > 1e-5 ? saturate((busy - h) / soft + 0.5) : (h > busy ? 0.0 : 1.0);
+}
+
 // Cars ride slots along the road, northbound on one side and southbound on the other, each pointing along the road
 // and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
 // is, so a car is never cut in two where one place turns into the next.
@@ -124,11 +133,16 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         if (ahead < -12.0 || ahead > (night > 0.01 ? 60.0 : 12.0)) continue;
         int id = slot.id * 2 + lane;
         float m = landTurn(slot.y, scene);
-        if (hash11(id, 140u) > min(mix(a.g.y, b.g.y, m) * 1.6, 0.75)) continue;
+        float present = carPresence(hash11(id, 140u), m, a.g.y, b.g.y);
+        // Northbound traffic keeps to its side of the road: the west side where traffic keeps left. Between a place
+        // that keeps left and one that keeps right no car can change sides without driving through the oncoming
+        // lane, so they all fade out before the change and new ones fade in after it.
+        float keepLeft = m < 0.5 ? a.h.x : b.h.x;
+        if (a.h.x != b.h.x) present *= smoothstep(0.0, 0.03, abs(m - 0.5));
+        if (present <= 0.0) continue;
+        float3 carless = result, unlit = light;
         float2 wander = course(scene, m);
         float width = mix(a.e.x, b.e.x, m);
-        // Northbound traffic keeps to its side of the road: the west side where traffic keeps left.
-        float keepLeft = mix(a.h.x, b.h.x, smoothstep(0.3, 0.7, m));
         float side = mix(dir, -dir, keepLeft);
         float2 along = normalize(float2(roadSlope(slot.y, scene, wander), 1.0));
         float2 across = float2(along.y, -along.x);
@@ -200,6 +214,8 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
             float behind = -(q.y + size.y + 0.3);
             if (behind > 0.0) light += (c * 0.6 + 0.03) * red * exp(-behind / 1.3) * exp(-q.x * q.x / 0.9) * 0.08;
         }
+        result = mix(carless, result, present);
+        light = mix(unlit, light, present);
     }
     return result;
 }
@@ -285,8 +301,17 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         if (ahead < -10.0 || ahead > 80.0) continue;
         int id = slot.id * 2 + lane;
         float m = landTurn(slot.y, scene);
-        constant Biome &b = m < 0.5 ? scene.legA.biome : scene.legB.biome;
-        if (b.h.z <= 0.0 || hash11(id, 600u) > b.h.z * 0.6) continue;
+        constant Biome &a = scene.legA.biome;
+        constant Biome &b = m < 0.5 ? a : scene.legB.biome;
+        // Each place has its own boats, so one comes or goes around halfway rather than in a single frame, and hippos
+        // and boats, which can't turn into each other, leave a moment's gap.
+        float chance = hash11(id, 600u);
+        float present = mix(a.h.z > 0.0 && chance <= a.h.z * 0.6 ? 1.0 : 0.0,
+                            scene.legB.biome.h.z > 0.0 && chance <= scene.legB.biome.h.z * 0.6 ? 1.0 : 0.0,
+                            smoothstep(0.47, 0.53, m));
+        if ((a.h.w > 1.5) != (scene.legB.biome.h.w > 1.5)) present *= smoothstep(0.0, 0.03, abs(m - 0.5));
+        if (present <= 0.0) continue;
+        float3 boatless = result, unlit = light;
         float2 wander = course(scene, m);
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
         bool hippos = b.h.w > 1.5;
@@ -311,6 +336,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
                 float back = (length(q / float2(0.95, 1.6)) - 1.0) * 0.95;
                 result = mix(result, float3(0.42, 0.40, 0.42), fill(back, mpp * 0.7));
             }
+            result = mix(boatless, result, present);
             continue;
         }
         float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
@@ -343,6 +369,8 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
             light += float3(0.15, 1.0, 0.35) / (1.0 + dot(starboard, starboard) / 0.03);
             light += float3(1.0, 0.95, 0.85) / (1.0 + dot(stern, stern) / 0.04);
         }
+        result = mix(boatless, result, present);
+        light = mix(unlit, light, present);
     }
     return result;
 }
@@ -426,7 +454,16 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
-            c = train(c, world, scene.train, scene, mpp, light);
+            // Through a handover a train goes no further than its line does.
+            float turn = railTurn(world.y, scene);
+            float shown = scene.train.info.z < 0.5 || scene.morph.z >= 0.0 ? 1.0
+                        : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
+            if (shown > 0.0) {
+                float3 lit = light;
+                float3 passing = train(c, world, scene.train, scene, mpp, lit);
+                c = mix(c, passing, shown);
+                light = mix(light, lit, shown);
+            }
         }
     }
 
