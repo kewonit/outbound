@@ -74,6 +74,7 @@ final class World {
     init?(resuming moment: Moment, at displayTime: TimeInterval, date: Date = .now, light: Light = .yourTime) {
         guard moment.time.isFinite, displayTime.isFinite,
               let journey = Journey(moment.journey, date: date) else { return nil }
+        journey.settle(at: moment.cameraY)
         time = moment.time
         self.light = light
         self.journey = journey
@@ -145,9 +146,11 @@ final class World {
     /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.
     static let reach = 4000.0
 
-    /// A Fly To is sweeping in a new place.
+    /// A new place is on its way in: a Fly To is sweeping it in, or a crossing has the sky full of cloud. Nothing that
+    /// keeps a picture of the land should take one now.
     var isSweeping: Bool {
         journey.legs.contains { $0.sweepStart.map { time - $0 < Journey.sweepDuration } ?? false }
+            || journey.crossing?.isUnderWay(at: time) == true
     }
 
     /// Whether the world, held, can go back to `moment` and show just what it showed then: nothing baked into the
@@ -182,10 +185,13 @@ final class World {
         let dt = t - time
         time = t
         let camera = self.camera
-        let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
-        journey.extend(through: top + 1500,
-                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + 200)
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
+        let change = journey.carryOn(at: t, bottom: bottom - 50, behind: bottom - 1500 - Self.reach)
+        if change != .none {
+            // The light of the new place, now, while the cloud hides it, rather than whenever the sun is next looked at.
+            updateSun(force: false)
+            if change == .atOnce { repaint() }
+        }
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -326,6 +332,9 @@ final class World {
         if let previous = journey.leg(before: topLeg), topLeg.start + Journey.morphLength > bottom - 200 {
             legA = previous
         }
+        // Swept in and started below the view, the new place has the view to itself. Herds and the railway go by the
+        // two legs, so an old one kept on would graze its animals on the new land.
+        if let start = topLeg.sweepStart, t - start >= Journey.sweepDuration, topLeg.start <= bottom { legA = topLeg }
         let legB = topLeg
 
         var boundary = -1e9
@@ -465,9 +474,9 @@ final class World {
             locomotive: color(railway.locomotive))
     }
 
-    /// Whether the middle of the main display has reached the middle of the first turn into another place.
-    var handoverPassing: Bool {
-        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint - Journey.morphLength / 2).index > 0
+    /// Whether the cloud of a crossing is in the sky.
+    var crossingUnderWay: Bool {
+        journey.crossing?.isUnderWay(at: time) == true
     }
 
     /// Whether a train is passing the middle of the main display.

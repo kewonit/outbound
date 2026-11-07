@@ -13,6 +13,61 @@ public struct Leg: Sendable {
     public let sweepStart: TimeInterval?
 }
 
+/// One place giving way to the next under cloud. A bank rolls in, closes over everything, and parts again over the new
+/// land, so the two places never meet on screen. Everything about it is a matter of the time, so each display can draw
+/// its own moment and a rewind needs nothing put back.
+public struct Crossing: Equatable, Sendable {
+    /// How long the cloud takes to close, stays closed, and takes to clear, whatever the pace.
+    public static let closing: TimeInterval = 25
+    public static let closed: TimeInterval = 10
+    public static let opening: TimeInterval = 25
+
+    /// When the first wisps come in.
+    public let start: TimeInterval
+    /// When it was called off while still closing, and the bank began to draw back the way it came.
+    public private(set) var calledOff: TimeInterval?
+
+    public init(start: TimeInterval) {
+        self.start = start
+    }
+
+    /// When everything is under cloud.
+    public var closes: TimeInterval { start + Self.closing }
+    /// When the cloud starts to part.
+    public var opens: TimeInterval { closes + Self.closed }
+    /// When the land starts to change: its sweep sits in the middle of the time the cloud is closed.
+    public var turn: TimeInterval { closes + (Self.closed - Journey.sweepDuration) / 2 }
+
+    /// When the last of it has gone.
+    public var end: TimeInterval {
+        guard let calledOff else { return opens + Self.opening }
+        return calledOff + (calledOff - start)
+    }
+
+    /// How far the cloud has closed at `t`, 0 clear sky to 1 closed.
+    public func closure(at t: TimeInterval) -> Double {
+        // Called off, it draws back at the rate it came in.
+        let reached = calledOff.map { $0 - max(t - $0, 0) } ?? .infinity
+        return max(0, min(1, (min(t, reached) - start) / Self.closing))
+    }
+
+    /// How far the cloud has cleared at `t`, 0 not at all to 1 gone.
+    public func clearing(at t: TimeInterval) -> Double {
+        calledOff == nil ? max(0, min(1, (t - opens) / Self.opening)) : 0
+    }
+
+    /// Whether any of it is in the sky at `t`.
+    public func isUnderWay(at t: TimeInterval) -> Bool {
+        t >= start && t < end
+    }
+
+    /// The land won't be changing after all. While the cloud is still closing it draws back again; once it is closed it
+    /// simply clears over the same land.
+    public mutating func callOff(at t: TimeInterval) {
+        if t < closes { calledOff = t }
+    }
+}
+
 /// Where the camera is and which places lie ahead.
 public final class Journey {
     /// Distance over which one place turns into the next while flying.
@@ -30,6 +85,12 @@ public final class Journey {
     public var followsCalendar: Bool
     /// Stays over the place in view rather than moving on to the next one. A Fly To still goes somewhere new.
     public var staysPut = false
+    /// The crossing into the next place, while one is on its way.
+    public private(set) var crossing: Crossing?
+    /// The crossing under way has still to change the land.
+    private var landToChange = false
+    /// The time `carryOn` last looked. Nil on a journey picked up from a snapshot, which has no step to measure.
+    private var carriedOn: TimeInterval?
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
@@ -45,6 +106,7 @@ public final class Journey {
         anchorTime = time
         anchorY = 0
         driftStart = time
+        carriedOn = time
         let season = followsCalendar ? place.season(on: date) : place.signatureSeason
         // The first leg starts a little behind the camera, so the land on screen at launch belongs to it.
         legs = [Leg(index: 0, place: place, season: season, start: -legLength * 0.15, sweepStart: nil)]
@@ -98,6 +160,14 @@ public final class Journey {
         nextIndex = max(snapshot.nextIndex, (legs.map(\.index).max() ?? 0) + 1)
     }
 
+    /// Takes up a journey saved by a version that laid each place out ahead of the camera and blended one into the next.
+    /// Places change under cloud now, so what is under the camera at `y` has the land to itself, rather than meeting
+    /// another place along a line.
+    public func settle(at y: Double) {
+        let here = leg(at: y)
+        if legs.last?.index != here.index || (here.sweepStart == nil && legs.count > 1) { legs = [here] }
+    }
+
     public func cameraY(at time: TimeInterval) -> Double {
         anchorY + speed * (time - anchorTime)
     }
@@ -135,27 +205,82 @@ public final class Journey {
         return legs[i - 1]
     }
 
-    /// Appends legs so the land up to world y is decided, and forgets legs far behind. A new place begins no
-    /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
-    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
-    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
-        while !staysPut, let last = legs.last, last.start + legLength < y {
-            let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
-            let start = max(last.start + legLength, notBefore)
-            append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
+    /// What `carryOn` did to the land.
+    public enum Change: Equatable, Sendable {
+        case none
+        /// A new place is sweeping in, under cloud.
+        case sweeping
+        /// A new place is simply there, and what is painted of the old one has to go.
+        case atOnce
+    }
+
+    /// Moves the journey on to `time`: starts a crossing when the stay over this place is up, changes the land once the
+    /// cloud has closed, and forgets legs far behind. `bottom` is the world y just below everything on view, where a new
+    /// place begins.
+    @discardableResult
+    public func carryOn(at time: TimeInterval, bottom: Double, behind: Double, date: Date = .now) -> Change {
+        defer {
+            carriedOn = time
+            while legs.count > 2, legs[1].start + Self.morphLength < behind { legs.removeFirst() }
         }
-        while legs.count > 2, legs[1].start + Self.morphLength < behind {
-            legs.removeFirst()
+        let y = cameraY(at: time)
+        var change = Change.none
+        // A step past a whole crossing, as when an export starts well into the flight, has no cloud to show: the journey
+        // is simply over the place it would have reached by now.
+        if crossing == nil, !staysPut, let carriedOn, time - carriedOn >= Self.crossingLength {
+            while let last = legs.last, y >= last.start + legLength + Self.crossingLength * speed {
+                // Below the view, whichever display is lowest, and never back over the leg before.
+                let start = min(last.start + legLength, bottom)
+                guard start > last.start else { break }
+                append(place(after: last), start: start, sweep: time - Self.sweepDuration * 2, date: date)
+                change = .atOnce
+            }
         }
+        if crossing == nil, !staysPut, let last = legs.last, y >= last.start + legLength {
+            crossing = Crossing(start: time)
+            landToChange = true
+        }
+        guard var underWay = crossing else { return change }
+        if landToChange, staysPut {
+            underWay.callOff(at: time)
+            crossing = underWay
+            landToChange = false
+        }
+        if landToChange, time >= underWay.turn, let last = legs.last {
+            // Too late for a sweep to finish under the cloud, it is there at once. Only a long step comes to this.
+            let late = time > underWay.opens - Self.sweepDuration
+            arrive(at: place(after: last), from: bottom, time: time, atOnce: late, date: date)
+            landToChange = false
+            change = late ? .atOnce : .sweeping
+        }
+        if time >= underWay.end { crossing = nil }
+        return change
     }
 
     /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over
     /// `sweepDuration`, or with `atOnce` is there already, as it must be while the flight is held still and no time
-    /// passes for it to sweep in.
+    /// passes for it to sweep in. This place takes the place of any the journey was on its way to.
     public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, date: Date = .now) {
+        if landToChange {
+            crossing?.callOff(at: time)
+            landToChange = false
+        }
+        arrive(at: place, from: y, time: time, atOnce: atOnce, date: date)
+    }
+
+    private func arrive(at place: Place, from y: Double, time: TimeInterval, atOnce: Bool, date: Date) {
         legs.removeAll { $0.start >= y }
         // A sweep long over, not one just ending, which rounding could leave a hair short of over.
         append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)
+    }
+
+    /// The whole of a crossing, from the first wisps to the last.
+    private static var crossingLength: TimeInterval { Crossing.closing + Crossing.closed + Crossing.opening }
+
+    /// The place the journey goes to after `leg`.
+    private func place(after leg: Leg) -> Place {
+        let i = Place.all.firstIndex { $0.id == leg.place.id } ?? 0
+        return Place.all[(i + 1) % Place.all.count]
     }
 
     /// Re-reads the season for every leg, after the date or the calendar setting changed.
