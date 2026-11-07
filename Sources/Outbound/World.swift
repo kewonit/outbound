@@ -74,7 +74,6 @@ final class World {
     init?(resuming moment: Moment, at displayTime: TimeInterval, date: Date = .now, light: Light = .yourTime) {
         guard moment.time.isFinite, displayTime.isFinite,
               let journey = Journey(moment.journey, date: date) else { return nil }
-        journey.settle(at: moment.cameraY)
         time = moment.time
         self.light = light
         self.journey = journey
@@ -146,11 +145,9 @@ final class World {
     /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.
     static let reach = 4000.0
 
-    /// A new place is on its way in: a Fly To is sweeping it in, or a crossing has the sky full of cloud. Nothing that
-    /// keeps a picture of the land should take one now.
+    /// A Fly To is sweeping in a new place.
     var isSweeping: Bool {
         journey.legs.contains { $0.sweepStart.map { time - $0 < Journey.sweepDuration } ?? false }
-            || journey.crossing?.isUnderWay(at: time) == true
     }
 
     /// Whether the world, held, can go back to `moment` and show just what it showed then: nothing baked into the
@@ -185,19 +182,10 @@ final class World {
         let dt = t - time
         time = t
         let camera = self.camera
-        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
-        let change = journey.carryOn(at: t, bottom: bottom - 50, height: Double(desktop.height) * Self.metresPerPoint,
-                                     behind: bottom - 1500 - Self.reach)
-        if change != .none {
-            // The light of the new place, now, while the cloud hides it, rather than whenever the sun is next looked at.
-            let left = (light: sun.light, night: sun.night, toSun: sun.direction)
-            updateSun(force: false)
-            lightLeft = nil
-            if change == .atOnce { repaint() }
-            if change == .sweeping, let opens = journey.crossing?.opens {
-                lightLeft = (left.light, left.night, left.toSun, t, opens)
-            }
-        }
+        let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        journey.extend(through: top + 1500,
+                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
+                       notBefore: top + Self.bankReach + 20)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -338,9 +326,6 @@ final class World {
         if let previous = journey.leg(before: topLeg), topLeg.start + Journey.morphLength > bottom - 200 {
             legA = previous
         }
-        // Swept in and started below the view, the new place has the view to itself. Herds and the railway go by the
-        // two legs, so an old one kept on would graze its animals on the new land.
-        if let start = topLeg.sweepStart, t - start >= Journey.sweepDuration, topLeg.start <= bottom { legA = topLeg }
         let legB = topLeg
 
         var boundary = -1e9
@@ -480,28 +465,19 @@ final class World {
             locomotive: color(railway.locomotive))
     }
 
-    /// Whether the cloud of a crossing is in the sky.
-    var crossingUnderWay: Bool {
-        journey.crossing?.isUnderWay(at: time) == true
+    /// Half the length of the bank of cloud over each join between two places, in metres: about a screenful in all.
+    static let bankHalf = 221.0
+    /// How far from a join anything of its bank can be seen, ragged edges and shadow included.
+    static let bankReach = 480.0
+
+    /// World y of the join whose bank shows anywhere from `bottom` to `top`, if one does.
+    func bank(from bottom: Double, to top: Double) -> Double? {
+        journey.joins.first { $0 - Self.bankReach < top && $0 + Self.bankReach > bottom }
     }
 
-    /// How a crossing's cloud stands at `t`, if any of it is in the sky.
-    func crossingCloud(at t: TimeInterval) -> (closure: Double, clearing: Double, slide: Double, height: Double)? {
-        guard let crossing = journey.crossing, crossing.isUnderWay(at: t) else { return nil }
-        return (crossing.closure(at: t), crossing.clearing(at: t), crossing.slide(at: t), crossing.height)
-    }
-
-    /// The sky's light as the land changed, which the new place's takes over from while the cloud is still closed. Places
-    /// keep their own hours, so it can be day on one side of a crossing and night on the other.
-    private var lightLeft: (light: SIMD4<Double>, night: Double, toSun: SIMD2<Double>, start: TimeInterval, end: TimeInterval)?
-
-    /// The light in the sky at `t`. Only the sky goes by this: the ground is painted in the new place's own light.
-    func skyLight(at t: TimeInterval) -> (light: SIMD4<Double>, night: Double, toSun: SIMD2<Double>) {
-        guard let left = lightLeft, t < left.end else { return (sun.light, sun.night, sun.direction) }
-        let along = max(0, min(1, (t - left.start) / (left.end - left.start)))
-        let k = along * along * (3 - 2 * along)
-        return (left.light + (sun.light - left.light) * k, left.night + (sun.night - left.night) * k,
-                left.toSun + (sun.direction - left.toSun) * k)
+    /// Whether the middle of the main display has reached the middle of the first turn into another place.
+    var handoverPassing: Bool {
+        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint - Journey.morphLength / 2).index > 0
     }
 
     /// Whether a train is passing the middle of the main display.

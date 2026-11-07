@@ -311,8 +311,8 @@ final class ViewRenderer {
     }
     /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
     private var settlesSweep = false
-    /// The cloud texture has a crossing's cloud in it.
-    private var cloudsHoldCrossing = false
+    /// The cloud texture has a bank of cloud in it.
+    private var cloudsHoldBank = false
     /// Ground a frame must paint that is too much for one piece of GPU work goes in pieces committed ahead of the
     /// frame. The exporter waits for each, and learns nothing from them, so its pictures never vary.
     var waitsForPieces = false
@@ -627,9 +627,6 @@ final class ViewRenderer {
         var scene = worldFrame.scene
         let pipelines = gpu.shaders.pipelines
         paintGround(work, commandBuffer: commandBuffer)
-        let sky = world.skyLight(at: t)
-        scene.light = SIMD4<Float>(sky.light)
-        scene.time.w = Float(sky.night)
 
         // Clouds never change shape, they only drift, so they are painted at a quarter of the resolution
         // with a margin and slid along until the margin runs out.
@@ -639,26 +636,24 @@ final class ViewRenderer {
         let viewCloud = world.cloudSpace(origin, at: t)
         var offset = cloudCorner.map { Self.wrapped(viewCloud - $0) } ?? .zero
         let marginMetres = Double(Self.cloudMargin) * cloudPixel
-        // A crossing's cloud changes from frame to frame, so it is painted every frame and once more when it has gone.
-        let crossing = world.crossingCloud(at: t)
-        let crossingPainted = cloudsHoldCrossing
-        cloudsHoldCrossing = crossing != nil
-        if crossing != nil || crossingPainted || cloudCorner == nil || full || offset.x < 0 || offset.y < 0
+        // A bank of cloud moves with the land, not the sky, so it is painted every frame it shows and once more when it
+        // has gone.
+        let bank = world.bank(from: y0, to: top)
+        let bankPainted = cloudsHoldBank
+        cloudsHoldBank = bank != nil
+        if bank != nil || bankPainted || cloudCorner == nil || full || offset.x < 0 || offset.y < 0
             || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
             let corner = viewCloud - SIMD2(marginMetres, marginMetres)
-            let toSun = sky.toSun
+            let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
             var cloudParams = CloudsGPU(
                 origin: SIMD4(Float(corner.x.positiveRemainder(16384)), Float(corner.y.positiveRemainder(16384)),
                               Float(cloudPixel), Float(world.cloudCover)),
                 offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
                                Float(toSun.y * World.cloudHeight)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
-            if let crossing {
-                cloudParams.deck = SIMD4(Float(crossing.closure), Float(crossing.clearing),
-                                         Float(origin.y - Double(world.desktop.minY) * mpp - marginMetres),
-                                         Float(crossing.height))
-                // The veil under the bank is further from the camera, so it slides a little slower.
-                cloudParams.flow = SIMD4(Float(crossing.slide), Float(crossing.slide * 0.75), 0, 0)
+            if let bank {
+                cloudParams.deck = SIMD4(Float(World.bankHalf), Float(y0 - marginMetres - bank),
+                                         Float((x0 - marginMetres).positiveRemainder(16384)), 0)
             }
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds

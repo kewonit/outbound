@@ -250,7 +250,7 @@ final class Bench {
             world.journey.refreshSeasons(date: noon)
             var time = 120.0
             world.advance(to: time)
-            while place.railway != nil, !world.trainPassing || world.crossingUnderWay, time < 7200 {
+            while place.railway != nil, !world.trainPassing || world.handoverPassing, time < 7200 {
                 time += 2
                 world.advance(to: time)
             }
@@ -282,7 +282,7 @@ final class Bench {
             world.journey.legLength = Double(Preferences.Stay.short.rawValue) * 60 * Preferences.Pace.slow.speed
             var time = 20.0
             world.advance(to: time)
-            while !world.crossingUnderWay, time < 7200 {
+            while !world.handoverPassing, time < 7200 {
                 time += 2
                 world.advance(to: time)
             }
@@ -379,13 +379,11 @@ final class Bench {
         }[0]
     }
 
-    /// The cloud texture over a desktop `height` metres tall, a pixel to every `height / 256` metres, with a crossing's
-    /// cloud as far on as `deck` (closure, clearing) says. The texture's bottom row is the desktop's.
-    func renderCrossing(closure: Float, clearing: Float, flow: Float, height: Float, at corner: SIMD2<Float>,
-                        cover: Float = 0.42) throws -> [UInt8] {
-        var params = CloudsGPU(origin: SIMD4(corner.x, corner.y, height / 256, cover), offsets: SIMD4(16, -18, 43, -49),
-                               view: SIMD4(256, 0, 0, 0), deck: SIMD4(closure, clearing, 0, height),
-                               flow: SIMD4(flow, flow * 0.75, 0, 0))
+    /// The cloud texture at a metre a pixel with its bottom row `above` metres above a join, and none of the ordinary cloud
+    /// unless asked for. With no `half`, no bank.
+    func renderBank(half: Float = Float(World.bankHalf), above: Float, x: Float = 900, cover: Float = 0) throws -> [UInt8] {
+        var params = CloudsGPU(origin: SIMD4(x, 300, 1, cover), offsets: SIMD4(8, -9, 43, -49), view: SIMD4(256, 0, 0, 0),
+                               deck: SIMD4(half, above, x, 0))
         return try render("clouds", in: current, formats: [ShaderLibrary.cacheFormat]) {
             $0.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
         }[0]

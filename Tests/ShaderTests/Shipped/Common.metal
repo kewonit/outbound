@@ -71,7 +71,6 @@ struct CloudParams {
     float4 offsets; // light xy, shadow xy
     float4 view;    // height px
     float4 deck;    // unused here, to keep the struct as long as the Swift one
-    float4 flow;
 };
 
 struct CompositeParams {

@@ -112,12 +112,12 @@ enum Exporter {
             world.pointer = { cursorPoint(at: clockTime, in: frame) }
         }
         world.advance(to: time)
-        // With --find train, --find flock or --find crossing, fly on until one is in view. Small steps get there as
+        // With --find train, --find flock or --find handover, fly on until one is in view. Small steps get there as
         // the app would: one long one would run past the place the journey means to turn into the next.
         if let event = options["find"] {
             while time < 7200 {
                 if event == "train" ? world.trainPassing
-                    : event == "crossing" ? world.crossingUnderWay : world.flock != nil { break }
+                    : event == "handover" ? world.handoverPassing : world.flock != nil { break }
                 time += 2
                 world.advance(to: time)
             }
