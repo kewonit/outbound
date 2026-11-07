@@ -1857,27 +1857,62 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float hasCross = step(hash11(int(which), 70u), 0.55);
     float dc = mix(1e6, abs(p.y - crossY) - halfWidth * 0.9, hasCross);
 
-    float dd = min(abs(d) - halfWidth, dc);
-    if (dd > 3.0) return c;
+    // Roads meet in rounded corners.
+    float dd = smin(abs(d) - halfWidth, dc, 3.0);
+    if (dd > 5.0) return c;
     float onRiver = fill(abs(riverDistance(p, scene, wander)) - riverHalf * 1.08 - 4.0, 0.5) * riverPresence(riverHalf);
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
     float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth, dc);
     c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9, scene);
 
-    float3 r = surface * (0.95 + 0.08 * alongNoise(p, float2(1.8), 71u));
-    // Paved roads get a dashed centre line, dirt roads two wheel ruts.
-    float dash = step(0.55, fract(p.y / alongSpacing(7.0))) * fill(abs(d) - 0.18, 0.12) * paved;
-    r = mix(r, float3(0.96, 0.95, 0.9), dash * (1.0 - onRiver));
-    float ruts = fill(abs(abs(d) - halfWidth * 0.45) - 0.35, 0.25) * (1.0 - paved);
-    r *= 1.0 - 0.12 * ruts;
+    // How far across whichever road is nearest, and how far along it: laid out so that wear runs with the traffic.
+    bool along = abs(d) - halfWidth < dc;
+    float lat = along ? d : p.y - crossY;
+    float run = along ? p.y : p.x;
+    float wide = along ? halfWidth : halfWidth * 0.9;
+    float ragged = alongNoise(float2(lat > 0.0 ? 3.0 : 7.0, run), float2(1.0, 6.0), 72u) - 0.5;
+    float edge = dd + ragged * mix(1.5, 0.35, paved);
+    float streaks = alongNoise(float2(lat / 1.2, run), float2(1.0, 27.0), 73u);
+    float blotch = alongNoise(float2(lat / 2.6, run), float2(1.0, 11.0), 71u);
+    float across = abs(lat) / max(wide, 0.5);
+
+    // Tarmac: greyed by age, the lanes polished by tyres, repaired in places, with faded paint down the middle and edges.
+    // Where two roads meet nothing runs either way, so it is plain, with no paint across it.
+    float meet = fill(abs(d) - halfWidth, 0.3) * fill(dc, 0.3);
+    float3 worn = mix(surface, float3(0.37, 0.37, 0.38), 0.74);
+    float3 tarmac = worn * (0.9 + 0.2 * blotch) * (1.0 + 0.1 * (streaks - 0.5));
+    tarmac *= 1.0 - 0.07 * fill(abs(across - 0.5) - 0.17, 0.12);
+    float mended = smoothstep(0.76, 0.8, alongNoise(float2(lat > 0.0 ? 11.0 : 13.0, run), float2(1.0, 9.0), 74u));
+    tarmac *= 1.0 - 0.09 * mended * fill(abs(across - 0.5) - 0.24, 0.06);
+    tarmac = mix(tarmac, worn * (0.95 + 0.1 * blotch), meet);
+    float paint = (0.45 + 0.55 * streaks) * (1.0 - onRiver * 0.4) * (1.0 - meet);
+    float dash = step(0.55, fract(run / alongSpacing(7.0))) * fill(abs(lat) - 0.14, 0.1);
+    float kerbLine = fill(abs(abs(lat) - wide + 0.45) - 0.08, 0.07) * (along ? 1.0 : 0.0) * smoothstep(0.5, 2.5, dc);
+    tarmac = mix(tarmac, float3(0.83, 0.82, 0.77), saturate(dash + kerbLine * 0.75) * paint);
+
+    // A dirt road: two ruts, pale dust, and grass coming up along the crown.
+    float ruts = fill(abs(abs(lat) - wide * 0.45) - 0.4, 0.3);
+    float3 dirt = surface * (0.9 + 0.2 * blotch) * (1.0 - 0.17 * ruts * (0.6 + 0.8 * streaks));
+    float3 grass = mix(a.ground.rgb, b.ground.rgb, m);
+    dirt = mix(dirt, grass * 0.92, fill(abs(lat) - 0.3 - 0.5 * streaks, 0.3) * smoothstep(0.35, 0.7, blotch) * 0.6);
+    float3 r = mix(dirt, tarmac, paved);
+
+    // In snow the wheels keep the lanes clear and the rest lies packed, deepest along the edges.
+    float3 snow = mix(a.snow.rgb, b.snow.rgb, m);
+    float snowCover = mix(a.f.y, b.f.y, m);
+    r = mix(r, snow * (0.92 + 0.08 * blotch), snowCover * (0.3 + 0.55 * smoothstep(0.62, 1.0, across)
+                                                           + 0.3 * smoothstep(0.26, 0.05, across)) * (0.75 + 0.5 * streaks));
+
     // Railings on bridges.
     float rail = fill(abs(abs(d) - halfWidth - 0.4) - 0.35, 0.2) * onRiver * step(abs(d), halfWidth + 1.2);
     float3 railColor = float3(0.78, 0.36, 0.22);
 
-    float a2 = fill(dd, 0.5);
-    float shoulder = fill(dd - 1.3, 0.7) * (1.0 - a2);
-    c = mix(c, c * 0.88, shoulder * (1.0 - onRiver));
+    // A gravelled verge fading into the land, and the shallow ditch beyond it.
+    float a2 = fill(edge, 0.4);
+    float verge = fill(edge - mix(1.5, 0.9, paved), 0.8) * (1.0 - a2) * (1.0 - onRiver);
+    c = shade(c, fill(abs(edge - 3.3) - 0.7, 0.8) * 0.1 * (1.0 - onRiver), scene);
+    c = mix(c, mix(c, surface * (0.72 + 0.25 * blotch), mix(0.6, 0.34, paved)), verge * (1.0 - 0.7 * snowCover));
     c = mix(c, r, a2);
     c = mix(c, railColor, rail);
     onRoad = max(onRoad, fill(abs(d) - halfWidth, 0.5) * (1.0 - onRiver));

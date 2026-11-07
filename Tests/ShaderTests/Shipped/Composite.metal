@@ -127,7 +127,7 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         // A car and its shadow reach a few metres from its slot's middle, its headlights some way ahead after dark;
         // most of the road is empty.
         float ahead = (world.y - slot.y) * dir;
-        if (ahead < -8.0 || ahead > (night > 0.01 ? 60.0 : 8.0)) continue;
+        if (ahead < -12.0 || ahead > (night > 0.01 ? 60.0 : 12.0)) continue;
         int id = slot.id * 2 + lane;
         float m = landTurn(slot.y, scene);
         if (hash11(id, 140u) > min(mix(a.g.y, b.g.y, m) * 1.6, 0.75)) continue;
@@ -142,25 +142,41 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         float2 rel = world - center;
         // Car-local metres: x across to its right, y forward.
         float2 q = float2(dot(rel, across), dot(rel, along)) * dir;
-        float k = hash11(id, 141u);
+        float k = hash11(id, 141u), kind = hash11(id, 142u);
+        // Mostly cars, some vans, now and then a lorry.
+        bool lorry = kind < 0.09, van = !lorry && kind < 0.26;
+        float2 size = lorry ? float2(1.02, 4.6) : van ? float2(0.9, 2.5) : float2(0.82, 2.1);
         if (dot(q, q) < 140.0) {
             float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
-            // A car stands about 1.5 m tall; its shadow stays attached however low the sun.
-            float2 size = float2(0.85, 2.15);
-            float2 shadowOff = -sun * min(scene.sun.z, 1.6) * 1.5;
-            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, mpp) * 0.7, scene);
-            float3 paint = k < 0.3 ? float3(0.95, 0.95, 0.93) : k < 0.45 ? float3(0.82, 0.18, 0.16)
-                         : k < 0.6 ? float3(0.20, 0.34, 0.62) : k < 0.75 ? float3(0.16, 0.16, 0.18)
-                         : k < 0.88 ? float3(0.70, 0.71, 0.72) : float3(0.93, 0.74, 0.18);
-            // From above: bonnet, windscreen, roof, rear window and boot, the sunward edge of the roof catching light.
-            float body = sdBox(q, size) - 0.25;
-            float cabin = sdBox(q - float2(0.0, -0.1), float2(0.72, 1.2)) - 0.12;
-            float roof = sdBox(q - float2(0.0, -0.2), float2(0.64, 0.68)) - 0.1;
-            float3 glass = mix(float3(0.10, 0.12, 0.15), float3(0.42, 0.47, 0.55), 0.25 * saturate(0.5 + 0.5 * sun.y));
-            float3 top = paint * (0.9 + 0.12 * saturate(dot(normalize(q + 1e-4), sun)));
-            result = mix(result, paint * 0.92, fill(body, mpp * 0.7));
-            result = mix(result, glass, fill(cabin, mpp * 0.6));
-            result = mix(result, top, fill(roof, mpp * 0.6));
+            // Its shadow stays attached however low the sun.
+            float2 shadowOff = -sun * min(scene.sun.z, 1.6) * (lorry ? 3.2 : van ? 2.0 : 1.5);
+            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, 0.3 + mpp) * 0.62, scene);
+            // The colours cars really are: mostly white, grey, silver and black, the rest dark and quiet.
+            float3 paint = k < 0.3 ? float3(0.82, 0.82, 0.8) : k < 0.48 ? float3(0.56, 0.57, 0.58)
+                         : k < 0.66 ? float3(0.12, 0.12, 0.13) : k < 0.78 ? float3(0.15, 0.21, 0.32)
+                         : k < 0.88 ? float3(0.4, 0.12, 0.11) : k < 0.95 ? float3(0.33, 0.3, 0.25) : float3(0.66, 0.57, 0.36);
+            if (van) paint = mix(paint, float3(0.84, 0.84, 0.82), 0.6);
+            // Narrowing to the nose and tail, rounded over its edges, so the body reads as a shape and not a slab.
+            float taper = lorry ? 1.0 : 1.0 - 0.14 * smoothstep(size.y - 1.1, size.y + 0.2, abs(q.y));
+            float body = sdBox(float2(q.x / taper, q.y), size) - 0.22;
+            float3 skin = paint * (0.74 + 0.26 * smoothstep(0.0, -0.32, body));
+            float3 sky = mix(float3(0.08, 0.1, 0.13), float3(0.4, 0.46, 0.54), 0.3 * saturate(0.5 + 0.5 * sun.y));
+            result = mix(result, skin, fill(body, mpp * 0.7));
+            if (lorry) {
+                // A cab, a dark gap, and a long pale box with ribs along it.
+                float box = sdBox(q - float2(0.0, -1.0), float2(1.0, 3.45));
+                float3 load = mix(float3(0.74, 0.74, 0.72), paint, step(0.6, k)) * (1.0 + 0.05 * sin(q.y * 5.0));
+                result = mix(result, load * (0.9 + 0.12 * saturate(sun.x * sign(q.x))), fill(box, mpp * 0.6));
+                result = mix(result, sky, fill(sdBox(q - float2(0.0, size.y - 0.3), float2(0.82, 0.2)) - 0.05, mpp * 0.6));
+            } else {
+                float front = van ? 1.75 : 0.95, back = van ? -2.3 : -1.42;
+                float mid = 0.5 * (front + back), length = 0.5 * (front - back);
+                float cabin = sdBox(q - float2(0.0, mid), float2(0.7 - 0.05 * saturate(q.y - mid), length)) - 0.12;
+                float roof = sdBox(q - float2(0.0, mid - (van ? 0.1 : 0.12)), float2(0.61, length - (van ? 0.28 : 0.5))) - 0.1;
+                float3 top = paint * (0.92 + 0.14 * saturate(dot(normalize(q + 1e-4), sun)));
+                result = mix(result, mix(sky, sky * 1.5, saturate(q.y - front + 0.7)), fill(cabin, mpp * 0.6));
+                result = mix(result, top, fill(roof, mpp * 0.6));
+            }
         }
 
         if (night > 0.01) {
@@ -170,8 +186,9 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
             // glints with a faint red wash on the road behind.
             float kerb = keepLeft > 0.5 ? -1.0 : 1.0;
             float3 beam = k < 0.55 ? float3(0.9, 0.95, 1.0) : float3(1.0, 0.85, 0.64);
-            if (q.y > 2.0) {
-                float lit = lowBeam(q - float2(0.68, 2.3), kerb) + lowBeam(q - float2(-0.68, 2.3), kerb);
+            if (q.y > size.y - 0.1) {
+                float lit = lowBeam(q - float2(size.x - 0.14, size.y + 0.2), kerb)
+                          + lowBeam(q - float2(0.14 - size.x, size.y + 0.2), kerb);
                 float pool = lit / (lit + 1.6);
                 // The beam crosses the verge and fades out on the grass before the road's edge is reached.
                 float s = roadSlope(world.y, scene, wander);
@@ -179,14 +196,14 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
                 pool *= 1.0 - smoothstep(width * 0.5 + 0.3, width * 0.5 + 2.2, fromCentre);
                 light += (c * 0.75 + 0.04) * beam * pool * 0.85;
             }
-            float2 lens = float2(abs(q.x) - 0.68, q.y - 2.3);
+            float2 lens = float2(abs(q.x) - size.x + 0.14, q.y - size.y - 0.2);
             float lensD = dot(lens, lens);
             light += beam * (exp(-lensD / 0.012) * 0.55 + exp(-lensD / 0.25) * 0.08);
-            float2 tail = float2(abs(q.x) - 0.72, q.y + 2.38);
+            float2 tail = float2(abs(q.x) - size.x + 0.1, q.y + size.y + 0.28);
             float tailD = dot(tail, tail);
             float3 red = float3(1.0, 0.12, 0.06);
             light += red * (exp(-tailD / 0.008) * 0.45 + exp(-tailD / 0.15) * 0.06);
-            float behind = -(q.y + 2.4);
+            float behind = -(q.y + size.y + 0.3);
             if (behind > 0.0) light += (c * 0.6 + 0.03) * red * exp(-behind / 1.3) * exp(-q.x * q.x / 0.9) * 0.08;
         }
     }
