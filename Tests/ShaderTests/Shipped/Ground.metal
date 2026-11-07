@@ -32,8 +32,6 @@ struct Land {
     float lightID;
     /// How much is roof or crown, which cars on the road pass under.
     float cover;
-    /// How much of that is a crown.
-    float crown;
 };
 
 inline float3 cropColor(constant Biome &b, float h) {
@@ -298,8 +296,10 @@ inline float3 openGround(float2 p, constant Biome &b, uint seed) {
     float3 c = mix(b.ground.rgb, b.groundDark.rgb, smoothstep(0.42, 0.78, big) * b.b.y);
     c = mix(c, b.crop1.rgb, smoothstep(0.58, 0.82, vnoise(p / 230.0, seed + 3u)) * 0.55 * b.b.y);
     c = mix(c, b.crop2.rgb, smoothstep(0.55, 0.85, mid) * 0.35);
-    float strokes = vnoise(rotate(p, 0.55) * float2(1.0 / 1.4, 1.0 / 8.5), seed + 4u);
-    float fine = vnoise(rotate(p, 0.55) * float2(1.0 / 0.6, 1.0 / 3.0), seed + 5u);
+    // Each place's brush runs its own way.
+    float slant = 0.25 + 0.7 * hash11(int(seed), 9u);
+    float strokes = vnoise(rotate(p, slant) * float2(1.0 / 1.4, 1.0 / 8.5), seed + 4u);
+    float fine = vnoise(rotate(p, slant) * float2(1.0 / 0.6, 1.0 / 3.0), seed + 5u);
     c *= 1.0 + b.b.z * (0.16 * (strokes - 0.5) + 0.08 * (fine - 0.5));
     return c;
 }
@@ -468,7 +468,7 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
 
 inline Land stripes(float2 p, constant Biome &b, uint seed) {
     float w = b.a.y;
-    float blockLength = 340.0;
+    float blockLength = 280.0 + 140.0 * hash11(int(floor(p.x / 600.0)), seed + 3u);
     float by = floor((p.y + 80.0 * hash11(int(floor(p.x / 600.0)), seed)) / blockLength);
     float yIn = fract((p.y + 80.0 * hash11(int(floor(p.x / 600.0)), seed)) / blockLength) * blockLength;
     float shift = hash11(int(by), seed + 1u) * w;
@@ -531,13 +531,15 @@ constant float crossroadSpacing = 1450.0;
 
 // Which cross-road a stretch of the world holds and how far along y it runs at `x`. A cross-road is only built if it
 // meets the main road on dry land, as a junction can't stand in a river.
-inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
+inline float crossroadY(float2 p, constant Scene &scene, thread bool &built, float reach = 1e9) {
     float k = floor((p.y + scene.road.w) / crossroadSpacing);
     // Which one it is is counted from the world's origin, or it would shift or vanish as the reference stepped on.
     float which = k + scene.bends.w;
     built = hash11(int(which), 70u) < 0.55;
     float middle = (k + 0.5) * crossroadSpacing - scene.road.w;
-    if (built) {
+    float line = middle + 40.0 * sin(p.x / 380.0 + which);
+    // Further than `reach` from it, whether it was ever built makes no difference to the caller.
+    if (built && abs(p.y - line) < reach) {
         float turned = landTurn(middle, scene);
         float2 wander = course(scene, turned);
         float y = middle + 40.0 * sin(roadX(middle, scene, wander) / 380.0 + which);
@@ -545,7 +547,7 @@ inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
         built = width < 0.5 || abs(riverDistance(junction, scene, wander)) > width * 0.5 + 30.0;
     }
-    return middle + 40.0 * sin(p.x / 380.0 + which);
+    return line;
 }
 
 // How far `at` lies from the middle of its stretch's cross-road, and how far `local` lies from the middle of the place's
@@ -582,8 +584,10 @@ inline float pivotClearance(float2 p, constant Leg &leg, constant Scene &scene, 
 inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed, float2 wander) {
     constant Biome &b = leg.biome;
     float s = b.a.y;
-    float2 g = floor(p / s);
-    float2 center = (g + 0.5) * s;
+    // The survey grid is laid from the road, which runs along one of its section lines.
+    float2 grid = float2(b.l.y, 0.0);
+    float2 g = floor((p - grid) / s);
+    float2 center = (g + 0.5) * s + grid;
     float2 r = p - center;
     float radius = s * 0.485;
     int2 cell = int2(g);
@@ -635,7 +639,7 @@ inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed
     }
     // Section roads every mile.
     float mile = s * 2.0;
-    float2 m = abs(fract(p / mile + 0.5) - 0.5) * mile;
+    float2 m = abs(fract((p - grid) / mile + 0.5) - 0.5) * mile;
     float roadD = min(m.x, m.y) - b.e.x * 0.5;
     c = mix(c, b.road.rgb * (0.95 + 0.1 * vnoise(p / 1.5, seed + 7u)), fill(roadD, 0.5));
     l.road = fill(roadD, 0.5);
@@ -696,14 +700,20 @@ struct Plot {
     float reach;
 };
 
+// How much the road at `y` runs through a village, 0 to 1. A place's `villages` sets how much of its road does: about a
+// fifth at most, in short stretches, and next to none in the empty places.
+inline float villageAt(float y, constant Biome &b, uint seed) {
+    float from = 0.79 - b.i.x * 0.28;
+    return smoothstep(from, from + 0.08, vnoise(float2(y / 1100.0, 0.5), seed + 70u)) * step(0.001, b.i.x);
+}
+
 // The house in slot `k` on one side of the road, in the row by the road (0) or behind it (1), if one stands there.
 // Slots are 30 m long and a house at most 19 m, and the rows are set back far enough, so no two ever touch.
 inline bool plot(thread Plot &h, float k, int row, float side, float2 world, float2 local, constant Biome &b,
                  constant Scene &scene, uint seed, float2 wander) {
     const float slot = 30.0;
     float yC = (k + 0.5 + 0.3 * (hash11(int(k), seed + 62u) - 0.5)) * slot;
-    float village = smoothstep(0.79 - b.i.x * 0.28, 0.87 - b.i.x * 0.28, vnoise(float2(yC / 1100.0, 0.5), seed + 70u))
-                  * step(0.001, b.i.x);
+    float village = villageAt(yC, b, seed);
     int id = (int(k) * 2 + (side > 0.0 ? 1 : 0)) * 2 + row;
     float chance = row == 0 ? mix(b.e.w * 0.33, 0.6, village) : 0.3 * village;
     if (hash11(id, seed + 60u) > chance) return false;
@@ -711,7 +721,7 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
     float2 away = float2(along.y, -along.x) * side;
     float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
-    float out = b.e.x * 0.5 + size.x + (row == 0 ? 4.0 + 6.0 * hash11(id, seed + 63u) : 34.0 + 10.0 * hash11(id, seed + 63u));
+    float out = b.e.x * 0.5 + size.x + (row == 0 ? 3.0 + 11.0 * hash11(id, seed + 63u) : 32.0 + 16.0 * hash11(id, seed + 63u));
     h.center = float2(roadX(worldY, scene, wander), worldY) + away * out;
     if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0 + size.y) return false;
     // Nor on a cross-road or the railway, with room for its yard.
@@ -744,14 +754,6 @@ inline float pathGap(float2 p, Plot h) {
     float outward = sdBox(p - float2(front - 0.5 * (h.reach - h.size.x - 2.6), h.lane), float2(0.5 * (h.reach - h.size.x - 2.6), 0.0));
     float door = sdBox(p - float2(-h.size.x - 1.3, h.door), float2(1.3, 0.0));
     return smin(smin(along, outward, 1.6), door, 1.2);
-}
-
-// The course a house in slot `k` follows. Through a handover the course changes from row to row, and a house worked out
-// from each of its own pixels would come out sheared, so it goes by its slot, the same for all of them. Trees keeping
-// clear of a house go by the pixel, a metre or two out at worst: they have the room, and this is the deepest the ground
-// shader goes, where every extra value costs GPU memory for each thread that can run at once.
-inline float2 slotCourse(float k, float2 world, float2 local, constant Scene &scene, float2 wander) {
-    return ownCourse(world.y + ((k + 0.5) * 30.0 - local.y), scene, wander);
 }
 
 // Whether a crown of radius `r` at `world` keeps off every house, its shed and its yard.
@@ -794,11 +796,14 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
     uint s = seed + uint(kind) * 131u;
     float2 g = floor(local / cell);
     id2 = int2(g);
+    // Kopjes come in clusters, as granite outcrops do, with open plain between.
+    if (kind == markKopje) density *= hash21(id2 / 3, s + 9u) < 0.35 ? 2.6 : 0.15;
     if (hash21(id2, s) > density) return false;
     center = g * cell + radius + 10.0 + hash22(id2, s + 1u) * max(cell - 2.0 * radius - 20.0, 0.0);
     if (kind == markFarmstead && int(b.a.x) == layoutPivots) {
-        // Farmsteads sit in the dry corners between the circles.
-        center = round(center / b.a.y) * b.a.y;
+        // Farmsteads sit in the dry corner in the middle of a section, where four circles meet, clear of its roads.
+        float2 grid = float2(b.l.y, 0.0), mile = float2(b.a.y * 2.0);
+        center = (floor((center - grid) / mile) + 0.5) * mile + grid;
     }
     return true;
 }
@@ -807,13 +812,22 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
 inline bool landmarkStands(int kind, float2 centerWorld, float2 shift, constant Biome &b, constant Scene &scene,
                            float riverHalf, float2 wander, uint seed) {
     float radius = landmarkRadius(kind);
-    // Of a place's two kinds, the second gives way to the first. Each stays inside its own cell, so one look will do.
+    // Of a place's two kinds, the second gives way to the first, in every cell of the first it could touch: the two kinds'
+    // cells don't line up, so more than one may be in reach.
     if (kind == int(b.j.z) && b.j.y > 0.0) {
         int first = int(b.j.x);
         float2 at = centerWorld - shift, other;
+        float size = landmarkCell(first), touch = landmarkRadius(first) + radius;
+        int reach = int(ceil(touch / size));
         int2 cell;
-        if (landmarkSite(first, b.j.y, at, b, seed - 17u, other, cell)
-            && length(at - other) < landmarkRadius(first) + radius) return false;
+        #pragma clang loop unroll(disable)
+        for (int j = -reach; j <= reach; j++) {
+            #pragma clang loop unroll(disable)
+            for (int i = -reach; i <= reach; i++) {
+                if (landmarkSite(first, b.j.y, at + float2(i, j) * size, b, seed - 17u, other, cell)
+                    && length(at - other) < touch) return false;
+            }
+        }
     }
     if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return false;
     float reach = radius * 0.95 + 6.0;
@@ -836,8 +850,6 @@ struct Keepouts {
     bool river;
     bool crossNear;
     bool rail;
-    // False where this point's cell has a pond that was never dug, so trees needn't keep off it.
-    bool dug;
     int2 cell[2];
     bool standing[2];
     float2 center[2];
@@ -850,10 +862,6 @@ inline Keepouts keepouts(float2 world, float2 local, float span, constant Biome 
     k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + b.i.w + 20.0 + span;
     k.crossNear = crossGap(world, scene) < b.e.x * 0.5 + 20.0 + span;
     k.rail = railGap(local, b) < 20.0 + span;
-    float2 pond;
-    float pondRadius;
-    k.dug = !pondSite(local, b, seed, pond, pondRadius)
-         || pondStands(pond, pondRadius, world - local, b, scene, wander);
     for (int i = 0; i < 2; i++) {
         int kind = int(i == 0 ? b.j.x : b.j.z);
         float density = i == 0 ? b.j.y : b.j.w;
@@ -896,7 +904,7 @@ inline bool clearOfLandmarks(float2 local, float2 shift, float r, Keepouts near,
     float pr;
     // A pond that was never dug leaves no bare patch among the trees.
     if (pondSite(local, b, seed, pc, pr) && length((local - pc) * float2(1.0, 1.25)) < pr * 1.4 + 6.0 + r
-        && near.dug) return false;
+        && pondStands(pc, pr, shift, b, scene, wander)) return false;
     return true;
 }
 
@@ -947,8 +955,9 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                         float close = 1.0 - smoothstep(r, r * 2.6, length(local - at));
                         c = mix(c, b.canopyLight.rgb * 1.05, step(1.0 - 0.22 * b.d.y * close, petal) * 0.9);
                     }
-                    plant(k, local, at, r, r * (2.3 + 0.9 * hash21(cell, ts + 2u)), broadleaf, hash21(cell, ts + 3u),
-                          leaves, scene);
+                    bool flat = b.l.z > 0.0;
+                    plant(k, local, at, r, r * (flat ? b.l.z : 2.3 + 0.9 * hash21(cell, ts + 2u)), flat ? pine : broadleaf,
+                          hash21(cell, ts + 3u), leaves, scene);
                 }
             }
         }
@@ -1000,14 +1009,14 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     if (hash11(int(floor(y / 240.0)) * 2 + side, seed + 56u) >= b.i.y) continue;
                     float jh = hash11(int(j) * 2 + side, seed + 57u);
                     if (jh < 0.12) continue;
-                    float village = smoothstep(0.79 - b.i.x * 0.28, 0.87 - b.i.x * 0.28, vnoise(float2(y / 1100.0, 0.5), seed + 70u));
+                    float village = villageAt(y, b, seed);
                     if (village > 0.5 && b.h.y > 0.0 && abs(fract(y / 34.0) - 0.5) * 34.0 < 4.5) continue;
                     float r = r0 * (0.85 + 0.3 * jh);
                     float worldY = y + shift.y;
                     float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
                     float2 at = float2(roadX(worldY, scene, wander), worldY) - shift
                               + float2(along.y, -along.x) * sign * (halfRoad + r + 1.2 + (jh - 0.5) * 0.6);
-                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 8.0) continue;
+                    if (riverHalf > 0.25 && abs(riverDistance(at + shift, scene, wander)) < riverHalf + b.i.w + r + 8.0) continue;
                     if (crossGap(at + shift, scene) < halfRoad * 0.9 + r + 2.5) continue;
                     if (railGap(at, b) < r + 3.0) continue;
                     if (!clearOfHouses(at + shift, at, r, b, scene, seed, wander)) continue;
@@ -1061,7 +1070,7 @@ inline float3 roofColor(constant Biome &b, float pick) {
 inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constant Biome &b, constant Scene &scene,
                     uint seed, thread float &cover, thread float &light, thread float &lightID) {
     float2 sun = rotate(scene.sun.xy, -angle);
-    float2 shadowOff = -sun * min(scene.sun.z, 2.0) * 5.5;
+    float2 shadowOff = -sun * scene.sun.z * 5.5;
     if (dot(d, d) > 700.0 + dot(shadowOff, shadowOff) * 2.0) return c;
     float pick = hash11(k, seed + 430u);
     float bare = 1.0 - 0.6 * b.f.y;
@@ -1098,7 +1107,8 @@ inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constan
         bool hipped = hash11(k, seed + 433u) < 0.35;
         bool end = hipped && e.y < e.x;
         float facing = end ? sign(d.y) * sun.y : sign(d.x) * sun.x;
-        face = pigment(roof * (0.93 + 0.2 * facing), weather, 0.7);
+        // The lower the sun, the more one slope catches it than the other; at the usual afternoon sun, as it always was.
+        face = pigment(roof * (0.93 + 0.303 * cos(scene.sun.w) * facing), weather, 0.7);
         face *= 1.0 + 0.07 * sin((end ? e.y : e.x) * 6.5);
         float crest = hipped ? min(abs(e.x - e.y), max(abs(d.x), abs(d.y) - (size.y - size.x))) : abs(d.x);
         face = mix(face, roof * 0.62, fill(crest - 0.1, 0.08));
@@ -1159,11 +1169,11 @@ inline float3 streetLamps(float3 c, float2 local, float2 world, constant Biome &
     float roadHalf = b.e.x * 0.5;
     float j0 = floor(local.y / spacing);
     float pools = 0.0, head = 0.0, strongest = 0.0, chosen = 0.0;
-    float2 shadow = -scene.sun.xy * min(scene.sun.z, 2.0) * height;
+    float2 shadow = -scene.sun.xy * scene.sun.z * height;
     for (int dj = -1; dj <= 1; dj++) {
         float j = j0 + float(dj);
         float y = (j + 0.5) * spacing;
-        float village = smoothstep(0.79 - b.i.x * 0.28, 0.87 - b.i.x * 0.28, vnoise(float2(y / 1100.0, 0.5), seed + 70u)) * step(0.001, b.i.x);
+        float village = villageAt(y, b, seed);
         // Lamps run the length of a village, with the odd gap where a pole is missing.
         if (village < 0.5 || hash11(int(j), seed + 67u) > 0.55 + b.h.y * 0.45) continue;
         int stretch = int(floor(y / 520.0));
@@ -1223,7 +1233,7 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
     for (int dk = -1; dk <= 1; dk++) {
         for (int row = 0; row < 2; row++) {
             Plot h;
-            if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, slotCourse(k0 + float(dk), world, local, scene, wander))) continue;
+            if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) continue;
             // Its way out comes first, under the house, and reaches further than the house looks.
             float path = fill(pathGap(rotate(world - h.center, -h.road), h) - 0.6, 0.35) * (1.0 - 0.6 * b.f.y);
             c = mix(c, mix(c, b.road.rgb, 0.72), path);
@@ -1362,7 +1372,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         c = house(c, r - float2(radius * 0.18, radius * 0.05), angle, float2(5.0, 8.0), id, b, scene, s, cover, light,
                   lightID);
         float2 shed = r - float2(radius * 0.0, -radius * 0.14);
-        float2 shedShadow = rotate(-scene.sun.xy, -angle) * min(scene.sun.z, 2.0) * 4.5;
+        float2 shedShadow = rotate(-scene.sun.xy, -angle) * scene.sun.z * 4.5;
         c = shade(c, fill(sweptBox(shed, float2(9.0, 5.0), shedShadow), 0.4) * 0.65, scene);
         c = mix(c, float3(0.72, 0.73, 0.74), fill(sdBox(shed, float2(9.0, 5.0)), 0.3));
         // A round corral of posts beside the sheds.
@@ -1388,7 +1398,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
             }
         }
         c = house(c, q - float2(-10.0, 18.0), 0.0, float2(5.0, 7.5), id, b, scene, s, cover, light, lightID);
-        float2 sunOff = -scene.sun.xy * min(scene.sun.z, 2.0);
+        float2 sunOff = -scene.sun.xy * scene.sun.z;
         for (int i = 0; i < 2; i++) {
             float2 shed = q - float2(14.0 + 8.0 * float(i), -8.0 - 22.0 * float(i));
             c = shade(c, fill(sweptBox(shed, float2(8.0, 15.0), sunOff * 6.0), 0.5) * 0.7, scene);
@@ -1406,7 +1416,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     } else if (kind == markTubeWell) {
         // A tiny brick room with a tank beside it and a big shade tree.
         float2 q = r;
-        c = shade(c, fill(sdBox(q - float2(0.0, 0.0) + rotate(scene.sun.xy, -angle) * scene.sun.z * 3.0, float2(1.8)), 0.3) * 0.7, scene);
+        c = shade(c, fill(sweptBox(q, float2(1.8), -rotate(scene.sun.xy, -angle) * scene.sun.z * 3.0), 0.3) * 0.7, scene);
         c = mix(c, float3(0.83, 0.74, 0.62), fill(sdBox(q, float2(1.8)), 0.15));
         c = mix(c, float3(0.42, 0.55, 0.62), fill(sdBox(q - float2(3.4, 0.0), float2(1.2, 1.6)), 0.15));
         plant(trees, local, center + rotate(float2(-4.0, 3.5), angle), 4.5, 10.0, broadleaf, hash21(id2, s + 3u),
@@ -1438,25 +1448,25 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         cover = max(cover, panel);
         herd *= 1.0 - panel;
     } else if (kind == markWindmill) {
-        // A polder mill: octagonal body, four sails and their shadow.
+        // A polder mill: an octagonal tower 12 m to the cap, its sails turning in an upright plane square to the
+        // wind. From above the sails are a thin bar across the wind; their shadow is the cross they make, thrown out
+        // along the sun from the hub.
         float2 q = r;
-        float sails = 1e9;
-        for (int i = 0; i < 4; i++) {
-            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
-            sails = min(sails, segmentDistance(q, arm * 1.5, arm * 12.0) - 0.9);
-        }
-        float2 sunR = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float2 toSun = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float2 across = rotate(normalize(float2(-0.55, 1.3)), -angle);
         float sailShadow = 1e9;
         for (int i = 0; i < 4; i++) {
-            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
-            sailShadow = min(sailShadow, segmentDistance(q + sunR * 16.0, arm * 1.5, arm * 12.0) - 0.9);
+            float turn = float(i) * 1.5708 + 0.4;
+            float2 from = across * cos(turn) * 1.5 - toSun * (12.0 + sin(turn) * 1.5);
+            float2 to = across * cos(turn) * 12.0 - toSun * (12.0 + sin(turn) * 12.0);
+            sailShadow = min(sailShadow, segmentDistance(q, from, to) - 0.9);
         }
-        c = shade(c, fill(length(q + sunR * 12.0) - 4.2, 0.5) * 0.7, scene);
+        c = shade(c, fill(segmentDistance(q, 0.0, -toSun * 12.0) - 3.6, 0.5) * 0.7, scene);
         c = shade(c, fill(sailShadow, 0.4) * 0.55, scene);
         float3 body = float3(0.36, 0.30, 0.26);
         c = mix(c, body, fill(length(q) - 4.2, 0.3));
         c = mix(c, float3(0.45, 0.35, 0.28), fill(length(q) - 2.0, 0.3));
-        c = mix(c, float3(0.86, 0.84, 0.80), fill(sails, 0.25) * 0.9);
+        c = mix(c, float3(0.86, 0.84, 0.80), fill(segmentDistance(q, -across * 12.0, across * 12.0) - 0.45, 0.2) * 0.9);
         cover = max(cover, fill(length(q) - 4.2, 0.3));
     } else if (kind == markFeedlot) {
         // Pens in rows, pale feed alleys, white bunk lines and dark cattle crowded along them.
@@ -1493,7 +1503,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         deep = pigment(deep, vnoise(d / float2(46.0, 21.0), s + 21u), 0.5 * (1.0 - frozen));
         float margin = 0.035 * (0.6 + 0.8 * vnoise(d / 19.0, s + 22u));
         float3 lake = mix(deep, b.shallows.rgb, smoothstep(-margin, 0.0, shape) * (1.0 - frozen * 0.5));
-        float shaded = fill(lakeShore(d + scene.sun.xy * min(scene.sun.z, 2.0) * 3.0, radius, s) * -1.0, 0.012);
+        float shaded = fill(lakeShore(d + scene.sun.xy * scene.sun.z * 3.0, radius, s) * -1.0, 0.012);
         lake = shade(lake, shaded * 0.45 * (1.0 - frozen), scene);
         c = mix(c, b.sand.rgb, fill(shape - 0.05, 0.02) * (1.0 - b.f.y * 0.6));
         c = mix(c, lake, wet);
@@ -1519,10 +1529,10 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float2 center;
     float r;
     if (!pondSite(local, b, seed, center, r)) return c;
-    if (!pondStands(center, r, world - local, b, scene, wander)) return c;
     float size = max(b.k.w, 1.0);
     float2 d = local - center;
     if (dot(d, d) > r * r * 4.0) return c;
+    if (!pondStands(center, r, world - local, b, scene, wander)) return c;
     float shape = length(d * float2(1.0, 1.25)) / r - 1.0 + 0.45 * (fbm(local / (16.0 * size), 3, seed + 83u) - 0.5);
     float dist = shape * r;
     float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, b.shallows.rgb, 0.35) : b.water.rgb;
@@ -1616,7 +1626,7 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 float2 centre = (float2(cell) + 0.5) * spacing + (hash22(cell, seed + 12u) - 0.5) * 1.6;
                 float r = b.c.z * 0.3 * (0.85 + 0.3 * hash21(cell, seed + 13u));
                 float2 at = rotate(centre, -angle);
-                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + r + 5.0) continue;
+                if (near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + b.i.w + r + 5.0) continue;
                 if (near.road && (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 1.5
                                   || !clearOfHouses(at + shift, at, r, b, scene, seed, wander))) continue;
                 if (near.crossNear && crossGap(at + shift, scene) < b.e.x * 0.45 + r + 1.5) continue;
@@ -1639,7 +1649,9 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
     // Hedge shadow, sampled where the sun would see the hedge from.
     float2 toSun = scene.sun.xy * scene.sun.z * (2.5 + b.a.z * 0.45);
     Cells vs = voronoi(fieldSpace(p + toSun, b, seed), seed);
-    float shadowEdge = vs.border * size - hedgeHalfWidth(p + toSun, b, seed);
+    Cells halfway = voronoi(fieldSpace(p + toSun * 0.5, b, seed), seed);
+    float shadowEdge = min(vs.border * size - hedgeHalfWidth(p + toSun, b, seed),
+                           halfway.border * size - hedgeHalfWidth(p + toSun * 0.5, b, seed));
     l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8, scene);
 
     if (border < hw + 2.5) {
@@ -1700,6 +1712,8 @@ inline float taigaDry(float2 p, uint seed) {
 // Forestry compartments, some clear-cut: 0 standing forest, then 1 freshly cut, 2 regrowing, 3 a young thicket.
 inline int taigaCut(float2 p, uint seed, thread float &edge) {
     const float2 compartment = float2(240.0, 190.0);
+    // Each forest's compartments run their own way.
+    p = rotate(p, 0.15 + 0.6 * hash11(int(seed), 38u));
     float2 g = floor(p / compartment);
     int2 cell = int2(g);
     edge = 1e3;
@@ -1800,11 +1814,12 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
             float kindPick = hash21(cell, seed + 54u);
             int kind = pine, foliage = leaves;
             float r = scale * (1.6 + 1.0 * hash21(cell, seed + 55u));
-            float tall = 4.2;
+            // Pines and spruces of 12 to 20 m, birches lower.
+            float tall = 6.6;
             if (kindPick < 0.35 + 0.25 * smoothstep(0.5, 0.62, tw) - 0.3 * dry) {
-                kind = spruce; foliage = conifer; r *= 0.85; tall = 5.0;
+                kind = spruce; foliage = conifer; r *= 0.85; tall = 8.0;
             } else if (kindPick > 0.86 - 0.25 * smoothstep(0.56, 0.64, tw)) {
-                kind = broadleaf; foliage = birch; tall = 3.2;
+                kind = broadleaf; foliage = birch; tall = 5.0;
             }
             if (!clearSpot(at, at + shift, r + 3.0, near, b, scene, seed, riverHalf, wander)) continue;
             plant(trees, p, at, r, r * tall, kind, hash21(cell, seed + 56u), foliage, scene);
@@ -1823,7 +1838,9 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     uint seed = uint(leg.info.y);
     float2 local = float2(world.x, world.y - leg.info.x);
     int layout = int(b.a.x);
-    Canopy trees = canopy(layout == layoutTaiga ? 9.0 : 18.0);
+    // Lapland's forest gathers shadows from 16 m round, enough for its tallest pines at an afternoon sun. Further costs
+    // GPU memory in lumps: 14 and 18 m each cost 3 to 4 MB, 16 nothing.
+    Canopy trees = canopy(layout == layoutTaiga ? 16.0 : 18.0);
     Land l;
     if (layout == layoutPaddies) l = paddies(local, b, seed);
     else if (layout == layoutFields) l = fields(local, world, b, scene, seed, riverHalf, wander);
@@ -1856,7 +1873,6 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     l.herd *= 1.0 - cover;
     l.water *= 1.0 - cover;
     l.cover = cover;
-    l.crown = saturate(cover - roofs);
 
     // A broad wash, like paint laid on unevenly across the sheet.
     l.color *= 1.0 + 0.08 * (fbm(local / 340.0, 3, seed + 99u) - 0.5);
@@ -1926,7 +1942,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     float3 canopy = mix(a.groundDark.rgb, b.groundDark.rgb, m) * 0.78;
     float3 grass = mix(a.ground.rgb, b.ground.rgb, m) * float3(0.86, 0.95, 0.76);
     float3 reeds = mix(c, grass, 0.75) * (0.9 + 0.2 * alongNoise(rp, float2(0.9, 4.0), 15u));
-    float2 sunR = float2(scene.sun.x * side, scene.sun.y) * min(scene.sun.z, 2.0) * 2.5;
+    float2 sunR = float2(scene.sun.x * side, scene.sun.y) * scene.sun.z * 2.5;
     float clumps = 0.65 * alongNoise(rp, float2(3.1, 3.7), 13u) + 0.35 * alongNoise(rp + 17.0, float2(1.7, 2.1), 18u);
     float lee = 0.65 * alongNoise(rp + sunR, float2(3.1, 3.7), 13u) + 0.35 * alongNoise(rp + sunR + 17.0, float2(1.7, 2.1), 18u);
     float scrub = smoothstep(0.56, 0.68, clumps) * smoothstep(banks + 0.5, banks + 2.5, ad);
@@ -1961,7 +1977,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     w = pigment(w, broad, 0.55);
     w = pigment(w, streak, 0.28);
     float towards = saturate(dot(scene.sun.xy, float2(side, 0.0)));
-    float cast = (1.2 + 1.8 * min(scene.sun.z, 2.0)) * towards * presence;
+    float cast = (1.2 + 1.8 * scene.sun.z) * towards * presence;
     w = shade(w, fill(fromEdge - cast, 1.0) * 0.55 * saturate(towards * 3.0), scene);
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, streak));
     w = mix(w, ice, frozen);
@@ -1982,8 +1998,11 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
 
     // A crossroad now and then.
     bool hasCross;
-    float crossY = crossroadY(p, scene, hasCross);
-    float dc = hasCross ? abs(p.y - crossY) - halfWidth * 0.9 : 1e6;
+    float crossY = crossroadY(p, scene, hasCross, halfWidth + 20.0);
+    // A cross-road is a narrow link road, 4 to 6 m; the survey grid of pivot country has section roads instead.
+    hasCross = hasCross && int((m < 0.5 ? a : b).a.x) != layoutPivots;
+    float crossHalf = clamp(halfWidth * 0.45, 2.0, 3.0);
+    float dc = hasCross ? abs(p.y - crossY) - crossHalf : 1e6;
 
     // Roads meet in rounded corners.
     float dd = smin(abs(d) - halfWidth, dc, 3.0);
@@ -1992,14 +2011,14 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
     float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth,
-                        hasCross ? abs(p.y + sunOff.y - crossY) - halfWidth * 0.9 : 1e6);
+                        hasCross ? abs(p.y + sunOff.y - crossY) - crossHalf : 1e6);
     c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9, scene);
 
     // How far across whichever road is nearest, and how far along it: laid out so that wear runs with the traffic.
     bool along = abs(d) - halfWidth < dc;
     float lat = along ? d : p.y - crossY;
     float run = along ? p.y : p.x;
-    float wide = along ? halfWidth : halfWidth * 0.9;
+    float wide = along ? halfWidth : crossHalf;
     float ragged = alongNoise(float2(lat > 0.0 ? 3.0 : 7.0, run), float2(1.0, 6.0), 72u) - 0.5;
     float edge = dd + ragged * mix(1.5, 0.35, paved);
     float streaks = alongNoise(float2(lat / 1.2, run), float2(1.0, 27.0), 73u);
@@ -2106,86 +2125,23 @@ inline float3 railOverRoad(float3 c, float2 world, constant Leg &leg, float onRo
     return mix(c, float3(0.78, 0.78, 0.80), fill(abs(ad - 0.72) - 0.06, max(0.08, texel * 0.6)) * onRoad);
 }
 
-// MARK: - Handover
-
-// The land turns into the next place in patches, along a line that knows nothing of what stands on it. Left to itself
-// the line would cut through a house and leave half of it a ghost. So everything that has to stay in one piece claims
-// the ground it stands on for the side its own centre is on: it stands whole in the place it belongs to, or that side's
-// land covers it whole. Nothing is taken away from either place, and no bare strip follows the line.
-//
-// How far a landmark has to stay in one piece. Lakes, burns and feedlots lie over the land like washes, and go with it.
-inline float landmarkClaim(int kind) {
-    return kind == markLake || kind == markBurn || kind == markFeedlot ? 0.0
-         : kind == markCorral ? 18.0 : min(landmarkRadius(kind) * 0.8, 90.0);
-}
-
-// How far past its `reach` a claim fades out, as soft as the patches' own edges. No further, as both places are painted
-// wherever it pulls the land across the line.
-inline float claimEdge(float reach) {
-    return reach + min(reach, 24.0);
-}
-
-// Claims the ground `away` from something standing at `at`, for the old place (x) or the new (y): all of it out to
-// `reach`, then less and less.
-inline void claim(thread float2 &claims, float2 away, float reach, float2 at, constant Scene &scene) {
-    float pull = 1.0 - smoothstep(reach, claimEdge(reach), length(away));
-    if (pull <= 0.0) return;
-    if (landTurn(at.y, scene) >= patchThreshold(at, scene)) claims.y = max(claims.y, pull);
-    else claims.x = max(claims.x, pull);
-}
-
-// What stands in one place near `world`, as houses(), ponds() and landmark() would find it.
-inline void claimsOf(thread float2 &claims, float2 world, float turnedBy, constant Leg &leg, constant Scene &scene,
-                     float riverHalf, float2 wander) {
-    constant Biome &b = leg.biome;
-    uint seed = uint(leg.info.y);
+// The railway crosses roads on a bridge of its own: a deck with a low parapet each side, standing a few metres up and
+// throwing its shadow across the road. Traffic passes underneath, so where the deck is no car is drawn.
+inline float3 railBridge(float3 c, float2 world, constant Leg &leg, constant Scene &scene, float onRoad, float texel,
+                         thread float &traffic) {
+    if (leg.rail.w < 0.5 || onRoad < 0.01) return c;
     float2 local = float2(world.x, world.y - leg.info.x);
-    float2 shift = world - local;
-    for (int i = 0; i < 2; i++) {
-        int kind = int(i == 0 ? b.j.x : b.j.z);
-        float reach = landmarkClaim(kind);
-        float2 center;
-        int2 id;
-        if (reach <= 0.0 || !landmarkSite(kind, i == 0 ? b.j.y : b.j.w, local, b, seed + uint(i) * 17u, center, id)) continue;
-        float2 away = local - center;
-        if (length(away) >= claimEdge(reach)) continue;
-        if (landmarkStands(kind, center + shift, shift, b, scene, riverHalf, wander, seed + uint(i) * 17u)) claim(claims, away, reach, center + shift, scene);
-    }
-    float2 pond;
-    float pondRadius;
-    if (pondSite(local, b, seed, pond, pondRadius) && pondRadius < 60.0) {
-        float2 away = local - pond;
-        float reach = pondRadius * 1.1 + 3.0;
-        if (length(away) < claimEdge(reach)) claim(claims, away, reach, pond + shift, scene);
-    }
-    // The line moves too little across a house for one far from it to reach this pixel.
-    if ((b.e.w <= 0.0 && b.i.x <= 0.0) || abs(turnedBy) > 0.3) return;
-    float rx = roadX(world.y, scene, wander);
-    if (abs(world.x - rx) > b.e.x * 0.5 + 80.0) return;
-    float side = world.x > rx ? 1.0 : -1.0;
-    float k0 = floor(local.y / 30.0);
-    for (int dk = -1; dk <= 1; dk++) {
-        for (int row = 0; row < 2; row++) {
-            Plot h;
-            if (plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, slotCourse(k0 + float(dk), world, local, scene, wander))) {
-                claim(claims, world - h.center, 13.0, h.center, scene);
-            }
-        }
-    }
-}
-
-// `blend` where it has been settled by what stands here.
-inline float settled(float blend, float2 world, float turnedBy, constant Scene &scene, float halfA, float halfB,
-                     float2 wander) {
-    float2 claims = 0.0;
-    // Never unrolled, as with land(): one copy of all this, not two.
-    #pragma clang loop unroll(disable)
-    for (int i = 0; i < 2; i++) {
-        claimsOf(claims, world, turnedBy, i == 0 ? scene.legA : scene.legB, scene, i == 0 ? halfA : halfB, wander);
-    }
-    // The stronger claim wins, so a house keeps the ground it stands on from a neighbour's fading edge; only where the
-    // two are nearly level do they share it, so the change between them is soft rather than a cut.
-    return mix(blend, saturate(0.5 + 2.5 * (claims.y - claims.x)), max(claims.x, claims.y));
+    float along;
+    float2 lift = scene.sun.xy * scene.sun.z * 5.5;
+    float under = abs(railSigned(local + lift, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along));
+    c = shade(c, fill(under - 4.2, 0.4) * onRoad * 0.75, scene);
+    float ad = abs(railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along));
+    if (ad > 5.0) return c;
+    float deck = fill(ad - 4.2, max(0.15, texel * 0.6)) * onRoad;
+    c = mix(c, float3(0.6, 0.59, 0.57), deck);
+    c = mix(c, float3(0.74, 0.73, 0.7), fill(abs(ad - 3.95) - 0.25, max(0.08, texel * 0.6)) * onRoad);
+    traffic *= 1.0 - deck;
+    return railOverRoad(c, world, leg, onRoad, texel);
 }
 
 fragment GroundOut ground(VertexOut in [[stage_in]],
@@ -2196,19 +2152,19 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
 
     // How far the land has turned from leg A into leg B here.
     float m = landTurn(world.y, scene);
-    // The new place spreads in organic patches, like wet paint creeping across the sheet. Inside the
-    // soft edge both places are painted and blended; elsewhere only one is.
-    float threshold = patchThreshold(world, scene);
-    float blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
+    // In flight the two places simply meet. A Fly To's new place spreads in organic patches, like wet paint creeping across
+    // the sheet: inside the soft edge both places are painted and blended; elsewhere only one is.
+    float blend = m;
+    if (scene.morph.z >= 0.0) {
+        float threshold = patchThreshold(world, scene);
+        blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
+    }
 
     float2 wander = course(scene, m);
     float widthA = scene.legA.biome.d.z, widthB = scene.legB.biome.d.z;
     float width = riverWidth(scene, m);
     float riverHalf = width * 0.5;
     float halfA = widthA < 0.5 ? 0.0 : riverHalf, halfB = widthB < 0.5 ? 0.0 : riverHalf;
-    // Only where the land is turning can the line be anywhere near. A Fly To's own sweep is left as it is: the frame
-    // pass has to blend its two paintings just as this does, and can't tell what stands where.
-    if (scene.morph.z < 0.0 && m > 0.03 && m < 0.97) blend = settled(blend, world, m - threshold, scene, halfA, halfB, wander);
     // Between a place with a river and one without, the river is painted over in the same creeping patches as
     // the land, rather than narrowing to a point in the middle of a field.
     float riverShown = 1.0;
@@ -2235,27 +2191,18 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     Land l = first == 1 ? b : a;
     if (first != last) {
-        // Too many trees to settle one by one, so where a crown of one place meets bare land of the other it is
-        // left solid rather than half there, but for the very edges, where the other place stops being painted. A
-        // Fly To's frame pass can't tell crowns from land, so there the plain blend stands.
-        float mixed = blend;
-        if (scene.morph.z < 0.0) {
-            float lean = b.crown - a.crown;
-            float strength = smoothstep(0.0, 0.25, min(blend, 1.0 - blend));
-            mixed += lean * strength * (lean > 0.0 ? 1.0 - blend : blend);
-        }
         l = a;
-        l.color = mix(a.color, b.color, mixed);
-        l.water = mix(a.water, b.water, mixed);
-        l.sway = mix(a.sway, b.sway, mixed);
-        l.herd = mix(a.herd, b.herd, mixed);
-        l.road = mix(a.road, b.road, mixed);
-        l.light = mix(a.light, b.light, mixed);
-        l.cover = mix(a.cover, b.cover, mixed);
+        l.color = mix(a.color, b.color, blend);
+        l.water = mix(a.water, b.water, blend);
+        l.sway = mix(a.sway, b.sway, blend);
+        l.herd = mix(a.herd, b.herd, blend);
+        l.road = mix(a.road, b.road, blend);
+        l.light = mix(a.light, b.light, blend);
+        l.cover = mix(a.cover, b.cover, blend);
         // The lamp whose light this mostly is, which needn't be the place with most of the land here.
-        l.lightID = b.light * mixed > a.light * (1.0 - mixed) ? b.lightID : a.lightID;
+        l.lightID = b.light * blend > a.light * (1.0 - blend) ? b.lightID : a.lightID;
         // A darker tide line where the two paints meet.
-        l.color *= 1.0 - 0.12 * (1.0 - abs(mixed * 2.0 - 1.0));
+        l.color *= 1.0 - 0.12 * (1.0 - abs(blend * 2.0 - 1.0));
     }
 
     float onRoad = l.road;
@@ -2269,23 +2216,11 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     }
     // Bridges only where the river is still painted.
     float crossingHalf = riverShown > 0.5 ? riverHalf : 0.0;
-    float turn = scene.morph.z < 0.0 ? railTurn(world.y, scene) : (blend > 0.5 ? 1.0 : 0.0);
-    int firstRail = turn >= 1.0 ? 1 : 0, lastRail = turn <= 0.0 ? 0 : 1;
-    #pragma clang loop unroll(disable)
-    for (int i = firstRail; i <= lastRail; i++) {
-        float share = i == 0 ? 1.0 - turn : turn;
-        float railHerd = herd, railWater = water;
-        float3 railed = railway(c, world, i == 0 ? scene.legA : scene.legB, scene, texel, crossingHalf, wander, railHerd, railWater);
-        c = mix(c, railed, share);
-        herd = mix(herd, railHerd, share);
-        water = mix(water, railWater, share);
-    }
+    constant Leg &railLeg = blend > 0.5 ? scene.legB : scene.legA;
+    c = railway(c, world, railLeg, scene, texel, crossingHalf, wander, herd, water);
     float traffic = 0.0;
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, crossingHalf, wander, onRoad, traffic, water, herd);
-    #pragma clang loop unroll(disable)
-    for (int i = firstRail; i <= lastRail; i++) {
-        c = mix(c, railOverRoad(c, world, i == 0 ? scene.legA : scene.legB, onRoad, texel), i == 0 ? 1.0 - turn : turn);
-    }
+    c = railBridge(c, world, railLeg, scene, onRoad, texel, traffic);
 
     GroundOut out;
     out.color = float4(saturate(c), packGround(water, l.sway, traffic > 0.5 && l.cover < 0.5, herd > 0.5));

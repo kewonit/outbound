@@ -114,14 +114,31 @@ inline float lowBeam(float2 p, float kerb) {
 }
 
 // How much of a car with chance `h` is on the road where the land has turned `m`, 0 to 1. Places differ in how busy
-// their roads are, so as a car drives through a handover the road can get too quiet for it, or busy enough. It goes or
-// comes over about 30 m rather than in one frame. Where the two places agree there is nothing to fade: all or nothing.
+// their roads are, so as a Fly To sweeps by the road can get too quiet for a car, or busy enough. It goes or comes over a
+// short way rather than in one frame. Where the two places agree there is nothing to fade: all or nothing.
 inline float carPresence(float h, float m, float busyA, float busyB) {
     float busy = min(mix(busyA, busyB, m) * 1.6, 0.75);
     float soft = abs(busyB - busyA) * 1.6 * 0.06 * smoothstep(0.0, 0.06, min(m, 1.0 - m));
     return soft > 1e-5 ? saturate((busy - h) / soft + 0.5) : (h > busy ? 0.0 : 1.0);
 }
 
+// How much direct sun reaches this pixel: none in a cloud's shade, where the light is all from the sky and nothing casts a
+// shadow of its own.
+inline float directSun(float2 pixel, constant CompositeParams &params, texture2d<float> clouds, texture2d<float> band,
+                       sampler s) {
+    float2 size = float2(clouds.get_width(), clouds.get_height());
+    float2 at = (params.clouds.xy + pixel * params.view.z) / params.clouds.z;
+    float shadow = clouds.sample(s, float2(at.x, size.y - at.y) / size).z;
+    if (params.bank.w > 0.0) {
+        float2 bandSize = float2(band.get_width(), band.get_height());
+        float2 bandAt = (params.bank.xy + pixel * params.view.z) / params.bank.z;
+        shadow = max(shadow, band.sample(s, float2(bandAt.x, bandSize.y - bandAt.y) / bandSize).z);
+    }
+    return 1.0 - smoothstep(0.05, 0.8, shadow);
+}
+
+// How far a car is ahead of its slot's middle at time `t` (wrapping hourly): up to 30 m either way, over two to five
+// minutes, so it speeds up and slows down by a sixth or so. Periods divide an hour, so nothing jumps when `t` wraps.
 inline float carDrift(int id, float t) {
     float reach = 12.0 + 18.0 * hash11(id, 146u);
     float period = 3600.0 / (12.0 + floor(hash11(id, 147u) * 18.0));
@@ -449,6 +466,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             texture2d<float> noise [[texture(4)]],
                             texture2d<float> incomingColor [[texture(5)]],
                             texture2d<float> incomingNight [[texture(6)]],
+                            texture2d<float> bankTexture [[texture(7)]],
                             sampler wrap [[sampler(0)]],
                             sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -473,25 +491,26 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float water = mask.water;
     float3 light = 0.0;
 
-    // Gusts roll across tall crops in long soft bands.
+    // Gusts roll across tall crops in long soft bands, lying across the wind.
     if (mask.sway > 0.01) {
-        float2 gp = (params.world.zw + pixel * mpp) / float2(160.0, 55.0);
+        float2 gp = (params.world.zw + pixel * mpp) / float2(55.0, 160.0);
         c *= 1.0 + mask.sway * 0.09 * (latticeNoise(noise, wrap, gp) - 0.45);
     }
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
-    if (mask.road) c = cars(c, world, scene, mpp, light);
-    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light);
+    float sunlit = directSun(pixel, params, cloudTexture, bankTexture, clampSampler);
+    if (mask.road) c = cars(c, world, scene, mpp, light, sunlit);
+    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light, sunlit);
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
-            // Through a handover a train goes no further than its line does.
-            float turn = railTurn(world.y, scene);
+            // Where two places meet a train goes no further than its line does.
+            float turn = landTurn(world.y, scene);
             float shown = scene.train.info.z < 0.5 || scene.morph.z >= 0.0 ? 1.0
                         : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
             if (shown > 0.0) {
                 float3 lit = light;
-                float3 passing = train(c, world, scene.train, scene, mpp, lit);
+                float3 passing = train(c, world, scene.train, scene, mpp, lit, sunlit);
                 c = mix(c, passing, shown);
                 light = mix(light, lit, shown);
             }
@@ -507,14 +526,18 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
         // Cell sizes that divide the gust space's period; bent by a slower noise so they never show its grid.
         float2 gust = params.world.zw + pixel * mpp;
-        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(53.3333, 40.0)) - 0.5,
-                                           latticeNoise(noise, wrap, gust.yx / float2(40.0, 53.3333) + 31.0) - 0.5);
-        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(26.6667, 20.0))
-                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.3333, 10.0));
+        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(44.0, 53.3333)) - 0.5,
+                                           latticeNoise(noise, wrap, gust.yx / float2(53.3333, 44.0) + 31.0) - 0.5);
+        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(27.5, 20.0))
+                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.75, 10.0));
         c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, paws) * 0.12);
-        if (water > 0.99) {
-            float across = world.x - riverX(world.y, scene, course(scene, landTurn(world.y, scene)));
-            c *= 1.0 + 0.07 * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
+        if (water > 0.9) {
+            float turned = landTurn(world.y, scene);
+            float across = world.x - riverX(world.y, scene, course(scene, turned));
+            float bank = max(riverWidth(scene, turned) * 0.5, 0.001);
+            float current = smoothstep(0.9, 1.0, water) * (1.0 - smoothstep(0.8, 1.0, abs(across) / bank));
+            c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
         }
     }
 
@@ -599,19 +622,32 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float period = 9.0 + 7.0 * hash21(cell, seed + 122u);
     float phase = t / period + h * 13.0;
     float strides = floor(phase) + smoothstep(0.75, 1.0, fract(phase));
-    float2 jitter = (hash22(cell, seed + 123u) - 0.5) * spacing * 0.5;
-    float2 walk = float2(sin(strides * 1.7 + h * 40.0), cos(strides * 1.3 + h * 17.0)) * 1.6;
+    float2 jitter = (hash22(cell, seed + 123u) - 0.5) * spacing * 0.3;
+    float2 walk = float2(sin(strides * 1.7 + h * 40.0), cos(strides * 1.3 + h * 17.0)) * 1.2;
+    // It faces the way it last walked, turning as it steps.
+    float2 step = float2(1.7 * cos(strides * 1.7 + h * 40.0), -1.3 * sin(strides * 1.3 + h * 17.0));
+    float heading = atan2(step.y, step.x);
+    // A little bigger than life, so they read from this height without outgrowing the cars.
+    float len = (kind == sheep ? 0.7 : kind == zebra ? 1.2 : kind == gazelle ? 0.55 : 1.25) * 1.2;
+    float wid = (kind == sheep ? 0.45 : kind == gazelle ? 0.28 : 0.42) * 1.2;
     float2 local = cellCenter + jitter + walk + p.drift.xy;
     float2 world = float2(local.x, local.y + p.leg.x);
     if (world.y < p.leg.y || world.y >= p.leg.z) return out;
-    // Only where the ground says animals belong, in whichever painting it has turned to during a Fly To.
+    // Only where the ground says animals belong, nose to tail, in whichever painting it has turned to during a Fly To.
+    // Where its next steps would take it off, it stays where it was grazing.
     texture2d<float> land = sweepBlend(world, scene) > 0.5 ? incomingColor : groundColor;
-    if (!unpack(land.read(cacheTexel(world, params)).a).herd) return out;
-
-    float heading = hash21(cell, seed + 124u) * 6.283 + 0.6 * sin(strides * 0.9 + h * 9.0);
-    // Drawn larger than life so they read from this height, as in a painted map.
-    float len = (kind == sheep ? 1.2 : kind == zebra ? 1.45 : kind == gazelle ? 0.9 : 1.6) * 1.6;
-    float wid = (kind == sheep ? 0.75 : kind == gazelle ? 0.42 : 0.62) * 1.6;
+    float2 reach2 = float2(cos(heading), sin(heading)) * len * 1.6;
+    bool fits = unpack(land.read(cacheTexel(world, params)).a).herd
+             && unpack(land.read(cacheTexel(world + reach2, params)).a).herd
+             && unpack(land.read(cacheTexel(world - reach2 * 0.7, params)).a).herd;
+    if (!fits) {
+        local = cellCenter + jitter + p.drift.xy;
+        world = float2(local.x, local.y + p.leg.x);
+        if (world.y < p.leg.y || world.y >= p.leg.z) return out;
+        if (!unpack(land.read(cacheTexel(world, params)).a).herd
+            || !unpack(land.read(cacheTexel(world + reach2, params)).a).herd
+            || !unpack(land.read(cacheTexel(world - reach2 * 0.7, params)).a).herd) return out;
+    }
     float2 shadowOff = -scene.sun.xy * scene.sun.z * 1.1;
     // A quad just big enough for the animal, its head and its shadow, so herds cost as few pixels as possible.
     float2 heading2 = float2(cos(heading), sin(heading));
@@ -622,7 +658,8 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float2 pixel = (world + corner - params.world.xy) / params.view.z;
     out.position = float4(pixel / params.view.xy * 2.0 - 1.0, 0.0, 1.0);
     out.offset = rotate(corner, -heading);
-    out.shadow = rotate(corner - shadowOff, -heading);
+    // Which way and how far its shadow falls, in its own frame; the fragment sweeps the body along it.
+    out.shadow = rotate(shadowOff, -heading);
     float3 coat = b.animalColor.rgb * (0.85 + 0.3 * hash21(cell, seed + 125u));
     out.coat = float4(coat, float(kind));
     out.extent = float2(len, wid);
@@ -632,15 +669,23 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
 
 fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0)]],
                                constant CompositeParams &params [[buffer(0)]],
-                               constant Scene &scene [[buffer(1)]]) {
+                               constant Scene &scene [[buffer(1)]],
+                               texture2d<float> cloudTexture [[texture(2)]],
+                               texture2d<float> bankTexture [[texture(7)]],
+                               sampler clampSampler [[sampler(1)]]) {
     float len = in.extent.x, wid = in.extent.y;
     float px = params.view.z;
     float2 d = in.offset;
     bool isGazelle = in.coat.w == float(gazelle);
     float body = length(d / float2(len, wid)) - 1.0;
     float head = length((d - float2(len * 1.05, 0.0)) / (float2(0.7, 0.5) * (isGazelle ? 0.6 : 1.0))) - 1.0;
-    float shadowBody = length(in.shadow / float2(len, wid)) - 1.0;
-    float3 c = shade(below.rgb, fill(shadowBody, px * 0.9) * 0.7, scene);
+    // Swept from the body out along the shadow, so it stays attached however low the sun.
+    float2 scaled = d / float2(len, wid), cast = in.shadow / float2(len, wid);
+    float along = saturate(dot(scaled, cast) / max(dot(cast, cast), 1e-4));
+    float shadowBody = length(scaled - cast * along) - 1.0;
+    float sunlit = directSun(float2(in.position.x, params.view.y - in.position.y), params, cloudTexture, bankTexture,
+                             clampSampler);
+    float3 c = shade(below.rgb, fill(shadowBody, px * 0.9) * 0.7 * sunlit, scene);
     float3 coat = in.coat.rgb;
     if (in.coat.w == float(zebra)) {
         float band = step(0.5, fract(d.x * 1.0 + 0.3 * d.y));
@@ -814,6 +859,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
                     constant Scene &scene [[buffer(1)]],
                     texture2d<float> cloudTexture [[texture(2)]],
                     texture2d<float> paperTexture [[texture(3)]],
+                    texture2d<float> bankTexture [[texture(7)]],
                     sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
     float2 pixel = float2(in.position.x, size.y - in.position.y);
@@ -825,8 +871,17 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float2 cloudPx = (params.clouds.xy + pixel * mpp) / params.clouds.z;
     float4 cloud = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudTexSize.y - cloudPx.y) / cloudTexSize);
 
+    // The band between two places, which moves with the land rather than the sky.
+    float4 band = 0.0;
+    if (params.bank.w > 0.0) {
+        float2 bandSize = float2(bankTexture.get_width(), bankTexture.get_height());
+        float2 bandPx = (params.bank.xy + pixel * mpp) / params.bank.z;
+        band = bankTexture.sample(clampSampler, float2(bandPx.x, bandSize.y - bandPx.y) / bandSize);
+    }
+
     // Cloud shadow, then the bird's shadow, then clouds, then the bird above it all.
-    c = shade(c, smoothstep(0.05, 0.8, cloud.z) * 0.62, scene);
+    float sunlit = 1.0 - smoothstep(0.05, 0.8, max(cloud.z, band.z));
+    c = shade(c, (1.0 - sunlit) * 0.62, scene);
 
     float birdVisible = params.wings.w;
     float2 birdPx = params.bird.xy;
@@ -836,8 +891,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         float2 offset = pixel - shadowPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
-            // Soft, as a shadow is from that high up.
-            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.45 * birdVisible, scene);
+            // Soft, as a shadow is from that high up, and none where a cloud already shades the ground.
+            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.45 * birdVisible * sunlit, scene);
         }
     }
 
@@ -851,13 +906,14 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         if (length(pixel - shadowPx) < reach) {
             float altitude = params.flockShape.w * mpp;
             float d = flockDistance(pixel - (shadowPx - params.flock.xy), params, t, q, spread);
-            float blur = 0.8 + altitude * 0.0093 / mpp;
-            c = shade(c, fill(d, blur) * mix(0.45, 0.12, saturate(altitude / 150.0)), scene);
+            // Blurred by how far the light travels from bird to ground, which is further the lower the sun.
+            float blur = 0.8 + altitude * sqrt(1.0 + scene.sun.z * scene.sun.z) * 0.0093 / mpp;
+            c = shade(c, fill(d, blur) * mix(0.45, 0.12, saturate(altitude / 150.0)) * params.flock.w * sunlit, scene);
         }
         if (length(pixel - params.flock.xy) < reach) {
             float d = flockDistance(pixel, params, t, q, spread);
             float3 plumage = params.flockLook.rgb * (0.9 + 0.2 * saturate(0.5 - q.y));
-            c = mix(c, plumage, fill(d, 0.7));
+            c = mix(c, plumage, fill(d, 0.7) * params.flock.w);
         }
     }
 
@@ -867,13 +923,27 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         c = mix(c, cloudColor, cloudAlpha);
     }
 
+    // The band lies over all that, and the gull flies above it, its shadow close beneath it.
+    float bank = smoothstep(0.02, 0.6, band.x);
+    if (bank > 0.0) {
+        c = mix(c, mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, band.y)), bank);
+        if (birdVisible > 0.0) {
+            float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
+            if (dot(offset, offset) < scale * scale * 1.6) {
+                float2 q = rotate(offset, -params.bird.z) / scale;
+                c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.6 * bank, scene);
+            }
+        }
+        cloudAlpha += bank * (1.0 - cloudAlpha);
+    }
+
     // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
     if (birdVisible > 0.0 && params.finish.z > 0.5) {
         float2 offset = pixel - birdPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
             float sb = birdShape(q, params.wings.x, params.bird.w);
-            float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x));
+            float through = birdVisible * (1.0 - 0.6 * smoothstep(0.3, 0.9, cloud.x) * (1.0 - bank));
             // A breath of shade round it keeps the white of the bird apart from pale ground and cloud.
             c = mix(c, c * 0.8, fill(sb - 0.014, 1.6 / scale) * 0.3 * through);
             c = mix(c, gullColour(q, params.wings.x, params.bird.w, rotate(scene.sun.xy, -params.bird.z)),
@@ -892,10 +962,11 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float3 lit = c * scene.light.rgb * scene.light.w;
     if (night > 0.0) {
         float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.44, 0.54, 0.76) * 0.78 + float3(0.015, 0.02, 0.045);
-        // Clouds hold far less moonlight than their daytime white suggests.
-        moonlit *= 1.0 - 0.42 * cloudAlpha;
+        // Clouds hold far less moonlight than their daytime white suggests, though the band seen from above still stands
+        // paler than the land, or it would be a curtain drawn over it.
+        moonlit *= 1.0 - mix(0.42, 0.16, bank) * cloudAlpha;
         c = mix(lit, moonlit, night);
-        c += lamplight.rgb * night * (1.0 - 0.85 * cloudAlpha);
+        c += lamplight.rgb * night * (1.0 - mix(0.85, 1.0, bank) * cloudAlpha);
     } else {
         c = lit;
     }

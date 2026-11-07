@@ -20,7 +20,7 @@ struct Biome {
     float4 j; // landmark A, density, landmark B, density
     float4 k; // sodium lamps, lamps off late, river bends, pond size
     float4 blossom, blossomLight; // orchard trees in flower; blossom.w is 1 when only orchards flower
-    float4 l; // evergreen gardens
+    float4 l; // evergreen gardens, where the river runs (world x), scattered trees' height for their width, unused
     float4 railLine;  // the leg's railway: origin (leg-local x, y), cos and sin of its angle
     float4 railCurve; // its wiggle: amplitude, 1 / wavelength, phase, then whether there is one
 };
@@ -288,8 +288,9 @@ constant float3 bendWaves = float3(95.0, 61.0, 151.0);
 // Where the road crosses from one side of the valley to the other, -1 to 1, and how fast it does, per metre.
 inline float2 roadSwap(float y, constant Scene &scene) {
     float a = y / roadWave + scene.road.z;
-    float t = tanh(3.0 * sin(a));
-    return float2(t, (1.0 - t * t) * 3.0 * cos(a) / roadWave);
+    // Quickly, so it crosses the river nearly square and a bridge is about as long as the river is wide.
+    float t = tanh(8.0 * sin(a));
+    return float2(t, (1.0 - t * t) * 8.0 * cos(a) / roadWave);
 }
 
 // The bends the river makes within the valley, and their slope. The road doesn't follow them, so they straighten
@@ -316,12 +317,13 @@ inline float riverSlope(float y, constant Scene &scene, float2 wander) {
 }
 
 // The road keeps to one side of the river and swaps sides now and then, which is where bridges go.
+// Where there is no river to swap sides of, it runs straight.
 inline float roadX(float y, constant Scene &scene, float2 wander) {
-    return valleyX(y, scene, wander.x) + scene.road.y * roadSwap(y, scene).x;
+    return valleyX(y, scene, wander.x) + scene.road.y * saturate(wander.x / 4.0) * roadSwap(y, scene).x;
 }
 
 inline float roadSlope(float y, constant Scene &scene, float2 wander) {
-    return valleySlope(y, scene, wander.x) + scene.road.y * roadSwap(y, scene).y;
+    return valleySlope(y, scene, wander.x) + scene.road.y * saturate(wander.x / 4.0) * roadSwap(y, scene).y;
 }
 
 // The place's course where the land has turned `m` of the way from leg A to leg B.

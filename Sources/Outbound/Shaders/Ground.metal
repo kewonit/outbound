@@ -290,8 +290,10 @@ inline float3 openGround(float2 p, constant Biome &b, uint seed) {
     float3 c = mix(b.ground.rgb, b.groundDark.rgb, smoothstep(0.42, 0.78, big) * b.b.y);
     c = mix(c, b.crop1.rgb, smoothstep(0.58, 0.82, vnoise(p / 230.0, seed + 3u)) * 0.55 * b.b.y);
     c = mix(c, b.crop2.rgb, smoothstep(0.55, 0.85, mid) * 0.35);
-    float strokes = vnoise(rotate(p, 0.55) * float2(1.0 / 1.4, 1.0 / 8.5), seed + 4u);
-    float fine = vnoise(rotate(p, 0.55) * float2(1.0 / 0.6, 1.0 / 3.0), seed + 5u);
+    // Each place's brush runs its own way.
+    float slant = 0.25 + 0.7 * hash11(int(seed), 9u);
+    float strokes = vnoise(rotate(p, slant) * float2(1.0 / 1.4, 1.0 / 8.5), seed + 4u);
+    float fine = vnoise(rotate(p, slant) * float2(1.0 / 0.6, 1.0 / 3.0), seed + 5u);
     c *= 1.0 + b.b.z * (0.16 * (strokes - 0.5) + 0.08 * (fine - 0.5));
     return c;
 }
@@ -460,7 +462,7 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
 
 inline Land stripes(float2 p, constant Biome &b, uint seed) {
     float w = b.a.y;
-    float blockLength = 340.0;
+    float blockLength = 280.0 + 140.0 * hash11(int(floor(p.x / 600.0)), seed + 3u);
     float by = floor((p.y + 80.0 * hash11(int(floor(p.x / 600.0)), seed)) / blockLength);
     float yIn = fract((p.y + 80.0 * hash11(int(floor(p.x / 600.0)), seed)) / blockLength) * blockLength;
     float shift = hash11(int(by), seed + 1u) * w;
@@ -576,8 +578,10 @@ inline float pivotClearance(float2 p, constant Leg &leg, constant Scene &scene, 
 inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed, float2 wander) {
     constant Biome &b = leg.biome;
     float s = b.a.y;
-    float2 g = floor(p / s);
-    float2 center = (g + 0.5) * s;
+    // The survey grid is laid from the road, which runs along one of its section lines.
+    float2 grid = float2(b.l.y, 0.0);
+    float2 g = floor((p - grid) / s);
+    float2 center = (g + 0.5) * s + grid;
     float2 r = p - center;
     float radius = s * 0.485;
     int2 cell = int2(g);
@@ -629,7 +633,7 @@ inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed
     }
     // Section roads every mile.
     float mile = s * 2.0;
-    float2 m = abs(fract(p / mile + 0.5) - 0.5) * mile;
+    float2 m = abs(fract((p - grid) / mile + 0.5) - 0.5) * mile;
     float roadD = min(m.x, m.y) - b.e.x * 0.5;
     c = mix(c, b.road.rgb * (0.95 + 0.1 * vnoise(p / 1.5, seed + 7u)), fill(roadD, 0.5));
     l.road = fill(roadD, 0.5);
@@ -711,7 +715,7 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float2 along = normalize(float2(roadSlope(worldY, scene, wander), 1.0));
     float2 away = float2(along.y, -along.x) * side;
     float2 size = float2(4.2, 6.5) * (0.8 + 0.35 * hash11(id, seed + 65u)) * (b.i.z > 0.5 ? 1.15 : 1.0);
-    float out = b.e.x * 0.5 + size.x + (row == 0 ? 4.0 + 6.0 * hash11(id, seed + 63u) : 34.0 + 10.0 * hash11(id, seed + 63u));
+    float out = b.e.x * 0.5 + size.x + (row == 0 ? 3.0 + 11.0 * hash11(id, seed + 63u) : 32.0 + 16.0 * hash11(id, seed + 63u));
     h.center = float2(roadX(worldY, scene, wander), worldY) + away * out;
     if (b.d.z > 0.5 && abs(riverDistance(h.center, scene, wander)) < b.d.z * 0.5 + b.i.w + 16.0 + size.y) return false;
     // Nor on a cross-road or the railway, with room for its yard.
@@ -786,11 +790,14 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
     uint s = seed + uint(kind) * 131u;
     float2 g = floor(local / cell);
     id2 = int2(g);
+    // Kopjes come in clusters, as granite outcrops do, with open plain between.
+    if (kind == markKopje) density *= hash21(id2 / 3, s + 9u) < 0.35 ? 2.6 : 0.15;
     if (hash21(id2, s) > density) return false;
     center = g * cell + radius + 10.0 + hash22(id2, s + 1u) * max(cell - 2.0 * radius - 20.0, 0.0);
     if (kind == markFarmstead && int(b.a.x) == layoutPivots) {
-        // Farmsteads sit in the dry corners between the circles.
-        center = round(center / b.a.y) * b.a.y;
+        // Farmsteads sit in the dry corner in the middle of a section, where four circles meet, clear of its roads.
+        float2 grid = float2(b.l.y, 0.0), mile = float2(b.a.y * 2.0);
+        center = (floor((center - grid) / mile) + 0.5) * mile + grid;
     }
     return true;
 }
@@ -942,8 +949,9 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                         float close = 1.0 - smoothstep(r, r * 2.6, length(local - at));
                         c = mix(c, b.canopyLight.rgb * 1.05, step(1.0 - 0.22 * b.d.y * close, petal) * 0.9);
                     }
-                    plant(k, local, at, r, r * (2.3 + 0.9 * hash21(cell, ts + 2u)), broadleaf, hash21(cell, ts + 3u),
-                          leaves, scene);
+                    bool flat = b.l.z > 0.0;
+                    plant(k, local, at, r, r * (flat ? b.l.z : 2.3 + 0.9 * hash21(cell, ts + 2u)), flat ? pine : broadleaf,
+                          hash21(cell, ts + 3u), leaves, scene);
                 }
             }
         }
@@ -1402,7 +1410,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     } else if (kind == markTubeWell) {
         // A tiny brick room with a tank beside it and a big shade tree.
         float2 q = r;
-        c = shade(c, fill(sdBox(q - float2(0.0, 0.0) + rotate(scene.sun.xy, -angle) * scene.sun.z * 3.0, float2(1.8)), 0.3) * 0.7, scene);
+        c = shade(c, fill(sweptBox(q, float2(1.8), -rotate(scene.sun.xy, -angle) * scene.sun.z * 3.0), 0.3) * 0.7, scene);
         c = mix(c, float3(0.83, 0.74, 0.62), fill(sdBox(q, float2(1.8)), 0.15));
         c = mix(c, float3(0.42, 0.55, 0.62), fill(sdBox(q - float2(3.4, 0.0), float2(1.2, 1.6)), 0.15));
         plant(trees, local, center + rotate(float2(-4.0, 3.5), angle), 4.5, 10.0, broadleaf, hash21(id2, s + 3u),
@@ -1434,25 +1442,25 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         cover = max(cover, panel);
         herd *= 1.0 - panel;
     } else if (kind == markWindmill) {
-        // A polder mill: octagonal body, four sails and their shadow.
+        // A polder mill: an octagonal tower 12 m to the cap, its sails turning in an upright plane square to the
+        // wind. From above the sails are a thin bar across the wind; their shadow is the cross they make, thrown out
+        // along the sun from the hub.
         float2 q = r;
-        float sails = 1e9;
-        for (int i = 0; i < 4; i++) {
-            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
-            sails = min(sails, segmentDistance(q, arm * 1.5, arm * 12.0) - 0.9);
-        }
-        float2 sunR = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float2 toSun = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float2 across = rotate(normalize(float2(-0.55, 1.3)), -angle);
         float sailShadow = 1e9;
         for (int i = 0; i < 4; i++) {
-            float2 arm = rotate(float2(0.0, 1.0), float(i) * 1.5708 + 0.4);
-            sailShadow = min(sailShadow, segmentDistance(q + sunR * 16.0, arm * 1.5, arm * 12.0) - 0.9);
+            float turn = float(i) * 1.5708 + 0.4;
+            float2 from = across * cos(turn) * 1.5 - toSun * (12.0 + sin(turn) * 1.5);
+            float2 to = across * cos(turn) * 12.0 - toSun * (12.0 + sin(turn) * 12.0);
+            sailShadow = min(sailShadow, segmentDistance(q, from, to) - 0.9);
         }
-        c = shade(c, fill(length(q + sunR * 12.0) - 4.2, 0.5) * 0.7, scene);
+        c = shade(c, fill(segmentDistance(q, 0.0, -toSun * 12.0) - 3.6, 0.5) * 0.7, scene);
         c = shade(c, fill(sailShadow, 0.4) * 0.55, scene);
         float3 body = float3(0.36, 0.30, 0.26);
         c = mix(c, body, fill(length(q) - 4.2, 0.3));
         c = mix(c, float3(0.45, 0.35, 0.28), fill(length(q) - 2.0, 0.3));
-        c = mix(c, float3(0.86, 0.84, 0.80), fill(sails, 0.25) * 0.9);
+        c = mix(c, float3(0.86, 0.84, 0.80), fill(segmentDistance(q, -across * 12.0, across * 12.0) - 0.45, 0.2) * 0.9);
         cover = max(cover, fill(length(q) - 4.2, 0.3));
     } else if (kind == markFeedlot) {
         // Pens in rows, pale feed alleys, white bunk lines and dark cattle crowded along them.
@@ -1635,7 +1643,9 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
     // Hedge shadow, sampled where the sun would see the hedge from.
     float2 toSun = scene.sun.xy * scene.sun.z * (2.5 + b.a.z * 0.45);
     Cells vs = voronoi(fieldSpace(p + toSun, b, seed), seed);
-    float shadowEdge = vs.border * size - hedgeHalfWidth(p + toSun, b, seed);
+    Cells halfway = voronoi(fieldSpace(p + toSun * 0.5, b, seed), seed);
+    float shadowEdge = min(vs.border * size - hedgeHalfWidth(p + toSun, b, seed),
+                           halfway.border * size - hedgeHalfWidth(p + toSun * 0.5, b, seed));
     l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8, scene);
 
     if (border < hw + 2.5) {
@@ -1696,6 +1706,8 @@ inline float taigaDry(float2 p, uint seed) {
 // Forestry compartments, some clear-cut: 0 standing forest, then 1 freshly cut, 2 regrowing, 3 a young thicket.
 inline int taigaCut(float2 p, uint seed, thread float &edge) {
     const float2 compartment = float2(240.0, 190.0);
+    // Each forest's compartments run their own way.
+    p = rotate(p, 0.15 + 0.6 * hash11(int(seed), 38u));
     float2 g = floor(p / compartment);
     int2 cell = int2(g);
     edge = 1e3;
@@ -1796,11 +1808,12 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
             float kindPick = hash21(cell, seed + 54u);
             int kind = pine, foliage = leaves;
             float r = scale * (1.6 + 1.0 * hash21(cell, seed + 55u));
-            float tall = 4.2;
+            // Pines and spruces of 12 to 20 m, birches lower.
+            float tall = 6.6;
             if (kindPick < 0.35 + 0.25 * smoothstep(0.5, 0.62, tw) - 0.3 * dry) {
-                kind = spruce; foliage = conifer; r *= 0.85; tall = 5.0;
+                kind = spruce; foliage = conifer; r *= 0.85; tall = 8.0;
             } else if (kindPick > 0.86 - 0.25 * smoothstep(0.56, 0.64, tw)) {
-                kind = broadleaf; foliage = birch; tall = 3.2;
+                kind = broadleaf; foliage = birch; tall = 5.0;
             }
             if (!clearSpot(at, at + shift, r + 3.0, near, b, scene, seed, riverHalf, wander)) continue;
             plant(trees, p, at, r, r * tall, kind, hash21(cell, seed + 56u), foliage, scene);
@@ -1819,7 +1832,9 @@ inline Land land(float2 world, constant Leg &leg, constant Scene &scene, float r
     uint seed = uint(leg.info.y);
     float2 local = float2(world.x, world.y - leg.info.x);
     int layout = int(b.a.x);
-    Canopy trees = canopy(layout == layoutTaiga ? 9.0 : 18.0);
+    // Lapland's forest gathers shadows from 16 m round, enough for its tallest pines at an afternoon sun. Further costs
+    // GPU memory in lumps: 14 and 18 m each cost 3 to 4 MB, 16 nothing.
+    Canopy trees = canopy(layout == layoutTaiga ? 16.0 : 18.0);
     Land l;
     if (layout == layoutPaddies) l = paddies(local, b, seed);
     else if (layout == layoutFields) l = fields(local, world, b, scene, seed, riverHalf, wander);
@@ -1978,7 +1993,10 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     // A crossroad now and then.
     bool hasCross;
     float crossY = crossroadY(p, scene, hasCross, halfWidth + 20.0);
-    float dc = hasCross ? abs(p.y - crossY) - halfWidth * 0.9 : 1e6;
+    // A cross-road is a narrow link road, 4 to 6 m; the survey grid of pivot country has section roads instead.
+    hasCross = hasCross && int((m < 0.5 ? a : b).a.x) != layoutPivots;
+    float crossHalf = clamp(halfWidth * 0.45, 2.0, 3.0);
+    float dc = hasCross ? abs(p.y - crossY) - crossHalf : 1e6;
 
     // Roads meet in rounded corners.
     float dd = smin(abs(d) - halfWidth, dc, 3.0);
@@ -1987,14 +2005,14 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
     float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth,
-                        hasCross ? abs(p.y + sunOff.y - crossY) - halfWidth * 0.9 : 1e6);
+                        hasCross ? abs(p.y + sunOff.y - crossY) - crossHalf : 1e6);
     c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9, scene);
 
     // How far across whichever road is nearest, and how far along it: laid out so that wear runs with the traffic.
     bool along = abs(d) - halfWidth < dc;
     float lat = along ? d : p.y - crossY;
     float run = along ? p.y : p.x;
-    float wide = along ? halfWidth : halfWidth * 0.9;
+    float wide = along ? halfWidth : crossHalf;
     float ragged = alongNoise(float2(lat > 0.0 ? 3.0 : 7.0, run), float2(1.0, 6.0), 72u) - 0.5;
     float edge = dd + ragged * mix(1.5, 0.35, paved);
     float streaks = alongNoise(float2(lat / 1.2, run), float2(1.0, 27.0), 73u);

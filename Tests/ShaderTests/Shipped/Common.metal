@@ -26,7 +26,7 @@ struct Biome {
     float4 j; // landmark A, density, landmark B, density
     float4 k; // sodium lamps, lamps off late, river bends, pond size
     float4 blossom, blossomLight; // orchard trees in flower; blossom.w is 1 when only orchards flower
-    float4 l; // evergreen gardens
+    float4 l; // evergreen gardens, where the river runs (world x), scattered trees' height for their width, unused
     float4 railLine;  // the leg's railway: origin (leg-local x, y), cos and sin of its angle
     float4 railCurve; // its wiggle: amplitude, 1 / wavelength, phase, then whether there is one
 };
@@ -42,7 +42,7 @@ struct Train {
     float4 rail;   // origin (relative to the reference), angle, active
     float4 shape;  // wiggle amplitude, wavelength, phase
     float4 run;    // nose along the rail, direction, car length, cars
-    float4 info;   // locomotives, kind, whose line it is through a handover (0 either, 1 the old place, 2 the new)
+    float4 info;   // locomotives, kind, whose line it is near a join (0 either, 1 the old place, 2 the new)
     float4 body, stripe, roof, locomotive;
 };
 
@@ -51,7 +51,7 @@ struct Scene {
     float4 road;   // riverX, roadOffset, roadPhase, crossPhase
     float4 sun;    // toward sun xy, shadow per metre, elevation
     float4 light;  // rgb, strength
-    float4 morph;  // boundary, length, sweep (-1 flying), sweep wave
+    float4 morph;  // boundary, unused, sweep (-1 flying), sweep wave
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
     float4 clock;  // local hour, sunset hour, boat phase, how far the current has carried a river's surface
     float4 traffic; // car cycles north and south, boat cycles up and down stream (see carSlot)
@@ -59,7 +59,7 @@ struct Scene {
     Train train;
     Leg legA;
     Leg legB;
-    float4 water;  // unused here, to keep the struct as long as the Swift one
+    float4 water;  // boats' downstream phase, the reference in boat slots for still water, unused, unused
 };
 
 struct GroundParams {
@@ -84,7 +84,7 @@ struct CompositeParams {
     float4 flock;      // leader px xy, heading, visible
     float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
     float4 flockLook;  // rgb, seconds aloft
-    float4 bank;       // unused here, to keep the struct as long as the Swift one
+    float4 bank;       // offset of the view from the band's texture (xy), metres per band pixel, whether one shows
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4, layoutTaiga = 5 };
@@ -193,23 +193,13 @@ inline float fbm(float2 p, int octaves, uint seed) {
     return sum / norm;
 }
 
-// How far the land at `world` (metres, relative to the scene's reference) has turned into the next place while a
-// Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
-// creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
-// new one exactly where the ground would have.
-// How far the land at world y has turned from leg A into leg B, 0 to 1: smoothly over the morph while flying, and
-// behind the sweep's front during a Fly To.
+// How far the land at world y has turned from leg A into leg B, 0 to 1: at once at the line where they meet while flying,
+// under a bank of cloud, and behind the sweep's front during a Fly To.
 inline float landTurn(float y, constant Scene &scene) {
     float boundary = scene.morph.x;
     if (y < boundary) return 0.0;
-    if (scene.morph.z < 0.0) return smoothstep(boundary, boundary + scene.morph.y, y);
+    if (scene.morph.z < 0.0) return 1.0;
     return saturate((scene.morph.z * (scene.morph.w + 400.0) - (y - boundary)) / 400.0);
-}
-
-// How much of the railway at world y is the new place's while flying, 0 to 1. Two places' lines have nothing to do with
-// each other and each runs on for ever, so each has to end somewhere: once, as the land turns halfway, not at every patch.
-inline float railTurn(float y, constant Scene &scene) {
-    return smoothstep(0.42, 0.58, landTurn(y, scene));
 }
 
 // How far the land must have turned before the new place reaches `world`, 0 to 1: the line its patches spread along.
@@ -218,6 +208,10 @@ inline float patchThreshold(float2 world, constant Scene &scene) {
     return 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
 }
 
+// How far the land at `world` (metres, relative to the scene's reference) has turned into the next place while a
+// Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
+// creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
+// new one exactly where the ground would have.
 inline float sweepBlend(float2 world, constant Scene &scene) {
     if (scene.morph.z < 0.0) return 0.0;
     float m = landTurn(world.y, scene);
@@ -300,8 +294,9 @@ constant float3 bendWaves = float3(95.0, 61.0, 151.0);
 // Where the road crosses from one side of the valley to the other, -1 to 1, and how fast it does, per metre.
 inline float2 roadSwap(float y, constant Scene &scene) {
     float a = y / roadWave + scene.road.z;
-    float t = tanh(3.0 * sin(a));
-    return float2(t, (1.0 - t * t) * 3.0 * cos(a) / roadWave);
+    // Quickly, so it crosses the river nearly square and a bridge is about as long as the river is wide.
+    float t = tanh(8.0 * sin(a));
+    return float2(t, (1.0 - t * t) * 8.0 * cos(a) / roadWave);
 }
 
 // The bends the river makes within the valley, and their slope. The road doesn't follow them, so they straighten
@@ -328,12 +323,13 @@ inline float riverSlope(float y, constant Scene &scene, float2 wander) {
 }
 
 // The road keeps to one side of the river and swaps sides now and then, which is where bridges go.
+// Where there is no river to swap sides of, it runs straight.
 inline float roadX(float y, constant Scene &scene, float2 wander) {
-    return valleyX(y, scene, wander.x) + scene.road.y * roadSwap(y, scene).x;
+    return valleyX(y, scene, wander.x) + scene.road.y * saturate(wander.x / 4.0) * roadSwap(y, scene).x;
 }
 
 inline float roadSlope(float y, constant Scene &scene, float2 wander) {
-    return valleySlope(y, scene, wander.x) + scene.road.y * roadSwap(y, scene).y;
+    return valleySlope(y, scene, wander.x) + scene.road.y * saturate(wander.x / 4.0) * roadSwap(y, scene).y;
 }
 
 // The place's course where the land has turned `m` of the way from leg A to leg B.
@@ -346,11 +342,6 @@ inline float2 course(constant Scene &scene, float m) {
 inline float riverWidth(constant Scene &scene, float m) {
     float a = scene.legA.biome.d.z, b = scene.legB.biome.d.z;
     return (a < 0.5) != (b < 0.5) ? max(a, b) : mix(a, b, m);
-}
-
-// The course at row `y` while flying. A Fly To repaints everything as the sweep passes, so it keeps the pixel's.
-inline float2 ownCourse(float y, constant Scene &scene, float2 wander) {
-    return scene.morph.z < 0.0 ? course(scene, landTurn(y, scene)) : wander;
 }
 
 // MARK: - Traffic

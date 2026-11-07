@@ -159,6 +159,8 @@ private let serengetiBase: Biome = {
                   water: rgb(0x6e6c4c), shallows: rgb(0x9b9268), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
                   canopy: rgb(0x55803a), canopyLight: rgb(0x77a04a))
     b.patchiness = 0.85; b.strokes = 0.45; b.sway = 0.6; b.trees = 0.035; b.treeSize = 17; b.hedgeTrees = 0
+    // Umbrella thorns: as wide as they are tall, and flat on top.
+    b.treeHeight = 1.1
     b.clumping = 0.1
     b.riverWidth = 26; b.riverWander = 70; b.roadWidth = 6; b.paved = 0; b.houses = 0; b.ponds = 0.35
     b.animal = .zebra; b.herds = 0.6; b.animalColor = rgb(0xf2efe8); b.cars = 0.04
@@ -212,7 +214,8 @@ private let pampaBase: Biome = {
     b.roadWidth = 7; b.paved = 0; b.ponds = 0.35; b.pondSize = 3.2
     // Paddocks of 30 to 60 hectares, a windmill and round tank in many with cattle trails fanning out, estancias in
     // eucalyptus, black Angus, lagunas rimmed with salt, and only a thin winding creek for a river.
-    b.fieldSize = 340
+    // Paddocks of 30 to 60 ha, as the estancias run them.
+    b.fieldSize = 480
     b.animal = .cattle; b.herds = 0.45; b.animalColor = rgb(0x1e1b1a); b.cars = 0.12
     b.landmarks = (.waterPoint, 0.55, .grove, 0.3)
     b.villages = 0.05; b.houses = 0.03; b.streetLights = 0

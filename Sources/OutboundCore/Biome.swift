@@ -107,6 +107,8 @@ public struct Biome: Sendable {
     public var flatRoofs = false
     /// How often the road runs through a village rather than open country, 0 to 1.
     public var villages: Float = 0.3
+    /// How tall the scattered trees stand for the width of their crowns, with flatter tops; 0 for the usual broadleaf.
+    public var treeHeight: Float = 0
     /// Avenues of trees along the road, 0 to 1.
     public var roadTrees: Float = 0
     /// Homesteads stand in dark windbreaks of evergreens, as in rural Japan, rather than among the place's own trees.

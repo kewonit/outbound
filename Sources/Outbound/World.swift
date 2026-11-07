@@ -401,6 +401,8 @@ final class World {
         legCache[leg.index] = biome
         var rail = SIMD4<Float>.zero, shape = SIMD4<Float>.zero
         var keeping = biome
+        // Where the river runs, which a place without one still lines its road and its section grid up on.
+        keeping.l.y = Float(riverX)
         if let line = railLine(for: leg) {
             rail = SIMD4(Float(line.origin.x), Float(line.origin.y), Float(line.angle), 1)
             shape = SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase),
