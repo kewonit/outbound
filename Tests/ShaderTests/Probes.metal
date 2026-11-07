@@ -537,7 +537,7 @@ kernel void probeHouseGlow(device float4 *out [[buffer(0)]], constant Scene &sce
 
 // MARK: - Sky
 
-// The gull: mirror images when flying level, one wing shorter when it banks.
+// The gull: near mirror images when flying level, one wing shorter when it banks.
 kernel void probeBird(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                       uint id [[thread_position_in_grid]]) {
     float2 p = probePoint(id, 0.04, float2(0.0));
@@ -675,13 +675,13 @@ kernel void promiseHouseLight(device float4 *out [[buffer(0)]], constant Scene &
                      far * (open + wide));
 }
 
-// The gull is its own mirror image in level flight, its middle is inside it, and a wingspan away is outside.
+// The gull's two sides match in level flight but for its feathers, its middle is inside it, and a wingspan away is outside.
 kernel void promiseBird(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                         uint id [[thread_position_in_grid]]) {
     float2 p = probePoint(id, 0.04, float2(0.0));
     float spread = probeRandom(id, 10u), bank = probeRandom(id, 18u) * 2.0 - 1.0;
     float2 corner = float2(id & 1u ? 1.4 : -1.4, id & 2u ? 1.4 : -1.4);
-    out[id] = float4(beyond(birdShape(p, spread, 0.0) - birdShape(float2(-p.x, p.y), spread, 0.0), 1e-5),
+    out[id] = float4(beyond(birdShape(p, spread, 0.0) - birdShape(float2(-p.x, p.y), spread, 0.0), 0.015),
                      max(birdShape(float2(0.0, 0.02), spread, bank), 0.0), max(-birdShape(corner, spread, bank), 0.0),
                      0.0);
 }
