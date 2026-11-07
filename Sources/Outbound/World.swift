@@ -22,7 +22,8 @@ final class World {
     /// The wind up where the clouds are, which carries them faster than the gusts it sends over the crops and the water.
     static let cloudWind = wind * 2.6
     static let gustWind = wind * 1.3
-    static let carSpeed = 5.5
+    /// About 33 km/h: unhurried country driving, still over a minute across the screen at Slow, and slower than trains.
+    static let carSpeed = 9.2
 
     enum Light: String, CaseIterable {
         /// The sun as it stands at the place at your clock's time of day.
@@ -364,7 +365,10 @@ final class World {
                                  phase(Self.bendWaves.z, 3.3), Float((reference / Self.crossroadSpacing).rounded(.down)))
         // Traffic slots, counted from the world's origin so they survive the reference stepping on (see slotAt).
         let cars = Self.slots(speed: Self.carSpeed, spacing: Self.carSlot, time: t, reference: reference)
-        let boats = Self.slots(speed: Self.boatSpeed, spacing: Self.boatSlot, time: t, reference: reference)
+        // The river flows south, so boats heading north go against the current.
+        let boats = Self.slots(speed: Self.boatSpeed - Self.current, spacing: Self.boatSlot, time: t, reference: reference)
+        let downstream = Self.slots(speed: Self.boatSpeed + Self.current, spacing: Self.boatSlot, time: t,
+                                    reference: reference)
         let crossPhase = Float(reference.truncatingRemainder(dividingBy: Self.crossroadSpacing))
         let toSun = SIMD2<Float>(Float(sun.direction.x), Float(sun.direction.y))
         let light = sun.light
@@ -379,11 +383,13 @@ final class World {
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
                          Float((reference + t * Self.current).positiveRemainder(256 * 64))),
-            traffic: SIMD4(cars.north, cars.south, boats.north, boats.south),
+            traffic: SIMD4(cars.north, cars.south, boats.north, downstream.south),
             bends: bends,
             train: train(reference: reference, at: t, turningInto: legA.index != legB.index ? legB.index : nil),
             legA: gpu(legA, reference: reference),
-            legB: gpu(legB, reference: reference))
+            legB: gpu(legB, reference: reference),
+            water: SIMD4(downstream.phase,
+                         Float((reference / Self.boatSlot).rounded(.down).positiveRemainder(Double(1 << 20))), 0, 0))
         return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
     }
 
@@ -406,10 +412,11 @@ final class World {
                       rail: rail, railShape: shape)
     }
 
-    static let boatSpeed = 1.25
+    /// Through the water. Over the ground boats going upstream make that less the current, those going down that more.
+    static let boatSpeed = 1.9
     /// How fast a river's surface slides downstream, in metres a second. Its threads repeat every 256 lattice cells of
     /// 64 m, so this is kept as how far along those it has come, counted from the world's origin (see viewGround).
-    static let current = 0.7
+    static let current = 0.35
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0

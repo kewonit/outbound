@@ -122,22 +122,37 @@ inline float carPresence(float h, float m, float busyA, float busyB) {
     return soft > 1e-5 ? saturate((busy - h) / soft + 0.5) : (h > busy ? 0.0 : 1.0);
 }
 
+inline float carDrift(int id, float t) {
+    float reach = 12.0 + 18.0 * hash11(id, 146u);
+    float period = 3600.0 / (12.0 + floor(hash11(id, 147u) * 18.0));
+    return reach * sin(6.283185 * t / period + 6.283185 * hash11(id, 148u));
+}
+
 // Cars ride slots along the road, northbound on one side and southbound on the other, each pointing along the road
 // and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
 // is, so a car is never cut in two where one place turns into the next.
-inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light) {
+inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light, float sunlit = 1.0) {
     float night = scene.time.w;
     constant Biome &a = scene.legA.biome;
     constant Biome &b = scene.legB.biome;
     float3 result = c;
     for (int lane = 0; lane < 2; lane++) {
         float dir = lane == 0 ? 1.0 : -1.0;
-        Slot slot = slotAt(world.y, carSlot, dir, scene.time.z, lane == 0 ? scene.traffic.x : scene.traffic.y);
-        // A car and its shadow reach a few metres from its slot's middle, its headlights some way ahead after dark;
+        Slot base = slotAt(world.y, carSlot, dir, scene.time.z, lane == 0 ? scene.traffic.x : scene.traffic.y);
+        // Each car gains on its slot and falls back again, never more than a quarter of the way to the next, so
+        // gaps open and close and oncoming cars don't all pass at once, but no car ever reaches another. By day a
+        // car never leaves its slot's half; after dark the headlights of the car behind can reach into it.
+        for (int behind = 0; behind < (night > 0.01 ? 2 : 1); behind++) {
+        Slot slot = base;
+        slot.y -= dir * carSlot * float(behind);
+        slot.id -= int(dir) * behind;
+        int id = slot.id * 2 + lane;
+        float sway = carDrift(id, scene.time.x);
+        slot.y += sway * dir;
+        // A car and its shadow reach a few metres from its middle, its headlights some way ahead after dark;
         // most of the road is empty.
         float ahead = (world.y - slot.y) * dir;
         if (ahead < -12.0 || ahead > (night > 0.01 ? 60.0 : 12.0)) continue;
-        int id = slot.id * 2 + lane;
         float m = landTurn(slot.y, scene);
         float present = carPresence(hash11(id, 140u), m, a.g.y, b.g.y);
         // Northbound traffic keeps to its side of the road: the west side where traffic keeps left. Between a place
@@ -163,8 +178,8 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         if (dot(q, q) < 140.0) {
             float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
             // Its shadow stays attached however low the sun.
-            float2 shadowOff = -sun * min(scene.sun.z, 1.6) * (lorry ? 3.2 : van ? 2.0 : 1.5);
-            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, 0.3 + mpp) * 0.62, scene);
+            float2 shadowOff = -sun * scene.sun.z * (lorry ? 3.2 : van ? 2.0 : 1.5);
+            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, 0.3 + mpp) * 0.62 * sunlit, scene);
             // The colours cars really are: mostly white, grey, silver and black, the rest dark and quiet.
             float3 paint = k < 0.3 ? float3(0.82, 0.82, 0.8) : k < 0.48 ? float3(0.56, 0.57, 0.58)
                          : k < 0.66 ? float3(0.12, 0.12, 0.13) : k < 0.78 ? float3(0.15, 0.21, 0.32)
@@ -222,6 +237,7 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         }
         result = mix(carless, result, present);
         light = mix(unlit, light, present);
+        }
     }
     return result;
 }
@@ -237,19 +253,20 @@ inline float trainShape(float2 p, constant Train &tr, thread float2 &lp, thread 
     float cars = tr.run.w + tr.info.x;
     k = clamp(floor(u / length), 0.0, cars - 1.0);
     lp = float2(d, u - (k + 0.5) * length);
-    // Drawn a little wider than life, like the animals, so it reads from this height.
-    float round = k == 0.0 ? 1.2 : 0.3;
+    // A real width, 3.1 m. Units with no locomotive have a cab at each end.
+    bool cab = k == 0.0 || (tr.info.x < 0.5 && k == cars - 1.0);
+    float round = cab ? 1.0 : 0.3;
     float gap = 0.6;
-    return sdBox(lp, float2(2.1, length * 0.5 - gap) - round) - round;
+    return sdBox(lp, float2(1.55, length * 0.5 - gap) - round) - round;
 }
 
 inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &scene, float mpp,
-                    thread float3 &light) {
+                    thread float3 &light, float sunlit = 1.0) {
     float2 lp, lps;
     float k, ks;
     // Its shadow: is the point towards the sun inside the train? A train stands about 4 m tall.
     float ds = trainShape(world + scene.sun.xy * scene.sun.z * 4.2, tr, lps, ks);
-    c = shade(c, fill(ds, 0.5) * 0.8, scene);
+    c = shade(c, fill(ds, 0.5) * 0.8 * sunlit, scene);
     float db = trainShape(world, tr, lp, k);
     bool loco = k < tr.info.x;
     bool freight = tr.info.y > 0.5;
@@ -264,8 +281,8 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
         } else {
             // The livery carries the roof, with a pale roof strip down the middle and the stripe along each side.
             float3 body = loco ? tr.locomotive.rgb : tr.body.rgb;
-            roof = mix(body, tr.roof.rgb, fill(abs(lp.x) - 0.7, 0.1) * 0.7);
-            roof = mix(roof, tr.stripe.rgb, step(1.65, abs(lp.x)));
+            roof = mix(body, tr.roof.rgb, fill(abs(lp.x) - 0.52, 0.1) * 0.7);
+            roof = mix(roof, tr.stripe.rgb, step(1.22, abs(lp.x)));
             roof *= 0.94 + 0.12 * hash11(int(k), 520u);
             if (!loco && int(k) % 2 == 0) {
                 roof = mix(roof, float3(0.22, 0.23, 0.25), fill(abs(sdBox(lp + float2(0.0, tr.run.z * 0.3), float2(0.6, 0.8))) - 0.05, 0.06));
@@ -275,14 +292,14 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
     }
     if (scene.time.w > 0.0 && !freight) {
         // Warm windows spill onto the ballast either side; the leading car throws a beam down the line.
-        float out = abs(lp.x) - 2.2;
+        float out = abs(lp.x) - 1.65;
         float bay = step(0.5, fract(lp.y / 1.9 + 0.25));
         light += (c * 0.85 + 0.18) * float3(1.0, 0.83, 0.65) * 0.6 * fill(out - 1.4, 0.8) * smoothstep(-0.2, 0.3, out)
                * exp(-max(out, 0.0) / 0.9) * bay * step(abs(lp.y), tr.run.z * 0.5 - 1.0) * step(tr.info.x, k);
     }
     if (scene.time.w > 0.0) {
         float ahead = -(lp.y + tr.run.z * 0.5) * step(k, 0.0);
-        light += float3(1.0, 0.92, 0.8) * 0.45 * fill(abs(lp.x) - 1.2 - ahead * 0.05, 0.6)
+        light += float3(1.0, 0.92, 0.8) * 0.45 * fill(abs(lp.x) - 0.9 - ahead * 0.05, 0.6)
                * smoothstep(0.0, 1.0, ahead) * exp(-ahead / 25.0);
     }
     return c;
@@ -297,11 +314,16 @@ inline float3 boatPaint(float h) {
 // degrees either side of its track, crest lines across them, and churned water straight behind. The wake is laid
 // out along the river rather than straight back, so it follows the boat round a bend.
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
-                    thread float3 &light) {
+                    thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
     for (int lane = 0; lane < 2; lane++) {
         float dir = lane == 0 ? 1.0 : -1.0;
-        Slot slot = slotAt(world.y, boatSlot, dir, scene.clock.z, lane == 0 ? scene.traffic.z : scene.traffic.w);
+        // Hippos keep to their pools; boats go up and down at their own speeds.
+        bool still = (landTurn(world.y, scene) < 0.5 ? scene.legA : scene.legB).biome.h.w > 1.5;
+        Slot slot = still ? slotAt(world.y, boatSlot, 1.0, 0.0, -scene.water.y)
+                          : slotAt(world.y, boatSlot, dir, lane == 0 ? scene.clock.z : scene.water.x,
+                                   lane == 0 ? scene.traffic.z : scene.traffic.w);
+        if (still) slot.y += 3.0 * sin(t / 37.0 + float(slot.id + lane) * 1.7);
         // Along the river is never shorter than along y, so a point this far from the bow is clear of boat and wake.
         float ahead = (slot.y - world.y) * dir;
         if (ahead < -10.0 || ahead > 80.0) continue;
@@ -321,15 +343,17 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float2 wander = course(scene, m);
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
         bool hippos = b.h.w > 1.5;
-        float speed = hippos ? 0.0 : 2.0 + 3.0 * hash11(id, 603u);
-        float slope = riverSlope(world.y, scene, wander);
+        // How fast it goes through the water, which sets its wake, whichever way the current takes it.
+        float speed = hippos ? 0.0 : 1.9;
+        float slope = riverSlope(slot.y, scene, wander);
         float stretch = sqrt(1.0 + slope * slope);
-        // u runs back from the bow along the river, v across it from the boat's line.
-        float u = (slot.y - world.y) * dir * stretch;
-        float v = (world.x - riverX(world.y, scene, wander)) / stretch - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
-        if (u < -10.0 || u > 80.0) continue;
         float2 along = float2(slope, 1.0) / stretch;
         float2 across = float2(along.y, -along.x);
+        // u runs back from the bow along the boat, v square across it from the boat's line.
+        float2 rel = world - float2(riverX(slot.y, scene, wander), slot.y);
+        float u = -dot(rel, along) * dir;
+        float v = dot(rel, across) - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
+        if (u < -10.0 || u > 80.0) continue;
         float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
         if (hippos) {
             // A pod of backs in the water, each with slow ripple rings.
@@ -347,7 +371,8 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         }
         float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
         if (water > 0.3 && u > 0.0) {
-            float fade = exp(-u / 28.0);
+            // A slow boat's wake is short and dies away soon; the faster it goes the further it runs.
+            float fade = exp(-u / (6.0 + 5.0 * speed * speed));
             float edge = abs(v) - 0.354 * u;
             float arm = fill(abs(edge) - 0.22 - 0.012 * u, 0.35 + 0.02 * u);
             float feather = smoothstep(0.55, 1.0, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / (0.5 + 0.06 * u)));
@@ -363,7 +388,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
         float2 hs = hp + sun * scene.sun.z * 0.5;
         float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
-        result = shade(result, fill(hullShadow, 0.3) * 0.6, scene);
+        result = shade(result, fill(hullShadow, 0.3) * 0.6 * sunlit, scene);
         float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
         float3 paint = boatPaint(hash11(id, 605u));
         result = mix(result, paint, fill(hull, mpp * 0.6));

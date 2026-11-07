@@ -2044,7 +2044,7 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     c = mix(c, mix(c, surface * (0.72 + 0.25 * blotch), mix(0.6, 0.34, paved)), verge * (1.0 - 0.7 * snowCover));
     c = mix(c, r, a2);
     c = mix(c, railColor, rail);
-    onRoad = max(onRoad, fill(abs(d) - halfWidth, 0.5) * (1.0 - onRiver));
+    onRoad = max(onRoad, fill(min(abs(d) - halfWidth, dc), 0.5) * (1.0 - onRiver));
     // Where cars are drawn: the carriageway, bridges included, and the verges their shadows fall on.
     traffic = fill(abs(d) - halfWidth - mix(2.5, 0.3, onRiver), 0.3);
     water *= 1.0 - a2;

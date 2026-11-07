@@ -59,6 +59,7 @@ struct Scene {
     Train train;
     Leg legA;
     Leg legB;
+    float4 water;  // unused here, to keep the struct as long as the Swift one
 };
 
 struct GroundParams {

@@ -53,6 +53,7 @@ struct Scene {
     Train train;
     Leg legA;
     Leg legB;
+    float4 water;  // boats' downstream phase, the reference in boat slots for still water, unused, unused
 };
 
 struct GroundParams {

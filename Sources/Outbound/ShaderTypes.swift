@@ -117,6 +117,9 @@ struct SceneGPU {
     var train: TrainGPU
     var legA: LegGPU
     var legB: LegGPU
+    /// phase of boats going downstream, which move faster than those going up; the reference counted in boat slots,
+    /// for what keeps still on the water; unused, unused
+    var water: SIMD4<Float> = .zero
 }
 
 /// One rectangle of the ground cache being painted.

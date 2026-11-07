@@ -40,6 +40,24 @@ struct PhysicsTests {
         #expect(abs(atan2(clouds.y, clouds.x) - atan2(gusts.y, gusts.x)) < 1e-9)
     }
 
+    /// Cars gain on their slots and fall back, but never so far that one could reach the next, and an hour on, when
+    /// the clock they run on wraps, each is just where it was.
+    @Test func carsNeverReachEachOther() throws {
+        let scene = try #require(try Bench.shared.scenes().first)
+        let drift = try Bench.shared.probe("auditCarDrift", scene: scene.gpu)
+        let longest: Float = 9.2
+        #expect(drift.allSatisfy { abs($0.x) <= 30.01 })
+        #expect(Float(World.carSlot) - 2 * 30 - longest > 50)
+        #expect(drift.allSatisfy { abs($0.y) < 0.05 })
+        #expect(Set(drift.map { ($0.x * 10).rounded() }).count > 100)
+    }
+
+    /// Boats make headway against the current, and go down faster than up.
+    @Test func boatsMoveThroughTheWater() {
+        #expect(World.boatSpeed - World.current > 1)
+        #expect(World.current > 0.2 && World.current < World.boatSpeed / 3)
+    }
+
     /// However fast the flight, a flock is never there one frame and gone the next while it can be seen: it flies off,
     /// or climbs out of sight.
     @Test(arguments: Preferences.Pace.allCases)

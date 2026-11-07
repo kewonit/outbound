@@ -765,6 +765,15 @@ kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &
 inline float auditCross(float2 at, constant Scene &scene) { return crossGap(at, scene); }
 inline float auditRail(float2 at, constant Scene &scene) { return railGap(at - float2(0.0, scene.legB.info.x), scene.legB.biome); }
 
+// How far ahead of its slot each car is: 64 cars in each thread's row, at a moment set by the column. Parts: the drift
+// now, and an hour on, when the clock it runs on wraps.
+kernel void auditCarDrift(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                          uint id [[thread_position_in_grid]]) {
+    int car = int(id / probeSide);
+    float t = float(id % probeSide) * 56.0;
+    out[id] = float4(carDrift(car, t), carDrift(car, t + 3600.0) - carDrift(car, t), 0.0, 0.0);
+}
+
 // A house in each thread, as auditHomes walks them, for how many a place builds. Part: whether it stands.
 kernel void countHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {

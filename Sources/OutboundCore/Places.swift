@@ -102,7 +102,7 @@ private let punjab = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0x33549e), stripe: rgb(0xe6d9b3), roof: rgb(0x5c6370), locomotive: rgb(0xa82924),
-                     cars: 18, carLength: 23, locomotives: 1, speed: 13.5, electrified: true, chance: 0.7))
+                     cars: 18, carLength: 23, locomotives: 1, speed: 14, electrified: true, chance: 0.7))
 
 // MARK: - Niigata: flooded rice paddies and sakura
 
@@ -240,7 +240,7 @@ private let pampa = Place(
     ],
     signature: 0,
     railway: Railway(kind: .freight, body: rgb(0xa6a29a), stripe: rgb(0x9c4a38), roof: rgb(0x9a968e), locomotive: rgb(0xb84d33),
-                     cars: 40, carLength: 16, locomotives: 2, speed: 7.5, electrified: false, chance: 0.35))
+                     cars: 40, carLength: 16, locomotives: 2, speed: 11, electrified: false, chance: 0.35))
 
 // MARK: - Lapland: boreal forest, lichen heath, aapa mires and lakes
 
@@ -283,7 +283,7 @@ private let lapland = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xeceeee), stripe: rgb(0x008c4d), roof: rgb(0x9a9ca0), locomotive: rgb(0x008c4d),
-                     cars: 5, carLength: 26, locomotives: 1, speed: 12.5, electrified: true, chance: 0.4))
+                     cars: 5, carLength: 26, locomotives: 1, speed: 13, electrified: true, chance: 0.4))
 
 // MARK: - Normandy: bocage hedgerows and orchards
 
@@ -329,7 +329,7 @@ private let normandy = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xebebed), stripe: rgb(0x295cad), roof: rgb(0x9a9ca2), locomotive: rgb(0xebebed),
-                     cars: 4, carLength: 22, locomotives: 0, speed: 15, electrified: true, chance: 0.6))
+                     cars: 4, carLength: 22, locomotives: 0, speed: 14, electrified: true, chance: 0.6))
 
 // MARK: - Lisse: bulb fields in stripes
 
@@ -365,7 +365,7 @@ private let lisse = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xfac91a), stripe: rgb(0x1a338c), roof: rgb(0x8c8e94), locomotive: rgb(0xfac91a),
-                     cars: 6, carLength: 26, locomotives: 0, speed: 17, electrified: true, chance: 0.9))
+                     cars: 6, carLength: 26, locomotives: 0, speed: 15, electrified: true, chance: 0.9))
 
 // MARK: - Kansas: centre pivots on the section grid
 
@@ -406,4 +406,4 @@ private let kansas = Place(
     ],
     signature: 0,
     railway: Railway(kind: .freight, body: rgb(0xb8b8b3), stripe: rgb(0x8c6b54), roof: rgb(0xa8a8a2), locomotive: rgb(0xf27319),
-                     cars: 100, carLength: 16, locomotives: 3, speed: 10, electrified: false, chance: 0.55))
+                     cars: 100, carLength: 16, locomotives: 3, speed: 11, electrified: false, chance: 0.55))

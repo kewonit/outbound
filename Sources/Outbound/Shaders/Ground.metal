@@ -2039,7 +2039,7 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     c = mix(c, mix(c, surface * (0.72 + 0.25 * blotch), mix(0.6, 0.34, paved)), verge * (1.0 - 0.7 * snowCover));
     c = mix(c, r, a2);
     c = mix(c, railColor, rail);
-    onRoad = max(onRoad, fill(abs(d) - halfWidth, 0.5) * (1.0 - onRiver));
+    onRoad = max(onRoad, fill(min(abs(d) - halfWidth, dc), 0.5) * (1.0 - onRiver));
     // Where cars are drawn: the carriageway, bridges included, and the verges their shadows fall on.
     traffic = fill(abs(d) - halfWidth - mix(2.5, 0.3, onRiver), 0.3);
     water *= 1.0 - a2;
@@ -2099,6 +2099,25 @@ inline float3 railOverRoad(float3 c, float2 world, constant Leg &leg, float onRo
     if (ad > 3.0) return c;
     c = mix(c, c * 0.8, fill(ad - 1.0, 0.2) * onRoad * 0.6);
     return mix(c, float3(0.78, 0.78, 0.80), fill(abs(ad - 0.72) - 0.06, max(0.08, texel * 0.6)) * onRoad);
+}
+
+// The railway crosses roads on a bridge of its own: a deck with a low parapet each side, standing a few metres up and
+// throwing its shadow across the road. Traffic passes underneath, so where the deck is no car is drawn.
+inline float3 railBridge(float3 c, float2 world, constant Leg &leg, constant Scene &scene, float onRoad, float texel,
+                         thread float &traffic) {
+    if (leg.rail.w < 0.5 || onRoad < 0.01) return c;
+    float2 local = float2(world.x, world.y - leg.info.x);
+    float along;
+    float2 lift = scene.sun.xy * scene.sun.z * 5.5;
+    float under = abs(railSigned(local + lift, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along));
+    c = shade(c, fill(under - 4.2, 0.4) * onRoad * 0.75, scene);
+    float ad = abs(railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along));
+    if (ad > 5.0) return c;
+    float deck = fill(ad - 4.2, max(0.15, texel * 0.6)) * onRoad;
+    c = mix(c, float3(0.6, 0.59, 0.57), deck);
+    c = mix(c, float3(0.74, 0.73, 0.7), fill(abs(ad - 3.95) - 0.25, max(0.08, texel * 0.6)) * onRoad);
+    traffic *= 1.0 - deck;
+    return railOverRoad(c, world, leg, onRoad, texel);
 }
 
 fragment GroundOut ground(VertexOut in [[stage_in]],
@@ -2177,7 +2196,7 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
     c = railway(c, world, railLeg, scene, texel, crossingHalf, wander, herd, water);
     float traffic = 0.0;
     c = road(c, world, scene, scene.legA.biome, scene.legB.biome, m, crossingHalf, wander, onRoad, traffic, water, herd);
-    c = railOverRoad(c, world, railLeg, onRoad, texel);
+    c = railBridge(c, world, railLeg, scene, onRoad, texel, traffic);
 
     GroundOut out;
     out.color = float4(saturate(c), packGround(water, l.sway, traffic > 0.5 && l.cover < 0.5, herd > 0.5));
