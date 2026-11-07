@@ -618,35 +618,31 @@ inline float birdShape(float2 p, float spread, float bank) {
     return smin(smin(smin(smin(body, head, 0.07), tail, 0.04), bill, 0.02), wing, 0.07);
 }
 
-// The gull's colours from above, painted rather than filled: a warm white head and tail, a soft grey back and wings, the
-// long flight feathers a shade under the coverts that lie over them, a pale edge along the back of the arm, and dark
-// tips with a small white mirror each. `sun` is towards the sun in the bird's own frame, so it is lit like the ground.
+// The gull's colours from above, painted rather than filled: white all over, the white of the wings only just shaded
+// where the flight feathers lie under the coverts and along the shoulder, and dark tips with a small white mirror each.
+// `sun` is towards the sun in the bird's own frame, so it is lit like the ground.
 inline float3 gullColour(float2 p, float spread, float bank, float2 sun) {
     float x = abs(p.x) / wingReach(p.x, spread, bank);
     float2 edge = wingEdges(x, 1.0 - spread);
-    float rear = p.y - edge.y;
-    float depth = saturate(rear / max(edge.x - edge.y, 0.02));
+    float depth = saturate((p.y - edge.y) / max(edge.x - edge.y, 0.02));
     // A slow unevenness in the wash, different on each side.
     float wash = sin(p.x * 11.0 + p.y * 17.0 + 1.0) * sin(p.x * 23.0 - p.y * 9.0);
-    float saddle = smoothstep(0.2, 0.09, p.y) * smoothstep(-0.24, -0.12, p.y);
-    float grey = max(smoothstep(0.06, 0.14, x), saddle);
-    grey *= 1.0 - 0.7 * (1.0 - smoothstep(0.012, 0.05, rear + wash * 0.006)) * (1.0 - smoothstep(0.5, 0.7, x));
+    float wing = smoothstep(0.08, 0.2, x);
     // Each flight feather a little different from the next, and the coverts a shade paler over them.
     float feather = sin(x * 25.0 + depth * 1.6) * sin(x * 9.0 + 2.1);
     float coverts = smoothstep(0.34, 0.6, depth + wash * 0.06 + sin(x * 31.0) * 0.07);
-    float3 slate = mix(float3(0.55, 0.57, 0.62), float3(0.63, 0.65, 0.69), coverts);
-    float3 c = mix(float3(0.96, 0.94, 0.9), slate * (1.0 + 0.08 * feather * (1.0 - coverts)), grey);
-    c *= 1.0 + 0.045 * wash;
-    float dark = smoothstep(0.7, 0.8, x + (depth - 0.5) * 0.09 + wash * 0.012);
-    float mirror = 1.0 - smoothstep(0.012, 0.034, length(float2(x - 0.9, p.y - mix(edge.x, edge.y, 0.5))));
-    c = mix(c, float3(0.13, 0.125, 0.14), dark * (1.0 - 0.85 * mirror));
+    float3 c = mix(float3(0.98, 0.97, 0.95), float3(0.89, 0.9, 0.92) * (1.0 + 0.025 * feather), wing * (1.0 - coverts));
+    c *= 1.0 + 0.012 * wash;
+    float dark = smoothstep(0.76, 0.86, x + (depth - 0.5) * 0.09 + wash * 0.012);
+    float mirror = 1.0 - smoothstep(0.012, 0.034, length(float2(x - 0.92, p.y - mix(edge.x, edge.y, 0.5))));
+    c = mix(c, float3(0.16, 0.155, 0.17), dark * (1.0 - 0.85 * mirror));
     c = mix(c, float3(0.88, 0.68, 0.24), smoothstep(0.325, 0.35, p.y));
     // Rounded down the body and tilted along the wings, so the side towards the sun is the lit one, as on the ground;
     // the shaded side goes cool. In a turn the raised wing catches a little more of it.
     float tilt = clamp(-p.x * 8.0, -1.0, 1.0) * (bank * 0.5 + 0.18);
     float round = saturate(1.0 - x * 5.0) * dot(float2(p.x * 7.0, 0.0), sun);
-    float light = round * 0.1 + tilt * sun.x * 0.1;
-    return c * (1.0 + light) + float3(-0.012, -0.006, 0.012) * saturate(-light * 8.0);
+    float light = round * 0.06 + tilt * sun.x * 0.06;
+    return min(c * (1.0 + light), float3(1.0)) + float3(-0.012, -0.006, 0.012) * saturate(-light * 12.0);
 }
 
 // MARK: - Flocks
