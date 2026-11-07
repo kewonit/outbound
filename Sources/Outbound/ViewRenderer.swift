@@ -311,8 +311,10 @@ final class ViewRenderer {
     }
     /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
     private var settlesSweep = false
-    /// The cloud texture has a bank of cloud in it.
-    private var cloudsHoldBank = false
+    /// The band of cloud over a join, in a texture of its own, and which join and where it was last painted for.
+    private var band: MTLTexture?
+    private var bandJoin: Double?
+    private var bandCorner: SIMD2<Double>?
     /// Ground a frame must paint that is too much for one piece of GPU work goes in pieces committed ahead of the
     /// frame. The exporter waits for each, and learns nothing from them, so its pictures never vary.
     var waitsForPieces = false
@@ -359,6 +361,11 @@ final class ViewRenderer {
         let pixelHeight = Int((Double(frame.height) * scale).rounded())
         clouds = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
                              height: max(pixelHeight / 4, 1) + Self.cloudMargin * 2, label: "Clouds")
+        // With a clear row at each end, as anything past them reads the nearest.
+        let bandPixel = World.metresPerPoint / scale * 4
+        band = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
+                           height: Int((2 * World.bankReach / bandPixel).rounded(.up)) + 4, label: "Band")
+        bandJoin = nil
         paper = makeTexture(width: max(pixelWidth / 2, 1), height: max(pixelHeight / 2, 1), label: "Paper",
                             format: ShaderLibrary.paperFormat)
         paperDirty = true
@@ -536,7 +543,8 @@ final class ViewRenderer {
         let x0 = Double(frame.minX) * mpp + camera.x
         let y0 = Double(frame.minY) * mpp + camera.y
         let top = Double(frame.maxY) * mpp + camera.y
-        let worldFrame = world.frame(bottom: y0, top: top, at: t)
+        // As far up as the cache paints, or the rows just past a join would be painted as the old place, and stay so.
+        let worldFrame = world.frame(bottom: y0, top: top + Double(Self.ahead + Self.pad + 1) * texel, at: t)
         let scene = worldFrame.scene
         lastScene = scene
         if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
@@ -550,6 +558,7 @@ final class ViewRenderer {
         if revision != world.revision {
             repaintRow = valid == nil ? nil : (valid!.y + cacheHeight)
             cloudCorner = nil
+            bandJoin = nil
             incomingFilled = nil
         }
         var rects: [Rect] = []
@@ -607,7 +616,6 @@ final class ViewRenderer {
         if let incoming, !incomingRects.isEmpty {
             // The new place as it will be once the sweep is over.
             var settled = scene
-            settled.morph.y = 0.001
             settled.morph.z = -1
             strokes += self.strokes(incomingRects, into: 1, texel: texel, reference: worldFrame.reference)
             targets.append([incoming.color, incoming.mask])
@@ -636,12 +644,7 @@ final class ViewRenderer {
         let viewCloud = world.cloudSpace(origin, at: t)
         var offset = cloudCorner.map { Self.wrapped(viewCloud - $0) } ?? .zero
         let marginMetres = Double(Self.cloudMargin) * cloudPixel
-        // A bank of cloud moves with the land, not the sky, so it is painted every frame it shows and once more when it
-        // has gone.
-        let bank = world.bank(from: y0, to: top)
-        let bankPainted = cloudsHoldBank
-        cloudsHoldBank = bank != nil
-        if bank != nil || bankPainted || cloudCorner == nil || full || offset.x < 0 || offset.y < 0
+        if cloudCorner == nil || full || offset.x < 0 || offset.y < 0
             || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
             let corner = viewCloud - SIMD2(marginMetres, marginMetres)
             let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
@@ -651,10 +654,6 @@ final class ViewRenderer {
                 offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
                                Float(toSun.y * World.cloudHeight)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
-            if let bank {
-                cloudParams.deck = SIMD4(Float(World.bankHalf), Float(y0 - marginMetres - bank),
-                                         Float((x0 - marginMetres).positiveRemainder(16384)), 0)
-            }
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds
             cloudPass.colorAttachments[0].loadAction = .dontCare
@@ -671,6 +670,12 @@ final class ViewRenderer {
             #if DEBUG
             events.append("clouds")
             #endif
+        }
+
+        let bandOffset = world.bank(from: y0, to: top).flatMap { join in
+            paintBand(over: join, x0: x0, pixel: cloudPixel,
+                      toSun: SIMD2(Double(scene.sun.x), Double(scene.sun.y)), commandBuffer: commandBuffer)
+                .map { SIMD2(x0, y0) - $0 }
         }
 
         if paperDirty, let paper {
@@ -709,7 +714,8 @@ final class ViewRenderer {
             wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0),
-            flock: .zero, flockShape: .zero, flockLook: .zero)
+            flock: .zero, flockShape: .zero, flockLook: .zero,
+            bank: bandOffset.map { SIMD4(Float($0.x), Float($0.y), Float(cloudPixel), 1) } ?? .zero)
         if let (flock, sighting) = world.flock(at: t) {
             let point = sighting.position - SIMD2(Double(frame.minX), Double(frame.minY))
             let reach = flock.size * Double(flock.count) * 3 + 300
@@ -742,6 +748,7 @@ final class ViewRenderer {
             encoder.setFragmentTexture(gpu.noise, index: 4)
             encoder.setFragmentTexture(incoming?.color ?? color, index: 5)
             encoder.setFragmentTexture(incoming?.mask ?? mask, index: 6)
+            encoder.setFragmentTexture(band ?? clouds, index: 7)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
             encoder.setRenderPipelineState(pipelines.view)
@@ -767,6 +774,36 @@ final class ViewRenderer {
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
+    }
+
+    /// Paints the band of cloud over the join at world y `join`, if what is painted won't do, and hands back the world
+    /// position of its texture's bottom-left corner. It belongs to the land, so it is painted once and only slides, unless
+    /// the flight drifts sideways past its margin. Pixels stay on one grid so a repaint can't shift it.
+    private func paintBand(over join: Double, x0: Double, pixel: Double, toSun: SIMD2<Double>,
+                           commandBuffer: MTLCommandBuffer) -> SIMD2<Double>? {
+        guard let band else { return nil }
+        let margin = Double(Self.cloudMargin) * pixel
+        if bandJoin == join, let bandCorner, x0 >= bandCorner.x, x0 <= bandCorner.x + margin * 2 { return bandCorner }
+        let corner = SIMD2(((x0 - margin) / pixel).rounded(.down) * pixel, join - Double(band.height) / 2 * pixel)
+        // Each band its own: the field is the same everywhere, so where along it this one lies is what makes it different.
+        let across = (corner.x + join * 7.3).positiveRemainder(16384)
+        var params = CloudsGPU(origin: SIMD4(Float(across), Float(corner.y - join), Float(pixel), Float(World.bankHalf)),
+                               offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
+                                              Float(toSun.y * World.cloudHeight)),
+                               view: SIMD4(Float(band.height), 0, 0, 0))
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = band
+        pass.colorAttachments[0].loadAction = .dontCare
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return nil }
+        encoder.label = "Band"
+        encoder.setRenderPipelineState(gpu.shaders.pipelines.bank)
+        encoder.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
+        bandJoin = join
+        bandCorner = corner
+        return corner
     }
 
     private var light: MTLTexture?

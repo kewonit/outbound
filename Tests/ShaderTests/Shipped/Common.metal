@@ -70,7 +70,6 @@ struct CloudParams {
     float4 origin;  // cloud space xy, metres per pixel, cover
     float4 offsets; // light xy, shadow xy
     float4 view;    // height px
-    float4 deck;    // unused here, to keep the struct as long as the Swift one
 };
 
 struct CompositeParams {
@@ -84,6 +83,7 @@ struct CompositeParams {
     float4 flock;      // leader px xy, heading, visible
     float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
     float4 flockLook;  // rgb, seconds aloft
+    float4 bank;       // unused here, to keep the struct as long as the Swift one
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4, layoutTaiga = 5 };

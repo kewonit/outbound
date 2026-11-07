@@ -45,7 +45,7 @@ struct Scene {
     float4 road;   // riverX, roadOffset, roadPhase, crossPhase
     float4 sun;    // toward sun xy, shadow per metre, elevation
     float4 light;  // rgb, strength
-    float4 morph;  // boundary, length, sweep (-1 flying), sweep wave
+    float4 morph;  // boundary, unused, sweep (-1 flying), sweep wave
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
     float4 clock;  // local hour, sunset hour, boat phase, how far the current has carried a river's surface
     float4 traffic; // car cycles north and south, boat cycles up and down stream (see carSlot)
@@ -64,8 +64,6 @@ struct CloudParams {
     float4 origin;  // cloud space xy, metres per pixel, cover
     float4 offsets; // light xy, shadow xy
     float4 view;    // height px
-    float4 deck;    // a bank of cloud: half its length (0 for none), how far above the join the bottom row is and the
-                    // left column's world x, in metres, unused
 };
 
 struct CompositeParams {
@@ -79,6 +77,7 @@ struct CompositeParams {
     float4 flock;      // leader px xy, heading, visible
     float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
     float4 flockLook;  // rgb, seconds aloft
+    float4 bank;       // offset of the view from the band's texture (xy), metres per band pixel, whether one shows
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4, layoutTaiga = 5 };
@@ -187,16 +186,12 @@ inline float fbm(float2 p, int octaves, uint seed) {
     return sum / norm;
 }
 
-// How far the land at `world` (metres, relative to the scene's reference) has turned into the next place while a
-// Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
-// creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
-// new one exactly where the ground would have.
 // How far the land at world y has turned from leg A into leg B, 0 to 1: at once at the line where they meet while flying,
 // under a bank of cloud, and behind the sweep's front during a Fly To.
 inline float landTurn(float y, constant Scene &scene) {
     float boundary = scene.morph.x;
     if (y < boundary) return 0.0;
-    if (scene.morph.z < 0.0) return smoothstep(boundary, boundary + scene.morph.y, y);
+    if (scene.morph.z < 0.0) return 1.0;
     return saturate((scene.morph.z * (scene.morph.w + 400.0) - (y - boundary)) / 400.0);
 }
 
@@ -206,6 +201,10 @@ inline float patchThreshold(float2 world, constant Scene &scene) {
     return 0.08 + 0.84 * fbm(localB / 85.0, 3, 77u);
 }
 
+// How far the land at `world` (metres, relative to the scene's reference) has turned into the next place while a
+// Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
+// creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
+// new one exactly where the ground would have.
 inline float sweepBlend(float2 world, constant Scene &scene) {
     if (scene.morph.z < 0.0) return 0.0;
     float m = landTurn(world.y, scene);

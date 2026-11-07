@@ -26,7 +26,6 @@ struct Land {
     float lightID;
     /// How much is roof or crown, which cars on the road pass under.
     float cover;
-    /// How much of that is a crown.
 };
 
 inline float3 cropColor(constant Biome &b, float h) {
@@ -2098,10 +2097,13 @@ fragment GroundOut ground(VertexOut in [[stage_in]],
 
     // How far the land has turned from leg A into leg B here.
     float m = landTurn(world.y, scene);
-    // The new place spreads in organic patches, like wet paint creeping across the sheet. Inside the
-    // soft edge both places are painted and blended; elsewhere only one is.
-    float threshold = patchThreshold(world, scene);
-    float blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
+    // In flight the two places simply meet. A Fly To's new place spreads in organic patches, like wet paint creeping across
+    // the sheet: inside the soft edge both places are painted and blended; elsewhere only one is.
+    float blend = m;
+    if (scene.morph.z >= 0.0) {
+        float threshold = patchThreshold(world, scene);
+        blend = smoothstep(threshold - 0.05, threshold + 0.05, m);
+    }
 
     float2 wander = course(scene, m);
     float widthA = scene.legA.biome.d.z, widthB = scene.legB.biome.d.z;

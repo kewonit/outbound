@@ -783,6 +783,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
                     constant Scene &scene [[buffer(1)]],
                     texture2d<float> cloudTexture [[texture(2)]],
                     texture2d<float> paperTexture [[texture(3)]],
+                    texture2d<float> bankTexture [[texture(7)]],
                     sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
     float2 pixel = float2(in.position.x, size.y - in.position.y);
@@ -794,8 +795,16 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float2 cloudPx = (params.clouds.xy + pixel * mpp) / params.clouds.z;
     float4 cloud = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudTexSize.y - cloudPx.y) / cloudTexSize);
 
+    // The band between two places, which moves with the land rather than the sky.
+    float4 band = 0.0;
+    if (params.bank.w > 0.0) {
+        float2 bandSize = float2(bankTexture.get_width(), bankTexture.get_height());
+        float2 bandPx = (params.bank.xy + pixel * mpp) / params.bank.z;
+        band = bankTexture.sample(clampSampler, float2(bandPx.x, bandSize.y - bandPx.y) / bandSize);
+    }
+
     // Cloud shadow, then the bird's shadow, then clouds, then the bird above it all.
-    c = shade(c, smoothstep(0.05, 0.8, cloud.z) * 0.62, scene);
+    c = shade(c, smoothstep(0.05, 0.8, max(cloud.z, band.z)) * 0.62, scene);
 
     float birdVisible = params.wings.w;
     float2 birdPx = params.bird.xy;
@@ -830,21 +839,24 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         }
     }
 
-    // How much of the cloud here is a bank between two places, which the gull flies above, and which hides the land whole.
-    float bank = 1.0 - cloud.w;
     float cloudAlpha = smoothstep(0.02, 0.6, cloud.x);
     if (cloudAlpha > 0.0) {
         float3 cloudColor = mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, cloud.y));
         c = mix(c, cloudColor, cloudAlpha);
     }
 
-    // The gull's shadow falls close beneath it on the bank.
-    if (birdVisible > 0.0 && bank * cloudAlpha > 0.0) {
-        float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
-        if (dot(offset, offset) < scale * scale * 1.6) {
-            float2 q = rotate(offset, -params.bird.z) / scale;
-            c = mix(c, c * float3(0.74, 0.78, 0.86), fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * bank * cloudAlpha);
+    // The band lies over all that, and the gull flies above it, its shadow close beneath it.
+    float bank = smoothstep(0.02, 0.6, band.x);
+    if (bank > 0.0) {
+        c = mix(c, mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, band.y)), bank);
+        if (birdVisible > 0.0) {
+            float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
+            if (dot(offset, offset) < scale * scale * 1.6) {
+                float2 q = rotate(offset, -params.bird.z) / scale;
+                c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.6 * bank, scene);
+            }
         }
+        cloudAlpha += bank * (1.0 - cloudAlpha);
     }
 
     // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
@@ -872,8 +884,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float3 lit = c * scene.light.rgb * scene.light.w;
     if (night > 0.0) {
         float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.44, 0.54, 0.76) * 0.78 + float3(0.015, 0.02, 0.045);
-        // Clouds hold far less moonlight than their daytime white suggests, though a bank seen from above still stands
-        // paler than the land it hides, or it would be a curtain drawn over it.
+        // Clouds hold far less moonlight than their daytime white suggests, though the band seen from above still stands
+        // paler than the land, or it would be a curtain drawn over it.
         moonlit *= 1.0 - mix(0.42, 0.16, bank) * cloudAlpha;
         c = mix(lit, moonlit, night);
         c += lamplight.rgb * night * (1.0 - mix(0.85, 1.0, bank) * cloudAlpha);

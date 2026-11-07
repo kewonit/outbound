@@ -104,7 +104,7 @@ struct SceneGPU {
     var sun: SIMD4<Float>
     /// light colour and strength
     var light: SIMD4<Float>
-    /// boundary (world y where leg B starts), morph length, sweep progress (-1 when flying), sweep wave length
+    /// boundary (world y where leg B starts), unused, sweep progress (-1 when flying), sweep wave length
     var morph: SIMD4<Float>
     /// seconds wrapped hourly, seconds wrapped every two hours, car phase 0...1, night 0...1
     var time: SIMD4<Float>
@@ -134,9 +134,6 @@ struct CloudsGPU {
     var offsets: SIMD4<Float>
     /// view height in pixels, unused...
     var view: SIMD4<Float>
-    /// a bank of cloud: half its length (0 for none), how far above the join the bottom row is and the left column's
-    /// world x, in metres, unused
-    var deck: SIMD4<Float> = .zero
 }
 
 /// One batch of instanced animals, for one leg.
@@ -170,4 +167,6 @@ struct CompositeGPU {
     var flockShape: SIMD4<Float>
     /// colour, seconds since the flock appeared
     var flockLook: SIMD4<Float>
+    /// offset of the view from the band's texture (x, y), metres per band pixel, whether one shows
+    var bank: SIMD4<Float> = .zero
 }

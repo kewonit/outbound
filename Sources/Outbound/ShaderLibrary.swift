@@ -8,6 +8,7 @@ final class ShaderLibrary {
     struct Pipelines {
         let ground: MTLRenderPipelineState
         let clouds: MTLRenderPipelineState
+        let bank: MTLRenderPipelineState
         let paper: MTLRenderPipelineState
         /// The three draws of the frame pass: ground, instanced animals, sky.
         let view: MTLRenderPipelineState
@@ -81,6 +82,7 @@ final class ShaderLibrary {
         let frame = [viewFormat, lightFormat]
         return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, nightFormat]),
                          clouds: try pipeline("clouds", formats: [cacheFormat]),
+                         bank: try pipeline("bank", formats: [cacheFormat]),
                          paper: try pipeline("paper", formats: [paperFormat]),
                          view: try pipeline("viewGround", formats: frame),
                          animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),

@@ -336,12 +336,11 @@ final class Bench {
         }[0]
     }
 
-    /// The cloud texture at a metre a pixel with its bottom row `above` metres above a join, and none of the ordinary cloud
-    /// unless asked for. With no `half`, no bank.
-    func renderBank(half: Float = Float(World.bankHalf), above: Float, x: Float = 900, cover: Float = 0) throws -> [UInt8] {
-        var params = CloudsGPU(origin: SIMD4(x, 300, 1, cover), offsets: SIMD4(8, -9, 43, -49), view: SIMD4(256, 0, 0, 0),
-                               deck: SIMD4(half, above, x, 0))
-        return try render("clouds", in: current, formats: [ShaderLibrary.cacheFormat]) {
+    /// The band's texture at a metre a pixel with its bottom row `above` metres above a join.
+    func renderBand(above: Float, x: Float = 900) throws -> [UInt8] {
+        var params = CloudsGPU(origin: SIMD4(x, above, 1, Float(World.bankHalf)), offsets: SIMD4(8, -9, 43, -49),
+                               view: SIMD4(256, 0, 0, 0))
+        return try render("bank", in: current, formats: [ShaderLibrary.cacheFormat]) {
             $0.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
         }[0]
     }

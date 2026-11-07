@@ -28,8 +28,6 @@ public final class Journey {
     public var followsCalendar: Bool
     /// Stays over the place in view rather than moving on to the next one. A Fly To still goes somewhere new.
     public var staysPut = false
-    /// Where a Fly To took away the place ahead, so the cloud that was on its way there can carry on and drift off.
-    private var leftBehind: [Double] = []
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
@@ -46,8 +44,9 @@ public final class Journey {
         anchorY = 0
         driftStart = time
         let season = followsCalendar ? place.season(on: date) : place.signatureSeason
-        // The first leg starts a little behind the camera, so the land on screen at launch belongs to it.
-        legs = [Leg(index: 0, place: place, season: season, start: -legLength * 0.15, sweepStart: nil)]
+        // The first leg starts a little behind the camera, so the land on screen at launch belongs to it. Not by a share of
+        // the stay, which at this point is only a guess: the settings come after.
+        legs = [Leg(index: 0, place: place, season: season, start: -300, sweepStart: nil)]
     }
 
     /// What it takes to pick the journey up again just where it was, after Outbound quits and opens again.
@@ -116,7 +115,7 @@ public final class Journey {
 
     /// World y of each line where one place stops and the next begins, with a bank of cloud lying over it.
     public var joins: [Double] {
-        legs.dropFirst().filter { $0.sweepStart == nil }.map(\.start) + leftBehind
+        legs.dropFirst().filter { $0.sweepStart == nil }.map(\.start)
     }
 
     /// The leg painted at world y.
@@ -152,16 +151,12 @@ public final class Journey {
         while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
         }
-        leftBehind.removeAll { $0 < behind }
     }
 
     /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over
     /// `sweepDuration`, or with `atOnce` is there already, as it must be while the flight is held still and no time
     /// passes for it to sweep in.
     public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, date: Date = .now) {
-        if let near = legs.first(where: { $0.start >= y && $0.start < y + 1500 && $0.sweepStart == nil }) {
-            leftBehind.append(near.start)
-        }
         legs.removeAll { $0.start >= y }
         // A sweep long over, not one just ending, which rounding could leave a hair short of over.
         append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)

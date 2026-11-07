@@ -5,7 +5,7 @@ import Testing
 @testable import Outbound
 @testable import OutboundCore
 
-/// The bank of cloud lying over the line where one place meets the next.
+/// The band of cloud lying over the line where one place meets the next.
 @MainActor
 @Suite(.serialized)
 struct BankTests {
@@ -18,12 +18,11 @@ struct BankTests {
     /// The two places must never be seen meeting: for 8 m either side of the join nothing shows but cloud.
     @Test(arguments: columns)
     func theJoinIsAlwaysUnderSolidCloud(x: Float) throws {
-        for sideways in stride(from: Float(0), to: 2048, by: 256) {
-            let bytes = try bench.renderBank(above: -128, x: x + sideways)
+        for sideways in stride(from: Float(0), to: 4096, by: 256) {
+            let bytes = try bench.renderBand(above: -128, x: x + sideways)
             for row in 120..<136 {
                 for column in 0..<256 {
                     #expect(bytes[(row * 256 + column) * 4] == 255)
-                    #expect(bytes[(row * 256 + column) * 4 + 3] == 0)
                 }
             }
         }
@@ -33,35 +32,44 @@ struct BankTests {
     @Test(arguments: columns)
     func nothingShowsBeyondItsReach(x: Float) throws {
         let reach = Float(World.bankReach)
-        let plain = try bench.renderBank(half: 0, above: 0, x: x, cover: 0.42)
         for above in [reach, -reach - 256] {
-            let bytes = try bench.renderBank(above: above, x: x, cover: 0.42)
-            var worst = 0
-            for i in bytes.indices { worst = max(worst, abs(Int(bytes[i]) - Int(plain[i]))) }
-            #expect(worst <= 1)
+            let bytes = try bench.renderBand(above: above, x: x)
+            for pixel in stride(from: 0, to: bytes.count, by: 4) {
+                #expect(bytes[pixel] == 0)
+                #expect(bytes[pixel + 2] == 0)
+            }
         }
     }
 
     /// It is only a thin band: open sky not far from the join on either side.
     @Test func itIsThin() throws {
         func mean(_ above: Float) throws -> Double {
-            let bytes = try bench.renderBank(above: above)
+            let bytes = try bench.renderBand(above: above)
             var sum = 0
             for pixel in stride(from: 0, to: bytes.count, by: 4) { sum += Int(bytes[pixel]) }
             return Double(sum) / Double(bytes.count / 4) / 255
         }
         let around = try mean(-128)
         #expect(around > 0.35 && around < 0.75)
-        #expect(try mean(110) < 0.1)
-        #expect(try mean(-366) < 0.1)
+        #expect(try mean(150) < 0.1)
+        #expect(try mean(-406) < 0.1)
+    }
+
+    /// Each band has its own shape: the same field, a different part of it.
+    @Test func noTwoBandsAreAlike() throws {
+        let one = try bench.renderBand(above: -128, x: 900)
+        let other = try bench.renderBand(above: -128, x: 900 + 1680 * 7.3)
+        var different = 0
+        for pixel in stride(from: 0, to: one.count, by: 4) where abs(Int(one[pixel]) - Int(other[pixel])) > 64 { different += 1 }
+        #expect(different > 1000)
     }
 
     /// It belongs to the land: flown on, it is the very same picture further down the screen, so it can't fade or part.
     @Test(arguments: [Float(-250), -180, -60, 20])
     func itMovesWithTheLandAndNothingElse(above: Float) throws {
         let rows = 16
-        let before = try bench.renderBank(above: above)
-        let after = try bench.renderBank(above: above + Float(rows))
+        let before = try bench.renderBand(above: above)
+        let after = try bench.renderBand(above: above + Float(rows))
         var worst = 0, edge = 0
         for row in 0..<(256 - rows) {
             for x in 0..<256 {
@@ -86,6 +94,16 @@ struct BankTests {
         return world
     }
 
+    /// Flies on until a band is in view, and hands back its join.
+    private func flyToBand(_ world: World) throws -> Double {
+        var time = world.time
+        while world.bank(from: world.camera.y, to: world.camera.y + 442) == nil, time < 4000 {
+            time += 1
+            world.advance(to: time)
+        }
+        return try #require(world.bank(from: world.camera.y, to: world.camera.y + 442))
+    }
+
     /// However a stay is cut short, the next place is laid far enough ahead for its cloud to come in from out of view.
     @Test func cloudNeverAppearsInView() {
         let world = world()
@@ -103,18 +121,56 @@ struct BankTests {
         #expect(shown)
     }
 
-    /// A Fly To under way doesn't whip the cloud away.
-    @Test func aFlyToLeavesTheBankInTheSky() throws {
+    /// A Fly To under way doesn't whip cloud away that is in view, and it drifts off with the land in the end.
+    @Test func aFlyToLeavesABandInViewToDriftOff() throws {
         let world = world()
-        var time = 0.0
-        while world.bank(from: world.camera.y, to: world.camera.y + 442) == nil, time < 4000 {
+        let join = try flyToBand(world)
+        let bottom = world.camera.y
+        world.journey.fly(to: Place.named("lisse")!, from: bottom - 50, time: world.time)
+        var time = world.time
+        world.advance(to: time + 0.1)
+        #expect(world.bank(from: bottom, to: bottom + 442) == join)
+        while world.camera.y - World.bankReach < join, time < 8000 {
             time += 1
             world.advance(to: time)
         }
+        #expect(world.bank(from: world.camera.y, to: world.camera.y + 442) != join)
+    }
+
+    /// Cloud still on its way goes with the place it led to: nothing crosses unbroken land.
+    @Test func aFlyToForgetsABandNotYetInView() throws {
+        let world = world()
+        world.advance(to: 10)
         let bottom = world.camera.y
-        let bank = try #require(world.bank(from: bottom, to: bottom + 442))
+        #expect(world.bank(from: bottom, to: bottom + 442) == nil)
+        let ahead = try #require(world.journey.joins.first)
         world.journey.fly(to: Place.named("lisse")!, from: bottom - 50, time: world.time)
-        world.advance(to: time + 0.1)
-        #expect(world.bank(from: bottom, to: bottom + 442) == bank)
+        world.advance(to: 11)
+        #expect(!world.journey.joins.contains(ahead))
+        #expect(world.bank(from: ahead - 100, to: ahead + 100) != ahead)
+    }
+
+    /// The next place is laid clear of a band left in view, or one would pop out as the other came in.
+    @Test func onlyOneBandShowsAfterAFlyTo() throws {
+        let world = world()
+        let join = try flyToBand(world)
+        world.journey.fly(to: Place.named("lisse")!, from: world.camera.y - 50, time: world.time)
+        world.advance(to: world.time + 1)
+        let next = try #require(world.journey.joins.first)
+        #expect(next - join >= 442 + 2 * World.bankReach)
+    }
+
+    /// A painting taken with a band left in view opens with it there.
+    @Test func aMomentKeepsABandLeftInView() throws {
+        let world = world()
+        let join = try flyToBand(world)
+        world.journey.fly(to: Place.named("lisse")!, from: world.camera.y - 50, time: world.time)
+        world.advance(to: world.time + 0.1)
+        let moment = world.moment()
+        #expect(moment.band == join)
+        let data = try JSONEncoder().encode(moment)
+        let reopened = try #require(World(resuming: try JSONDecoder().decode(World.Moment.self, from: data), at: moment.time + 1, light: .alwaysDay))
+        let bottom = reopened.camera.y
+        #expect(reopened.bank(from: bottom, to: bottom + 442) == join)
     }
 }

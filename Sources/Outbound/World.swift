@@ -77,6 +77,7 @@ final class World {
         time = moment.time
         self.light = light
         self.journey = journey
+        lastBand = moment.band
         bird = moment.bird
         birdTrail = BirdTrail(bird.pose, at: time)
         heldFor = displayTime - moment.time
@@ -136,10 +137,13 @@ final class World {
         let revision: Int
         let cameraY: Double
         let journey: Journey.Snapshot
+        /// A band left in view after a Fly To, which the journey no longer knows of.
+        let band: Double?
     }
 
     func moment() -> Moment {
-        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time), journey: journey.snapshot)
+        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time), journey: journey.snapshot,
+               band: lastBand)
     }
 
     /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.
@@ -185,7 +189,9 @@ final class World {
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
         journey.extend(through: top + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + Self.bankReach + 20)
+                       // Clear of the view, and of any band left in it, as only one shows at a time.
+                       notBefore: max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint
+                                      + Self.bankReach) + Self.bankReach + 20)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -361,7 +367,7 @@ final class World {
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
-            morph: SIMD4(Float(boundary), 0.001, Float(sweep), Float(top - legB.start)),
+            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
@@ -458,9 +464,18 @@ final class World {
     /// How far from a join anything of its bank can be seen, ragged edges and shadow included.
     static let bankReach = 220.0
 
-    /// World y of the join whose bank shows anywhere from `bottom` to `top`, if one does.
+    /// The last join whose band was in view. A Fly To takes the place beyond a join away, but cloud already in view stays
+    /// in the sky and drifts off with the land.
+    private var lastBand: Double?
+
+    /// World y of the join whose band shows anywhere from `bottom` to `top`, if one does.
     func bank(from bottom: Double, to top: Double) -> Double? {
-        journey.joins.first { $0 - Self.bankReach < top && $0 + Self.bankReach > bottom }
+        let shows = { (join: Double) in join - Self.bankReach < top && join + Self.bankReach > bottom }
+        if let join = journey.joins.first(where: shows) {
+            lastBand = join
+            return join
+        }
+        return lastBand.flatMap { shows($0) ? $0 : nil }
     }
 
     /// Whether the middle of the main display has reached the first join between two places.

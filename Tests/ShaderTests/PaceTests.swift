@@ -8,11 +8,11 @@ import Testing
 @MainActor
 @Suite
 struct PaceTests {
-    /// Only two places can be on screen at once, so the join behind must be gone before the next comes into view, on the
-    /// tallest display and with the margin the frame keeps below it.
+    /// Only two places and one band can be on screen at once, so the join behind must be gone before the next comes into
+    /// view, on the tallest display.
     @Test(arguments: Preferences.Pace.allCases)
     func everyStayLeavesAPlaceRoomToTurnIntoTheNext(pace: Preferences.Pace) {
-        let room = 1440 * World.metresPerPoint + 200
+        let room = 1440 * World.metresPerPoint + 2 * World.bankReach
         for stay in Preferences.Stay.allCases where stay != .forever {
             #expect(Double(stay.rawValue) * 60 * pace.speed >= room)
         }
