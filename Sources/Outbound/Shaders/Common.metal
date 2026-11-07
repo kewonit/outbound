@@ -36,7 +36,7 @@ struct Train {
     float4 rail;   // origin (relative to the reference), angle, active
     float4 shape;  // wiggle amplitude, wavelength, phase
     float4 run;    // nose along the rail, direction, car length, cars
-    float4 info;   // locomotives, kind, whose line it is through a handover (0 either, 1 the old place, 2 the new)
+    float4 info;   // locomotives, kind, whose line it is near a join (0 either, 1 the old place, 2 the new)
     float4 body, stripe, roof, locomotive;
 };
 
@@ -191,19 +191,13 @@ inline float fbm(float2 p, int octaves, uint seed) {
 // Fly To sweeps over it: 0 still the old place, 1 the new. The new place spreads in organic patches, like wet paint
 // creeping across the sheet. This is the ground shader's own blend, so the frame pass can mix an old painting with a
 // new one exactly where the ground would have.
-// How far the land at world y has turned from leg A into leg B, 0 to 1: smoothly over the morph while flying, and
-// behind the sweep's front during a Fly To.
+// How far the land at world y has turned from leg A into leg B, 0 to 1: at once at the line where they meet while flying,
+// under a bank of cloud, and behind the sweep's front during a Fly To.
 inline float landTurn(float y, constant Scene &scene) {
     float boundary = scene.morph.x;
     if (y < boundary) return 0.0;
     if (scene.morph.z < 0.0) return smoothstep(boundary, boundary + scene.morph.y, y);
     return saturate((scene.morph.z * (scene.morph.w + 400.0) - (y - boundary)) / 400.0);
-}
-
-// How much of the railway at world y is the new place's while flying, 0 to 1. Two places' lines have nothing to do with
-// each other and each runs on for ever, so each has to end somewhere: once, as the land turns halfway, not at every patch.
-inline float railTurn(float y, constant Scene &scene) {
-    return smoothstep(0.42, 0.58, landTurn(y, scene));
 }
 
 // How far the land must have turned before the new place reaches `world`, 0 to 1: the line its patches spread along.
@@ -340,11 +334,6 @@ inline float2 course(constant Scene &scene, float m) {
 inline float riverWidth(constant Scene &scene, float m) {
     float a = scene.legA.biome.d.z, b = scene.legB.biome.d.z;
     return (a < 0.5) != (b < 0.5) ? max(a, b) : mix(a, b, m);
-}
-
-// The course at row `y` while flying. A Fly To repaints everything as the sweep passes, so it keeps the pixel's.
-inline float2 ownCourse(float y, constant Scene &scene, float2 wander) {
-    return scene.morph.z < 0.0 ? course(scene, landTurn(y, scene)) : wander;
 }
 
 // MARK: - Traffic

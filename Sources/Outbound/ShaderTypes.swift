@@ -85,7 +85,7 @@ struct TrainGPU {
     var shape: SIMD4<Float>
     /// nose position along the rail, direction, car length, cars
     var run: SIMD4<Float>
-    /// locomotives, kind (0 passenger, 1 freight), whose line it is through a handover (0 either, 1 the old place,
+    /// locomotives, kind (0 passenger, 1 freight), whose line it is near a join (0 either, 1 the old place,
     /// 2 the new), unused
     var info: SIMD4<Float>
     var body, stripe, roof, locomotive: SIMD4<Float>

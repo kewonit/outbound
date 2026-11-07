@@ -25,9 +25,7 @@ final class Preferences: ObservableObject {
         }
     }
 
-    /// Minutes over each place, or none to stay over the one in view. At Slow, twenty minutes is about the least that
-    /// leaves a place room to turn into the next with the view clear of the turn before, so six and twelve, offered
-    /// once, are not.
+    /// Minutes over each place, or none to stay over the one in view. Six and twelve, offered once, are not any more.
     enum Stay: Int, CaseIterable, Identifiable {
         case short = 20, long = 30, hour = 60, forever = 0
         var id: Self { self }

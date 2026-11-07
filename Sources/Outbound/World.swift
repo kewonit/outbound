@@ -154,7 +154,7 @@ final class World {
     /// ground has changed since, nor the pace, no Fly To has swept in a place since or was sweeping then, and the
     /// legs it showed are still kept.
     func canRewind(to moment: Moment) -> Bool {
-        let bottom = moment.cameraY + Double(desktop.minY) * Self.metresPerPoint - Journey.morphLength
+        let bottom = moment.cameraY + Double(desktop.minY) * Self.metresPerPoint
         return heldSince != nil && moment.time <= time && moment.revision == revision
             && abs(journey.cameraY(at: moment.time) - moment.cameraY) < 0.01
             && !journey.legs.contains { ($0.sweepStart ?? -.infinity) > moment.time - Journey.sweepDuration }
@@ -323,13 +323,12 @@ final class World {
         let reference = (camera(at: t).y / 2048).rounded(.down) * 2048
         let topLeg = journey.leg(at: top)
         var legA = topLeg
-        if let previous = journey.leg(before: topLeg), topLeg.start + Journey.morphLength > bottom - 200 {
+        if let previous = journey.leg(before: topLeg), topLeg.start > bottom - 200 {
             legA = previous
         }
         let legB = topLeg
 
         var boundary = -1e9
-        var length = Journey.morphLength
         var sweep = -1.0
         var sweepFront: Double?
         if legA.index != legB.index {
@@ -339,8 +338,6 @@ final class World {
                 if progress < 1 {
                     sweep = max(progress, 0)
                     sweepFront = legB.start + sweep * (top - legB.start + 400)
-                } else {
-                    length = 0.001
                 }
             }
         }
@@ -364,7 +361,7 @@ final class World {
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
-            morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
+            morph: SIMD4(Float(boundary), 0.001, Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
@@ -428,20 +425,11 @@ final class World {
         return line
     }
 
-    /// The leg whose railway is shown at world y. A place's line carries on halfway through the turn into the next.
-    private func railLeg(at y: Double) -> Leg {
-        let leg = journey.leg(at: y)
-        if leg.sweepStart == nil, y < leg.start + Journey.morphLength / 2, let previous = journey.leg(before: leg) {
-            return previous
-        }
-        return leg
-    }
-
     /// The train passing the middle of the main display at `t`, if one is. `turningInto` is the leg the land is turning
     /// into, if it is turning.
     private func train(reference: Double, at t: TimeInterval, turningInto: Int? = nil) -> TrainGPU {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
-        let leg = railLeg(at: centre.y)
+        let leg = journey.leg(at: centre.y)
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
         // When the middle of the main display passes over the line, following the camera's real path.
         let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
@@ -475,9 +463,9 @@ final class World {
         journey.joins.first { $0 - Self.bankReach < top && $0 + Self.bankReach > bottom }
     }
 
-    /// Whether the middle of the main display has reached the middle of the first turn into another place.
+    /// Whether the middle of the main display has reached the first join between two places.
     var handoverPassing: Bool {
-        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint - Journey.morphLength / 2).index > 0
+        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint).index > 0
     }
 
     /// Whether a train is passing the middle of the main display.

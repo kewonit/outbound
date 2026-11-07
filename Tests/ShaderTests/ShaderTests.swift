@@ -201,8 +201,6 @@ final class Bench {
     /// The shaders as they shipped in v1.0.
     let shipped: MTLLibrary
     private var made: [Scene]?
-    private var handoversMade: [Scene]?
-    private var handoverWorlds: [String: World] = [:]
 
     init() throws {
         gpu = try GPU()
@@ -259,47 +257,6 @@ final class Bench {
             return Scene(place: place.id, gpu: view.scene, bottom: Float(bottom - view.reference))
         }
         return made!
-    }
-
-    /// Each place turning into the next, at the middle of the view, on the shortest stay at the slowest pace: the
-    /// settings that show the most of a handover. Flown in small steps, as a long one would run past where the journey
-    /// means the next place to begin.
-    func handovers() throws -> [Scene] {
-        if let handoversMade { return handoversMade }
-        let frame = CGRect(x: 0, y: 0, width: 1512, height: 982)
-        let noon = Date(timeIntervalSince1970: 1_782_907_200)
-        handoversMade = Place.all.map { place in
-            let world = World(place: place, time: 0, date: noon, light: .alwaysDay)
-            world.pointer = { nil }
-            world.isDesktop = { _ in false }
-            world.now = { noon }
-            world.home = frame
-            world.desktop = frame
-            world.centreRiver(on: frame)
-            world.journey.followsCalendar = false
-            world.journey.refreshSeasons(date: noon)
-            world.journey.setSpeed(Preferences.Pace.slow.speed, at: 0)
-            world.journey.legLength = Double(Preferences.Stay.short.rawValue) * 60 * Preferences.Pace.slow.speed
-            var time = 20.0
-            world.advance(to: time)
-            while !world.handoverPassing, time < 7200 {
-                time += 2
-                world.advance(to: time)
-            }
-            handoverWorlds[place.id] = world
-            let bottom = world.camera.y
-            let view = world.frame(bottom: bottom, top: bottom + Double(frame.height) * World.metresPerPoint)
-            return Scene(place: place.id, gpu: view.scene, bottom: Float(bottom - view.reference))
-        }
-        return handoversMade!
-    }
-
-    /// The handover out of a place as it stands `seconds` later, over the same view.
-    func handover(_ id: String, after seconds: Double) throws -> SceneGPU {
-        _ = try handovers()
-        let world = try #require(handoverWorlds[id])
-        let bottom = world.camera.y
-        return world.frame(bottom: bottom, top: bottom + 982 * World.metresPerPoint, at: world.time + seconds).scene
     }
 
     /// Three views as the frame pass gets them on a 1512 by 982 display, one for each kind of flock: a skein, a

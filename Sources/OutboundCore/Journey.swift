@@ -15,9 +15,6 @@ public struct Leg: Sendable {
 
 /// Where the camera is and which places lie ahead.
 public final class Journey {
-    /// Distance over which one place turns into the next while flying. All but none: they meet in a line, which a bank
-    /// of cloud lies over.
-    public static let morphLength = 0.001
     /// How long a Fly To repaint takes.
     public static let sweepDuration: TimeInterval = 1.6
     /// The caption's coordinates run faster than the painted ground so the digits visibly tick.
@@ -152,7 +149,7 @@ public final class Journey {
             let start = max(last.start + legLength, notBefore)
             append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
         }
-        while legs.count > 2, legs[1].start + Self.morphLength < behind {
+        while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
         }
         leftBehind.removeAll { $0 < behind }

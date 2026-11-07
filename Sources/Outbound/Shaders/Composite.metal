@@ -108,8 +108,8 @@ inline float lowBeam(float2 p, float kerb) {
 }
 
 // How much of a car with chance `h` is on the road where the land has turned `m`, 0 to 1. Places differ in how busy
-// their roads are, so as a car drives through a handover the road can get too quiet for it, or busy enough. It goes or
-// comes over about 30 m rather than in one frame. Where the two places agree there is nothing to fade: all or nothing.
+// their roads are, so as a Fly To sweeps by the road can get too quiet for a car, or busy enough. It goes or comes over a
+// short way rather than in one frame. Where the two places agree there is nothing to fade: all or nothing.
 inline float carPresence(float h, float m, float busyA, float busyB) {
     float busy = min(mix(busyA, busyB, m) * 1.6, 0.75);
     float soft = abs(busyB - busyA) * 1.6 * 0.06 * smoothstep(0.0, 0.06, min(m, 1.0 - m));
@@ -454,8 +454,8 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
-            // Through a handover a train goes no further than its line does.
-            float turn = railTurn(world.y, scene);
+            // Where two places meet a train goes no further than its line does.
+            float turn = landTurn(world.y, scene);
             float shown = scene.train.info.z < 0.5 || scene.morph.z >= 0.0 ? 1.0
                         : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
             if (shown > 0.0) {

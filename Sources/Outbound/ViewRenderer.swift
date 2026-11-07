@@ -795,9 +795,8 @@ final class ViewRenderer {
         if frame.legA.index == frame.legB.index {
             regions.append((frame.legB, frame.scene.legB, -.infinity, .infinity))
         } else {
-            let split = frame.legB.start + Journey.morphLength * 0.5
-            regions.append((frame.legA, frame.scene.legA, -.infinity, split))
-            regions.append((frame.legB, frame.scene.legB, split, .infinity))
+            regions.append((frame.legA, frame.scene.legA, -.infinity, frame.legB.start))
+            regions.append((frame.legB, frame.scene.legB, frame.legB.start, .infinity))
         }
         var batches: [AnimalBatch] = []
         for region in regions {
