@@ -38,11 +38,13 @@ public struct Sun: Equatable, Sendable {
         SIMD2(sin(azimuth), cos(azimuth))
     }
 
-    /// Shadow length per metre of height, kept within what still reads as painted.
+    /// Shadow length per metre of height, the same for everything that casts one. Held within what the tallest trees can
+    /// throw (18 m from 12 m), so nothing's shadow stops growing while its neighbour's carries on.
     public var shadowLength: Double {
         let e = max(elevation, 0.05)
-        return min(max(1 / tan(e), 0.35), 2.4)
+        return min(max(1 / tan(e), 0.35), 1.5)
     }
+
 
     /// 0 in daylight, 1 deep in the night.
     public var night: Double {

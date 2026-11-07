@@ -16,7 +16,12 @@ final class World {
     static let roadOffset = 150.0
     /// Height of the cloud layer, which sets how far cloud shadows fall from their clouds.
     static let cloudHeight = 70.0
+    /// How high the camera flies, as clouds 70 m up slide past 1.15 times as fast as the land.
+    static let cameraHeight = cloudHeight / (1 - 1 / 1.15)
     static let wind = SIMD2<Double>(1.3, 0.55)
+    /// The wind up where the clouds are, which carries them faster than the gusts it sends over the crops and the water.
+    static let cloudWind = wind * 2.6
+    static let gustWind = wind * 1.3
     static let carSpeed = 5.5
 
     enum Light: String, CaseIterable {
@@ -222,10 +227,12 @@ final class World {
 
     private func updateSun(force: Bool) {
         sunUpdated = time
-        let place = journey.leg(at: camera.y).place
+        let leg = journey.leg(at: camera.y)
+        let place = leg.place
         let now = self.now()
         let calendar = Calendar.current
-        let day = calendar.ordinality(of: .day, in: .year, for: now) ?? 172
+        // A place shown at its best is lit as it is in that season, so summer in the north isn't lit like December.
+        let day = journey.followsCalendar ? calendar.ordinality(of: .day, in: .year, for: now) ?? 172 : leg.season.middleDay
         let next: Sun
         var hour = 12.0
         switch light {
@@ -496,9 +503,16 @@ final class World {
     func flock(at t: TimeInterval) -> (Flock, FlockSighting)? {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
-        guard let flock = Flock.of(leg.place, month: month(at: now())),
-              let sighting = flock.sighting(at: t, area: desktop,
-                                             seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff)
+        guard let flock = Flock.of(leg.place, month: month(at: now())) else { return nil }
+        // Lower than the camera, birds slide past faster than the land does, the higher the more; circling birds ride a
+        // thermal the wind carries.
+        let k = 1 / (1 - flock.altitude / Self.cameraHeight)
+        let land = { [self] (since: TimeInterval) -> SIMD2<Double> in
+            (camera(at: t - since) - camera(at: t)) * k / Self.metresPerPoint
+        }
+        guard let sighting = flock.sighting(at: t, area: desktop,
+                                             seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff,
+                                             drift: land, wind: Self.wind / Self.metresPerPoint)
         else { return nil }
         return (flock, sighting)
     }
@@ -521,14 +535,14 @@ final class World {
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being
     /// nearer the camera, slide past a little faster than the ground.
     func cloudSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
-        let p = metres + camera(at: t) * 1.15 - Self.wind * t
+        let p = metres + camera(at: t) * 1.15 - Self.cloudWind * t
         return SIMD2(p.x.positiveRemainder(16384), p.y.positiveRemainder(16384))
     }
 
     /// Space for the gusts rolling over the crops, which travel with the wind across the ground.
     func gustSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
-        let p = metres + camera(at: t) - Self.wind * 2.2 * t
-        return SIMD2(p.x.positiveRemainder(160 * 1024), p.y.positiveRemainder(55 * 1024))
+        let p = metres + camera(at: t) - Self.gustWind * t
+        return SIMD2(p.x.positiveRemainder(55 * 1024), p.y.positiveRemainder(160 * 1024))
     }
 }
 

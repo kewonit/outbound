@@ -6,6 +6,13 @@ public struct Season: Sendable {
     /// "Late winter – mustard in flower"
     public let line: String
     public let biome: Biome
+
+    /// A day of the year in the middle of the season, for where the sun stands while it is shown.
+    public var middleDay: Int {
+        let angles = months.map { (Double($0) - 0.5) / 12 * 2 * .pi }
+        let middle = atan2(angles.map(sin).reduce(0, +), angles.map(cos).reduce(0, +))
+        return Int(((middle / (2 * .pi) + 1) * 365).truncatingRemainder(dividingBy: 365)) + 1
+    }
 }
 
 public struct Place: Sendable, Identifiable {

@@ -648,11 +648,12 @@ final class ViewRenderer {
             || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
             let corner = viewCloud - SIMD2(marginMetres, marginMetres)
             let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
+            let lean = Double(scene.sun.z)
             var cloudParams = CloudsGPU(
                 origin: SIMD4(Float(corner.x.positiveRemainder(16384)), Float(corner.y.positiveRemainder(16384)),
                               Float(cloudPixel), Float(world.cloudCover)),
-                offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
-                               Float(toSun.y * World.cloudHeight)),
+                offsets: SIMD4(Float(toSun.x * 26 * lean), Float(toSun.y * 26 * lean),
+                               Float(toSun.x * World.cloudHeight * lean), Float(toSun.y * World.cloudHeight * lean)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds
@@ -674,7 +675,7 @@ final class ViewRenderer {
 
         let bandOffset = world.bank(from: y0, to: top).flatMap { join in
             paintBand(over: join, x0: x0, pixel: cloudPixel,
-                      toSun: SIMD2(Double(scene.sun.x), Double(scene.sun.y)), commandBuffer: commandBuffer)
+                      toSun: SIMD2(Double(scene.sun.x), Double(scene.sun.y)) * Double(scene.sun.z), commandBuffer: commandBuffer)
                 .map { SIMD2(x0, y0) - $0 }
         }
 
@@ -721,10 +722,14 @@ final class ViewRenderer {
             let reach = flock.size * Double(flock.count) * 3 + 300
             if point.x > -reach, point.y > -reach, point.x < Double(frame.width) + reach,
                point.y < Double(frame.height) + reach {
-                params.flock = SIMD4(Float(point.x * scale), Float(point.y * scale), Float(sighting.heading), 1)
+                // Circling birds come down into view and climb back out of it, growing smaller and fainter as they go up.
+                let seen = flock.formation == .circling ? Flock.circlingVisibility(sighting.time) : 1
+                let climb = 1 + 2.5 * (1 - seen)
+                params.flock = SIMD4(Float(point.x * scale), Float(point.y * scale), Float(sighting.heading), Float(seen))
                 // Shadows fall altitude x shadow length metres from the birds, in pixels.
-                params.flockShape = SIMD4(Float(flock.formation.rawValue), Float(flock.count), Float(flock.size * scale),
-                                          Float(flock.altitude / metresPerPixel))
+                params.flockShape = SIMD4(Float(flock.formation.rawValue), Float(flock.count),
+                                          Float(flock.size * scale / climb.squareRoot()),
+                                          Float(flock.altitude * climb / metresPerPixel))
                 params.flockLook = SIMD4(flock.color, Float(sighting.time))
             }
         }
@@ -776,7 +781,8 @@ final class ViewRenderer {
         }
     }
 
-    /// Paints the band of cloud over the join at world y `join`, if what is painted won't do, and hands back the world
+    /// Paints the band of cloud over the join at world y `join`, lit and shadowed from `toSun`, the way to the sun scaled
+    /// by the shadow length, if what is painted won't do, and hands back the world
     /// position of its texture's bottom-left corner. It belongs to the land, so it is painted once and only slides, unless
     /// the flight drifts sideways past its margin. Pixels stay on one grid so a repaint can't shift it.
     private func paintBand(over join: Double, x0: Double, pixel: Double, toSun: SIMD2<Double>,

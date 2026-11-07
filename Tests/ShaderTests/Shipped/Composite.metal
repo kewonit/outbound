@@ -740,7 +740,7 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
             float h = hash11(i, 704u);
             float2 at = (hash22(int2(i, 3), 705u) - 0.5) * size * float2(16.0, 12.0)
                       + float2(sin(t * 0.6 + h * 9.0), cos(t * 0.45 + h * 4.0)) * size * 1.2;
-            float flap = 0.5 + 0.5 * sin(t * 4.0 + h * 6.283);
+            float flap = 0.5 + 0.5 * sin(t * 13.0 + h * 6.283);
             float d = birdShape((rel - at) / size, flap, 0.0) * size;
             if (d < best) { best = d; q = (rel - at) / size; spread = flap; }
         }
@@ -754,7 +754,7 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
     float j = clamp(round(dot(rel, arm) / spacing), 0.0, perArm);
     float h = hash11(int(j * side) + 64, 700u);
     float2 at = arm * j * spacing + float2(sin(t * 0.7 + h * 6.0), cos(t * 0.5 + h * 9.0)) * spacing * 0.14;
-    spread = 0.5 + 0.5 * sin(t * 5.5 - j * 0.8 + h * 6.0);
+    spread = 0.5 + 0.5 * sin(t * 15.0 - j * 0.8 + h * 6.0);
     q = (rel - at) / size;
     return birdShape(q, spread, 0.0) * size;
 }

@@ -1056,7 +1056,7 @@ inline float3 roofColor(constant Biome &b, float pick) {
 inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constant Biome &b, constant Scene &scene,
                     uint seed, thread float &cover, thread float &light, thread float &lightID) {
     float2 sun = rotate(scene.sun.xy, -angle);
-    float2 shadowOff = -sun * min(scene.sun.z, 2.0) * 5.5;
+    float2 shadowOff = -sun * scene.sun.z * 5.5;
     if (dot(d, d) > 700.0 + dot(shadowOff, shadowOff) * 2.0) return c;
     float pick = hash11(k, seed + 430u);
     float bare = 1.0 - 0.6 * b.f.y;
@@ -1093,7 +1093,8 @@ inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constan
         bool hipped = hash11(k, seed + 433u) < 0.35;
         bool end = hipped && e.y < e.x;
         float facing = end ? sign(d.y) * sun.y : sign(d.x) * sun.x;
-        face = pigment(roof * (0.93 + 0.2 * facing), weather, 0.7);
+        // The lower the sun, the more one slope catches it than the other; at the usual afternoon sun, as it always was.
+        face = pigment(roof * (0.93 + 0.303 * cos(scene.sun.w) * facing), weather, 0.7);
         face *= 1.0 + 0.07 * sin((end ? e.y : e.x) * 6.5);
         float crest = hipped ? min(abs(e.x - e.y), max(abs(d.x), abs(d.y) - (size.y - size.x))) : abs(d.x);
         face = mix(face, roof * 0.62, fill(crest - 0.1, 0.08));
@@ -1154,7 +1155,7 @@ inline float3 streetLamps(float3 c, float2 local, float2 world, constant Biome &
     float roadHalf = b.e.x * 0.5;
     float j0 = floor(local.y / spacing);
     float pools = 0.0, head = 0.0, strongest = 0.0, chosen = 0.0;
-    float2 shadow = -scene.sun.xy * min(scene.sun.z, 2.0) * height;
+    float2 shadow = -scene.sun.xy * scene.sun.z * height;
     for (int dj = -1; dj <= 1; dj++) {
         float j = j0 + float(dj);
         float y = (j + 0.5) * spacing;
@@ -1357,7 +1358,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         c = house(c, r - float2(radius * 0.18, radius * 0.05), angle, float2(5.0, 8.0), id, b, scene, s, cover, light,
                   lightID);
         float2 shed = r - float2(radius * 0.0, -radius * 0.14);
-        float2 shedShadow = rotate(-scene.sun.xy, -angle) * min(scene.sun.z, 2.0) * 4.5;
+        float2 shedShadow = rotate(-scene.sun.xy, -angle) * scene.sun.z * 4.5;
         c = shade(c, fill(sweptBox(shed, float2(9.0, 5.0), shedShadow), 0.4) * 0.65, scene);
         c = mix(c, float3(0.72, 0.73, 0.74), fill(sdBox(shed, float2(9.0, 5.0)), 0.3));
         // A round corral of posts beside the sheds.
@@ -1383,7 +1384,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
             }
         }
         c = house(c, q - float2(-10.0, 18.0), 0.0, float2(5.0, 7.5), id, b, scene, s, cover, light, lightID);
-        float2 sunOff = -scene.sun.xy * min(scene.sun.z, 2.0);
+        float2 sunOff = -scene.sun.xy * scene.sun.z;
         for (int i = 0; i < 2; i++) {
             float2 shed = q - float2(14.0 + 8.0 * float(i), -8.0 - 22.0 * float(i));
             c = shade(c, fill(sweptBox(shed, float2(8.0, 15.0), sunOff * 6.0), 0.5) * 0.7, scene);
@@ -1488,7 +1489,7 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         deep = pigment(deep, vnoise(d / float2(46.0, 21.0), s + 21u), 0.5 * (1.0 - frozen));
         float margin = 0.035 * (0.6 + 0.8 * vnoise(d / 19.0, s + 22u));
         float3 lake = mix(deep, b.shallows.rgb, smoothstep(-margin, 0.0, shape) * (1.0 - frozen * 0.5));
-        float shaded = fill(lakeShore(d + scene.sun.xy * min(scene.sun.z, 2.0) * 3.0, radius, s) * -1.0, 0.012);
+        float shaded = fill(lakeShore(d + scene.sun.xy * scene.sun.z * 3.0, radius, s) * -1.0, 0.012);
         lake = shade(lake, shaded * 0.45 * (1.0 - frozen), scene);
         c = mix(c, b.sand.rgb, fill(shape - 0.05, 0.02) * (1.0 - b.f.y * 0.6));
         c = mix(c, lake, wet);
@@ -1920,7 +1921,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     float3 canopy = mix(a.groundDark.rgb, b.groundDark.rgb, m) * 0.78;
     float3 grass = mix(a.ground.rgb, b.ground.rgb, m) * float3(0.86, 0.95, 0.76);
     float3 reeds = mix(c, grass, 0.75) * (0.9 + 0.2 * alongNoise(rp, float2(0.9, 4.0), 15u));
-    float2 sunR = float2(scene.sun.x * side, scene.sun.y) * min(scene.sun.z, 2.0) * 2.5;
+    float2 sunR = float2(scene.sun.x * side, scene.sun.y) * scene.sun.z * 2.5;
     float clumps = 0.65 * alongNoise(rp, float2(3.1, 3.7), 13u) + 0.35 * alongNoise(rp + 17.0, float2(1.7, 2.1), 18u);
     float lee = 0.65 * alongNoise(rp + sunR, float2(3.1, 3.7), 13u) + 0.35 * alongNoise(rp + sunR + 17.0, float2(1.7, 2.1), 18u);
     float scrub = smoothstep(0.56, 0.68, clumps) * smoothstep(banks + 0.5, banks + 2.5, ad);
@@ -1955,7 +1956,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     w = pigment(w, broad, 0.55);
     w = pigment(w, streak, 0.28);
     float towards = saturate(dot(scene.sun.xy, float2(side, 0.0)));
-    float cast = (1.2 + 1.8 * min(scene.sun.z, 2.0)) * towards * presence;
+    float cast = (1.2 + 1.8 * scene.sun.z) * towards * presence;
     w = shade(w, fill(fromEdge - cast, 1.0) * 0.55 * saturate(towards * 3.0), scene);
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, streak));
     w = mix(w, ice, frozen);

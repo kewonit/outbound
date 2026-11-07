@@ -116,10 +116,25 @@ inline float carPresence(float h, float m, float busyA, float busyB) {
     return soft > 1e-5 ? saturate((busy - h) / soft + 0.5) : (h > busy ? 0.0 : 1.0);
 }
 
+// How much direct sun reaches this pixel: none in a cloud's shade, where the light is all from the sky and nothing casts a
+// shadow of its own.
+inline float directSun(float2 pixel, constant CompositeParams &params, texture2d<float> clouds, texture2d<float> band,
+                       sampler s) {
+    float2 size = float2(clouds.get_width(), clouds.get_height());
+    float2 at = (params.clouds.xy + pixel * params.view.z) / params.clouds.z;
+    float shadow = clouds.sample(s, float2(at.x, size.y - at.y) / size).z;
+    if (params.bank.w > 0.0) {
+        float2 bandSize = float2(band.get_width(), band.get_height());
+        float2 bandAt = (params.bank.xy + pixel * params.view.z) / params.bank.z;
+        shadow = max(shadow, band.sample(s, float2(bandAt.x, bandSize.y - bandAt.y) / bandSize).z);
+    }
+    return 1.0 - smoothstep(0.05, 0.8, shadow);
+}
+
 // Cars ride slots along the road, northbound on one side and southbound on the other, each pointing along the road
 // and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
 // is, so a car is never cut in two where one place turns into the next.
-inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light) {
+inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light, float sunlit = 1.0) {
     float night = scene.time.w;
     constant Biome &a = scene.legA.biome;
     constant Biome &b = scene.legB.biome;
@@ -157,8 +172,8 @@ inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thr
         if (dot(q, q) < 140.0) {
             float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
             // Its shadow stays attached however low the sun.
-            float2 shadowOff = -sun * min(scene.sun.z, 1.6) * (lorry ? 3.2 : van ? 2.0 : 1.5);
-            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, 0.3 + mpp) * 0.62, scene);
+            float2 shadowOff = -sun * scene.sun.z * (lorry ? 3.2 : van ? 2.0 : 1.5);
+            result = shade(result, fill(sweptBox(q, size, shadowOff) - 0.25, 0.3 + mpp) * 0.62 * sunlit, scene);
             // The colours cars really are: mostly white, grey, silver and black, the rest dark and quiet.
             float3 paint = k < 0.3 ? float3(0.82, 0.82, 0.8) : k < 0.48 ? float3(0.56, 0.57, 0.58)
                          : k < 0.66 ? float3(0.12, 0.12, 0.13) : k < 0.78 ? float3(0.15, 0.21, 0.32)
@@ -238,12 +253,12 @@ inline float trainShape(float2 p, constant Train &tr, thread float2 &lp, thread 
 }
 
 inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &scene, float mpp,
-                    thread float3 &light) {
+                    thread float3 &light, float sunlit = 1.0) {
     float2 lp, lps;
     float k, ks;
     // Its shadow: is the point towards the sun inside the train? A train stands about 4 m tall.
     float ds = trainShape(world + scene.sun.xy * scene.sun.z * 4.2, tr, lps, ks);
-    c = shade(c, fill(ds, 0.5) * 0.8, scene);
+    c = shade(c, fill(ds, 0.5) * 0.8 * sunlit, scene);
     float db = trainShape(world, tr, lp, k);
     bool loco = k < tr.info.x;
     bool freight = tr.info.y > 0.5;
@@ -291,7 +306,7 @@ inline float3 boatPaint(float h) {
 // degrees either side of its track, crest lines across them, and churned water straight behind. The wake is laid
 // out along the river rather than straight back, so it follows the boat round a bend.
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
-                    thread float3 &light) {
+                    thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
     for (int lane = 0; lane < 2; lane++) {
         float dir = lane == 0 ? 1.0 : -1.0;
@@ -357,7 +372,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
         float2 hs = hp + sun * scene.sun.z * 0.5;
         float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
-        result = shade(result, fill(hullShadow, 0.3) * 0.6, scene);
+        result = shade(result, fill(hullShadow, 0.3) * 0.6 * sunlit, scene);
         float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
         float3 paint = boatPaint(hash11(id, 605u));
         result = mix(result, paint, fill(hull, mpp * 0.6));
@@ -418,6 +433,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             texture2d<float> noise [[texture(4)]],
                             texture2d<float> incomingColor [[texture(5)]],
                             texture2d<float> incomingNight [[texture(6)]],
+                            texture2d<float> bankTexture [[texture(7)]],
                             sampler wrap [[sampler(0)]],
                             sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -442,15 +458,16 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float water = mask.water;
     float3 light = 0.0;
 
-    // Gusts roll across tall crops in long soft bands.
+    // Gusts roll across tall crops in long soft bands, lying across the wind.
     if (mask.sway > 0.01) {
-        float2 gp = (params.world.zw + pixel * mpp) / float2(160.0, 55.0);
+        float2 gp = (params.world.zw + pixel * mpp) / float2(55.0, 160.0);
         c *= 1.0 + mask.sway * 0.09 * (latticeNoise(noise, wrap, gp) - 0.45);
     }
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
-    if (mask.road) c = cars(c, world, scene, mpp, light);
-    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light);
+    float sunlit = directSun(pixel, params, cloudTexture, bankTexture, clampSampler);
+    if (mask.road) c = cars(c, world, scene, mpp, light, sunlit);
+    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light, sunlit);
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
@@ -460,7 +477,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                         : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
             if (shown > 0.0) {
                 float3 lit = light;
-                float3 passing = train(c, world, scene.train, scene, mpp, lit);
+                float3 passing = train(c, world, scene.train, scene, mpp, lit, sunlit);
                 c = mix(c, passing, shown);
                 light = mix(light, lit, shown);
             }
@@ -476,10 +493,10 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
         // Cell sizes that divide the gust space's period; bent by a slower noise so they never show its grid.
         float2 gust = params.world.zw + pixel * mpp;
-        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(53.3333, 44.0)) - 0.5,
-                                           latticeNoise(noise, wrap, gust.yx / float2(44.0, 53.3333) + 31.0) - 0.5);
-        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(26.6667, 20.0))
-                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.3333, 10.0));
+        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(44.0, 53.3333)) - 0.5,
+                                           latticeNoise(noise, wrap, gust.yx / float2(53.3333, 44.0) + 31.0) - 0.5);
+        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(27.5, 20.0))
+                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.75, 10.0));
         c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, paws) * 0.12);
         // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
         if (water > 0.9) {
@@ -605,7 +622,10 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
 
 fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0)]],
                                constant CompositeParams &params [[buffer(0)]],
-                               constant Scene &scene [[buffer(1)]]) {
+                               constant Scene &scene [[buffer(1)]],
+                               texture2d<float> cloudTexture [[texture(2)]],
+                               texture2d<float> bankTexture [[texture(7)]],
+                               sampler clampSampler [[sampler(1)]]) {
     float len = in.extent.x, wid = in.extent.y;
     float px = params.view.z;
     float2 d = in.offset;
@@ -613,7 +633,9 @@ fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0
     float body = length(d / float2(len, wid)) - 1.0;
     float head = length((d - float2(len * 1.05, 0.0)) / (float2(0.7, 0.5) * (isGazelle ? 0.6 : 1.0))) - 1.0;
     float shadowBody = length(in.shadow / float2(len, wid)) - 1.0;
-    float3 c = shade(below.rgb, fill(shadowBody, px * 0.9) * 0.7, scene);
+    float sunlit = directSun(float2(in.position.x, params.view.y - in.position.y), params, cloudTexture, bankTexture,
+                             clampSampler);
+    float3 c = shade(below.rgb, fill(shadowBody, px * 0.9) * 0.7 * sunlit, scene);
     float3 coat = in.coat.rgb;
     if (in.coat.w == float(zebra)) {
         float band = step(0.5, fract(d.x * 1.0 + 0.3 * d.y));
@@ -738,7 +760,7 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
             float h = hash11(i, 704u);
             float2 at = (hash22(int2(i, 3), 705u) - 0.5) * size * float2(16.0, 12.0)
                       + float2(sin(t * 0.6 + h * 9.0), cos(t * 0.45 + h * 4.0)) * size * 1.2;
-            float flap = 0.5 + 0.5 * sin(t * 4.0 + h * 6.283);
+            float flap = 0.5 + 0.5 * sin(t * 13.0 + h * 6.283);
             float d = birdShape((rel - at) / size, flap, 0.0) * size;
             if (d < best) { best = d; q = (rel - at) / size; spread = flap; }
         }
@@ -752,7 +774,7 @@ inline float flockDistance(float2 pixel, constant CompositeParams &p, float t, t
     float j = clamp(round(dot(rel, arm) / spacing), 0.0, perArm);
     float h = hash11(int(j * side) + 64, 700u);
     float2 at = arm * j * spacing + float2(sin(t * 0.7 + h * 6.0), cos(t * 0.5 + h * 9.0)) * spacing * 0.14;
-    spread = 0.5 + 0.5 * sin(t * 5.5 - j * 0.8 + h * 6.0);
+    spread = 0.5 + 0.5 * sin(t * 15.0 - j * 0.8 + h * 6.0);
     q = (rel - at) / size;
     return birdShape(q, spread, 0.0) * size;
 }
@@ -808,7 +830,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // Cloud shadow, then the bird's shadow, then clouds, then the bird above it all.
-    c = shade(c, smoothstep(0.05, 0.8, max(cloud.z, band.z)) * 0.62, scene);
+    float sunlit = 1.0 - smoothstep(0.05, 0.8, max(cloud.z, band.z));
+    c = shade(c, (1.0 - sunlit) * 0.62, scene);
 
     float birdVisible = params.wings.w;
     float2 birdPx = params.bird.xy;
@@ -818,8 +841,8 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         float2 offset = pixel - shadowPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
-            // Soft, as a shadow is from that high up.
-            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.45 * birdVisible, scene);
+            // Soft, as a shadow is from that high up, and none where a cloud already shades the ground.
+            c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.45 * birdVisible * sunlit, scene);
         }
     }
 
@@ -833,13 +856,14 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         if (length(pixel - shadowPx) < reach) {
             float altitude = params.flockShape.w * mpp;
             float d = flockDistance(pixel - (shadowPx - params.flock.xy), params, t, q, spread);
-            float blur = 0.8 + altitude * 0.0093 / mpp;
-            c = shade(c, fill(d, blur) * mix(0.45, 0.12, saturate(altitude / 150.0)), scene);
+            // Blurred by how far the light travels from bird to ground, which is further the lower the sun.
+            float blur = 0.8 + altitude * sqrt(1.0 + scene.sun.z * scene.sun.z) * 0.0093 / mpp;
+            c = shade(c, fill(d, blur) * mix(0.45, 0.12, saturate(altitude / 150.0)) * params.flock.w * sunlit, scene);
         }
         if (length(pixel - params.flock.xy) < reach) {
             float d = flockDistance(pixel, params, t, q, spread);
             float3 plumage = params.flockLook.rgb * (0.9 + 0.2 * saturate(0.5 - q.y));
-            c = mix(c, plumage, fill(d, 0.7));
+            c = mix(c, plumage, fill(d, 0.7) * params.flock.w);
         }
     }
 
