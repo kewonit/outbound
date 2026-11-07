@@ -1563,7 +1563,43 @@ inline float3 rocks(float3 c, float2 p, constant Biome &b, constant Scene &scene
     return mix(c, rock, a);
 }
 
-// Rounded fields between hedgerows, with orchards in some.
+// The crown of a hedge nearest `p`, as a share of its radius, with its radius, where `p` lies from its middle, and its
+// tone.
+inline float hedgeCrowns(float2 p, float crownSize, uint seed, thread float &radius, thread float2 &offset,
+                         thread float &tone) {
+    float2 g = floor(p / crownSize);
+    float nearest = 1e9;
+    radius = 1.0; offset = 0.0; tone = 0.0;
+    for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+            int2 cell = int2(g) + int2(i, j);
+            float r = crownSize * (0.62 + 0.38 * hash21(cell, seed + 17u));
+            float2 q = p - (float2(cell) + 0.15 + 0.7 * hash22(cell, seed + 18u)) * crownSize;
+            float dist = length(q) / r;
+            if (dist < nearest) { nearest = dist; radius = r; offset = q; tone = hash21(cell, seed + 19u); }
+        }
+    }
+    return nearest;
+}
+
+// The oak nearest `p` among the hedge's crowns, `oaks` of which are oaks: how far `p` is from its middle as a share of
+// its radius, which is twice a shrub's, and where `p` lies from its middle.
+inline float hedgeOak(float2 p, float crownSize, float oaks, uint seed, thread float2 &offset) {
+    float2 g = floor(p / crownSize);
+    float nearest = 1e9;
+    offset = 0.0;
+    for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+            int2 cell = int2(g) + int2(i, j);
+            if (hash21(cell, seed + 20u) >= oaks) continue;
+            float2 q = p - (float2(cell) + 0.15 + 0.7 * hash22(cell, seed + 18u)) * crownSize;
+            float dist = length(q) / (crownSize * 1.25);
+            if (dist < nearest) { nearest = dist; offset = q; }
+        }
+    }
+    return nearest;
+}
+
 inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &scene, uint seed, float riverHalf,
                    float2 wander) {
     float size = b.a.y;
@@ -1648,22 +1684,29 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                            halfway.border * size - hedgeHalfWidth(p + toSun * 0.5, b, seed));
     l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8, scene);
 
-    if (border < hw + 2.5) {
+    // Here and there an oak stands out of the hedge, as in bocage: a round crown twice the width of the shrubs, twice
+    // as tall, its shadow thrown further out across the field. The shadow is found just as the crown is, from where
+    // the sun would see it, so it falls only from an oak that is there.
+    float crownSize = 3.0 + b.a.z * 0.25;
+    float oaks = b.c.w * 0.2;
+    if (oaks > 0.0) {
+        float2 from = p + scene.sun.xy * scene.sun.z * 14.0;
+        Cells high = voronoi(fieldSpace(from, b, seed), seed);
+        float edge = high.border * size - hedgeHalfWidth(from, b, seed);
+        if (edge < crownSize * 1.5) {
+            float2 offset;
+            float nearest = hedgeOak(from, crownSize, oaks, seed, offset);
+            float cast = fill((nearest - 1.0) * crownSize * 1.25, 0.9) * fill(edge - crownSize * 0.3, 1.2);
+            l.color = shade(l.color, cast * 0.75, scene);
+        }
+    }
+
+    if (border < hw + 2.5 + (oaks > 0.0 ? crownSize * 1.3 : 0.0)) {
         // The hedge from above: a line of tree crowns, each lit on its sunward side, dark in the gaps between them,
         // its edge bulging where a crown leans out.
-        float crownSize = 3.0 + b.a.z * 0.25;
-        float2 g = floor(p / crownSize);
-        float nearest = 1e9, radius = 1.0, tone = 0.0;
-        float2 offset = 0.0;
-        for (int j = -1; j <= 1; j++) {
-            for (int i = -1; i <= 1; i++) {
-                int2 cell = int2(g) + int2(i, j);
-                float r = crownSize * (0.62 + 0.38 * hash21(cell, seed + 17u));
-                float2 q = p - (float2(cell) + 0.15 + 0.7 * hash22(cell, seed + 18u)) * crownSize;
-                float dist = length(q) / r;
-                if (dist < nearest) { nearest = dist; radius = r; offset = q; tone = hash21(cell, seed + 19u); }
-            }
-        }
+        float radius, tone;
+        float2 offset;
+        float nearest = hedgeCrowns(p, crownSize, seed, radius, offset, tone);
         float elevation = max(scene.sun.w, 0.15);
         float3 sun = float3(scene.sun.xy * cos(elevation), sin(elevation));
         float3 n = normalize(float3(offset / radius, sqrt(saturate(1.0 - nearest * nearest)) * 1.2));
@@ -1676,6 +1719,19 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
         hedge = mix(hedge, b.snow.rgb * 0.9, b.f.y * 0.5 * smoothstep(0.5, 0.75, clump));
         float bulge = (1.0 - saturate(nearest)) * 2.0 - 0.6;
         l.color = mix(l.color, hedge, fill(border - hw - bulge, 0.45));
+        if (oaks > 0.0) {
+            float2 at;
+            float oak = hedgeOak(p, crownSize, oaks, seed, at);
+            float there = fill((oak - 1.0) * crownSize * 1.25, 0.4) * fill(border - crownSize * 0.3, 1.2);
+            if (there > 0.0) {
+                float3 on = normalize(float3(at / (crownSize * 1.25), sqrt(saturate(1.0 - oak * oak)) * 1.1));
+                float2 lp = at / (crownSize * 1.25) * 3.0;
+                float leaves = vnoise(lp + seed * 0.01, seed + 21u);
+                float3 crown = mix(b.hedge.rgb * 0.5, mix(b.hedge.rgb, b.canopyLight.rgb, 0.45) * 1.1,
+                                   saturate(0.6 * dot(on, sun) + 0.2 + 0.5 * (leaves - 0.5)));
+                l.color = mix(l.color, crown * float3(0.86, 0.95, 0.84), there);
+            }
+        }
         l.forest = fill(border - hw, 0.55);
         l.sway = mix(l.sway, 0.15, fill(border - hw, 0.55));
         l.herd = 0.0;
