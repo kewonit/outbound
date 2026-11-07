@@ -186,7 +186,8 @@ final class World {
         time = t
         let camera = self.camera
         let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
-        let change = journey.carryOn(at: t, bottom: bottom - 50, behind: bottom - 1500 - Self.reach)
+        let change = journey.carryOn(at: t, bottom: bottom - 50, height: Double(desktop.height) * Self.metresPerPoint,
+                                     behind: bottom - 1500 - Self.reach)
         if change != .none {
             // The light of the new place, now, while the cloud hides it, rather than whenever the sun is next looked at.
             let left = (light: sun.light, night: sun.night, toSun: sun.direction)
@@ -485,9 +486,9 @@ final class World {
     }
 
     /// How a crossing's cloud stands at `t`, if any of it is in the sky.
-    func crossingCloud(at t: TimeInterval) -> (closure: Double, clearing: Double, age: TimeInterval)? {
+    func crossingCloud(at t: TimeInterval) -> (closure: Double, clearing: Double, slide: Double, height: Double)? {
         guard let crossing = journey.crossing, crossing.isUnderWay(at: t) else { return nil }
-        return (crossing.closure(at: t), crossing.clearing(at: t), t - crossing.start)
+        return (crossing.closure(at: t), crossing.clearing(at: t), crossing.slide(at: t), crossing.height)
     }
 
     /// The sky's light as the land changed, which the new place's takes over from while the cloud is still closed. Places
@@ -502,11 +503,6 @@ final class World {
         return (left.light + (sun.light - left.light) * k, left.night + (sun.night - left.night) * k,
                 left.toSun + (sun.direction - left.toSun) * k)
     }
-
-    /// How fast a crossing's cloud slides over the land, and the veil under it, in metres a second: nearer the camera
-    /// than the ground, so faster than it.
-    static let deckSpeed = 6.0
-    static let veilSpeed = 3.5
 
     /// Whether a train is passing the middle of the main display.
     var trainPassing: Bool {

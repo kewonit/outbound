@@ -654,11 +654,11 @@ final class ViewRenderer {
                                Float(toSun.y * World.cloudHeight)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
             if let crossing {
-                let desktop = world.desktop
                 cloudParams.deck = SIMD4(Float(crossing.closure), Float(crossing.clearing),
-                                         Float(origin.y - Double(desktop.minY) * mpp - marginMetres),
-                                         Float(Double(desktop.height) * mpp))
-                cloudParams.flow = SIMD4(Float(crossing.age * World.deckSpeed), Float(crossing.age * World.veilSpeed), 0, 0)
+                                         Float(origin.y - Double(world.desktop.minY) * mpp - marginMetres),
+                                         Float(crossing.height))
+                // The veil under the bank is further from the camera, so it slides a little slower.
+                cloudParams.flow = SIMD4(Float(crossing.slide), Float(crossing.slide * 0.75), 0, 0)
             }
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds

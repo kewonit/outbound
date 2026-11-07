@@ -381,10 +381,11 @@ final class Bench {
 
     /// The cloud texture over a desktop `height` metres tall, a pixel to every `height / 256` metres, with a crossing's
     /// cloud as far on as `deck` (closure, clearing) says. The texture's bottom row is the desktop's.
-    func renderCrossing(closure: Float, clearing: Float, flow: Float, height: Float, at corner: SIMD2<Float>) throws -> [UInt8] {
-        var params = CloudsGPU(origin: SIMD4(corner.x, corner.y, height / 256, 0.42), offsets: SIMD4(16, -18, 43, -49),
+    func renderCrossing(closure: Float, clearing: Float, flow: Float, height: Float, at corner: SIMD2<Float>,
+                        cover: Float = 0.42) throws -> [UInt8] {
+        var params = CloudsGPU(origin: SIMD4(corner.x, corner.y, height / 256, cover), offsets: SIMD4(16, -18, 43, -49),
                                view: SIMD4(256, 0, 0, 0), deck: SIMD4(closure, clearing, 0, height),
-                               flow: SIMD4(flow, flow * 0.6, 0, 0))
+                               flow: SIMD4(flow, flow * 0.75, 0, 0))
         return try render("clouds", in: current, formats: [ShaderLibrary.cacheFormat]) {
             $0.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
         }[0]

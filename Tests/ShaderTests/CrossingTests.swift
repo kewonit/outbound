@@ -48,13 +48,13 @@ struct CrossingTests {
 
     /// Nothing flashes: stepped frame by frame, the amount of cloud on screen only ever moves gently.
     @Test func theCloudComesAndGoesGently() throws {
-        let crossing = Crossing(start: 0)
+        let crossing = Crossing(start: 0, height: 442)
         var last: Double?
         var worst = 0.0
         var heaviest = 0.0
         for t in stride(from: -0.5, to: crossing.end + 0.5, by: 1.0 / 30) {
             let bytes = try bench.renderCrossing(closure: Float(crossing.closure(at: t)), clearing: Float(crossing.clearing(at: t)),
-                                                 flow: Float(max(t, 0) * World.deckSpeed), height: 442, at: SIMD2(900, 400))
+                                                 flow: Float(crossing.slide(at: t)), height: 442, at: SIMD2(900, 400))
             var sum = 0
             for pixel in stride(from: 0, to: bytes.count, by: 4) { sum += Int(bytes[pixel]) }
             let cover = Double(sum) / Double(bytes.count / 4) / 255
@@ -65,6 +65,46 @@ struct CrossingTests {
         #expect(heaviest == 1)
         // Under one part in 200 of the screen a frame, so even the fastest of it takes seconds to cross.
         #expect(worst < 0.005)
+    }
+
+    /// It moves, and doesn't fade. A moment later the bank has to be the very same picture, just further down, at both of
+    /// its edges. A cloud that thinned or parted in place would fail this.
+    @Test(arguments: [(Float(0.35), Float(0)), (0.6, 0), (1, 0.35), (1, 0.6)])
+    func theBankSlidesRatherThanFades(closure: Float, clearing: Float) throws {
+        let height: Float = 442
+        let crossing = Crossing(start: 0, height: Double(height))
+        let span = Float(crossing.span)
+        let metresPerRow = height / 256
+        let rows = 16
+        let moved = metresPerRow * Float(rows)
+        func slide(_ closure: Float, _ clearing: Float) -> Float {
+            clearing > 0 ? span + Float(Crossing.closed * Crossing.speed) + clearing * span : closure * span
+        }
+        let next = clearing > 0 ? (closure, clearing + moved / span) : (closure + moved / span, clearing)
+        let corner = SIMD2<Float>(900, 400)
+        // The bank alone: ordinary clouds rightly stay where they are as it goes by.
+        let before = try bench.renderCrossing(closure: closure, clearing: clearing, flow: slide(closure, clearing),
+                                              height: height, at: corner, cover: 0)
+        let after = try bench.renderCrossing(closure: next.0, clearing: next.1, flow: slide(next.0, next.1),
+                                             height: height, at: corner, cover: 0)
+        // Rendered from the top row down: what was at a row is `rows` further down the desktop now.
+        func cover(_ bytes: [UInt8], x: Int, row: Int) -> Int { Int(bytes[(row * 256 + x) * 4]) }
+        var shifted = 0, inPlace = 0, edge = 0, count = 0
+        for row in 0..<(256 - rows) {
+            for x in 0..<256 {
+                let was = cover(before, x: x, row: row), now = cover(after, x: x, row: row + rows)
+                let there = cover(after, x: x, row: row)
+                shifted += abs(now - was)
+                inPlace += abs(there - was)
+                if was > 8 && was < 247 { edge += 1 }
+                count += 1
+            }
+        }
+        // There has to be an edge in view for this to prove anything.
+        #expect(edge > 500)
+        let moving = Double(shifted) / Double(count), staying = Double(inPlace) / Double(count)
+        #expect(moving < 2.5, "off by \(moving) levels after shifting")
+        #expect(moving < staying / 4, "\(moving) shifted against \(staying) left in place")
     }
 
     private func world(light: World.Light = .alwaysDay, place: Place = Place.named("serengeti")!) -> World {

@@ -68,37 +68,45 @@ inline float domes(float2 p, float cell, uint seed) {
     return top;
 }
 
-// The tops of the bank, 0 in its deepest folds and about 1 on its crowns: small domes riding on bigger ones. Each size
-// slides a little faster than the one under it, so the surface turns over slowly as it goes rather than passing like a
-// printed sheet. `big` is the biggest size on its own, 0 to 1, for the shade the big forms throw.
-inline float2 deckWarped(float2 p, float flow) {
-    float2 q = p + float2(0.0, flow);
+// The tops of the bank, 0 in its deepest folds and about 1 on its crowns: small domes riding on bigger ones. All of it is
+// fixed to the bank as it slides, but for each smaller size creeping a little over the one under it, so the surface turns
+// over slowly rather than passing like a printed sheet. `big` is the biggest size on its own, 0 to 1, for the shade the
+// big forms throw.
+inline float2 deckWarped(float2 p, float slide) {
+    float2 q = p + float2(0.0, slide);
     return q + 90.0 * (float2(vnoiseP(q / 256.0, 64, 311u), vnoiseP(q / 256.0, 64, 312u)) - 0.5);
 }
 
-inline float deckTops(float2 p, float flow, thread float &big) {
-    float2 q = deckWarped(p, flow);
+inline float deckTops(float2 p, float slide, thread float &big) {
+    float2 q = deckWarped(p, slide);
     big = domes(q, 128.0, 321u);
-    return 0.62 * big + 0.26 * domes(q + float2(0.0, flow * 0.1), 64.0, 322u)
-                      + 0.12 * domes(q + float2(0.0, flow * 0.2), 32.0, 323u);
+    return 0.62 * big + 0.26 * domes(q + float2(0.0, slide * 0.02), 64.0, 322u)
+                      + 0.12 * domes(q + float2(0.0, slide * 0.04), 32.0, 323u);
 }
 
 // How deep into the bank a point is, as a level to add to its tops. From 0.65 up it is solid whatever the tops are doing,
-// and from -0.65 down it is clear. It comes in as a front with long bays in it, down the height of the whole desktop so
-// every display sees one bank, and goes by parting: first where a slower noise is low, so holes open before anything
-// else, and the top of the desktop a little ahead of the bottom.
-constant float deckDepth = 150.0;
-constant float deckBays = 90.0;
+// and from -0.65 down it is clear. The bank is a long band across the whole desktop, so every display sees one bank, with
+// a near edge and a far edge that each slide down from above the desktop to below it. Each edge's bays are fixed to the
+// bank, so an edge keeps its shape and simply moves. `deckSolid` past the bottom everything is under cloud, and `deckClear`
+// above the top nothing shows, not even a shadow. Together they make Crossing.room.
+constant float deckDepth = 120.0;
+constant float deckBays = 80.0;
+constant float deckSolid = 160.0;
+constant float deckClear = 260.0;
+
+// How far an edge's bays and headlands reach. Noise seldom strays far from its middle, so it is stretched, or an edge
+// comes out nearly straight, like the hem of a curtain.
+inline float deckBay(float2 bank, uint seed) {
+    float wander = 0.65 * vnoiseP(bank / 256.0, 64, seed) + 0.35 * vnoiseP(bank / 128.0, 128, seed + 1u);
+    return deckBays * clamp((wander - 0.5) * 4.0, -1.0, 1.0);
+}
 
 inline float deckReach(float2 p, float row, constant CloudParams &params) {
     float height = params.deck.w;
-    float beyond = deckBays + deckDepth * 0.66;
-    float front = mix(height + beyond, -beyond, params.deck.x);
-    float bay = vnoiseP(p / 256.0, 64, 331u) * 2.0 - 1.0;
-    float coming = (row + bay * deckBays - front) / deckDepth;
-    float hole = saturate((vnoiseP(p / 128.0, 128, 332u) * 0.6 + vnoiseP(p / 256.0, 64, 333u) * 0.4 - 0.25) * 2.0);
-    float going = 1.76 - params.deck.y * 3.52 + (hole - 0.5) * 1.6 + (0.5 - row / height) * 0.6;
-    return min(coming, going);
+    float2 bank = p + float2(0.0, params.flow.x);
+    float near = mix(height + deckClear, -deckSolid, params.deck.x);
+    float far = mix(height + deckSolid, -deckClear, params.deck.y);
+    return min(row + deckBay(bank, 331u) - near, far - row + deckBay(bank, 334u)) / deckDepth;
 }
 
 fragment float4 clouds(VertexOut in [[stage_in]], constant CloudParams &params [[buffer(0)]]) {
@@ -111,13 +119,12 @@ fragment float4 clouds(VertexOut in [[stage_in]], constant CloudParams &params [
     if (params.deck.x > 0.0) {
         float row = params.deck.z + pixel.y * params.origin.z;
         float reach = deckReach(p, row, params);
-        // A thin veil runs ahead of the bank and lingers after it, sliding at its own speed, lower down.
-        float there = smoothstep(0.0, 0.12, params.deck.x) * (1.0 - smoothstep(0.82, 1.0, params.deck.y));
+        // A thin veil runs out from under the bank's edges, lower down, so sliding a little slower.
         float2 low = p + float2(0.0, params.flow.y);
         float grain = vnoiseP(low / 64.0, 256, 341u) * 0.65 + vnoiseP(low / 32.0, 512, 342u) * 0.35;
-        float veil = smoothstep(-1.5, 0.4, reach) * smoothstep(0.25, 0.75, grain) * 0.55 * there;
+        float veil = smoothstep(-0.66, 0.4, reach) * smoothstep(0.25, 0.75, grain) * 0.5;
         float bank = 0.0;
-        if (reach > -0.65) {
+        if (reach > -0.66) {
             float big, unused;
             float tops = deckTops(p, params.flow.x, big);
             bank = smoothstep(0.0, 0.15, tops + reach - 0.5);
@@ -131,9 +138,8 @@ fragment float4 clouds(VertexOut in [[stage_in]], constant CloudParams &params [
         }
         alpha = bank + veil * (1.0 - bank);
         // Solid, nothing behind it can be seen, and most of what a closed sky costs is saved.
-        if (alpha >= 1.0) return float4(1.0, bankShade, there, 0.0);
-        float2 shadowAt = p + params.offsets.zw * 2.0;
-        falling = smoothstep(-1.3, 0.5, deckReach(shadowAt, row + params.offsets.w * 2.0, params)) * there;
+        if (alpha >= 1.0) return float4(1.0, bankShade, 1.0, 0.0);
+        falling = smoothstep(-0.66, 0.5, deckReach(p + params.offsets.zw * 1.4, row + params.offsets.w * 1.4, params));
     }
 
     float2 d = cloudField(p, cover, 4);

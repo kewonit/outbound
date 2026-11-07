@@ -13,47 +13,67 @@ public struct Leg: Sendable {
     public let sweepStart: TimeInterval?
 }
 
-/// One place giving way to the next under cloud. A bank rolls in, closes over everything, and parts again over the new
-/// land, so the two places never meet on screen. Everything about it is a matter of the time, so each display can draw
-/// its own moment and a rewind needs nothing put back.
+/// One place giving way to the next under cloud. A long bank slides through the view from the top, the way the flight
+/// goes: its near edge passes down the desktop, there is a stretch of nothing but cloud, and its far edge passes down after
+/// it with the next place behind. Nothing fades or parts. The bank is one solid thing on the move, so the two places never
+/// meet on screen. All of it is a matter of the time, so each display can draw its own moment and a rewind needs nothing
+/// put back.
 public struct Crossing: Equatable, Sendable {
-    /// How long the cloud takes to close, stays closed, and takes to clear, whatever the pace.
-    public static let closing: TimeInterval = 25
+    /// How fast the bank slides, in metres a second: far faster than the land, being so much nearer the camera, and the
+    /// same however big the desktop is.
+    public static let speed = 24.0
+    /// How long the land has, with the whole desktop under cloud.
     public static let closed: TimeInterval = 6
-    public static let opening: TimeInterval = 25
+    /// How far past the desktop each edge has to start and finish, in metres, for its ragged shape and its shadow to be
+    /// out of view at one end and everything solid at the other. The cloud shader's `deckSolid` and `deckClear`.
+    public static let room = 420.0
 
-    /// When the first wisps come in.
+    /// When the bank sets off, just out of view.
     public let start: TimeInterval
-    /// When it was called off while still closing, and the bank began to draw back the way it came.
+    /// How far each edge slides, in metres.
+    public let span: Double
+    /// When it was called off while still closing, and the bank began to slide back the way it came.
     public private(set) var calledOff: TimeInterval?
 
-    public init(start: TimeInterval) {
+    /// A crossing of a desktop `height` metres tall.
+    public init(start: TimeInterval, height: Double) {
         self.start = start
+        span = height + Self.room
     }
 
+    /// How tall the desktop it crosses is, in metres.
+    public var height: Double { span - Self.room }
+    /// How long each edge takes.
+    public var passing: TimeInterval { span / Self.speed }
     /// When everything is under cloud.
-    public var closes: TimeInterval { start + Self.closing }
-    /// When the cloud starts to part.
+    public var closes: TimeInterval { start + passing }
+    /// When the far edge sets off.
     public var opens: TimeInterval { closes + Self.closed }
     /// When the land starts to change: its sweep sits in the middle of the time the cloud is closed.
     public var turn: TimeInterval { closes + (Self.closed - Journey.sweepDuration) / 2 }
 
     /// When the last of it has gone.
     public var end: TimeInterval {
-        guard let calledOff else { return opens + Self.opening }
+        guard let calledOff else { return opens + passing }
         return calledOff + (calledOff - start)
     }
 
-    /// How far the cloud has closed at `t`, 0 clear sky to 1 closed.
+    /// How far the near edge has come at `t`, 0 out of view above the desktop to 1 past the bottom of it.
     public func closure(at t: TimeInterval) -> Double {
-        // Called off, it draws back at the rate it came in.
+        // Called off, it slides back at the rate it came in.
         let reached = calledOff.map { $0 - max(t - $0, 0) } ?? .infinity
-        return max(0, min(1, (min(t, reached) - start) / Self.closing))
+        return max(0, min(1, (min(t, reached) - start) / passing))
     }
 
-    /// How far the cloud has cleared at `t`, 0 not at all to 1 gone.
+    /// How far the far edge has come at `t`, 0 not yet set off to 1 gone past the bottom of the desktop.
     public func clearing(at t: TimeInterval) -> Double {
-        calledOff == nil ? max(0, min(1, (t - opens) / Self.opening)) : 0
+        calledOff == nil ? max(0, min(1, (t - opens) / passing)) : 0
+    }
+
+    /// How far the bank has slid at `t`, in metres. Its shape is fixed to this, so it moves as one thing.
+    public func slide(at t: TimeInterval) -> Double {
+        guard calledOff == nil else { return closure(at: t) * span }
+        return Self.speed * (max(min(t, end), start) - start)
     }
 
     /// Whether any of it is in the sky at `t`.
@@ -61,8 +81,8 @@ public struct Crossing: Equatable, Sendable {
         t >= start && t < end
     }
 
-    /// The land won't be changing after all. While the cloud is still closing it draws back again; once it is closed it
-    /// simply clears over the same land.
+    /// The land won't be changing after all. While the near edge is still on its way the bank slides back; once
+    /// everything is under it, it simply carries on over the same land.
     public mutating func callOff(at t: TimeInterval) {
         if t < closes { calledOff = t }
     }
@@ -216,9 +236,9 @@ public final class Journey {
 
     /// Moves the journey on to `time`: starts a crossing when the stay over this place is up, changes the land once the
     /// cloud has closed, and forgets legs far behind. `bottom` is the world y just below everything on view, where a new
-    /// place begins.
+    /// place begins, and `height` how tall the desktop is in metres.
     @discardableResult
-    public func carryOn(at time: TimeInterval, bottom: Double, behind: Double, date: Date = .now) -> Change {
+    public func carryOn(at time: TimeInterval, bottom: Double, height: Double, behind: Double, date: Date = .now) -> Change {
         defer {
             carriedOn = time
             while legs.count > 2, legs[1].start + Self.morphLength < behind { legs.removeFirst() }
@@ -227,8 +247,9 @@ public final class Journey {
         var change = Change.none
         // A step past a whole crossing, as when an export starts well into the flight, has no cloud to show: the journey
         // is simply over the place it would have reached by now.
-        if crossing == nil, !staysPut, let carriedOn, time - carriedOn >= Self.crossingLength {
-            while let last = legs.last, y >= last.start + legLength + Self.crossingLength * speed {
+        let whole = Crossing(start: 0, height: height).end
+        if crossing == nil, !staysPut, let carriedOn, time - carriedOn >= whole {
+            while let last = legs.last, y >= last.start + legLength + whole * speed {
                 // Below the view, whichever display is lowest, and never back over the leg before.
                 let start = min(last.start + legLength, bottom)
                 guard start > last.start else { break }
@@ -237,7 +258,7 @@ public final class Journey {
             }
         }
         if crossing == nil, !staysPut, let last = legs.last, y >= last.start + legLength {
-            crossing = Crossing(start: time)
+            crossing = Crossing(start: time, height: height)
             landToChange = true
         }
         guard var underWay = crossing else { return change }
@@ -273,9 +294,6 @@ public final class Journey {
         // A sweep long over, not one just ending, which rounding could leave a hair short of over.
         append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)
     }
-
-    /// The whole of a crossing, from the first wisps to the last.
-    private static var crossingLength: TimeInterval { Crossing.closing + Crossing.closed + Crossing.opening }
 
     /// The place the journey goes to after `leg`.
     private func place(after leg: Leg) -> Place {

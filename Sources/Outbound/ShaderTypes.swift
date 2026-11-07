@@ -134,10 +134,10 @@ struct CloudsGPU {
     var offsets: SIMD4<Float>
     /// view height in pixels, unused...
     var view: SIMD4<Float>
-    /// a crossing: how far closed, how far cleared, the bottom row's height above the desktop's bottom and the desktop's
-    /// height in metres
+    /// a crossing: how far its near and far edges have come, 0 to 1, the bottom row's height above the desktop's bottom
+    /// and the desktop's height in metres
     var deck: SIMD4<Float> = .zero
-    /// how far the crossing's cloud and the veil under it have slid, in metres, unused...
+    /// how far the bank and the veil under it have slid, in metres, unused...
     var flow: SIMD4<Float> = .zero
 }
 
