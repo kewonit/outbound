@@ -550,7 +550,7 @@ kernel void probeBird(device float4 *out [[buffer(0)]], constant Scene &scene [[
 kernel void probeClouds(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                         uint id [[thread_position_in_grid]]) {
     float2 p = probePoint(id, 23.0, float2(1200.0, -800.0));
-    out[id] = float4(cloudField(p, 0.55, 4), cloudField(p + cloudPeriod, 0.55, 4));
+    out[id] = float4(cloudField(p, 0.55, true).xy, cloudField(p + cloudPeriod, 0.55, true).xy);
 }
 
 // MARK: - Promises
@@ -690,7 +690,7 @@ kernel void promiseBird(device float4 *out [[buffer(0)]], constant Scene &scene 
 kernel void promiseClouds(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                           uint id [[thread_position_in_grid]]) {
     float2 p = probePoint(id, 23.0, float2(1200.0, -800.0));
-    float2 here = cloudField(p, 0.55, 4), over = cloudField(p + cloudPeriod, 0.55, 4);
+    float2 here = cloudField(p, 0.55, true).xy, over = cloudField(p + cloudPeriod, 0.55, true).xy;
     out[id] = float4(beyond(here.x - over.x, 0.02), beyond(here.y - over.y, 0.02), outside(here.x, 0.0, 1.0), 0.0);
 }
 
