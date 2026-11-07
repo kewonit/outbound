@@ -398,9 +398,9 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
         l.water = kind < b.b.x * 0.5 ? b.c.x * 0.4 : 0.0;
         l.sway = 0.0;
     } else if (h < 0.5) {
-        // Flooded, mirroring the sky.
-        c = cropColor(b, h);
-        c = mix(c, c * 1.06, vnoise(p / 9.0, seed + 11u));
+        // Flooded: the sky over silt, and no two plots alike, as each holds a different depth of water.
+        c = mix(cropColor(b, h), float3(0.5, 0.49, 0.4), 0.14 + 0.3 * hash21(plot, seed + 13u));
+        c = pigment(c, vnoise(p / 21.0, seed + 11u), 0.32);
         l.water = b.c.x;
         l.sway = 0.1;
     } else {
@@ -419,8 +419,8 @@ inline Land paddies(float2 p, constant Biome &b, uint seed) {
     float edgeDist = min(sideDist, rowDist);
     float bund = fill(edgeDist - levee, 0.3);
     c = mix(c, b.hedge.rgb * (0.9 + 0.14 * vnoise(p / 1.5, seed + 9u)), bund);
-    // The plot's water stands a little darker against the bund.
-    c *= 1.0 - 0.08 * fill(edgeDist - levee - 1.2, 0.8) * (1.0 - bund) * step(0.3, l.water);
+    // The plot's water stands a little darker against the bund, where mud shows through it.
+    c *= 1.0 - 0.15 * fill(edgeDist - levee - 1.6, 1.2) * (1.0 - bund) * step(0.3, l.water);
     // The road or the channel along the plot's end.
     float endDist = rowDist;
     if (roadEnd) {
@@ -1284,10 +1284,17 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
     } else if (kind == markLake) {
         float shape = lakeShore(d, radius, s);
         float wet = fill(shape, 0.02);
-        float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, float3(0.72, 0.8, 0.88), 0.4)
-                                  : mix(b.water.rgb * 0.72, float3(0.1, 0.17, 0.28), 0.35);
+        // One body of colour under long slow washes, paling only in a thin ragged margin, and in the shade of its shore
+        // on the sun's side, like the river.
+        float frozen = b.f.z;
+        float3 deep = frozen > 0.5 ? mix(b.snow.rgb, float3(0.72, 0.8, 0.88), 0.4) : b.water.rgb;
+        deep = pigment(deep, vnoise(d / float2(46.0, 21.0), s + 21u), 0.5 * (1.0 - frozen));
+        float margin = 0.035 * (0.6 + 0.8 * vnoise(d / 19.0, s + 22u));
+        float3 lake = mix(deep, b.shallows.rgb, smoothstep(-margin, 0.0, shape) * (1.0 - frozen * 0.5));
+        float shaded = fill(lakeShore(d + scene.sun.xy * min(scene.sun.z, 2.0) * 3.0, radius, s) * -1.0, 0.012);
+        lake = shade(lake, shaded * 0.45 * (1.0 - frozen), scene);
         c = mix(c, b.sand.rgb, fill(shape - 0.05, 0.02) * (1.0 - b.f.y * 0.6));
-        c = mix(c, mix(deep, b.shallows.rgb * 0.8, smoothstep(-0.08, 0.0, shape)), wet);
+        c = mix(c, lake, wet);
         water = max(water, wet * (1.0 - b.f.z));
         herd *= 1.0 - fill(shape - 0.05, 0.02);
         cover = max(cover, wet);
@@ -1319,7 +1326,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float dist = shape * r;
     float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, b.shallows.rgb, 0.35) : b.water.rgb;
     float3 shallow = b.f.z > 0.5 ? b.snow.rgb : b.shallows.rgb;
-    float3 pond = mix(deep, shallow, smoothstep(-r * 0.2, 0.0, dist));
+    float3 pond = mix(pigment(deep, vnoise(local / 21.0, seed + 87u), 0.45 * (1.0 - b.f.z)), shallow, smoothstep(-r * 0.2, 0.0, dist));
     if (size > 1.5) {
         float rim = 5.0 + 0.12 * r * (0.6 + 0.8 * vnoise(d / 30.0, seed + 84u));
         float3 reeds = c * float3(0.78, 0.9, 0.7) * (0.9 + 0.2 * vnoise(local / 2.0, seed + 85u));
