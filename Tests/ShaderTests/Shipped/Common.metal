@@ -51,7 +51,7 @@ struct Scene {
     float4 light;  // rgb, strength
     float4 morph;  // boundary, length, sweep (-1 flying), sweep wave
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
-    float4 clock;  // local hour, sunset hour, boat phase
+    float4 clock;  // local hour, sunset hour, boat phase, how far the current has carried a river's surface
     float4 traffic; // car cycles north and south, boat cycles up and down stream (see carSlot)
     float4 bends;  // phases of the river's own bends
     Train train;

@@ -58,7 +58,7 @@ private extension Biome {
 private let punjabBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8fbf45), groundDark: rgb(0x5f9a35),
                   crops: (rgb(0xf3cf1d), rgb(0xf6dc3c), rgb(0xe9bd12), rgb(0x9cc845)), hedge: rgb(0x2f7c34),
-                  water: rgb(0x4a6f86), shallows: rgb(0x7f9488), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
+                  water: rgb(0x55736e), shallows: rgb(0x8f9c84), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
                   canopyLight: rgb(0x3f8a45))
     b.fieldSize = 190; b.hedgeWidth = 9; b.warp = 0.55; b.fallow = 0.06; b.sway = 0.9; b.strokes = 0.6
     b.trees = 0.2; b.treeSize = 10; b.hedgeTrees = 0.35; b.clumping = 0.85; b.houses = 0.35; b.ponds = 0.25
@@ -103,7 +103,7 @@ private let niigataBase: Biome = {
     // Flooded plots mirroring the sky, then newly planted ones with the seedlings showing green through the water.
     var b = Biome(layout: .paddies, ground: rgb(0x8aa86a), groundDark: rgb(0x5f8a52),
                   crops: (rgb(0x86a6b8), rgb(0x9cb4c2), rgb(0x86a487), rgb(0x95ae84)), hedge: rgb(0x8fa25e),
-                  water: rgb(0x4f7179), shallows: rgb(0x7e938a), sand: rgb(0xc7bfa6), road: rgb(0xbdb8ab),
+                  water: rgb(0x44747c), shallows: rgb(0x7fa59a), sand: rgb(0xc7bfa6), road: rgb(0xbdb8ab),
                   canopy: rgb(0xf0b7c4), canopyLight: rgb(0xfbdde4))
     b.fieldSize = 30; b.hedgeWidth = 2.4; b.warp = 0.08; b.fallow = 0.2; b.flooded = 0.8; b.sway = 0.3
     b.strokes = 0.35; b.trees = 0; b.treeSize = 13; b.hedgeTrees = 0; b.clumping = 0.15; b.petals = 0.8
@@ -149,7 +149,7 @@ private let niigata = Place(
 private let serengetiBase: Biome = {
     var b = Biome(layout: .grassland, ground: rgb(0xe0ad48), groundDark: rgb(0xc58f34),
                   crops: (rgb(0xd9a443), rgb(0xe7bb5c), rgb(0xc99a3e), rgb(0xb98a38)), hedge: rgb(0xa77a33),
-                  water: rgb(0x3d8f8a), shallows: rgb(0x5fb3a8), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
+                  water: rgb(0x6e6c4c), shallows: rgb(0x9b9268), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
                   canopy: rgb(0x55803a), canopyLight: rgb(0x77a04a))
     b.patchiness = 0.85; b.strokes = 0.45; b.sway = 0.6; b.trees = 0.035; b.treeSize = 17; b.hedgeTrees = 0
     b.clumping = 0.1
@@ -197,7 +197,7 @@ private let pampaBase: Biome = {
     // Natural grass and tilled soil, then pasture, lusher pasture, wheat and stubble.
     var b = Biome(layout: .grassland, ground: rgb(0xa2a865), groundDark: rgb(0x8e7556),
                   crops: (rgb(0x8fae55), rgb(0x76a046), rgb(0xa4b54e), rgb(0xc8b98a)), hedge: rgb(0x5f9330),
-                  water: rgb(0x6c7e6a), shallows: rgb(0x8e9c7c), sand: rgb(0xcfc29a), road: rgb(0xcbb995),
+                  water: rgb(0x74745a), shallows: rgb(0x9c9a78), sand: rgb(0xcfc29a), road: rgb(0xcbb995),
                   canopy: rgb(0x2f5a33), canopyLight: rgb(0x557a45))
     b.patchiness = 0.5; b.strokes = 0.4; b.sway = 0.35; b.trees = 0.012; b.treeSize = 11; b.hedgeTrees = 0
     b.clumping = 0.7; b.treeLines = 0.3
@@ -241,7 +241,7 @@ private let laplandBase: Biome = {
     var b = Biome(layout: .taiga, ground: rgb(0x5f6b3e), groundDark: rgb(0x46522f),
                   // Lichen, sedge, moss and heather, peat strings.
                   crops: (rgb(0xc4c2a3), rgb(0x9e9a62), rgb(0x56633a), rgb(0x5e5434)), hedge: rgb(0x6c843e),
-                  water: rgb(0x34484f), shallows: rgb(0x55686a), sand: rgb(0xbdb295), road: rgb(0x9d9b96),
+                  water: rgb(0x2c3f46), shallows: rgb(0x6a6650), sand: rgb(0xbdb295), road: rgb(0x9d9b96),
                   canopy: rgb(0x3b5134), canopyLight: rgb(0x5f7444), rock: rgb(0x9a9890))
     b.strokes = 0.5; b.sway = 0.25; b.trees = 0; b.treeSize = 8; b.houses = 0.05; b.ponds = 0.2
     b.riverWidth = 46; b.riverWander = 60; b.riverBends = 90; b.roadWidth = 7; b.paved = 1
@@ -283,7 +283,7 @@ private let lapland = Place(
 private let normandyBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8cc74e), groundDark: rgb(0x3f8a3a),
                   crops: (rgb(0x92cc52), rgb(0xb7d95e), rgb(0xd7d44a), rgb(0x7cbd4a)), hedge: rgb(0x2e6e34),
-                  water: rgb(0x3f6378), shallows: rgb(0x6c8a86), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
+                  water: rgb(0x41625e), shallows: rgb(0x6f8a7a), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
                   canopy: rgb(0x4f8a3a), canopyLight: rgb(0x7db04f))
     b.fieldSize = 150; b.hedgeWidth = 8; b.warp = 0.6; b.fallow = 0.1; b.sway = 0.5
     b.trees = 0.08; b.treeSize = 8; b.hedgeTrees = 0.6; b.clumping = 0.7; b.orchards = 0.22; b.petals = 0.4; b.houses = 0.3
@@ -329,7 +329,7 @@ private let normandy = Place(
 private let lisseBase: Biome = {
     var b = Biome(layout: .stripes, ground: rgb(0x7fb352), groundDark: rgb(0x5c9443),
                   crops: (rgb(0xe3392f), rgb(0xf6cd2f), rgb(0xef7fa8), rgb(0x8f58b8)), hedge: rgb(0x6e9a4a),
-                  water: rgb(0x3d5a6e), shallows: rgb(0x5e7a84), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
+                  water: rgb(0x486064), shallows: rgb(0x6e8484), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
                   canopy: rgb(0x2f6635), canopyLight: rgb(0x4a8a44))
     b.fieldSize = 22; b.hedgeWidth = 3; b.warp = 0.03; b.fallow = 0.18; b.strokes = 0.3; b.sway = 0.4
     b.trees = 0.03; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
@@ -365,7 +365,7 @@ private let lisse = Place(
 private let kansasBase: Biome = {
     var b = Biome(layout: .pivots, ground: rgb(0xd6c08a), groundDark: rgb(0xc2aa72),
                   crops: (rgb(0x5f9e3e), rgb(0x76ad45), rgb(0xd9b24a), rgb(0x4e8f3a)), hedge: rgb(0xc8b893),
-                  water: rgb(0x5f7f86), shallows: rgb(0x8aa0a0), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
+                  water: rgb(0x7a7358), shallows: rgb(0xa59a76), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
                   canopy: rgb(0x4a6e35), canopyLight: rgb(0x6a8f45))
     b.fieldSize = 270; b.hedgeWidth = 6; b.warp = 0; b.fallow = 0.12; b.strokes = 0.5; b.sway = 0.6
     b.trees = 0.015; b.treeSize = 10; b.hedgeTrees = 0.05; b.clumping = 0.95; b.houses = 0.08

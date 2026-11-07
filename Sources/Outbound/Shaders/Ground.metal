@@ -1319,7 +1319,7 @@ inline float3 ponds(float3 c, float2 local, float2 world, constant Biome &b, con
     float dist = shape * r;
     float3 deep = b.f.z > 0.5 ? mix(b.snow.rgb, b.shallows.rgb, 0.35) : b.water.rgb;
     float3 shallow = b.f.z > 0.5 ? b.snow.rgb : b.shallows.rgb;
-    float3 pond = mix(deep, shallow, smoothstep(-r * 0.55, 0.0, dist));
+    float3 pond = mix(deep, shallow, smoothstep(-r * 0.2, 0.0, dist));
     if (size > 1.5) {
         float rim = 5.0 + 0.12 * r * (0.6 + 0.8 * vnoise(d / 30.0, seed + 84u));
         float3 reeds = c * float3(0.78, 0.9, 0.7) * (0.9 + 0.2 * vnoise(local / 2.0, seed + 85u));
@@ -1735,16 +1735,23 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &a
     // A dark damp line where the water has just been.
     c = mix(c, c * 0.8, fill(abs(ad - edge - 0.7) - 0.6, 0.4) * (1.0 - snowCover) * presence);
 
-    // The water: shallow and light over the bar, deepest under the cut bank, streaked along the current.
+    // The water: one body of colour, as a river is from above, lying a little below its banks. It only pales where it
+    // really is shallow, over the bar and along a thin ragged margin, and long washes of pigment drawn out by the current
+    // keep it from being flat. The bank on the sun's side throws a thin shadow across it.
     float3 deep = mix(a.water.rgb, b.water.rgb, m);
     float3 shallow = mix(a.shallows.rgb, b.shallows.rgb, m);
-    float thalweg = clamp(bend, -1.0, 1.0) * halfWidth * 0.35 * presence;
-    float depth = saturate(1.0 - pow(abs(d + thalweg) / halfWidth, 2.0));
-    float3 w = mix(mix(shallow, sand, 0.25), shallow, smoothstep(0.0, 0.15, depth));
-    w = mix(w, deep, smoothstep(0.1, 0.6, depth));
-    w = mix(w, deep * 0.88, smoothstep(0.75, 1.0, depth));
-    float streak = alongNoise(float2(d / 2.2, p.y), float2(1.0, 26.0), 5u);
-    w *= 1.0 + 0.06 * (streak - 0.5);
+    float fromEdge = edge - ad;
+    float reach = (1.5 + width * 0.035 + inner * halfWidth * 0.55)
+                * (0.6 + 0.8 * alongNoise(float2(side * 5.0, p.y), float2(1.0, 46.0), 19u));
+    float shoal = 1.0 - smoothstep(0.0, reach, fromEdge);
+    float3 w = mix(deep, mix(shallow, sand, 0.25 * shoal), shoal * shoal);
+    float broad = alongNoise(float2(d / max(width * 0.6, 1.0), p.y), float2(1.0, 150.0), 5u);
+    float streak = alongNoise(float2(d / max(width * 0.16, 1.0), p.y), float2(1.0, 62.0), 20u);
+    w = pigment(w, broad, 0.55);
+    w = pigment(w, streak, 0.28);
+    float towards = saturate(dot(scene.sun.xy, float2(side, 0.0)));
+    float cast = (1.2 + 1.8 * min(scene.sun.z, 2.0)) * towards * presence;
+    w = shade(w, fill(fromEdge - cast, 1.0) * 0.55 * saturate(towards * 3.0), scene);
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, streak));
     w = mix(w, ice, frozen);
     float inWater = fill(ad - edge, 0.45);

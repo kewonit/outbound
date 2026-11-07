@@ -419,12 +419,24 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         }
     }
 
-    // Water mirrors the sky: clouds overhead brighten it.
+    // Water holds the sky: clouds overhead brighten it, and so does the wind, which roughens it in soft cats' paws that
+    // drift across with the gusts. On a river the current draws faint threads along it, sliding slowly downstream.
     if (water > 0.01) {
         float2 cloudPx = (params.clouds.xy + pixel * mpp) / params.clouds.z;
         float2 cloudSize = float2(cloudTexture.get_width(), cloudTexture.get_height());
         float overhead = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudSize.y - cloudPx.y) / cloudSize).x;
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
+        // Cell sizes that divide the gust space's period; bent by a slower noise so they never show its grid.
+        float2 gust = params.world.zw + pixel * mpp;
+        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(53.3333, 40.0)) - 0.5,
+                                           latticeNoise(noise, wrap, gust.yx / float2(40.0, 53.3333) + 31.0) - 0.5);
+        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(26.6667, 20.0))
+                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.3333, 10.0));
+        c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, paws) * 0.12);
+        if (water > 0.99) {
+            float across = world.x - riverX(world.y, scene, course(scene, landTurn(world.y, scene)));
+            c *= 1.0 + 0.07 * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+        }
     }
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.

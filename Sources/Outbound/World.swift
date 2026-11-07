@@ -367,7 +367,8 @@ final class World {
             morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
-            clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase, 0),
+            clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
+                         Float((reference + t * Self.current).positiveRemainder(256 * 64))),
             traffic: SIMD4(cars.north, cars.south, boats.north, boats.south),
             bends: bends,
             train: train(reference: reference, at: t),
@@ -393,6 +394,9 @@ final class World {
     }
 
     static let boatSpeed = 1.25
+    /// How fast a river's surface slides downstream, in metres a second. Its threads repeat every 256 lattice cells of
+    /// 64 m, so this is kept as how far along those it has come, counted from the world's origin (see viewGround).
+    static let current = 0.7
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0
