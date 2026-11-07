@@ -185,7 +185,10 @@ final class World {
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
         journey.extend(through: top + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + 200)
+                       notBefore: top + 200,
+                       // Only two places can be on screen at once, so a place lasts long enough to finish turning
+                       // into the next before a third comes into view, however tall the desktop.
+                       shortest: Journey.morphLength + Double(desktop.height) * Self.metresPerPoint + 200)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
