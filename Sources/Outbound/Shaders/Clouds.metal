@@ -81,14 +81,15 @@ inline float2 deckWarped(float2 bank) {
 inline float deckTops(float2 bank, thread float &big) {
     float2 q = deckWarped(bank);
     big = domes(q, 64.0, 321u);
-    return 0.62 * big + 0.26 * domes(q, 32.0, 322u) + 0.12 * domes(q, 16.0, 323u);
+    return 0.5 * big + 0.32 * domes(q, 32.0, 322u) + 0.18 * domes(q, 16.0, 323u);
 }
 
 // How deep into the bank a point is, as a level to add to its tops. From 0.65 up it is solid whatever the tops are doing,
 // and from -0.66 down it is clear. Its two edges wander in bays and headlands, and however far they wander in, the join
 // itself stays well under solid cloud. World.bankReach is how far out it can be seen.
-constant float deckDepth = 50.0;
-constant float deckBays = 28.0;
+constant float deckDepth = 60.0;
+constant float deckBays = 16.0;
+constant float deckWander = 16.0;
 
 // Noise seldom strays far from its middle, so it is stretched, or an edge comes out nearly straight, like the hem of a
 // curtain.
@@ -97,8 +98,10 @@ inline float deckBay(float2 bank, uint seed) {
     return deckBays * clamp((wander - 0.5) * 4.0, -1.0, 1.0);
 }
 
+// Its two edges wander apart and together, and the whole band wanders across the join, so it is never a rope of one width.
 inline float deckReach(float2 bank, float half_) {
-    return (half_ - abs(bank.y) + deckBay(bank, bank.y > 0.0 ? 334u : 331u)) / deckDepth;
+    float y = bank.y - deckWander * clamp((vnoiseP(float2(bank.x / 512.0, 0.5), 32, 335u) - 0.5) * 4.0, -1.0, 1.0);
+    return (half_ - abs(y) + deckBay(bank, y > 0.0 ? 334u : 331u)) / deckDepth;
 }
 
 fragment float4 clouds(VertexOut in [[stage_in]], constant CloudParams &params [[buffer(0)]]) {
@@ -111,26 +114,27 @@ fragment float4 clouds(VertexOut in [[stage_in]], constant CloudParams &params [
     if (params.deck.x > 0.0) {
         float2 bank = params.deck.zy + pixel * params.origin.z;
         float reach = deckReach(bank, params.deck.x);
-        // A thin veil runs out from under its edges.
-        float grain = vnoiseP(bank / 32.0, 512, 341u) * 0.65 + vnoiseP(bank / 16.0, 1024, 342u) * 0.35;
-        float veil = smoothstep(-0.66, 0.4, reach) * smoothstep(0.25, 0.75, grain) * 0.5;
-        float solid = 0.0;
         if (reach > -0.66) {
             float big, unused;
             float tops = deckTops(bank, big);
-            solid = smoothstep(0.0, 0.15, tops + reach - 0.5);
-            if (solid > 0.0) {
+            alpha = smoothstep(0.0, 0.08, tops + reach - 0.5);
+            if (alpha > 0.0) {
                 // Lit from the sun's side of each dome, close to, and shaded by the big forms between it and the sun.
                 float towards = deckTops(bank + params.offsets.xy * 0.15, unused);
                 float standing = domes(deckWarped(bank + params.offsets.xy * 0.8), 64.0, 321u) - big;
-                bankShade = 0.72 + 2.4 * (tops - towards) - 0.75 * max(standing, 0.0);
-                bankShade = saturate(bankShade * mix(0.78, 1.06, smoothstep(0.25, 0.85, tops)));
+                bankShade = 0.74 + 3.0 * (tops - towards) - 1.2 * max(standing, 0.0);
+                bankShade = saturate(bankShade * mix(0.84, 1.06, smoothstep(0.2, 0.8, tops)));
             }
         }
-        alpha = solid + veil * (1.0 - solid);
         // Solid, nothing behind it can be seen, and most of what it costs is saved.
         if (alpha >= 1.0) return float4(1.0, bankShade, 1.0, 0.0);
-        falling = smoothstep(-0.66, 0.5, deckReach(bank + params.offsets.zw * 0.6, params.deck.x));
+        // Its shadow is its own shape, thrown across the land as any cloud's is.
+        float2 fall = bank + params.offsets.zw;
+        float fallReach = deckReach(fall, params.deck.x);
+        if (fallReach > -0.66) {
+            float unused;
+            falling = smoothstep(0.0, 0.2, deckTops(fall, unused) + fallReach - 0.5);
+        }
     }
 
     float2 d = cloudField(p, cover, 4);

@@ -830,14 +830,12 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         }
     }
 
-    // How much of the cloud here is the bank of a crossing, which the gull flies above, and which hides the land whole.
+    // How much of the cloud here is a bank between two places, which the gull flies above, and which hides the land whole.
     float bank = 1.0 - cloud.w;
-    float cloudAlpha = mix(smoothstep(0.02, 0.6, cloud.x), cloud.x, bank);
+    float cloudAlpha = smoothstep(0.02, 0.6, cloud.x);
     if (cloudAlpha > 0.0) {
         float3 cloudColor = mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, cloud.y));
-        // Kept off pure white, so a desktop under it glows rather than glares.
-        float3 bankColor = mix(float3(0.64, 0.7, 0.82), float3(0.985, 0.975, 0.95), smoothstep(0.1, 1.0, cloud.y));
-        c = mix(c, mix(cloudColor, bankColor, bank), cloudAlpha);
+        c = mix(c, cloudColor, cloudAlpha);
     }
 
     // The gull's shadow falls close beneath it on the bank.
