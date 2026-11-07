@@ -465,10 +465,10 @@ final class World {
             locomotive: color(railway.locomotive))
     }
 
-    /// Half the length of the bank of cloud over each join between two places, in metres: about a screenful in all.
-    static let bankHalf = 221.0
+    /// Half the length of the bank of cloud over each join between two places, in metres: a thin band across the land.
+    static let bankHalf = 70.0
     /// How far from a join anything of its bank can be seen, ragged edges and shadow included.
-    static let bankReach = 480.0
+    static let bankReach = 180.0
 
     /// World y of the join whose bank shows anywhere from `bottom` to `top`, if one does.
     func bank(from bottom: Double, to top: Double) -> Double? {

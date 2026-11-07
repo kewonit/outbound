@@ -15,12 +15,12 @@ struct BankTests {
     /// The texture's rows run from the top down, a metre each.
     private func cover(_ bytes: [UInt8], x: Int, row: Int) -> Int { Int(bytes[(row * 256 + x) * 4]) }
 
-    /// The two places must never be seen meeting: for 60 m either side of the join nothing shows but cloud.
+    /// The two places must never be seen meeting: for 8 m either side of the join nothing shows but cloud.
     @Test(arguments: columns)
     func theJoinIsAlwaysUnderSolidCloud(x: Float) throws {
         for sideways in stride(from: Float(0), to: 2048, by: 256) {
             let bytes = try bench.renderBank(above: -128, x: x + sideways)
-            for row in 68..<188 {
+            for row in 120..<136 {
                 for column in 0..<256 {
                     #expect(bytes[(row * 256 + column) * 4] == 255)
                     #expect(bytes[(row * 256 + column) * 4 + 3] == 0)
@@ -42,21 +42,22 @@ struct BankTests {
         }
     }
 
-    /// It is about a screenful: thick cloud at a quarter of a screen each way, and open sky not far past half.
-    @Test func itIsAboutOneScreenful() throws {
+    /// It is only a thin band: open sky not far from the join on either side.
+    @Test func itIsThin() throws {
         func mean(_ above: Float) throws -> Double {
             let bytes = try bench.renderBank(above: above)
             var sum = 0
             for pixel in stride(from: 0, to: bytes.count, by: 4) { sum += Int(bytes[pixel]) }
             return Double(sum) / Double(bytes.count / 4) / 255
         }
-        #expect(try mean(-128) == 1)
-        #expect(try mean(320) < 0.1)
-        #expect(try mean(-576) < 0.1)
+        let around = try mean(-128)
+        #expect(around > 0.35 && around < 0.75)
+        #expect(try mean(110) < 0.1)
+        #expect(try mean(-366) < 0.1)
     }
 
     /// It belongs to the land: flown on, it is the very same picture further down the screen, so it can't fade or part.
-    @Test(arguments: [Float(-330), -200, 80, 210])
+    @Test(arguments: [Float(-250), -180, -60, 20])
     func itMovesWithTheLandAndNothingElse(above: Float) throws {
         let rows = 16
         let before = try bench.renderBank(above: above)
