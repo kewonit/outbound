@@ -93,10 +93,12 @@ inline float shadowOf(float2 q, float4 shape, float level, float z, float2 u) {
     float2 e = float2(r * 0.95, r * sqrt(1.0 + vert * vert * z * z));
     float2 s = q + u * max(above, 0.0) * z;
     float d = (length(float2(dot(s, across), dot(s, u)) / e) - 1.0) * e.x;
-    float cover = fill(d, 0.3 + 0.035 * max(above, 0.0) * z);
+    // A crown's shadow is as ragged as the crown, and softer the further it falls.
+    d += r * 0.13 * sin(s.x * 2.7 / r + shape.w * 31.0) * sin(s.y * 2.3 / r + shape.w * 17.0);
+    float cover = fill(d, 0.4 + 0.05 * max(above, 0.0) * z);
     if (level <= 0.0) {
         float trunk = segmentDistance(q, 0.0, -u * max(above - vert * r * 0.6, 0.0) * z);
-        cover = max(cover, fill(trunk - 0.13 - 0.03 * r, 0.12) * 0.8);
+        cover = max(cover, fill(trunk - 0.1 - 0.02 * r, 0.14) * 0.3);
     }
     return cover;
 }
@@ -115,8 +117,8 @@ inline float crownAt(float2 q, float4 shape, thread float &height) {
     }
     float vert = int(shape.z) == pine ? 0.55 : 0.95;
     height = h - vert * r + vert * r * sqrt(1.0 - t * t);
-    float lobes = 0.55 * sin(a * 3.0 + tone * 23.0) + 0.45 * sin(a * 5.0 + tone * 61.0);
-    return len - r * (0.92 + 0.08 * lobes);
+    float lobes = 0.5 * sin(a * 3.0 + tone * 23.0) + 0.35 * sin(a * 5.0 + tone * 61.0) + 0.2 * sin(a * 11.0 + tone * 97.0);
+    return len - r * (0.88 + 0.13 * lobes);
 }
 
 inline void foliageColours(int foliage, constant Biome &b, thread float3 &dark, thread float3 &light) {
@@ -154,14 +156,15 @@ inline float3 crownColour(thread Canopy &k, int i, float2 p, float level, consta
     float2 cq = rotate(q, tone * 6.283) * (int(shape.z) == spruce ? 3.2 : 2.3) + tone * 37.0;
     float clump = vnoise(cq, ts);
     float bump = vnoise(cq + u * 0.3, ts) - clump;
-    float3 c = mix(dark, light, saturate(0.55 * lit + 0.12 + 1.5 * bump + 0.25 * (clump - 0.5)));
-    // Deep gaps between clumps, and a darker rim on the side away from the sun.
-    c *= 0.8 + 0.2 * smoothstep(0.2, 0.55, clump);
-    c *= 1.0 - 0.2 * smoothstep(0.65, 1.0, len) * saturate(0.6 - lit);
-    // No two trees quite alike.
+    float3 c = mix(dark, light, saturate(0.6 * lit + 0.08 + 2.3 * bump + 0.35 * (clump - 0.5)));
+    // Deep gaps between the masses of leaves, and a darker rim on the side away from the sun.
+    c *= 0.72 + 0.28 * smoothstep(0.22, 0.56, clump);
+    c *= 1.0 - 0.24 * smoothstep(0.6, 1.0, len) * saturate(0.6 - lit);
+    // No two trees quite alike: some warmer, some cooler, some older and darker.
     float vary = fract(tone * 7.31);
-    c *= 0.9 + 0.2 * tone;
-    c = mix(c, c * float3(1.07, 1.04, 0.86), saturate(vary * 1.6 - 0.6));
+    c *= 0.84 + 0.32 * tone;
+    c = mix(c, c * float3(1.1, 1.05, 0.8), saturate(vary * 2.2 - 1.2));
+    c = mix(c, c * float3(0.88, 0.98, 1.04), saturate(0.8 - vary * 2.4));
     c = mix(c, b.snow.rgb * (0.85 + 0.15 * saturate(lit)), b.f.y * 0.6 * smoothstep(0.45, 0.75, clump));
 
     float shadow = 0.0;
@@ -889,9 +892,10 @@ inline float houseGlow(float2 d, float2 size, int k, uint seed, float roofCover)
         float i = clamp(floor(v), 0.0, n - 1.0);
         float lit = step(0.35, hash11(k * 64 + int(i) * 2 + (d.x > 0.0 ? 1 : 0), seed + 400u));
         float across = abs(v - i - 0.5) * (2.0 * size.y / n);
-        float spread = 0.5 + 0.45 * max(out, 0.0);
-        glow = lit * fill(across - spread, 0.3 + 0.15 * max(out, 0.0)) * exp(-max(out, 0.0) / 2.6)
-             * smoothstep(-0.3, 0.2, out) * 0.75;
+        // A soft pool under each window, blurring as it goes, rather than a beam.
+        float spread = 0.6 + 0.12 * max(out, 0.0);
+        glow = lit * fill(across - spread, 0.55 + 0.42 * max(out, 0.0)) * exp(-max(out, 0.0) / 2.1)
+             * smoothstep(-0.3, 0.2, out) * 0.62;
     }
     float2 porch = float2(-size.x - 0.7, size.y * 0.35);
     float r = length(d - porch);
@@ -914,32 +918,94 @@ inline float3 roofColor(constant Biome &b, float pick) {
     return pick < 0.45 ? b.roof0.rgb : pick < 0.8 ? b.roof1.rgb : b.roof2.rgb;
 }
 
-// One house: shadow, roof (pitched halves catching the light differently, or flat with a water tank), a shed, and
-// after dark the light it spills on the ground. `d` is in house-local metres.
+// One house, with the yard worn round it and a path out towards the road: its shadow, a roof of courses and weather
+// (gabled or hipped, some with a wing behind and a chimney, or flat with a stair head and a water tank), and most with
+// a shed. After dark, the light it spills on the ground. `d` is in house-local metres.
 inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constant Biome &b, constant Scene &scene,
                     uint seed, thread float &cover, thread float &light, thread float &lightID) {
-    float2 shadowOff = rotate(-scene.sun.xy * min(scene.sun.z, 2.0) * 5.5, -angle);
+    float2 sun = rotate(scene.sun.xy, -angle);
+    float2 shadowOff = -sun * min(scene.sun.z, 2.0) * 5.5;
     if (dot(d, d) > 700.0 + dot(shadowOff, shadowOff) * 2.0) return c;
-    c = shade(c, fill(sweptBox(d, size, shadowOff), 0.4) * 0.8, scene);
-    float3 roof = roofColor(b, hash11(k, seed + 66u)) * (0.92 + 0.16 * hash11(k, seed + 68u));
-    roof = mix(roof, b.snow.rgb, b.f.y * 0.8);
+    float pick = hash11(k, seed + 430u);
+    float bare = 1.0 - 0.6 * b.f.y;
+    float weather = vnoise(d / float2(2.6, 1.7) + float(k % 64) * 3.7, seed + 431u);
+
+    // Ground trodden pale round the door and a path going off towards the road, fading into the grass.
+    float yard = fill(sdBox(d, size + float2(2.2, 1.6)) - 2.2 * weather, 1.8);
+    c = mix(c, mix(c, b.road.rgb, 0.3), yard * 0.28 * bare);
+    float pathY = size.y * (0.7 * pick - 0.35);
+    float path = fill(abs(d.y - pathY + 0.5 * sin(d.x * 0.35)) - 0.65, 0.35) * smoothstep(-size.x - 17.0, -size.x - 7.0, d.x)
+               * step(d.x, 0.0);
+    c = mix(c, mix(c, b.road.rgb, 0.75), path * bare);
+
+    bool flat = b.i.z > 0.5;
+    bool winged = !flat && pick < 0.55;
+    float2 wing = d - float2(size.x + 1.4, size.y * 0.55);
+    float2 wingSize = float2(1.9, 2.3);
+    float shadow = fill(sweptBox(d, size, shadowOff), 0.55);
+    if (winged) shadow = max(shadow, fill(sweptBox(wing, wingSize, shadowOff), 0.55));
+    c = shade(c, shadow * 0.72, scene);
+
+    float3 roof = roofColor(b, hash11(k, seed + 66u)) * (0.9 + 0.2 * hash11(k, seed + 68u));
+    roof = mix(roof, float3(luma(roof)), 0.1 + 0.16 * hash11(k, seed + 432u));
     float3 face;
-    if (b.i.z > 0.5) {
-        // Flat roofs: a parapet rim and a round water tank on top.
-        face = roof * (1.0 - 0.12 * fill(abs(sdBox(d, size)) - 0.35, 0.15));
+    float2 e = size - abs(d);
+    if (flat) {
+        // A parapet that shades the roof inside it on the sun's side, damp stains, and a stair head and a water tank.
+        face = pigment(roof, weather, 0.6) * (1.0 - 0.12 * fill(abs(sdBox(d, size)) - 0.35, 0.15));
+        face = shade(face, fill(sdBox(d + sun * 0.7, size - 0.35) * -1.0, 0.2) * 0.3, scene);
+        float2 stair = d - size * float2(-0.42, 0.42 * (pick < 0.5 ? 1.0 : -1.0));
+        face = shade(face, fill(sweptBox(stair, float2(1.1, 1.4), shadowOff * 0.3), 0.2) * 0.6, scene);
+        face = mix(face, roof * 1.1, fill(sdBox(stair, float2(1.1, 1.4)), 0.12));
         face = mix(face, hash11(k, seed + 69u) < 0.5 ? float3(0.16, 0.16, 0.18) : float3(0.93, 0.93, 0.9),
                    fill(length(d - size * float2(0.45, 0.5)) - 0.75, 0.15));
     } else {
-        face = d.x * rotate(scene.sun.xy, -angle).x > 0.0 ? roof * 1.08 : roof * 0.78;
-        face = mix(face, roof * 0.6, fill(abs(d.x) - 0.12, 0.08));
+        // Each slope takes the sun as it faces, and a hipped roof slopes at its ends too. Rows of tiles run along the
+        // slope, and weather lies across them.
+        bool hipped = hash11(k, seed + 433u) < 0.35;
+        bool end = hipped && e.y < e.x;
+        float facing = end ? sign(d.y) * sun.y : sign(d.x) * sun.x;
+        face = pigment(roof * (0.93 + 0.2 * facing), weather, 0.7);
+        face *= 1.0 + 0.07 * sin((end ? e.y : e.x) * 6.5);
+        float crest = hipped ? min(abs(e.x - e.y), max(abs(d.x), abs(d.y) - (size.y - size.x))) : abs(d.x);
+        face = mix(face, roof * 0.62, fill(crest - 0.1, 0.08));
+        face *= 1.0 - 0.2 * fill(min(e.x, e.y) - 0.22, 0.12);
+        // Snow lies on the slopes, which still take the light, and a line of roof shows along the eaves.
+        float snowed = b.f.y * 0.85 * smoothstep(0.1, 0.5, min(e.x, e.y) + 0.3 * weather);
+        face = mix(face, b.snow.rgb * (0.9 + 0.17 * facing + 0.06 * weather), snowed);
+        if (pick > 0.25) {
+            // A chimney, with its shadow across the slope.
+            float2 stack = d - size * float2(0.3 * sign(pick - 0.6), 0.75 * pick - 0.3);
+            face = shade(face, fill(sweptBox(stack, float2(0.42, 0.5), shadowOff * 0.35), 0.15) * 0.65, scene);
+            face = mix(face, float3(0.33, 0.27, 0.24), fill(sdBox(stack, float2(0.42, 0.5)), 0.1));
+        }
     }
-    float a = fill(sdBox(d, size), 0.35);
+    if (flat) face = mix(face, b.snow.rgb * (0.9 + 0.1 * weather), b.f.y * 0.8);
+    float a = fill(sdBox(d, size), 0.3);
     cover = max(cover, a);
+    if (winged) {
+        // Its ridge runs across the house's, so its slopes face along it.
+        float3 slope = pigment(roof * (0.93 + 0.2 * sign(wing.y) * sun.y), weather, 0.7) * (1.0 + 0.07 * sin(wing.y * 6.5));
+        slope = mix(slope, roof * 0.62, fill(abs(wing.y) - 0.09, 0.07));
+        slope = mix(slope, b.snow.rgb * (0.9 + 0.17 * sign(wing.y) * sun.y + 0.06 * weather), b.f.y * 0.85);
+        float w = fill(sdBox(wing, wingSize), 0.3);
+        c = mix(c, slope, w * (1.0 - a));
+        cover = max(cover, w);
+    }
     c = mix(c, face, a);
-    float2 shed = d - float2(size.x + 3.5, -size.y * 0.4);
-    c = shade(c, fill(sweptBox(shed, float2(2.0, 2.6), shadowOff * 0.6), 0.35) * 0.7, scene);
-    float shedCover = fill(sdBox(shed, float2(2.0, 2.6)), 0.3);
-    c = mix(c, float3(0.70, 0.66, 0.60), shedCover);
+
+    // Most have a shed out the back: corrugated, rust or grey, or roofed like the house.
+    float shedCover = 0.0;
+    if (pick < 0.9) {
+        float2 shed = d - float2(size.x + 3.5, -size.y * 0.4);
+        float2 shedSize = float2(1.5, 1.9) + 0.7 * hash11(k, seed + 434u);
+        c = shade(c, fill(sweptBox(shed, shedSize, shadowOff * 0.6), 0.4) * 0.62, scene);
+        shedCover = fill(sdBox(shed, shedSize), 0.25);
+        float tint = hash11(k, seed + 435u);
+        float3 tin = tint < 0.45 ? float3(0.52, 0.51, 0.5) : tint < 0.75 ? float3(0.5, 0.36, 0.28) : roof * 0.88;
+        tin = pigment(tin * (1.0 + 0.09 * sin(shed.y * 11.0)), weather, 0.8) * (0.93 + 0.14 * step(0.0, shed.x * sun.x));
+        c = mix(c, mix(tin, b.snow.rgb, b.f.y * 0.8), shedCover);
+    }
     float glow = houseGlow(d, size, k, seed, a) * (1.0 - shedCover);
     if (glow > light) {
         light = glow;
