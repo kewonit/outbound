@@ -880,6 +880,39 @@ kernel void auditLandmarks(device float4 *out [[buffer(0)]], constant Scene &sce
     out[id] = hit;
 }
 
+// A landmark of the place's second kind in each thread, looking through the cells round it for one of the first kind, which
+// it gives way to. Part: how far they overlap.
+kernel void auditRivals(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                        uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float2 world = float2(roadX(leg.info.x + 700.0, scene, wander), leg.info.x + 700.0);
+    world += (float2(id % probeSide, id / probeSide) / float(probeSide) - 0.5) * float2(6000.0, 60000.0);
+    float2 local = world - float2(0.0, leg.info.x);
+    float2 shift = world - local;
+    float4 hit = float4(0.0);
+    int first = int(b.j.x), second = int(b.j.z);
+    float2 center;
+    int2 cell;
+    if (b.j.y > 0.0 && landmarkSite(second, b.j.w, local, b, seed + 17u, center, cell)
+        && landmarkStands(second, center + shift, shift, b, scene, b.d.z * 0.5, wander, seed + 17u)) {
+        float size = landmarkCell(first), touch = landmarkRadius(first) + landmarkRadius(second);
+        int reach = int(ceil(touch / size)) + 1;
+        for (int j = -reach; j <= reach; j++) {
+            for (int i = -reach; i <= reach; i++) {
+                float2 other;
+                if (landmarkSite(first, b.j.y, center + float2(i, j) * size, b, seed, other, cell)
+                    && landmarkStands(first, other + shift, shift, b, scene, b.d.z * 0.5, wander, seed)) {
+                    hit.x = max(hit.x, touch - length(center - other));
+                }
+            }
+        }
+    }
+    out[id] = hit;
+}
+
 // A way out to the road in each thread: every point along it keeps off every house round it, wing and shed included, and
 // it ends on the road. Parts: on a house, short of the road.
 kernel void auditPaths(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],

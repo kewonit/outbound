@@ -793,13 +793,22 @@ inline bool landmarkSite(int kind, float density, float2 local, constant Biome &
 inline bool landmarkStands(int kind, float2 centerWorld, float2 shift, constant Biome &b, constant Scene &scene,
                            float riverHalf, float2 wander, uint seed) {
     float radius = landmarkRadius(kind);
-    // Of a place's two kinds, the second gives way to the first. Each stays inside its own cell, so one look will do.
+    // Of a place's two kinds, the second gives way to the first, in every cell of the first it could touch: the two kinds'
+    // cells don't line up, so more than one may be in reach.
     if (kind == int(b.j.z) && b.j.y > 0.0) {
         int first = int(b.j.x);
         float2 at = centerWorld - shift, other;
+        float size = landmarkCell(first), touch = landmarkRadius(first) + radius;
+        int reach = int(ceil(touch / size));
         int2 cell;
-        if (landmarkSite(first, b.j.y, at, b, seed - 17u, other, cell)
-            && length(at - other) < landmarkRadius(first) + radius) return false;
+        #pragma clang loop unroll(disable)
+        for (int j = -reach; j <= reach; j++) {
+            #pragma clang loop unroll(disable)
+            for (int i = -reach; i <= reach; i++) {
+                if (landmarkSite(first, b.j.y, at + float2(i, j) * size, b, seed - 17u, other, cell)
+                    && length(at - other) < touch) return false;
+            }
+        }
     }
     if (riverHalf > 0.25 && abs(riverDistance(centerWorld, scene, wander)) < riverHalf + radius * 0.8 + 15.0) return false;
     float reach = radius * 0.95 + 6.0;
@@ -822,8 +831,6 @@ struct Keepouts {
     bool river;
     bool crossNear;
     bool rail;
-    // False where this point's cell has a pond that was never dug, so trees needn't keep off it.
-    bool dug;
     int2 cell[2];
     bool standing[2];
     float2 center[2];
@@ -836,10 +843,6 @@ inline Keepouts keepouts(float2 world, float2 local, float span, constant Biome 
     k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + b.i.w + 20.0 + span;
     k.crossNear = crossGap(world, scene) < b.e.x * 0.5 + 20.0 + span;
     k.rail = railGap(local, b) < 20.0 + span;
-    float2 pond;
-    float pondRadius;
-    k.dug = !pondSite(local, b, seed, pond, pondRadius)
-         || pondStands(pond, pondRadius, world - local, b, scene, wander);
     for (int i = 0; i < 2; i++) {
         int kind = int(i == 0 ? b.j.x : b.j.z);
         float density = i == 0 ? b.j.y : b.j.w;
@@ -882,7 +885,7 @@ inline bool clearOfLandmarks(float2 local, float2 shift, float r, Keepouts near,
     float pr;
     // A pond that was never dug leaves no bare patch among the trees.
     if (pondSite(local, b, seed, pc, pr) && length((local - pc) * float2(1.0, 1.25)) < pr * 1.4 + 6.0 + r
-        && near.dug) return false;
+        && pondStands(pc, pr, shift, b, scene, wander)) return false;
     return true;
 }
 
