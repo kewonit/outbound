@@ -1778,8 +1778,10 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     // A crossroad now and then.
     float spacing = 1450.0;
     float k = floor((p.y + scene.road.w) / spacing);
-    float crossY = (k + 0.5) * spacing - scene.road.w + 40.0 * sin(p.x / 380.0 + k);
-    float hasCross = step(hash11(int(k), 70u), 0.55);
+    // Which one it is is counted from the world's origin, or it would shift or vanish as the reference stepped on.
+    float which = k + scene.bends.w;
+    float crossY = (k + 0.5) * spacing - scene.road.w + 40.0 * sin(p.x / 380.0 + which);
+    float hasCross = step(hash11(int(which), 70u), 0.55);
     float dc = mix(1e6, abs(p.y - crossY) - halfWidth * 0.9, hasCross);
 
     float dd = min(abs(d) - halfWidth, dc);

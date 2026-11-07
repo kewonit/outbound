@@ -351,7 +351,7 @@ final class World {
         let river = SIMD4<Float>(phase(Self.riverWaves.x, 0.3), phase(Self.riverWaves.y, 1.9),
                                  phase(Self.riverWaves.z, 4.1), phase(Self.riverWaves.w, 2.7))
         let bends = SIMD4<Float>(phase(Self.bendWaves.x, 5.2), phase(Self.bendWaves.y, 0.7),
-                                 phase(Self.bendWaves.z, 3.3), 0)
+                                 phase(Self.bendWaves.z, 3.3), Float((reference / Self.crossroadSpacing).rounded(.down)))
         // Traffic slots, counted from the world's origin so they survive the reference stepping on (see slotAt).
         let cars = Self.slots(speed: Self.carSpeed, spacing: Self.carSlot, time: t, reference: reference)
         let boats = Self.slots(speed: Self.boatSpeed, spacing: Self.boatSlot, time: t, reference: reference)

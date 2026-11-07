@@ -29,3 +29,22 @@ struct PaceTests {
         }
     }
 }
+
+/// What is painted along the way must not depend on where the reference happens to have stepped to.
+@MainActor
+@Suite
+struct ReferenceTests {
+    /// The count that says which crossroad is which grows with the reference, a spacing at a time, from the origin.
+    @Test func crossroadsAreCountedFromTheOrigin() {
+        let world = World(place: .first, time: 0)
+        world.pointer = { nil }
+        world.isDesktop = { _ in false }
+        for seconds in [0.0, 400, 800, 1600] {
+            world.advance(to: seconds)
+            let frame = world.frame(bottom: 0, top: 1)
+            let expected = (frame.reference / World.crossroadSpacing).rounded(.down)
+            #expect(Double(frame.scene.bends.w) == expected)
+            #expect(abs(Double(frame.scene.road.w) - frame.reference.truncatingRemainder(dividingBy: World.crossroadSpacing)) < 1e-3)
+        }
+    }
+}

@@ -47,7 +47,7 @@ struct Scene {
     float4 time;   // seconds (wraps hourly), seconds (wraps every two hours), car phase, night
     float4 clock;  // local hour, sunset hour, boat phase, how far the current has carried a river's surface
     float4 traffic; // car cycles north and south, boat cycles up and down stream (see carSlot)
-    float4 bends;  // phases of the river's own bends
+    float4 bends;  // phases of the river's own bends, then how many crossroad spacings the reference has passed
     Train train;
     Leg legA;
     Leg legB;
