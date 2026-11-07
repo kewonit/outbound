@@ -534,8 +534,8 @@ inline float crossroadY(float2 p, constant Scene &scene, thread bool &built) {
     if (built) {
         float turned = landTurn(middle, scene);
         float2 wander = course(scene, turned);
-        float2 junction = float2(roadX(middle, scene, wander), middle);
-        junction.y += 40.0 * sin(junction.x / 380.0 + which);
+        float y = middle + 40.0 * sin(roadX(middle, scene, wander) / 380.0 + which);
+        float2 junction = float2(roadX(y, scene, wander), y);
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
         built = width < 0.5 || abs(riverDistance(junction, scene, wander)) > width * 0.5 + 30.0;
     }
@@ -681,6 +681,13 @@ struct Plot {
     float2 size;
     int id;
     float village;
+    // Its way out to the road, in metres from its middle with x away from the road and y along it, square to the road and
+    // not to the house, which stands a little askew: the door, where the path turns, the lane that reaches the road, and
+    // how far off that is.
+    float road;
+    float door;
+    float lane;
+    float reach;
 };
 
 // The house in slot `k` on one side of the road, in the row by the road (0) or behind it (1), if one stands there.
@@ -709,11 +716,28 @@ inline bool plot(thread Plot &h, float k, int row, float side, float2 world, flo
     float2 pond;
     float pondRadius;
     if (pondSite(at, b, seed, pond, pondRadius) && length((at - pond) * float2(1.0, 1.25)) < pondRadius * 1.4 + 6.0 + size.y) return false;
-    h.angle = atan2(away.y, away.x) + (hash11(id, seed + 64u) - 0.5) * (0.12 + village * 0.12);
+    h.road = atan2(away.y, away.x);
+    h.angle = h.road + (hash11(id, seed + 64u) - 0.5) * (0.12 + village * 0.12);
+    h.door = size.y * (0.7 * hash11(id, seed + 430u) - 0.35);
+    h.reach = out - b.e.x * 0.5 + 1.0;
+    // The front row goes straight out to the road. The back row has the front row in the way, so it runs along its own
+    // front to the line between two plots, which no house reaches, and shares a lane down it with the neighbour there.
+    float between = (int(k) & 1) == 0 ? (k + 1.0) * slot : k * slot;
+    h.lane = row == 0 ? h.door : (between - yC) * side;
     h.size = size;
     h.id = id;
     h.village = village;
     return true;
+}
+
+// How far `p`, in the frame of the plot's way out, lies from the middle of that way.
+inline float pathGap(float2 p, Plot h) {
+    float front = -h.size.x - 2.6;
+    float2 turn = float2(front, 0.5 * (h.door + h.lane));
+    float along = sdBox(p - turn, float2(0.0, 0.5 * abs(h.door - h.lane)));
+    float outward = sdBox(p - float2(front - 0.5 * (h.reach - h.size.x - 2.6), h.lane), float2(0.5 * (h.reach - h.size.x - 2.6), 0.0));
+    float door = sdBox(p - float2(-h.size.x - 1.3, h.door), float2(1.3, 0.0));
+    return smin(smin(along, outward, 1.6), door, 1.2);
 }
 
 // The course a house in slot `k` follows. Through a handover the course changes from row to row, and a house worked out
@@ -738,6 +762,7 @@ inline bool clearOfHouses(float2 world, float2 local, float r, constant Biome &b
             if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) continue;
             float2 d = rotate(world - h.center, -h.angle);
             if (sdBox(d - float2(2.5, 0.0), h.size + float2(4.0, 1.5)) < r) return false;
+            if (pathGap(rotate(world - h.center, -h.road), h) < r + 1.0) return false;
         }
     }
     return true;
@@ -1036,13 +1061,9 @@ inline float3 house(float3 c, float2 d, float angle, float2 size, int k, constan
     float bare = 1.0 - 0.6 * b.f.y;
     float weather = vnoise(d / float2(2.6, 1.7) + float(k % 64) * 3.7, seed + 431u);
 
-    // Ground trodden pale round the door and a path going off towards the road, fading into the grass.
+    // Ground trodden pale round the door.
     float yard = fill(sdBox(d, size + float2(2.2, 1.6)) - 2.2 * weather, 1.8);
     c = mix(c, mix(c, b.road.rgb, 0.3), yard * 0.28 * bare);
-    float pathY = size.y * (0.7 * pick - 0.35);
-    float path = fill(abs(d.y - pathY + 0.5 * sin(d.x * 0.35)) - 0.65, 0.35) * smoothstep(-size.x - 17.0, -size.x - 7.0, d.x)
-               * step(d.x, 0.0);
-    c = mix(c, mix(c, b.road.rgb, 0.75), path * bare);
 
     bool flat = b.i.z > 0.5;
     bool winged = !flat && pick < 0.55;
@@ -1197,6 +1218,9 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
         for (int row = 0; row < 2; row++) {
             Plot h;
             if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, slotCourse(k0 + float(dk), world, local, scene, wander))) continue;
+            // Its way out comes first, under the house, and reaches further than the house looks.
+            float path = fill(pathGap(rotate(world - h.center, -h.road), h) - 0.6, 0.35) * (1.0 - 0.6 * b.f.y);
+            c = mix(c, mix(c, b.road.rgb, 0.72), path);
             c = house(c, rotate(world - h.center, -h.angle), h.angle, h.size, h.id, b, scene, seed, cover, light, lightID);
             // Where homesteads keep a windbreak, an L of dark evergreens behind and beside the house.
             if (b.l.x > 0.5 && hash11(h.id, seed + 71u) < 0.85) {
@@ -1961,7 +1985,8 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     float onRiver = fill(abs(riverDistance(p, scene, wander)) - riverHalf * 1.08 - 4.0, 0.5) * riverPresence(riverHalf);
     float2 sunOff = scene.sun.xy * scene.sun.z * 3.0;
     // The bridge deck shades the water under it.
-    float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth, dc);
+    float shadowD = min(abs(roadDistance(p + sunOff, scene, wander)) - halfWidth,
+                        hasCross ? abs(p.y + sunOff.y - crossY) - halfWidth * 0.9 : 1e6);
     c = shade(c, fill(shadowD, 0.8) * onRiver * 0.9, scene);
 
     // How far across whichever road is nearest, and how far along it: laid out so that wear runs with the traffic.
@@ -2002,9 +2027,9 @@ inline float3 road(float3 c, float2 p, constant Scene &scene, constant Biome &a,
     r = mix(r, snow * (0.92 + 0.08 * blotch), snowCover * (0.3 + 0.55 * smoothstep(0.62, 1.0, across)
                                                            + 0.3 * smoothstep(0.26, 0.05, across)) * (0.75 + 0.5 * streaks));
 
-    // Railings on bridges.
-    float rail = fill(abs(abs(d) - halfWidth - 0.4) - 0.35, 0.2) * onRiver * step(abs(d), halfWidth + 1.2);
-    float3 railColor = float3(0.78, 0.36, 0.22);
+    // Every road over water is a bridge: a parapet down each side, whichever road it is.
+    float rail = fill(abs(abs(lat) - wide - 0.4) - 0.35, 0.2) * onRiver * step(abs(lat), wide + 1.2);
+    float3 railColor = float3(0.66, 0.65, 0.62) * (0.92 + 0.14 * blotch);
 
     // A gravelled verge fading into the land, and the shallow ditch beyond it.
     float a2 = fill(edge, 0.4);

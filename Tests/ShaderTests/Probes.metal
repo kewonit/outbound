@@ -879,3 +879,53 @@ kernel void auditLandmarks(device float4 *out [[buffer(0)]], constant Scene &sce
     }
     out[id] = hit;
 }
+
+// A way out to the road in each thread: every point along it keeps off every house round it, wing and shed included, and
+// it ends on the road. Parts: on a house, short of the road.
+kernel void auditPaths(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    uint seed = uint(scene.legB.info.y);
+    float2 wander = course(scene, 1.0);
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    int row = int((id >> 1) & 1u);
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    float2 world = local + float2(0.0, scene.legB.info.x);
+    out[id] = float4(0.0);
+    Plot h;
+    if (!plot(h, k, row, side, world, local, b, scene, seed, wander)) return;
+    float4 hit = float4(0.0);
+    float front = -h.size.x - 2.6;
+    for (int i = 0; i <= 16; i++) {
+        float2 p = float2(mix(front, -h.reach, float(i) / 16.0), h.lane);
+        float2 at = h.center + rotate(p, h.road);
+        for (int dk = -1; dk <= 1; dk++) {
+            for (int other = 0; other < 2; other++) {
+                Plot n;
+                if (!plot(n, k + float(dk), other, side, world, local, b, scene, seed, wander)) continue;
+                if (dk == 0 && other == row) continue;
+                float2 d = rotate(at - n.center, -n.angle);
+                hit.x = max(hit.x, -sdBox(d - float2(2.9, 0.0), n.size + float2(2.9, 0.0)));
+            }
+        }
+    }
+    float2 end = h.center + rotate(float2(-h.reach, h.lane), h.road);
+    hit.y = max(abs(roadDistance(end, scene, wander)) - b.e.x * 0.5, 0.0);
+    out[id] = hit;
+}
+
+// A cross-road in each thread, along a few hundred kilometres. Parts: built with its junction in the river or on its banks.
+kernel void auditJunctions(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    float y = (float(id % 512u) - 256.0 + 0.5) * crossroadSpacing;
+    float turned = landTurn(y, scene);
+    float2 wander = course(scene, turned);
+    float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
+    float2 p = float2(roadX(y, scene, wander), y);
+    bool built;
+    float crossing = crossroadY(p, scene, built);
+    p = float2(roadX(crossing, scene, wander), crossing);
+    float gap = abs(riverDistance(p, scene, wander)) - width * 0.5;
+    out[id] = float4(built && width > 0.5 ? max(24.0 - gap, 0.0) : 0.0, 0.0, 0.0, 0.0);
+}

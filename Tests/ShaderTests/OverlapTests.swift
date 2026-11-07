@@ -20,7 +20,9 @@ struct OverlapTests {
         let homes = try collisions("auditHomes", out: id)
         let trees = try collisions("auditTrees", out: id)
         let landmarks = try collisions("auditLandmarks", out: id)
-        #expect((homes + trees + landmarks).allSatisfy { $0 == 0 },
-                "\(id): homes on crossroad, rail, pond, landmark \(homes); trees on crossroad, rail, pond, road \(trees); ponds on road, rail, landmarks on crossroad, rail \(landmarks)")
+        let paths = try collisions("auditPaths", out: id)
+        let junctions = try collisions("auditJunctions", out: id)
+        #expect((homes + trees + landmarks + paths + junctions).allSatisfy { $0 == 0 },
+                "\(id): homes on crossroad, rail, pond, landmark \(homes); trees on crossroad, rail, pond, road \(trees); ponds on road, rail, landmarks on crossroad, rail \(landmarks); paths on a house, short of the road \(paths); junctions on water \(junctions)")
     }
 }
