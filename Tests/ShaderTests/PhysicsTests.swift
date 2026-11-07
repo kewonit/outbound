@@ -26,6 +26,34 @@ struct PhysicsTests {
         #expect(abs(season([3]).middleDay - 74) < 6)
     }
 
+    /// Turning the seasons on or off moves the sun with them at once, so the land is painted again once, not a second
+    /// time when the sun catches up.
+    @Test(arguments: [false, true])
+    func theSunFollowsTheSeasonsAtOnce(calendar: Bool) throws {
+        let world = World(place: try #require(Place.named("lapland")), time: 1000, light: .yourTime)
+        world.journey.followsCalendar = calendar
+        world.journey.refreshSeasons()
+        world.seasonsChanged()
+        let revision = world.revision
+        world.advance(to: 1030)
+        #expect(world.revision == revision)
+    }
+
+    /// A train is drawn only over its own place's land: everywhere in a view of that place alone, on its side of a
+    /// join, and nowhere in a view of other places.
+    @Test func aTrainIsOnlyDrawnOverItsOwnPlace() {
+        let place = Place.first
+        let legs = (0..<3).map {
+            Leg(index: $0, place: place, season: place.signatureSeason, start: Double($0) * 2000, sweepStart: nil)
+        }
+        #expect(World.trainSide(of: legs[0], nil, nil) == 0)
+        #expect(World.trainSide(of: legs[0], legs[0], legs[0]) == 0)
+        #expect(World.trainSide(of: legs[0], legs[0], legs[1]) == 1)
+        #expect(World.trainSide(of: legs[1], legs[0], legs[1]) == 2)
+        #expect(World.trainSide(of: legs[0], legs[1], legs[2]) == 3)
+        #expect(World.trainSide(of: legs[0], legs[1], legs[1]) == 3)
+    }
+
     /// Birds fly below the clouds they are drawn under.
     @Test func flocksFlyUnderTheClouds() {
         for flock in [Flock.geese, .swans, .cranes, .flamingos, .egrets, .rooks, .vultures] {

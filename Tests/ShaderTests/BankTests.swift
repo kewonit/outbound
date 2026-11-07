@@ -28,15 +28,19 @@ struct BankTests {
         }
     }
 
-    /// Past its reach it leaves no trace, not even a shadow, so it can never pop into view.
+    /// Past its reach it leaves no trace, not even the longest shadow with the sun low on either side, so it can never
+    /// pop into view, and the rows at each end of its texture, which everything beyond them reads, are clear.
     @Test(arguments: columns)
     func nothingShowsBeyondItsReach(x: Float) throws {
         let reach = Float(World.bankReach)
-        for above in [reach, -reach - 256] {
-            let bytes = try bench.renderBand(above: above, x: x)
-            for pixel in stride(from: 0, to: bytes.count, by: 4) {
-                #expect(bytes[pixel] == 0)
-                #expect(bytes[pixel + 2] == 0)
+        let longest = Float(World.cloudHeight * Sun.longestShadow)
+        for shadow in [SIMD2<Float>(-43, 49), SIMD2(0, longest), SIMD2(0, -longest)] {
+            for above in [reach, -reach - 256] {
+                let bytes = try bench.renderBand(above: above, x: x, shadow: shadow)
+                for pixel in stride(from: 0, to: bytes.count, by: 4) {
+                    #expect(bytes[pixel] == 0)
+                    #expect(bytes[pixel + 2] == 0)
+                }
             }
         }
     }

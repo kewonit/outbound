@@ -336,9 +336,11 @@ final class Bench {
         }[0]
     }
 
-    /// The band's texture at a metre a pixel with its bottom row `above` metres above a join.
-    func renderBand(above: Float, x: Float = 900) throws -> [UInt8] {
-        var params = CloudsGPU(origin: SIMD4(x, above, 1, Float(World.bankHalf)), offsets: SIMD4(8, -9, 43, -49),
+    /// The band's texture at a metre a pixel with its bottom row `above` metres above a join, its shadow falling
+    /// `shadow` metres from the cloud.
+    func renderBand(above: Float, x: Float = 900, shadow: SIMD2<Float> = SIMD2(-43, 49)) throws -> [UInt8] {
+        var params = CloudsGPU(origin: SIMD4(x, above, 1, Float(World.bankHalf)),
+                               offsets: SIMD4(8, -9, -shadow.x, -shadow.y),
                                view: SIMD4(256, 0, 0, 0))
         return try render("bank", in: current, formats: [ShaderLibrary.cacheFormat]) {
             $0.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)

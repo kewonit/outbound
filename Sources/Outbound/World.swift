@@ -181,6 +181,7 @@ final class World {
         pointerMoved -= back
         desktopChecked -= back
         sunUpdated -= back
+        lastBand = moment.band
         bird = moment.bird
         birdTrail.reset(to: bird.pose, at: time)
     }
@@ -193,8 +194,11 @@ final class World {
         time = t
         let camera = self.camera
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        // The band over the whole desktop, whichever displays are drawing.
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
+        if let join = journey.joins.first(where: { Self.bandShows(over: $0, from: bottom, to: top) }) { lastBand = join }
         journey.extend(through: top + 1500,
-                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
+                       behind: bottom - 1500 - Self.reach,
                        // Clear of the view, and of any band left in it, as only one shows at a time.
                        notBefore: max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint
                                       + Self.bankReach) + Self.bankReach + 20)
@@ -256,6 +260,12 @@ final class World {
         let moved = abs(next.azimuth - sun.azimuth) + abs(next.elevation - sun.elevation)
         sun = next
         if force || moved > 0.06 { repaint() }
+    }
+
+    /// The seasons have changed: a place at its best is lit for the season it shows, so the sun moves with them, and
+    /// the ground is painted again once, under the new sun.
+    func seasonsChanged() {
+        updateSun(force: true)
     }
 
     func repaint() {
@@ -369,7 +379,7 @@ final class World {
         let boats = Self.slots(speed: Self.boatSpeed - Self.current, spacing: Self.boatSlot, time: t, reference: reference)
         let downstream = Self.slots(speed: Self.boatSpeed + Self.current, spacing: Self.boatSlot, time: t,
                                     reference: reference)
-        let crossPhase = Float(reference.truncatingRemainder(dividingBy: Self.crossroadSpacing))
+        let crossPhase = Float(reference.positiveRemainder(Self.crossroadSpacing))
         let toSun = SIMD2<Float>(Float(sun.direction.x), Float(sun.direction.y))
         let light = sun.light
 
@@ -385,7 +395,7 @@ final class World {
                          Float((reference + t * Self.current).positiveRemainder(256 * 64))),
             traffic: SIMD4(cars.north, cars.south, boats.north, downstream.south),
             bends: bends,
-            train: train(reference: reference, at: t, turningInto: legA.index != legB.index ? legB.index : nil),
+            train: train(reference: reference, at: t, legA: legA, legB: legB),
             legA: gpu(legA, reference: reference),
             legB: gpu(legB, reference: reference),
             water: SIMD4(downstream.phase,
@@ -447,11 +457,20 @@ final class World {
         return line
     }
 
-    /// The train passing the middle of the main display at `t`, if one is. `turningInto` is the leg the land is turning
-    /// into, if it is turning.
-    private func train(reference: Double, at t: TimeInterval, turningInto: Int? = nil) -> TrainGPU {
+    /// The train passing the middle of the main display at `t`, if one is, for a view that shows `legA` below a join and
+    /// `legB` above it, or one leg when they are the same. It is only ever drawn over its own place's land.
+    private func train(reference: Double, at t: TimeInterval, legA: Leg? = nil, legB: Leg? = nil) -> TrainGPU {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
-        let leg = journey.leg(at: centre.y)
+        var leg = journey.leg(at: centre.y)
+        // A train still running carries on along its own line once the middle is over the next place, rather than
+        // vanishing from track still in view.
+        if let crossing = trainCrossing, crossing.leg != leg.index,
+           let previous = journey.legs.first(where: { $0.index == crossing.leg }),
+           let line = railLine(for: previous), let railway = previous.place.railway,
+           line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway,
+                      seed: previous.index) != nil {
+            leg = previous
+        }
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
         // When the middle of the main display passes over the line, following the camera's real path.
         let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
@@ -469,16 +488,16 @@ final class World {
             rail: SIMD4(Float(line.origin.x), Float(line.origin.y + leg.start - reference), Float(line.angle), 1),
             shape: SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase), 0),
             run: SIMD4(Float(run.head), Float(run.direction), Float(railway.carLength), Float(railway.cars)),
-            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue),
-                        turningInto.map { $0 == leg.index ? 2 : 1 } ?? 0, 0),
+            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), Float(Self.trainSide(of: leg, legA, legB)), 0),
             body: color(railway.body), stripe: color(railway.stripe), roof: color(railway.roof),
             locomotive: color(railway.locomotive))
     }
 
     /// Half the length of the bank of cloud over each join between two places, in metres: a thin band across the land.
     static let bankHalf = 75.0
-    /// How far from a join anything of its bank can be seen, ragged edges and shadow included.
-    static let bankReach = 220.0
+    /// How far from a join anything of its bank can be seen: its ragged edge comes up to 147 m out (bankReach in
+    /// Clouds.metal), and its shadow can fall a cloud's height times the longest shadow beyond that.
+    static let bankReach = 150 + cloudHeight * Sun.longestShadow
 
     /// The last join whose band was in view. A Fly To takes the place beyond a join away, but cloud already in view stays
     /// in the sky and drifts off with the land.
@@ -486,17 +505,25 @@ final class World {
 
     /// World y of the join whose band shows anywhere from `bottom` to `top`, if one does.
     func bank(from bottom: Double, to top: Double) -> Double? {
-        let shows = { (join: Double) in join - Self.bankReach < top && join + Self.bankReach > bottom }
-        if let join = journey.joins.first(where: shows) {
-            lastBand = join
-            return join
-        }
-        return lastBand.flatMap { shows($0) ? $0 : nil }
+        let shows = { (join: Double) in Self.bandShows(over: join, from: bottom, to: top) }
+        return journey.joins.first(where: shows) ?? lastBand.flatMap { shows($0) ? $0 : nil }
+    }
+
+    private static func bandShows(over join: Double, from bottom: Double, to top: Double) -> Bool {
+        join - bankReach < top && join + bankReach > bottom
     }
 
     /// Whether the middle of the main display has reached the first join between two places.
     var handoverPassing: Bool {
         journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint).index > 0
+    }
+
+    /// Where over a view showing `legA` below a join and `legB` above it the train on `leg`'s line may be drawn: 0
+    /// everywhere, 1 below the join, 2 above it, 3 nowhere, as that view shows other places.
+    static func trainSide(of leg: Leg, _ legA: Leg?, _ legB: Leg?) -> Int {
+        guard let legA, let legB else { return 0 }
+        if legA.index == legB.index { return leg.index == legA.index ? 0 : 3 }
+        return leg.index == legA.index ? 1 : leg.index == legB.index ? 2 : 3
     }
 
     /// Whether a train is passing the middle of the main display.

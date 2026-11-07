@@ -557,6 +557,13 @@ inline float crossGap(float2 at, constant Scene &scene) {
     return abs(at.y - (k + 0.5) * crossroadSpacing + scene.road.w - 40.0 * sin(at.x / 380.0 + which));
 }
 
+// The same, for land with biome `b`: road() lays no cross-roads in pivot country, so nothing there keeps off them.
+// Only what pivot country builds asks this way, its ponds, farmsteads and trees (the trees through keepouts), as
+// each call costs GPU memory in the paths that inline it; it has no houses or road trees.
+inline float crossGap(float2 at, constant Scene &scene, constant Biome &b) {
+    return int(b.a.x) == layoutPivots ? 1e6 : crossGap(at, scene);
+}
+
 inline float railGap(float2 local, constant Biome &b) {
     if (b.railCurve.w < 0.5) return 1e6;
     float2 d = local - b.railLine.xy;
@@ -673,7 +680,7 @@ inline bool pondStands(float2 center, float r, float2 shift, constant Biome &b, 
     float2 at = center + shift;
     if (b.d.z > 0.5 && abs(riverDistance(at, scene, wander)) < 90.0 + r) return false;
     float reach = r * 1.4 + 6.0;
-    if (min(abs(roadDistance(at, scene, wander)), crossGap(at, scene)) < b.e.x * 0.5 + reach) return false;
+    if (min(abs(roadDistance(at, scene, wander)), crossGap(at, scene, b)) < b.e.x * 0.5 + reach) return false;
     return railGap(center, b) >= reach;
 }
 
@@ -828,7 +835,7 @@ inline bool landmarkStands(int kind, float2 centerWorld, float2 shift, constant 
     // Where people live by the road it keeps clear of their homes too, front and back row.
     float homes = b.e.w > 0.0 || b.i.x > 0.0 ? 62.0 : 0.0;
     if (abs(roadDistance(centerWorld, scene, wander)) < b.e.x * 0.5 + reach + homes) return false;
-    if (crossGap(centerWorld, scene) < b.e.x * 0.5 + reach) return false;
+    if (crossGap(centerWorld, scene, b) < b.e.x * 0.5 + reach) return false;
     return railGap(centerWorld - shift, b) >= reach + 4.0;
 }
 
@@ -854,7 +861,7 @@ inline Keepouts keepouts(float2 world, float2 local, float span, constant Biome 
     Keepouts k;
     k.road = abs(roadDistance(world, scene, wander)) < b.e.x * 0.5 + 75.0 + span;
     k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + b.i.w + 20.0 + span;
-    k.crossNear = crossGap(world, scene) < b.e.x * 0.5 + 20.0 + span;
+    k.crossNear = crossGap(world, scene, b) < b.e.x * 0.5 + 20.0 + span;
     k.rail = railGap(local, b) < 20.0 + span;
     for (int i = 0; i < 2; i++) {
         int kind = int(i == 0 ? b.j.x : b.j.z);
@@ -1595,6 +1602,8 @@ inline float3 landmarkTrack(float3 c, int kind, float density, float2 local, flo
             }
             float2 centerWorld = center + shift;
             float rx = roadX(lineY + shift.y, scene, wander) - shift.x;
+            // Each pixel looks for its landmark a cell either side, so a track runs only as far as that, whole or not at all.
+            if (abs(rx - center.x) > cell) continue;
             if (riverHalf > 0.25) {
                 float riverAt = riverX(lineY + shift.y, scene, wander) - shift.x;
                 if ((riverAt - center.x) * (riverAt - rx) < 0.0) continue;

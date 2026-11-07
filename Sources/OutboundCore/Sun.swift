@@ -42,8 +42,11 @@ public struct Sun: Equatable, Sendable {
     /// throw (18 m from 12 m), so nothing's shadow stops growing while its neighbour's carries on.
     public var shadowLength: Double {
         let e = max(elevation, 0.05)
-        return min(max(1 / tan(e), 0.35), 1.5)
+        return min(max(1 / tan(e), 0.35), Self.longestShadow)
     }
+
+    /// The longest any shadow gets, per metre of height.
+    public static let longestShadow = 1.5
 
 
     /// 0 in daylight, 1 deep in the night.

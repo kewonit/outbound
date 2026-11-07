@@ -492,19 +492,23 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     }
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
-    float sunlit = directSun(pixel, params, cloudTexture, bankTexture, clampSampler);
-    if (mask.road) c = cars(c, world, scene, mpp, light, sunlit);
-    if (water > 0.99) c = boats(c, world, water, scene, mpp, scene.time.x, light, sunlit);
+    // Only what moves casts a shadow here, so only its pixels ask how much sun gets through the clouds.
+    if (mask.road) c = cars(c, world, scene, mpp, light, directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
+    if (water > 0.99) {
+        c = boats(c, world, water, scene, mpp, scene.time.x, light,
+                  directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
+    }
     if (scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
-            // Where two places meet a train goes no further than its line does.
+            // Where two places meet a train goes no further than its line does, and over other places it isn't drawn.
             float turn = landTurn(world.y, scene);
-            float shown = scene.train.info.z < 0.5 || scene.morph.z >= 0.0 ? 1.0
-                        : scene.train.info.z < 1.5 ? 1.0 - turn : turn;
+            float side = scene.train.info.z;
+            float shown = side > 2.5 ? 0.0 : side < 0.5 || scene.morph.z >= 0.0 ? 1.0 : side < 1.5 ? 1.0 - turn : turn;
             if (shown > 0.0) {
                 float3 lit = light;
-                float3 passing = train(c, world, scene.train, scene, mpp, lit, sunlit);
+                float3 passing = train(c, world, scene.train, scene, mpp, lit,
+                                       directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
                 c = mix(c, passing, shown);
                 light = mix(light, lit, shown);
             }

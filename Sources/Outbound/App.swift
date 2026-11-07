@@ -413,7 +413,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if journey.followsCalendar != preferences.followsCalendar {
             journey.followsCalendar = preferences.followsCalendar
             journey.refreshSeasons()
-            world.repaint()
+            world.seasonsChanged()
             looks = true
         }
         if journey.speed != preferences.pace.speed {

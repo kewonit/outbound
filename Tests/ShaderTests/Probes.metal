@@ -762,7 +762,10 @@ kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &
 // Kernels named audit… walk a long way along the place in legB and write how far each thing intrudes on what it should
 // give way to, 0 when it keeps clear.
 
-inline float auditCross(float2 at, constant Scene &scene) { return crossGap(at, scene); }
+// As road() lays them: none in pivot country.
+inline float auditCross(float2 at, constant Scene &scene) {
+    return int(scene.legB.biome.a.x) == layoutPivots ? 1e6 : crossGap(at, scene);
+}
 inline float auditRail(float2 at, constant Scene &scene) { return railGap(at - float2(0.0, scene.legB.info.x), scene.legB.biome); }
 
 // How far ahead of its slot each car is: 64 cars in each thread's row, at a moment set by the column. Parts: the drift
