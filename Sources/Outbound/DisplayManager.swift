@@ -188,6 +188,12 @@ final class DisplayManager {
             }
             return
         }
+        // Already at rest, as when windows cover the desktop: it stays just so, and the painting is of that.
+        if world.isHeld {
+            set(.sessionEnding, true)
+            onSessionSettled()
+            return
+        }
         world.settle()
         let settled = DispatchWorkItem { [weak self] in
             MainActor.assumeIsolated {
@@ -214,7 +220,10 @@ final class DisplayManager {
     /// unseen. A display added later never holds the others, nor does a first frame that takes over ten seconds.
     private func holdWorld() {
         let opening = holdsForFirstFrames && wallpapers.values.contains { $0.holds.contains(.starting) }
-        world.hold(!globalHolds.isEmpty || pausedHidden || opening)
+        // Coming to rest as the Mac asks to shut down: once anything has stopped it meanwhile, nothing sets it off again
+        // before the answer comes, or it would set off only to stop dead.
+        let resting = sessionSettling != nil && world.isHeld
+        world.hold(!globalHolds.isEmpty || pausedHidden || opening || resting)
     }
 
     private var holdsForFirstFrames = true

@@ -130,6 +130,19 @@ struct EasingTests {
         #expect(abs(world.renderTime(for: 11) - (10 + World.settleLength / 2)) < 1e-9)
     }
 
+    /// Frames are drawn a little ahead of the clock, so a hold part way through slowing carries on from the last one
+    /// drawn, never from behind it.
+    @Test func heldWhileSlowingItNeverGoesBackOnAFrameDrawnAhead() {
+        let world = flying(to: 10)
+        world.settle(at: 10)
+        world.advance(to: 10.3)
+        let drawn = world.time
+        world.hold(true, at: 10.2)
+        world.hold(false, at: 12)
+        #expect(world.renderTime(for: 12) >= drawn - 1e-9)
+        #expect(world.renderTime(for: 13) > drawn)
+    }
+
     @Test func comingToRestWhileHeldChangesNothing() {
         let world = flying(to: 10)
         world.hold(true, at: 10)
@@ -202,6 +215,29 @@ struct SessionEndWatchTests {
         watch.heard("com.apple.shutdownInitiated")
         try await Task.sleep(for: .milliseconds(300))
         #expect(changes() == [true, false])
+    }
+
+    /// Past the point of no return only the end itself should come, so it waits far longer, but should the session
+    /// somehow carry on, the flight does too in the end, rather than staying still until Outbound opens again.
+    @Test func pastThePointOfNoReturnItCarriesOnOnlyIfTheEndNeverComes() async throws {
+        let (watch, changes) = watching()
+        watch.patience = 0.05
+        watch.lastPatience = 0.5
+        watch.heard("com.apple.shutdownInitiated")
+        watch.heard("com.apple.pointOfNoReturn")
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(changes() == [true])
+        try await Task.sleep(for: .milliseconds(600))
+        #expect(changes() == [true, false])
+    }
+
+    @Test func aPointOfNoReturnWithNothingAskedChangesNothing() async throws {
+        let (watch, changes) = watching()
+        watch.lastPatience = 0.05
+        watch.heard("com.apple.pointOfNoReturn")
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(changes().isEmpty)
+        #expect(!watch.ending)
     }
 
     @Test func pastThePointOfNoReturnItStays() async throws {

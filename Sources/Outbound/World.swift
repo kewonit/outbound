@@ -125,8 +125,9 @@ final class World {
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
             if settling != nil {
-                // Whatever the clock says, the flight carries on from where it slowed to.
-                heldFor = now - renderTime(for: now)
+                // Whatever the clock says, the flight carries on from where it slowed to, or from a frame already drawn
+                // a little ahead of it, never going back.
+                heldFor = now - max(time, renderTime(for: now))
                 settling = nil
             } else {
                 // What setting off last time took off the clock stays taken off.

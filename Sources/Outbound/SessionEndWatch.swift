@@ -12,6 +12,8 @@ final class SessionEndWatch: NSObject {
     /// How long to wait for the next word before carrying on regardless, so one that never comes can't hold the flight
     /// for good. The system's dialog answers itself after a minute.
     var patience: TimeInterval = 90
+    /// The same once the Mac has said there is no going back, when only the end itself should follow.
+    var lastPatience: TimeInterval = 300
     private var timer: Timer?
 
     private static let asked = ["com.apple.shutdownInitiated", "com.apple.restartInitiated", "com.apple.logoutInitiated"]
@@ -37,14 +39,13 @@ final class SessionEndWatch: NSObject {
         Log.display.notice("Session: \(name, privacy: .public)")
         switch name {
         case Self.final:
-            timer?.invalidate()
-            timer = nil
+            if ending { wait(lastPatience) }
         case _ where Self.called.contains(name):
             set(false)
         default:
             // Confirmed with nothing asked, as with no dialog, it is ending all the same.
             set(true)
-            wait()
+            wait(patience)
         }
     }
 
@@ -58,7 +59,7 @@ final class SessionEndWatch: NSObject {
         onChange(on)
     }
 
-    private func wait() {
+    private func wait(_ patience: TimeInterval) {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: patience, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {

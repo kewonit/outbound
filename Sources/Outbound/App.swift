@@ -107,7 +107,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         // The view at rest and the painting of it are the same picture, so it can't matter which is left on the screen.
         displays.onSessionSettled = { [weak self] in self?.refreshPainting(force: true) }
-        sessionEnd.onChange = { [weak self] ending in self?.displays.setSessionEnding(ending) }
+        sessionEnd.onChange = { [weak self] ending in
+            self?.stills.keepsReplaced = ending
+            self?.displays.setSessionEnding(ending)
+        }
         sessionEnd.start()
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
         let workspace = NSWorkspace.shared.notificationCenter
