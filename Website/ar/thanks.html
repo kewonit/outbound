@@ -8,7 +8,7 @@
 <title data-i18n="thanks.metaTitle">شكرًا لك · Outbound</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
-<link rel="stylesheet" href="/styles.css?v=23">
+<link rel="stylesheet" href="/styles.css?v=24">
 <!-- Privacy-friendly analytics by Plausible -->
 </head>
 <body>
@@ -48,7 +48,6 @@
       <p class="muted"><span data-i18n="thanks.orPaste">أو الصقه في Outbound.</span> <span id="email"></span></p>
     </div>
 
-    <p id="city" hidden data-i18n="thanks.city">وصلتنا مدينتك. سنرسمها ونراسلك حين تصبح في Outbound، عادةً خلال أسبوع.</p>
     <p class="muted" id="status" role="status" data-i18n="js.finding">جارٍ البحث عن مفتاحك…</p>
     <p class="muted" data-i18n="thanks.lost">أضعت مفتاحك؟ تجده في <a href="https://polar.sh/edbnme/portal">بوابة العملاء</a>.</p>
     <p class="muted" data-i18n="thanks.help">تحتاج إلى مساعدة؟ راسلنا على <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>.</p>
@@ -82,7 +81,7 @@
   </div>
 </footer>
 
-<script type="application/json" id="outbound-words">{"js.copied":"تم النسخ","js.copy":"نسخ","js.copyKey":"نسخ المفتاح","js.copyKeyTitle":"انسخ مفتاحك","js.emailInvalid":"يبدو أن هذا البريد غير صحيح.","js.feedbackEmpty":"اكتب شيئًا أولًا.","js.feedbackLong":"2000 حرف كحد أقصى.","js.feedbackSent":"شكرًا. في طريقها إليه.","js.finding":"جارٍ البحث عن مفتاحك…","js.formBusy":"محاولات كثيرة. انتظر دقيقة.","js.formFailed":"لم يتم الإرسال. حاول مرة أخرى.","js.offline":"تعذّر الوصول إلى المتجر. جرّب «تفعيل»، أو راجع بوابة العملاء.","js.portal":"مفتاحك في بوابة العملاء أدناه.","js.pressCopy":"اضغط ⌘C لنسخ مفتاحك.","js.refunded":"تم استرداد مبلغ هذا الشراء.","js.slow":"يستغرق الأمر وقتًا أطول من المعتاد. جرّب «تفعيل»، أو راجع بوابة العملاء بعد دقيقة.","js.unfinished":"لم تكتمل عملية الدفع هذه.","js.waitlistIos":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى iPhone.","js.waitlistWindows":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى Windows."}</script>
+<script type="application/json" id="outbound-words">{"js.copied":"تم النسخ","js.copy":"نسخ","js.copyKey":"نسخ المفتاح","js.copyKeyTitle":"انسخ مفتاحك","js.emailInvalid":"يبدو أن هذا البريد غير صحيح.","js.feedbackEmpty":"اكتب شيئًا أولًا.","js.feedbackLong":"2000 حرف كحد أقصى.","js.feedbackSent":"شكرًا. في طريقها إليه.","js.finding":"جارٍ البحث عن مفتاحك…","js.formBusy":"محاولات كثيرة. انتظر دقيقة.","js.formFailed":"لم يتم الإرسال. حاول مرة أخرى.","js.offline":"تعذّر الوصول إلى المتجر. جرّب «تفعيل»، أو راجع بوابة العملاء.","js.paste":"افتحه والصق مفتاحك.","js.portal":"مفتاحك في بوابة العملاء أدناه.","js.pressCopy":"اضغط ⌘C لنسخ مفتاحك.","js.refunded":"تم استرداد مبلغ هذا الشراء.","js.slow":"يستغرق الأمر وقتًا أطول من المعتاد. جرّب «تفعيل»، أو راجع بوابة العملاء بعد دقيقة.","js.unfinished":"لم تكتمل عملية الدفع هذه.","js.waitlistIos":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى iPhone.","js.waitlistWindows":"أنت في القائمة. رسالة واحدة عندما يصل Outbound إلى Windows."}</script>
 <script>
 // Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
 // starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
@@ -114,7 +113,7 @@
   // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
   var urls = {
     plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
-    app: "/app.js?v=16",
+    app: "/app.js?v=17",
     thanks: "/thanks.js?v=8",
     feedback: "/feedback.js?v=2",
     waitlist: "/waitlist.js?v=3"

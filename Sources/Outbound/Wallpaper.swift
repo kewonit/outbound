@@ -75,6 +75,8 @@ final class Wallpaper: NSObject {
         case hidden
         /// The first frame is still being painted, before the window goes up.
         case starting
+        /// The Mac is asking whether to shut down, restart or log out, so the flight has come to rest.
+        case sessionEnding
     }
 
     let displayID: CGDirectDisplayID

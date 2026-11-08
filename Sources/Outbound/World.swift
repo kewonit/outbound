@@ -16,8 +16,8 @@ final class World {
     static let roadOffset = 150.0
     /// Height of the cloud layer, which sets how far cloud shadows fall from their clouds.
     static let cloudHeight = 70.0
-    static let wind = SIMD2<Double>(2.6, 1.1)
-    static let carSpeed = 11.0
+    static let wind = SIMD2<Double>(1.3, 0.55)
+    static let carSpeed = 5.5
 
     enum Light: String, CaseIterable {
         /// The sun as it stands at the place at your clock's time of day.
@@ -88,7 +88,12 @@ final class World {
     /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
     /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
     func renderTime(for displayTime: TimeInterval) -> TimeInterval {
-        heldSince == nil ? displayTime - heldFor - setOffLag(at: displayTime) : time
+        if heldSince != nil { return time }
+        if let settling {
+            // Slowing to a stop is setting off played backwards, so what setting off leaves behind is the distance flown.
+            return settling.from + Easing.rampLag(elapsed: displayTime - settling.since, length: Self.settleLength)
+        }
+        return displayTime - heldFor - setOffLag(at: displayTime)
     }
 
     /// The bird as it was, or is, at `t`.
@@ -105,11 +110,29 @@ final class World {
     /// rather than going from still to full pace in one frame.
     private var setOff: TimeInterval?
     static let setOffLength = 0.8
+    /// The flight coming to rest: when it began slowing, in display time, and its own time then.
+    private var settling: (since: TimeInterval, from: TimeInterval)?
+    /// How long the flight takes to come to rest, flying half that far as it does.
+    static let settleLength = 0.5
+
+    /// Brings the flight to rest over `settleLength`, as gently as it sets off, for `hold` to keep it there. Only a hold
+    /// ends this, so a call to let go of a hold that isn't there leaves it slowing.
+    func settle(at now: TimeInterval = CACurrentMediaTime()) {
+        guard heldSince == nil, settling == nil else { return }
+        settling = (now, renderTime(for: now))
+    }
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
-            // What setting off last time took off the clock stays taken off.
-            heldFor += setOffLag(at: now)
+            if settling != nil {
+                // Whatever the clock says, the flight carries on from where it slowed to, or from a frame already drawn
+                // a little ahead of it, never going back.
+                heldFor = now - max(time, renderTime(for: now))
+                settling = nil
+            } else {
+                // What setting off last time took off the clock stays taken off.
+                heldFor += setOffLag(at: now)
+            }
             setOff = nil
             heldSince = now
         } else if !on, let since = heldSince {
@@ -177,7 +200,7 @@ final class World {
 
     func advance(to displayTime: TimeInterval) {
         guard heldSince == nil else { return }
-        let t = displayTime - heldFor - setOffLag(at: displayTime)
+        let t = renderTime(for: displayTime)
         guard t > time else { return }
         let dt = t - time
         time = t
@@ -185,7 +208,10 @@ final class World {
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
         journey.extend(through: top + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + 200)
+                       notBefore: top + 200,
+                       // Only two places can be on screen at once, so a place lasts long enough to finish turning
+                       // into the next before a third comes into view, however tall the desktop.
+                       shortest: Journey.morphLength + Double(desktop.height) * Self.metresPerPoint + 200)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -198,9 +224,9 @@ final class World {
             }
             lastPointer = point
         }
-        chasing = t - pointerMoved < 6
+        chasing = t - pointerMoved < 10
         let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
-        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t))
+        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t), hurrying: target != nil)
         birdTrail.record(bird.pose, at: t)
         if t - sunUpdated > 20 { updateSun(force: false) }
     }
@@ -392,7 +418,7 @@ final class World {
                       rail: rail, railShape: shape)
     }
 
-    static let boatSpeed = 2.5
+    static let boatSpeed = 1.25
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0

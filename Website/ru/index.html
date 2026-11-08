@@ -51,7 +51,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" as="image" href="/assets/poster.jpg?v=4" fetchpriority="high">
-<link rel="stylesheet" href="/styles.css?v=23">
+<link rel="stylesheet" href="/styles.css?v=24">
 <!-- What search engines read about Outbound. The FAQ here repeats the one on the page word for word, so change
      both together. -->
 <script type="application/ld+json">
@@ -133,26 +133,10 @@
    "mainEntity": [
     {
      "@type": "Question",
-     "name": "Что мне нужно?",
+     "name": "Заработает ли он на моём Mac?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Mac с Apple silicon и macOS 13 Ventura или новее."
-     }
-    },
-    {
-     "@type": "Question",
-     "name": "Это зацикленное видео?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Нет. Ваш Mac рисует его вживую прямо в полёте, поэтому ничего не повторяется."
-     }
-    },
-    {
-     "@type": "Question",
-     "name": "Можно выбрать, куда лететь?",
-     "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Да. Выберите в строке меню любое из восьми мест и сколько держаться над каждым, от шести минут до часа, или оставьте его над одним."
+      "text": "Да, если у вас Mac с Apple silicon и macOS 13 Ventura или новее. На Mac с Intel он не работает. Чтобы проверить, выберите «Об этом Mac» в меню Apple. Если там указан чип вроде Apple M1 или новее, всё в порядке."
      }
     },
     {
@@ -160,7 +144,31 @@
      "name": "Не будет ли тормозить Mac или садиться аккумулятор?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Нет. Он встаёт на паузу, когда экран спит или включён режим энергосбережения, а также пока рабочий стол скрыт, если включено «Пауза, когда скрыто». От аккумулятора он может вместо этого показывать застывшую картину."
+      "text": "Outbound задуман лёгким и перестаёт рисовать, когда его никто не видит: когда окна закрывают рабочий стол, когда вы отошли больше чем на пять минут и пока экран спит. От аккумулятора он замедляется или, если вам так больше нравится, показывает застывшую картину. А ещё он замирает в режиме энергосбережения и когда Mac сильно греется."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Это просто зацикленное видео?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Нет. Ваш Mac рисует картину прямо в полёте над настоящими полями, реками и городками, так что вид всё время меняется и никогда не повторяется."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Можно выбрать, куда лететь?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Да. Нажмите на чайку в строке меню и выберите «Куда лететь». Ещё можно задать, сколько он держится над каждым местом, от двенадцати минут до часа, или оставить его над одним местом насовсем."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Ночью становится темно?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Только если вы этого хотите. В Outbound всегда день, пока вы не поменяете «Освещение» в строке меню. Выберите «По вашим часам», и вечера станут тёплыми, а когда стемнеет, зажгутся окна и уличные фонари."
      }
     },
     {
@@ -168,7 +176,7 @@
      "name": "Работает ли он с несколькими дисплеями?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Да. Один пейзаж тянется через все дисплеи."
+      "text": "Да. Один пейзаж растягивается на все дисплеи и расположен так же, как они стоят у вас, поэтому вид плавно переходит с одного экрана на другой."
      }
     },
     {
@@ -176,7 +184,23 @@
      "name": "Что будет с моими обоями?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Они вернутся, как только вы завершите Outbound."
+      "text": "Ничего не пропадёт. Завершите Outbound, и ваша картинка вернётся на все рабочие столы. Пока он работает, на экране блокировки стоит застывший кадр картины. Выключить это можно в окне «Настройки»."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Это подписка?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Нет. Вы платите один раз, и Outbound ваш, а все обновления бесплатны. Они устанавливаются сами."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "А если он мне не подойдёт?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Напишите мне на outbound@edbn.me в течение 14 дней, и я верну всю сумму. Неважно, не запускается он на вашем Mac или просто оказался не тем, чего вы ждали."
      }
     },
     {
@@ -184,39 +208,39 @@
      "name": "Где найти ключ?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Он появится сразу после оплаты и останется в вашем кабинете покупателя. Если покупать прямо в приложении, Outbound разблокируется сам."
+      "text": "Он на странице, которая открывается сразу после оплаты, и всегда лежит в вашем кабинете покупателя. Войдите туда с той почтой, которую указали при оплате. Если вы покупали прямо в приложении, ключ не нужен: Outbound разблокируется сам."
      }
     },
     {
      "@type": "Question",
-     "name": "На скольких Mac можно его использовать?",
+     "name": "Можно ли пользоваться им на нескольких Mac?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "На трёх одновременно. Перенести ключ на новый Mac можно в настройках или в кабинете покупателя."
+      "text": "Да, до трёх одновременно с одним ключом. Переходите на новый Mac? На старом откройте «Настройки» Outbound и нажмите «Деактивировать» или воспользуйтесь кабинетом покупателя, а потом вставьте ключ на новом."
      }
     },
     {
      "@type": "Question",
-     "name": "Обновления бесплатные?",
+     "name": "Он собирает что-то обо мне?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Да. Они устанавливаются сами, пока вас нет."
+      "text": "Нет. В приложении нет аккаунта, аналитики и отслеживания, и оно никогда не просит доступа к вашему экрану или файлам. Птица знает, где ваш курсор, но эти данные не покидают ваш Mac. Подробности в политике конфиденциальности."
      }
     },
     {
      "@type": "Question",
-     "name": "Код лежит на GitHub. Это бесплатно?",
+     "name": "Код лежит на GitHub. Можно пользоваться бесплатно?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Код открыт для чтения. А чтобы пользоваться приложением, нужна лицензия."
+      "text": "Его можно свободно читать, учиться на нём и присылать исправления. А чтобы поставить Outbound на обои, нужна лицензия, даже если вы собрали его сами."
      }
     },
     {
      "@type": "Question",
-     "name": "Нужна помощь?",
+     "name": "Что-то ещё?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Напишите на outbound@edbn.me или загляните в раздел Поддержка."
+      "text": "Напишите на outbound@edbn.me, и вам отвечу я, человек, который сделал Outbound. А на странице Поддержка есть ещё о потерянном ключе, переходе на новый Mac и многом другом."
      }
     }
    ],
@@ -359,13 +383,14 @@
       <div class="price-grid">
         <article class="tier featured">
           <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
-          <p class="tier-price"><s class="tier-was"><span class="sr-only" data-i18n="buy.was">Обычная цена</span>$12.99</s> $4.99<span class="per" data-i18n="buy.per"> + налог, один раз</span></p>
-          <p class="tier-desc"><span class="tier-offer" data-i18n="buy.offer">Цена на ограниченное время.</span> <span data-i18n="buy.desc">До 3 Mac. Без подписки.</span></p>
+          <p class="tier-price">$4.99<span class="per" data-i18n="buy.per"> + налог, один раз</span></p>
+          <p class="tier-desc" data-i18n="buy.desc">До 3 Mac. Без подписки.</p>
           <div class="tier-actions">
             <a class="btn btn-light" href="#buy" data-url="buy" data-soon="Скоро" data-i18n="buy.button" data-i18n-attr="data-soon=buy.soon">Купить за $4.99</a>
             <!-- Shown by the site's Worker where the price above is in the visitor's own money. -->
             <a class="tier-dollars" href="/buy?currency=usd" rel="nofollow" data-dollars hidden data-i18n="buy.dollars">Или оплатить $4.99 в долларах США</a>
           </div>
+          <p class="tier-seller" data-i18n="buy.seller">Продаёт Polar, наш реселлер, который принимает оплату и берёт на себя налоги.</p>
         </article>
         <p class="tier-needs">
           <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span data-i18n="needs.macos">macOS 13 Ventura или новее</span></span>
@@ -379,12 +404,6 @@
           <p class="tier-desc" data-i18n="buy.paste">Откройте и вставьте ключ.</p>
           <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" data-i18n="download.already"><span class="btn-quiet">Уже ваш?</span> Скачать</a>
         </article>
-        <article class="tier tier-city" id="your-city" data-needs="city">
-          <h3 class="tier-name" data-i18n="city.name">Ваш город</h3>
-          <p class="tier-price">$99<span class="per" data-i18n="buy.per"> + налог, один раз</span></p>
-          <p class="tier-desc" data-i18n="city.desc">Его нарисует автор Outbound, <br>примерно за неделю. Outbound входит в цену.</p>
-          <a class="btn btn-dark btn-sm" href="#your-city" data-url="city" data-soon="" data-i18n="city.button">Добавить свой город за $99</a>
-        </article>
       </div>
     </div>
   </section>
@@ -395,48 +414,60 @@
       <h2 data-i18n="faq.title">Вопросы и ответы</h2>
       <div class="faq">
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">Что мне нужно?</button>
-          <div class="faq-a"><p data-i18n="faq.a1">Mac с Apple silicon и macOS 13 Ventura или новее.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q1">Заработает ли он на моём Mac?</button>
+          <div class="faq-a"><p data-i18n="faq.a1">Да, если у вас Mac с Apple silicon и macOS 13 Ventura или новее. На Mac с Intel он не работает. Чтобы проверить, выберите «Об этом Mac» в меню Apple. Если там указан чип вроде Apple M1 или новее, всё в порядке.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Это зацикленное видео?</button>
-          <div class="faq-a"><p data-i18n="faq.a2">Нет. Ваш Mac рисует его вживую прямо в полёте, поэтому ничего не повторяется.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q2">Не будет ли тормозить Mac или садиться аккумулятор?</button>
+          <div class="faq-a"><p data-i18n="faq.a2">Outbound задуман лёгким и перестаёт рисовать, когда его никто не видит: когда окна закрывают рабочий стол, когда вы отошли больше чем на пять минут и пока экран спит. От аккумулятора он замедляется или, если вам так больше нравится, показывает застывшую картину. А ещё он замирает в режиме энергосбережения и когда Mac сильно греется.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Можно выбрать, куда лететь?</button>
-          <div class="faq-a"><p data-i18n="faq.a3">Да. Выберите в строке меню любое из восьми мест и сколько держаться над каждым, от шести минут до часа, или оставьте его над одним.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q3">Это просто зацикленное видео?</button>
+          <div class="faq-a"><p data-i18n="faq.a3">Нет. Ваш Mac рисует картину прямо в полёте над настоящими полями, реками и городками, так что вид всё время меняется и никогда не повторяется.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Не будет ли тормозить Mac или садиться аккумулятор?</button>
-          <div class="faq-a"><p data-i18n="faq.a4">Нет. Он встаёт на паузу, когда экран спит или включён режим энергосбережения, а также пока рабочий стол скрыт, если включено «Пауза, когда скрыто». От аккумулятора он может вместо этого показывать застывшую картину.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">Можно выбрать, куда лететь?</button>
+          <div class="faq-a"><p data-i18n="faq.a4">Да. Нажмите на чайку в строке меню и выберите «Куда лететь». Ещё можно задать, сколько он держится над каждым местом, от двенадцати минут до часа, или оставить его над одним местом насовсем.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Работает ли он с несколькими дисплеями?</button>
-          <div class="faq-a"><p data-i18n="faq.a5">Да. Один пейзаж тянется через все дисплеи.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">Ночью становится темно?</button>
+          <div class="faq-a"><p data-i18n="faq.a5">Только если вы этого хотите. В Outbound всегда день, пока вы не поменяете «Освещение» в строке меню. Выберите «По вашим часам», и вечера станут тёплыми, а когда стемнеет, зажгутся окна и уличные фонари.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Что будет с моими обоями?</button>
-          <div class="faq-a"><p data-i18n="faq.a6">Они вернутся, как только вы завершите Outbound.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q6">Работает ли он с несколькими дисплеями?</button>
+          <div class="faq-a"><p data-i18n="faq.a6">Да. Один пейзаж растягивается на все дисплеи и расположен так же, как они стоят у вас, поэтому вид плавно переходит с одного экрана на другой.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Что будет с моими обоями?</button>
+          <div class="faq-a"><p data-i18n="faq.a7">Ничего не пропадёт. Завершите Outbound, и ваша картинка вернётся на все рабочие столы. Пока он работает, на экране блокировки стоит застывший кадр картины. Выключить это можно в окне «Настройки».</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">Это подписка?</button>
+          <div class="faq-a"><p data-i18n="faq.a8">Нет. Вы платите один раз, и Outbound ваш, а все обновления бесплатны. Они устанавливаются сами.</p></div>
         </div>
         <div class="faq-item" data-direct>
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q7">Где найти ключ?</button>
-          <div class="faq-a"><p data-i18n="faq.a7">Он появится сразу после оплаты и останется в вашем <a href="https://polar.sh/edbnme/portal">кабинете покупателя</a>. Если покупать прямо в приложении, Outbound разблокируется сам.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">А если он мне не подойдёт?</button>
+          <div class="faq-a"><p data-i18n="faq.a9">Напишите мне на <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> в течение 14 дней, и я верну всю сумму. Неважно, не запускается он на вашем Mac или просто оказался не тем, чего вы ждали.</p></div>
+        </div>
+        <div class="faq-item" data-direct>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">Где найти ключ?</button>
+          <div class="faq-a"><p data-i18n="faq.a10">Он на странице, которая открывается сразу после оплаты, и всегда лежит в вашем <a href="https://polar.sh/edbnme/portal">кабинете покупателя</a>. Войдите туда с той почтой, которую указали при оплате. Если вы покупали прямо в приложении, ключ не нужен: Outbound разблокируется сам.</p></div>
+        </div>
+        <div class="faq-item" data-direct>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Можно ли пользоваться им на нескольких Mac?</button>
+          <div class="faq-a"><p data-i18n="faq.a11">Да, до трёх одновременно с одним ключом. Переходите на новый Mac? На старом откройте «Настройки» Outbound и нажмите «Деактивировать» или воспользуйтесь кабинетом покупателя, а потом вставьте ключ на новом.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q8">На скольких Mac можно его использовать?</button>
-          <div class="faq-a"><p data-i18n="faq.a8">На трёх одновременно. Перенести ключ на новый Mac можно в настройках или в кабинете покупателя.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q12">Он собирает что-то обо мне?</button>
+          <div class="faq-a"><p data-i18n="faq.a12">Нет. В приложении нет аккаунта, аналитики и отслеживания, и оно никогда не просит доступа к вашему экрану или файлам. Птица знает, где ваш курсор, но эти данные не покидают ваш Mac. Подробности в <a href="/privacy">политике конфиденциальности</a>.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q9">Обновления бесплатные?</button>
-          <div class="faq-a"><p data-i18n="faq.a9">Да. Они устанавливаются сами, пока вас нет.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q13">Код лежит на GitHub. Можно пользоваться бесплатно?</button>
+          <div class="faq-a"><p data-i18n="faq.a13">Его можно свободно читать, учиться на нём и присылать исправления. А чтобы поставить Outbound на обои, нужна <a href="/license">лицензия</a>, даже если вы собрали его сами.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q10">Код лежит на GitHub. Это бесплатно?</button>
-          <div class="faq-a"><p data-i18n="faq.a10">Код открыт для чтения. А чтобы пользоваться приложением, нужна <a href="/license">лицензия</a>.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false" data-i18n="faq.q11">Нужна помощь?</button>
-          <div class="faq-a"><p data-i18n="faq.a11">Напишите на <a href="mailto:outbound@edbn.me">outbound@edbn.me</a> или загляните в раздел <a href="/ru/support">Поддержка</a>.</p></div>
+          <button class="faq-q" aria-expanded="false" data-i18n="faq.q14">Что-то ещё?</button>
+          <div class="faq-a"><p data-i18n="faq.a14">Напишите на <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>, и вам отвечу я, человек, который сделал Outbound. А на странице <a href="/ru/support">Поддержка</a> есть ещё о потерянном ключе, переходе на новый Mac и многом другом.</p></div>
         </div>
       </div>
     </div>
@@ -461,7 +492,6 @@
         <a href="#places" data-i18n="footer.places">Места</a>
         <a href="#buy" data-i18n="footer.buy">Купить</a>
         <a href="#faq" data-i18n="faq.title">Вопросы и ответы</a>
-        <a href="#your-city" data-i18n="footer.city">Ваш город</a>
         <a href="/ru/waitlist" data-i18n="footer.elsewhere">Windows и iPhone</a>
         <a href="/ru/feedback" data-i18n="footer.feedback">Отзыв</a>
         <a href="/ru/support" data-i18n="footer.support">Поддержка</a>
@@ -504,7 +534,7 @@
   </div>
 </footer>
 
-<script type="application/json" id="outbound-words">{"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackLong":"Не больше 2000 символов.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."}</script>
+<script type="application/json" id="outbound-words">{"js.copied":"Скопировано","js.copy":"Копировать","js.copyKey":"Копировать ключ","js.copyKeyTitle":"Скопировать ключ","js.emailInvalid":"Похоже, в адресе ошибка.","js.feedbackEmpty":"Сначала напишите что-нибудь.","js.feedbackLong":"Не больше 2000 символов.","js.feedbackSent":"Спасибо. Отзыв отправлен.","js.finding":"Ищем ваш ключ…","js.formBusy":"Слишком много попыток. Подождите минуту.","js.formFailed":"Не получилось отправить. Попробуйте ещё раз.","js.offline":"Не удалось связаться с магазином. Нажмите «Активировать» или загляните в кабинет покупателя.","js.paste":"Откройте и вставьте ключ.","js.portal":"Ваш ключ в кабинете покупателя ниже.","js.pressCopy":"Нажмите ⌘C, чтобы скопировать ключ.","js.refunded":"Деньги за эту покупку вернули.","js.slow":"Это дольше обычного. Нажмите «Активировать» или загляните в кабинет покупателя через минуту.","js.unfinished":"Оплата не завершена.","js.waitlistIos":"Вы в списке. Одно письмо, когда Outbound выйдет на iPhone.","js.waitlistWindows":"Вы в списке. Одно письмо, когда Outbound выйдет на Windows."}</script>
 <script>
 // Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
 // starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
@@ -536,7 +566,7 @@
   // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
   var urls = {
     plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
-    app: "/app.js?v=16",
+    app: "/app.js?v=17",
     thanks: "/thanks.js?v=8",
     feedback: "/feedback.js?v=2",
     waitlist: "/waitlist.js?v=3"

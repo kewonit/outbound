@@ -3,8 +3,8 @@ import OutboundCore
 import Testing
 @testable import Outbound
 
-/// Settings that changed their default reach everyone who never asked for the old one, and every choice someone made
-/// comes through an update.
+/// Settings that changed their default reach everyone who never asked for the old one, and the choices someone made
+/// come through an update, except where a change was meant for everyone.
 @MainActor
 @Suite
 struct PreferencesTests {
@@ -46,6 +46,30 @@ struct PreferencesTests {
         }
     }
 
+    @Test func everyoneStartsOnSlowOnceAndCanChooseAgain() throws {
+        try withDefaults { defaults in
+            // A first launch.
+            #expect(Preferences(defaults: defaults).pace == .slow)
+            // Coming from a version with faster paces, whichever was saved.
+            for saved in ["slow", "gentle", "brisk"] {
+                defaults.removeObject(forKey: "flightPace")
+                defaults.set(saved, forKey: "pace")
+                #expect(Preferences(defaults: defaults).pace == .slow)
+                #expect(defaults.object(forKey: "pace") == nil)
+            }
+            // What they choose now stays.
+            Preferences(defaults: defaults).pace = .brisk
+            #expect(Preferences(defaults: defaults).pace == .brisk)
+        }
+    }
+
+    @Test func sixMinutesOverEachPlaceBecomesTwelve() throws {
+        try withDefaults { defaults in
+            defaults.set(6, forKey: "stay")
+            #expect(Preferences(defaults: defaults).stay == .medium)
+        }
+    }
+
     @Test func holdingWhenHiddenChosenIn15StaysOn() throws {
         try withDefaults { defaults in
             defaults.set(true, forKey: "pausesWhenHidden")
@@ -53,11 +77,11 @@ struct PreferencesTests {
         }
     }
 
-    /// Everything 1.5 saved as it quit, the choices other than holding while hidden come through as they were.
+    /// Everything 1.5 saved as it quit, the choices other than the pace and holding while hidden come through as they were.
     @Test func anUpdateFrom15KeepsEveryOtherChoice() throws {
         try withDefaults { defaults in
             let saved: [String: Any] = [
-                "light": "yourTime", "followsCalendar": true, "pace": "slow", "stay": 30, "batteryMode": "still",
+                "light": "yourTime", "followsCalendar": true, "pace": "brisk", "stay": 30, "batteryMode": "still",
                 "matchingStill": false, "restsWhenAway": false, "pausesWhenHidden": false, "paperBorder": true,
                 "lastPlace": "niigata",
             ]

@@ -8,7 +8,7 @@
 <title data-i18n="thanks.metaTitle">Merci · Outbound</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
-<link rel="stylesheet" href="/styles.css?v=23">
+<link rel="stylesheet" href="/styles.css?v=24">
 <!-- Privacy-friendly analytics by Plausible -->
 </head>
 <body>
@@ -48,7 +48,6 @@
       <p class="muted"><span data-i18n="thanks.orPaste">Ou colle-la dans Outbound.</span> <span id="email"></span></p>
     </div>
 
-    <p id="city" hidden data-i18n="thanks.city">Nous avons bien reçu ta ville. Nous allons la peindre et t'écrire dès qu'elle sera dans Outbound, en général sous une semaine.</p>
     <p class="muted" id="status" role="status" data-i18n="js.finding">Recherche de ta clé…</p>
     <p class="muted" data-i18n="thanks.lost">Clé perdue ? Elle est dans ton <a href="https://polar.sh/edbnme/portal">espace client</a>.</p>
     <p class="muted" data-i18n="thanks.help">Besoin d'aide ? Écris à <a href="mailto:outbound@edbn.me">outbound@edbn.me</a>.</p>
@@ -82,7 +81,7 @@
   </div>
 </footer>
 
-<script type="application/json" id="outbound-words">{"js.copied":"Copiée","js.copy":"Copier","js.copyKey":"Copier la clé","js.copyKeyTitle":"Copie ta clé","js.emailInvalid":"Cet e-mail ne semble pas correct.","js.feedbackEmpty":"Écris quelque chose d'abord.","js.feedbackLong":"2000 caractères maximum.","js.feedbackSent":"Merci. C'est envoyé.","js.finding":"Recherche de ta clé…","js.formBusy":"Trop d'essais. Attends une minute.","js.formFailed":"Ça n'a pas marché. Réessaie.","js.offline":"Impossible de joindre la boutique. Essaie Activer, ou consulte ton espace client.","js.portal":"Ta clé se trouve dans ton espace client, ci-dessous.","js.pressCopy":"Appuie sur ⌘C pour copier ta clé.","js.refunded":"Cet achat a été remboursé.","js.slow":"C'est plus long que d'habitude. Essaie Activer, ou consulte ton espace client d'ici une minute.","js.unfinished":"Ce paiement n'a pas abouti.","js.waitlistIos":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur iPhone.","js.waitlistWindows":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur Windows."}</script>
+<script type="application/json" id="outbound-words">{"js.copied":"Copiée","js.copy":"Copier","js.copyKey":"Copier la clé","js.copyKeyTitle":"Copie ta clé","js.emailInvalid":"Cet e-mail ne semble pas correct.","js.feedbackEmpty":"Écris quelque chose d'abord.","js.feedbackLong":"2000 caractères maximum.","js.feedbackSent":"Merci. C'est envoyé.","js.finding":"Recherche de ta clé…","js.formBusy":"Trop d'essais. Attends une minute.","js.formFailed":"Ça n'a pas marché. Réessaie.","js.offline":"Impossible de joindre la boutique. Essaie Activer, ou consulte ton espace client.","js.paste":"Ouvre-le et colle ta clé.","js.portal":"Ta clé se trouve dans ton espace client, ci-dessous.","js.pressCopy":"Appuie sur ⌘C pour copier ta clé.","js.refunded":"Cet achat a été remboursé.","js.slow":"C'est plus long que d'habitude. Essaie Activer, ou consulte ton espace client d'ici une minute.","js.unfinished":"Ce paiement n'a pas abouti.","js.waitlistIos":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur iPhone.","js.waitlistWindows":"Tu es sur la liste. Un seul e-mail quand Outbound arrivera sur Windows."}</script>
 <script>
 // Starts this page's scripts. The site's Content Security Policy runs this script alone, by its hash, and what it
 // starts ('strict-dynamic'), so it is the same on every page and starts only the site's own files and Plausible.
@@ -114,7 +113,7 @@
   // Addresses go through a Trusted Types policy where the browser has them, which takes these and nothing else.
   var urls = {
     plausible: "https://plausible.io/js/pa-UjwzQoq8qX6tVKev_Xvxo.js",
-    app: "/app.js?v=16",
+    app: "/app.js?v=17",
     thanks: "/thanks.js?v=8",
     feedback: "/feedback.js?v=2",
     waitlist: "/waitlist.js?v=3"

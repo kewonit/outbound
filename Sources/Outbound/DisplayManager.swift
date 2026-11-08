@@ -162,9 +162,48 @@ final class DisplayManager {
     /// Called as a wallpaper comes up over the desktop picture.
     var onReveal: () -> Void = {}
 
+    /// Called once the flight has come to rest as the Mac asks whether to shut down, restart or log out.
+    var onSessionSettled: () -> Void = {}
+
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
         set { set(.user, newValue) }
+    }
+
+    private var sessionSettling: DispatchWorkItem?
+
+    /// Through the last moments of a shutdown nothing can draw, and the screen keeps whatever it last showed for as long
+    /// as the Mac takes to power off. So as the Mac asks, the flight comes to rest and stays there, as a wallpaper
+    /// would be, and carries on if the answer is no.
+    func setSessionEnding(_ on: Bool) {
+        sessionSettling?.cancel()
+        sessionSettling = nil
+        guard on else {
+            if globalHolds.contains(.sessionEnding) {
+                set(.sessionEnding, false)
+            } else {
+                // Still slowing: it stops there, and sets off as it does after any hold, unless something else holds it.
+                world.hold(true)
+                holdWorld()
+            }
+            return
+        }
+        // Already at rest, as when windows cover the desktop: it stays just so, and the painting is of that.
+        if world.isHeld {
+            set(.sessionEnding, true)
+            onSessionSettled()
+            return
+        }
+        world.settle()
+        let settled = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.sessionSettling = nil
+                self?.set(.sessionEnding, true)
+                self?.onSessionSettled()
+            }
+        }
+        sessionSettling = settled
+        DispatchQueue.main.asyncAfter(deadline: .now() + World.settleLength, execute: settled)
     }
 
     func set(_ hold: Wallpaper.Hold, _ on: Bool) {
@@ -181,7 +220,10 @@ final class DisplayManager {
     /// unseen. A display added later never holds the others, nor does a first frame that takes over ten seconds.
     private func holdWorld() {
         let opening = holdsForFirstFrames && wallpapers.values.contains { $0.holds.contains(.starting) }
-        world.hold(!globalHolds.isEmpty || pausedHidden || opening)
+        // Coming to rest as the Mac asks to shut down: once anything has stopped it meanwhile, nothing sets it off again
+        // before the answer comes, or it would set off only to stop dead.
+        let resting = sessionSettling != nil && world.isHeld
+        world.hold(!globalHolds.isEmpty || pausedHidden || opening || resting)
     }
 
     private var holdsForFirstFrames = true

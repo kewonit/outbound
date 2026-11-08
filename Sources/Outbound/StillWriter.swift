@@ -30,6 +30,10 @@ final class StillWriter {
     /// The picture a display had when the system wouldn't take a painting over it, say one chosen by whoever manages
     /// the Mac. It isn't asked again until that picture changes.
     private var refused: [CGDirectDisplayID: URL?] = [:]
+    /// The Mac is shutting down, restarting or logging out: a painting replaced now stays on disk, with its record, as
+    /// the system may not keep the new picture before it powers off, and the login window and the next launch must
+    /// still find whichever one it kept. Paintings no longer shown go in time, as any old one does.
+    var keepsReplaced = false
     /// The last painting's stamp, so two in one millisecond never share a name.
     private var lastStamp = 0
     /// Counts moves between desktops, so a painting made for one never lands on another.
@@ -189,7 +193,7 @@ final class StillWriter {
         refused[id] = nil
         seen.insert(id)
         lastGiven[id] = (desktopsSeen, .now)
-        if isStill(covered) {
+        if isStill(covered), !keepsReplaced {
             try? FileManager.default.removeItem(at: covered)
             retire(covered.lastPathComponent)
         }

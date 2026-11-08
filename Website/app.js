@@ -7,7 +7,6 @@
   var URLS = {
     download: "/download",
     buy: "/buy",
-    city: "https://buy.polar.sh/polar_cl_5YJmufj56lhrwpWLSpRyjrU8pa1n5FnVfkweV2Ahi7b",
     github: "https://github.com/kewonit/outbound"
   };
 
@@ -77,34 +76,15 @@
     }
   });
 
-  // The click id X adds to its ads' links (twclid), kept in this browser for a month after the visit it came with,
-  // and handed to the site's Buy, so a purchase can be credited to the ad (worker/index.js). Nothing else reads it.
-  var CLICK = /^[\w.~-]{1,500}$/;
-  var month = 30 * 24 * 3600 * 1000;
-  var click = null;
+  // An X ad's click id that the site kept until November 2026, which nothing uses any more. Kept for a month at
+  // most, so this can go once December 2026 is out.
   try {
-    var arrived = new URLSearchParams(location.search).get("twclid");
-    if (arrived && CLICK.test(arrived)) {
-      localStorage.setItem("outbound-twclid", JSON.stringify({ id: arrived, saved: Date.now() }));
-    }
-    var kept = JSON.parse(localStorage.getItem("outbound-twclid") || "null");
-    if (kept && typeof kept.id === "string" && CLICK.test(kept.id) && Date.now() - kept.saved < month) {
-      click = kept.id;
-    } else if (kept) {
-      localStorage.removeItem("outbound-twclid");
-    }
+    localStorage.removeItem("outbound-twclid");
   } catch (error) {}
-  if (click) {
-    document.querySelectorAll('a[data-url="buy"], a[data-dollars]').forEach(function (link) {
-      var href = link.getAttribute("href");
-      if (!href || href.indexOf("/buy") !== 0) return;
-      link.setAttribute("href", href + (href.indexOf("?") < 0 ? "?" : "&") + "twclid=" + encodeURIComponent(click));
-    });
-  }
 
   // Counts the clicks that lead to a purchase or a download. A "Coming soon" link has no address, so it counts
   // nothing.
-  var MOMENTS = { buy: "Buy", download: "Download", city: "City" };
+  var MOMENTS = { buy: "Buy", download: "Download" };
   document.querySelectorAll("a[data-url], a[data-dollars]").forEach(function (link) {
     var name = link.hasAttribute("data-dollars") ? "Buy" : MOMENTS[link.getAttribute("data-url")];
     if (!name) return;
