@@ -18,16 +18,17 @@ final class Preferences: ObservableObject {
         /// Metres per second over the ground.
         var speed: Double {
             switch self {
-            case .slow: 4.2
-            case .gentle: 6.5
-            case .brisk: 10
+            case .slow: 2.2
+            case .gentle: 3.3
+            case .brisk: 5
             }
         }
     }
 
-    /// Minutes over each place, or none to stay over the one in view.
+    /// Minutes over each place, or none to stay over the one in view. At Slow, twelve minutes is about the least that
+    /// leaves a place room to turn into the next with the view clear of the turn before, so six, offered once, is not.
     enum Stay: Int, CaseIterable, Identifiable {
-        case short = 6, medium = 12, long = 30, hour = 60, forever = 0
+        case medium = 12, long = 30, hour = 60, forever = 0
         var id: Self { self }
         var title: String {
             switch self {
@@ -42,7 +43,7 @@ final class Preferences: ObservableObject {
     // reaches everyone who never did. Versions before 1.6 saved every one whenever any changed, and as they quit.
     @Published var light: World.Light { didSet { defaults.set(light.rawValue, forKey: "light") } }
     @Published var followsCalendar: Bool { didSet { defaults.set(followsCalendar, forKey: "followsCalendar") } }
-    @Published var pace: Pace { didSet { defaults.set(pace.rawValue, forKey: "pace") } }
+    @Published var pace: Pace { didSet { defaults.set(pace.rawValue, forKey: "flightPace") } }
     @Published var stay: Stay { didSet { defaults.set(stay.rawValue, forKey: "stay") } }
     @Published var batteryMode: PowerState.BatteryMode {
         didSet { defaults.set(batteryMode.rawValue, forKey: "batteryMode") }
@@ -66,7 +67,9 @@ final class Preferences: ObservableObject {
         self.defaults = defaults
         light = World.Light(rawValue: defaults.string(forKey: "light") ?? "") ?? .alwaysDay
         followsCalendar = defaults.object(forKey: "followsCalendar") as? Bool ?? false
-        pace = Pace(rawValue: defaults.string(forKey: "pace") ?? "") ?? .gentle
+        // Kept under a new name since every pace slowed down and Slow became the default: everyone starts there once,
+        // whatever they flew at before, and can choose again.
+        pace = Pace(rawValue: defaults.string(forKey: "flightPace") ?? "") ?? .slow
         stay = (defaults.object(forKey: "stay") as? Int).flatMap(Stay.init(rawValue:)) ?? .medium
         batteryMode = PowerState.BatteryMode(rawValue: defaults.string(forKey: "batteryMode") ?? "") ?? .gentle
         matchingStill = defaults.object(forKey: "matchingStill") as? Bool ?? true
@@ -81,6 +84,7 @@ final class Preferences: ObservableObject {
         // What the old names hold says nothing about what anyone chose.
         defaults.removeObject(forKey: "pausesWhenHidden")
         defaults.removeObject(forKey: "paperEdge")
+        defaults.removeObject(forKey: "pace")
     }
 }
 

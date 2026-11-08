@@ -16,8 +16,8 @@ final class World {
     static let roadOffset = 150.0
     /// Height of the cloud layer, which sets how far cloud shadows fall from their clouds.
     static let cloudHeight = 70.0
-    static let wind = SIMD2<Double>(2.6, 1.1)
-    static let carSpeed = 11.0
+    static let wind = SIMD2<Double>(1.3, 0.55)
+    static let carSpeed = 5.5
 
     enum Light: String, CaseIterable {
         /// The sun as it stands at the place at your clock's time of day.
@@ -185,7 +185,10 @@ final class World {
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
         journey.extend(through: top + 1500,
                        behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + 200)
+                       notBefore: top + 200,
+                       // Only two places can be on screen at once, so a place lasts long enough to finish turning
+                       // into the next before a third comes into view, however tall the desktop.
+                       shortest: Journey.morphLength + Double(desktop.height) * Self.metresPerPoint + 200)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -198,9 +201,9 @@ final class World {
             }
             lastPointer = point
         }
-        chasing = t - pointerMoved < 6
+        chasing = t - pointerMoved < 10
         let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
-        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t))
+        bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t), hurrying: target != nil)
         birdTrail.record(bird.pose, at: t)
         if t - sunUpdated > 20 { updateSun(force: false) }
     }
@@ -392,7 +395,7 @@ final class World {
                       rail: rail, railShape: shape)
     }
 
-    static let boatSpeed = 2.5
+    static let boatSpeed = 1.25
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0

@@ -121,20 +121,20 @@ public struct Flock: Sendable {
     /// Mean minutes between appearances.
     public var interval: Double
 
-    public static let geese = Flock(formation: .skein, count: 15, color: Biome.rgb(0x5c544c), size: 9, speed: 38,
-                                    altitude: 140, interval: 9)
-    public static let swans = Flock(formation: .skein, count: 9, color: Biome.rgb(0xf4f3ef), size: 11, speed: 34,
-                                    altitude: 120, interval: 10)
-    public static let cranes = Flock(formation: .skein, count: 13, color: Biome.rgb(0x8d8f93), size: 10.5, speed: 34,
-                                     altitude: 160, interval: 10)
-    public static let flamingos = Flock(formation: .skein, count: 11, color: Biome.rgb(0xf29cac), size: 10, speed: 32,
-                                        altitude: 90, interval: 8)
-    public static let egrets = Flock(formation: .loose, count: 5, color: Biome.rgb(0xf6f5f0), size: 8.5, speed: 24,
-                                     altitude: 18, interval: 5)
-    public static let rooks = Flock(formation: .loose, count: 7, color: Biome.rgb(0x2a2a2e), size: 7.5, speed: 28,
-                                    altitude: 40, interval: 7)
+    public static let geese = Flock(formation: .skein, count: 15, color: Biome.rgb(0x5c544c), size: 9, speed: 19,
+                                    altitude: 140, interval: 18)
+    public static let swans = Flock(formation: .skein, count: 9, color: Biome.rgb(0xf4f3ef), size: 11, speed: 17,
+                                    altitude: 120, interval: 20)
+    public static let cranes = Flock(formation: .skein, count: 13, color: Biome.rgb(0x8d8f93), size: 10.5, speed: 17,
+                                     altitude: 160, interval: 20)
+    public static let flamingos = Flock(formation: .skein, count: 11, color: Biome.rgb(0xf29cac), size: 10, speed: 16,
+                                        altitude: 90, interval: 16)
+    public static let egrets = Flock(formation: .loose, count: 5, color: Biome.rgb(0xf6f5f0), size: 8.5, speed: 12,
+                                     altitude: 18, interval: 10)
+    public static let rooks = Flock(formation: .loose, count: 7, color: Biome.rgb(0x2a2a2e), size: 7.5, speed: 14,
+                                    altitude: 40, interval: 14)
     public static let vultures = Flock(formation: .circling, count: 5, color: Biome.rgb(0x3b332c), size: 12,
-                                       speed: 0, altitude: 220, interval: 12)
+                                       speed: 0, altitude: 220, interval: 24)
 
     /// Which birds fly over a place in a given month.
     public static func of(_ place: Place, month: Int) -> Flock? {
@@ -163,10 +163,11 @@ public struct FlockSighting: Equatable, Sendable {
 }
 
 extension Flock {
-    /// The flock in the sky at time `t` over `area`, if one is crossing. Each seven-minute window rolls once
-    /// for a flight; flights cross from one side of the area to the other.
+    /// The flock in the sky at time `t` over `area`, if one is crossing. Each fourteen-minute window rolls once
+    /// for a flight, long enough for the slowest to cross a wide desktop before the next window begins; flights
+    /// cross from one side of the area to the other.
     public func sighting(at t: TimeInterval, area: CGRect, seed: Int) -> FlockSighting? {
-        let window = 420.0
+        let window = 840.0
         let index = (t / window).rounded(.down)
         var random = Shuffle(seed: UInt64(bitPattern: Int64(index)) &* 0x2545F4914F6CDD1D &+ UInt64(seed))
         guard random.next() < min(window / (interval * 60), 0.95) else { return nil }
