@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var painted = (leg: -1, revision: -1, time: 0.0, at: -TimeInterval.infinity)
     /// A new painting was asked for, say for a new border or pace, but couldn't be made then.
     private var owesPainting = false
+    private let sessionEnd = SessionEndWatch()
     /// The session is ending (logging out, restarting, shutting down), as the quit itself says.
     private var sessionEnding = false
     /// When the Mac last unlocked: the desktop picture shows through as the desktop fades back in, so it is left alone
@@ -104,6 +105,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if displays.isLocked { lockChanged(true) }
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
+        // The view at rest and the painting of it are the same picture, so it can't matter which is left on the screen.
+        displays.onSessionSettled = { [weak self] in self?.refreshPainting(force: true) }
+        sessionEnd.onChange = { [weak self] ending in
+            self?.stills.keepsReplaced = ending
+            self?.displays.setSessionEnding(ending)
+        }
+        sessionEnd.start()
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
