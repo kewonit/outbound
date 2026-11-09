@@ -1469,38 +1469,91 @@ inline float3 landmark(float3 c, int kind, float density, float2 local, float2 w
         c = mix(c, float3(0.38, 0.22, 0.17), fill(length(stack) - 1.6, 0.2));
         herd *= 1.0 - fill(yard, 3.0);
     } else if (kind == markGlasshouse) {
-        // Pale panels in a grid that catch the light in long stripes.
+        // A Venlo glasshouse: bay after bay of low glass ridges 4 m apart, one slope of each turned to the sun and the
+        // other away from it, a gutter between each pair, whole blocks of it chalked white against the sun, and a round
+        // heat tank and a boiler house at one end.
         float2 q = r;
         float2 extent = float2(radius * 0.8, radius * 0.5);
-        c = shade(c, fill(sdBox(q + rotate(scene.sun.xy, -angle) * scene.sun.z * 4.0, extent), 0.5) * 0.6, scene);
+        float2 sun = rotate(scene.sun.xy, -angle);
+        float2 away = -sun * scene.sun.z;
+        c = shade(c, fill(sweptBox(q, extent, away * 5.0), 0.5) * 0.65, scene);
+        float2 tank = q - float2(extent.x + 10.0, -extent.y * 0.45);
+        float2 boiler = q - float2(extent.x + 9.0, -extent.y * 0.45 + 17.0);
+        c = shade(c, fill(segmentDistance(tank, 0.0, away * 9.0) - 5.5, 0.5) * 0.65, scene);
+        c = shade(c, fill(sweptBox(boiler, float2(5.0, 7.0), away * 5.0), 0.4) * 0.65, scene);
         float panel = fill(sdBox(q, extent), 0.3);
-        float ridge = fill(abs(fract(q.x / 3.2) - 0.5) * 3.2 - 0.12, 0.08);
-        float glint = smoothstep(0.65, 1.0, vnoise(float2(q.x / 3.2, q.y / 40.0) + 3.0, s + 14u));
-        float3 glass = mix(float3(0.83, 0.87, 0.89), float3(0.97, 0.98, 0.99), glint) * (1.0 - 0.1 * ridge);
-        c = mix(c, glass, panel);
-        cover = max(cover, panel);
-        herd *= 1.0 - panel;
+        if (panel > 0.0) {
+            const float bay = 4.0;
+            float span = q.x / bay;
+            float f = fract(span) - 0.5;
+            float elevation = max(scene.sun.w, 0.15);
+            // Each slope is pitched 22 degrees, towards the gutter on its own side.
+            float lit = 0.375 * sign(f) * sun.x * cos(elevation) + 0.927 * sin(elevation);
+            int2 block = int2(int(floor(span / 9.0)), q.y > 0.0 ? 1 : 0);
+            float chalked = step(0.55, hash21(block + id2 * 7, s + 14u));
+            float3 glass = mix(float3(0.66, 0.77, 0.78), float3(0.9, 0.93, 0.92), chalked) * (0.74 + 0.36 * lit);
+            glass *= 0.97 + 0.06 * vnoise(float2(floor(span), q.y / 30.0), s + 15u);
+            // Roof vents propped open here and there along the ridges, the glazing bars, the ridge and the gutter.
+            float vent = step(0.72, hash21(int2(int(floor(span)), int(floor(q.y / 7.0))), s + 16u))
+                       * fill(abs(abs(f) - 0.14) * bay - 0.38, 0.1) * fill(abs(fract(q.y / 7.0) - 0.5) * 7.0 - 1.2, 0.15);
+            glass *= 1.0 - 0.16 * vent;
+            glass *= 1.0 - 0.05 * fill(abs(fract(q.y / 4.5) - 0.5) * 4.5 - 0.08, 0.08);
+            glass = mix(glass, float3(0.95, 0.96, 0.96), fill(abs(f) * bay - 0.1, 0.08) * 0.6);
+            glass = mix(glass, float3(0.36, 0.41, 0.42), fill((0.5 - abs(f)) * bay - 0.16, 0.1) * 0.8);
+            // The path the trolleys run on, seen through the glass across the middle of every bay.
+            glass = mix(glass, glass * 0.9 + 0.05, fill(abs(q.y) - 1.6, 0.3) * 0.7);
+            c = mix(c, glass, panel);
+        }
+        float round = saturate(dot(normalize(tank + 1e-4), scene.sun.xy) * 0.5 + 0.5);
+        c = mix(c, float3(0.74, 0.76, 0.77) * (0.82 + 0.3 * round), fill(length(tank) - 5.5, 0.25));
+        c = mix(c, float3(0.86, 0.87, 0.87), fill(length(tank) - 0.7, 0.2));
+        float shed = fill(sdBox(boiler, float2(5.0, 7.0)), 0.25);
+        c = mix(c, float3(0.5, 0.52, 0.54) * (1.0 + 0.1 * sign(boiler.x) * sun.x), shed);
+        float built = max(panel, max(shed, fill(length(tank) - 5.5, 0.25)));
+        cover = max(cover, built);
+        herd *= 1.0 - built;
     } else if (kind == markWindmill) {
-        // A polder mill: an octagonal tower 12 m to the cap, its sails turning in an upright plane square to the
-        // wind. From above the sails are a thin bar across the wind; their shadow is the cross they make, thrown out
-        // along the sun from the hub.
+        // A polder mill: an eight-sided thatched tower 12 m to the cap, standing in its own mown yard. The cap is turned
+        // into the wind, with the sails before it turning in an upright plane square to the wind, so from above they
+        // are a thin bar across it, and the tail pole runs down behind to the ground. Their shadow is the cross they
+        // make, thrown out along the sun from the hub.
         float2 q = r;
-        float2 toSun = rotate(scene.sun.xy, -angle) * scene.sun.z;
+        float2 sunLocal = rotate(scene.sun.xy, -angle);
+        float2 toSun = sunLocal * scene.sun.z;
         float2 across = rotate(normalize(float2(-0.55, 1.3)), -angle);
+        float2 downwind = float2(across.y, -across.x);
+        float2 hub = -downwind * 2.8;
+        float yard = length(q) - 11.0 + 3.0 * (vnoise(q / 5.0, s + 3u) - 0.5);
+        c = mix(c, b.ground.rgb * (0.94 + 0.08 * vnoise(q / 2.0, s + 4u)), fill(yard, 1.2));
         float sailShadow = 1e9;
         for (int i = 0; i < 4; i++) {
             float turn = float(i) * 1.5708 + 0.4;
-            float2 from = across * cos(turn) * 1.5 - toSun * (12.0 + sin(turn) * 1.5);
-            float2 to = across * cos(turn) * 12.0 - toSun * (12.0 + sin(turn) * 12.0);
-            sailShadow = min(sailShadow, segmentDistance(q, from, to) - 0.9);
+            float2 from = hub + across * cos(turn) * 1.5 - toSun * (12.0 + sin(turn) * 1.5);
+            float2 to = hub + across * cos(turn) * 12.0 - toSun * (12.0 + sin(turn) * 12.0);
+            sailShadow = min(sailShadow, segmentDistance(q, from, to) - 0.8);
         }
-        c = shade(c, fill(segmentDistance(q, 0.0, -toSun * 12.0) - 3.6, 0.5) * 0.7, scene);
+        // The tower narrows as it rises, and so does its shadow.
+        float2 fall = -toSun * 12.0;
+        float up = saturate(dot(q, fall) / max(dot(fall, fall), 1e-4));
+        c = shade(c, fill(length(q - fall * up) - mix(4.2, 2.7, up), 0.5) * 0.7, scene);
         c = shade(c, fill(sailShadow, 0.4) * 0.55, scene);
-        float3 body = float3(0.36, 0.30, 0.26);
-        c = mix(c, body, fill(length(q) - 4.2, 0.3));
-        c = mix(c, float3(0.45, 0.35, 0.28), fill(length(q) - 2.0, 0.3));
-        c = mix(c, float3(0.86, 0.84, 0.80), fill(segmentDistance(q, -across * 12.0, across * 12.0) - 0.45, 0.2) * 0.9);
-        cover = max(cover, fill(length(q) - 4.2, 0.3));
+        float around = atan2(q.y, q.x);
+        float facet = floor(around / 0.7854 + 0.5) * 0.7854;
+        float wall = length(q) * cos(around - facet) - 4.2;
+        float elevation = max(scene.sun.w, 0.15);
+        float lit = dot(float2(cos(facet), sin(facet)), sunLocal) * cos(elevation);
+        float3 thatch = float3(0.40, 0.33, 0.27) * (0.82 + 0.3 * lit) * (0.95 + 0.1 * vnoise(q / 0.8, s + 5u));
+        c = mix(c, thatch, fill(wall, 0.25));
+        // The cap, longer along the wind than across it, and a shade paler on its sunward side.
+        float2 capAt = float2(dot(q + downwind * 0.4, downwind), dot(q, across));
+        float cap = length(capAt / float2(3.3, 2.3)) - 1.0;
+        float3 capColour = float3(0.3, 0.26, 0.23) * (0.9 + 0.25 * saturate(dot(normalize(q + 1e-4), sunLocal)));
+        c = mix(c, capColour, fill(cap * 2.3, 0.2));
+        c = mix(c, float3(0.8, 0.79, 0.75), fill(segmentDistance(q, downwind * 2.0, downwind * 9.0) - 0.16, 0.14) * 0.85);
+        c = mix(c, float3(0.9, 0.89, 0.85), fill(segmentDistance(q, hub - across * 12.0, hub + across * 12.0) - 0.42, 0.2) * 0.92);
+        c = mix(c, float3(0.25, 0.22, 0.2), fill(length(q - hub) - 0.55, 0.15));
+        cover = max(cover, fill(wall, 0.25));
+        herd *= 1.0 - fill(yard, 1.2);
     } else if (kind == markFeedlot) {
         // Pens in rows, pale feed alleys, white bunk lines and dark cattle crowded along them.
         float2 q = r;

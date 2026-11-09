@@ -342,7 +342,8 @@ private let lisseBase: Biome = {
                   water: rgb(0x486064), shallows: rgb(0x6e8484), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
                   canopy: rgb(0x2f6635), canopyLight: rgb(0x4a8a44))
     b.fieldSize = 22; b.hedgeWidth = 3; b.warp = 0.03; b.fallow = 0.18; b.strokes = 0.3; b.sway = 0.4
-    b.trees = 0.03; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
+    // No tree stands in a bulb bed: the trees here line the lanes and shelter the houses.
+    b.trees = 0; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
     b.riverWidth = 18; b.riverWander = 8; b.roadWidth = 7; b.paved = 1; b.cars = 0.3
     // Tree-lined lanes, brick villages under orange pantile, glasshouses and the odd polder mill, bright LED lamps,
     // and boats on the canals. Many beds are already topped, leaving green stripes.

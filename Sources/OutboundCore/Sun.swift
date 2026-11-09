@@ -48,7 +48,6 @@ public struct Sun: Equatable, Sendable {
     /// The longest any shadow gets, per metre of height.
     public static let longestShadow = 1.5
 
-
     /// 0 in daylight, 1 deep in the night.
     public var night: Double {
         let degrees = elevation * 180 / .pi
