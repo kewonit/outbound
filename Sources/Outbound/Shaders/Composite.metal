@@ -628,7 +628,7 @@ vertex AnimalOut animalVertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     float2 step = float2(1.7 * cos(strides * 1.7 + h * 40.0), -1.3 * sin(strides * 1.3 + h * 17.0));
     float heading = atan2(step.y, step.x);
     // A little bigger than life, so they read from this height without outgrowing the cars.
-    float len = (kind == sheep ? 0.7 : kind == zebra ? 1.2 : kind == gazelle ? 0.55 : 1.25) * 1.2;
+    float len = (kind == sheep ? 0.7 : kind == zebra ? 1.0 : kind == gazelle ? 0.55 : 1.05) * 1.2;
     float wid = (kind == sheep ? 0.45 : kind == gazelle ? 0.28 : 0.42) * 1.2;
     float2 local = cellCenter + jitter + walk + p.drift.xy;
     float2 world = float2(local.x, local.y + p.leg.x);
@@ -677,8 +677,10 @@ fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0
     float px = params.view.z;
     float2 d = in.offset;
     bool isGazelle = in.coat.w == float(gazelle);
-    float body = length(d / float2(len, wid)) - 1.0;
-    float head = length((d - float2(len * 1.05, 0.0)) / (float2(0.7, 0.5) * (isGazelle ? 0.6 : 1.0))) - 1.0;
+    // From above an animal is a barrel, as wide at the shoulder as at the hip, with a narrower head held out before it.
+    float body = length(float2(max(abs(d.x) - (len - wid), 0.0), d.y)) - wid;
+    float2 skull = float2(0.5, 0.3) * (isGazelle ? 0.6 : 1.0);
+    float head = (length((d - float2(len + skull.x * 0.55, 0.0)) / skull) - 1.0) * skull.y;
     // Swept from the body out along the shadow, so it stays attached however low the sun.
     float2 scaled = d / float2(len, wid), cast = in.shadow / float2(len, wid);
     float along = saturate(dot(scaled, cast) / max(dot(cast, cast), 1e-4));
@@ -695,12 +697,12 @@ fragment SkyOut animalFragment(AnimalOut in [[stage_in]], float4 below [[color(0
         float seed = fract(in.patches.w) * 50.0;
         float patch = smoothstep(0.48, 0.56, vnoise(d * 1.1 + seed, 130u));
         coat = mix(coat, in.patches.rgb, patch);
-        coat = mix(coat, float3(0.93, 0.91, 0.87), fill(length(d - float2(len * 1.05, 0.0)) - 0.55, 0.1) * step(in.patches.r, 0.7));
+        coat = mix(coat, float3(0.93, 0.91, 0.87), fill(length(d - float2(len + 0.28, 0.0)) - 0.5, 0.1) * step(in.patches.r, 0.7));
     } else if (isGazelle) {
         // Thomson's gazelles: tan backs, a dark side stripe, pale bellies.
         coat = mix(coat, float3(0.18, 0.13, 0.10), fill(abs(abs(d.y) - wid * 0.62) - wid * 0.12, 0.05) * 0.7);
     }
-    float a = fill(min(body * len, head * 0.5), px * 0.6);
+    float a = fill(smin(body, head, 0.25), px * 0.6);
     SkyOut out;
     out.color = float4(mix(c, coat, a), 1.0);
     return out;
