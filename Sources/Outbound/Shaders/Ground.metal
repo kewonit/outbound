@@ -1728,9 +1728,10 @@ inline float hedgeCrowns(float2 p, float crownSize, uint seed, thread float &rad
 // The oak nearest `p` among those standing out of the hedge: how far `p` is from its trunk as a share of its crown's
 // radius, where `p` lies from the trunk, and its tone. `oaks` of the hedge's crowns are marked to be one, and of those
 // only the ones whose trunk is in a hedge stand, each deciding that from where its own trunk is. So a crown is whole
-// wherever it reaches out over the field, and its shadow is the shadow of that same tree.
-inline float hedgeOak(float2 p, float crownSize, float oaks, constant Biome &b, uint seed, thread float2 &offset,
-                      thread float &tone) {
+// wherever it reaches out over the field, and its shadow is the shadow of that same tree. `shift` is from the leg's own
+// metres to the world's.
+inline float hedgeOak(float2 p, float2 shift, float crownSize, float oaks, constant Biome &b, constant Scene &scene,
+                      uint seed, float riverHalf, float2 wander, thread float2 &offset, thread float &tone) {
     float2 g = floor(p / crownSize);
     float nearest = 1e9;
     offset = 0.0; tone = 0.0;
@@ -1743,6 +1744,12 @@ inline float hedgeOak(float2 p, float crownSize, float oaks, constant Biome &b, 
             float dist = length(p - trunk) / (crownSize * 1.1);
             if (dist >= min(nearest, 1.04)) continue;
             if (voronoi(fieldSpace(trunk, b, seed), seed).border * b.a.y > crownSize * 0.5) continue;
+            // Nor does one stand where its crown would hang over the road, the river or the railway.
+            float reach = crownSize * 1.15;
+            float2 at = trunk + shift;
+            if (abs(roadDistance(at, scene, wander)) < b.e.x * 0.5 + reach) continue;
+            if (riverHalf > 0.25 && abs(riverDistance(at, scene, wander)) < riverHalf + b.i.w + reach) continue;
+            if (crossGap(at, scene) < b.e.x * 0.45 + reach || railGap(trunk, b) < reach + 2.0) continue;
             nearest = dist; offset = p - trunk; tone = pick / oaks;
         }
     }
@@ -1841,7 +1848,8 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
     if (oaks > 0.0) {
         float2 offset;
         float tone;
-        float nearest = hedgeOak(p + scene.sun.xy * scene.sun.z * 9.0, crownSize, oaks, b, seed, offset, tone);
+        float nearest = hedgeOak(p + scene.sun.xy * scene.sun.z * 9.0, world - p, crownSize, oaks, b, scene, seed, riverHalf, wander,
+                                 offset, tone);
         l.color = shade(l.color, fill((nearest - 0.82) * oakRadius, 0.2 * oakRadius) * 0.8, scene);
     }
 
@@ -1872,7 +1880,7 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
         // The oak itself, over the hedge and the field's edge: lit as any tree is, its outline as ragged.
         float2 at;
         float tone;
-        float oak = hedgeOak(p, crownSize, oaks, b, seed, at, tone);
+        float oak = hedgeOak(p, world - p, crownSize, oaks, b, scene, seed, riverHalf, wander, at, tone);
         float a = atan2(at.y, at.x);
         float lobes = 0.5 * sin(a * 3.0 + tone * 23.0) + 0.35 * sin(a * 5.0 + tone * 61.0) + 0.2 * sin(a * 11.0 + tone * 97.0);
         float there = fill((oak - 0.86 - 0.12 * lobes) * oakRadius, 0.25);
