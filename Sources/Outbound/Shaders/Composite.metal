@@ -321,9 +321,9 @@ inline float3 boatPaint(float h) {
          : h < 0.7 ? float3(0.20, 0.38, 0.62) : h < 0.85 ? float3(0.22, 0.48, 0.32) : float3(0.66, 0.46, 0.28);
 }
 
-// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two bright arms at 19.5
-// degrees either side of its track, crest lines across them, and churned water straight behind. The wake is laid
-// out along the river rather than straight back, so it follows the boat round a bend.
+// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two thin arms at 19.5 degrees
+// either side of its track and smoothed water straight behind. The wake is laid out along the river rather than
+// straight back, so it follows the boat round a bend.
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
                     thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
@@ -382,17 +382,19 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         }
         float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
         if (water > 0.3 && u > 0.0) {
-            // A slow boat's wake is short and dies away soon; the faster it goes the further it runs.
-            float fade = exp(-u / (6.0 + 5.0 * speed * speed));
+            // A small boat at a walking pace leaves little behind it: two thin arms, each a row of short wavelets that
+            // flatten out within a few lengths, a faint trough inside each, and a ribbon of smoothed water straight
+            // astern that outlasts them. Nothing is drawn across the wedge between the arms: from this height the waves
+            // there are too low to see.
+            float reach = 5.0 + 2.6 * speed * speed;
+            float fade = exp(-u / reach);
             float edge = abs(v) - 0.354 * u;
-            float arm = fill(abs(edge) - 0.22 - 0.012 * u, 0.35 + 0.02 * u);
-            float feather = smoothstep(0.55, 1.0, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / (0.5 + 0.06 * u)));
-            float lambda = 6.283 * speed * speed / 9.81;
-            float trans = smoothstep(0.65, 1.0, 0.5 + 0.5 * cos(6.283 * (u + 0.9 * v * v / max(u, 1.0)) / lambda));
-            float wash = fill(abs(v) - (W * 0.7 + 0.04 * u), 0.4) * smoothstep(0.0, 2.0, u - L) * exp(-u / 14.0);
-            float foam = (arm * (0.5 + 0.5 * feather) + fill(edge, 0.6) * trans * 0.22) * fade + wash * 0.6;
-            result *= 1.0 - 0.07 * fill(abs(edge - 0.7) - 0.3, 0.4) * fade;
-            result = mix(result, float3(0.93, 0.95, 0.96), saturate(foam) * 0.55 * water);
+            float arm = fill(abs(edge) - 0.1 - 0.01 * u, 0.28 + 0.025 * u);
+            float feather = smoothstep(0.3, 0.9, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / 1.5));
+            result *= 1.0 - 0.05 * fill(abs(edge + 0.55) - 0.3, 0.4) * fade * water;
+            result = mix(result, float3(0.93, 0.95, 0.96), arm * (0.3 + 0.7 * feather) * fade * 0.42 * water);
+            float astern = fill(abs(v) - W * 0.55 - 0.02 * u, 0.5) * smoothstep(0.0, 1.5, u - L) * exp(-u / (reach * 2.2));
+            result = mix(result, result * 1.05 + 0.03, astern * 0.8 * water);
         }
         // Hull: pointed bow, rounded stern, a little shadow, someone aboard.
         float2 hp = float2(v * dir, -u + L * 0.5);
@@ -962,7 +964,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
         float3 moonlit = mix(float3(luma(c)), c, 0.4) * float3(0.44, 0.54, 0.76) * 0.78 + float3(0.015, 0.02, 0.045);
         // Clouds hold far less moonlight than their daytime white suggests, though the band seen from above still stands
         // paler than the land, or it would be a curtain drawn over it.
-        moonlit *= 1.0 - mix(0.42, 0.16, bank) * cloudAlpha;
+        moonlit *= 1.0 - mix(0.24, 0.16, bank) * cloudAlpha;
         c = mix(lit, moonlit, night);
         c += lamplight.rgb * night * (1.0 - mix(0.85, 1.0, bank) * cloudAlpha);
     } else {

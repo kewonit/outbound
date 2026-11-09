@@ -38,6 +38,16 @@ inline float3 cropColor(constant Biome &b, float h) {
     return h < 0.25 ? b.crop0.rgb : h < 0.5 ? b.crop1.rgb : h < 0.75 ? b.crop2.rgb : b.crop3.rgb;
 }
 
+// Fallen petals at `p`: how much of one lies there, where `amount` is how thickly they have fallen, 0 to 1. Each is a
+// small soft dab somewhere in its own patch of ground, thickest where most have fallen, with a faint carpet under them.
+inline float petals(float2 p, float amount, uint seed) {
+    float2 g = p / 0.9;
+    int2 cell = int2(floor(g));
+    float2 from = g - floor(g) - 0.25 - 0.5 * hash22(cell, seed + 47u);
+    float dab = 1.0 - smoothstep(0.1, 0.3, length(from));
+    return max(step(1.0 - amount, hash21(cell, seed + 46u)) * dab * 0.9, amount * amount * 0.35);
+}
+
 // MARK: - Trees
 
 // Trees near a point are gathered first and painted together, so crowns can overlap with the taller on top, and a
@@ -83,9 +93,17 @@ inline float treeSun(float4 shape, float reach, constant Scene &scene) {
     return min(scene.sun.z, reach / max(shape.y, 1.0));
 }
 
-// How a tree's shadow covers `q` (from its trunk) on a surface `level` metres up, 0 to 1. A broad crown throws an
-// ellipse drawn out away from the sun, joined to the trunk by the trunk's own thin shadow; a spruce throws a
-// spike from its base to the shadow of its tip.
+// Half the depth of a crown from its top to its lowest leaves. A tall tree's crown is deeper than it is wide: a broadleaf
+// is in leaf over its upper three fifths, a pine over its upper two.
+inline float crownDepth(float4 shape) {
+    bool flat = treeKind(shape) == pine;
+    return max((flat ? 0.55 : 0.95) * shape.x, (flat ? 0.2 : 0.3) * shape.y);
+}
+
+// How a tree's shadow covers `q` (from its trunk) on a surface `level` metres up, 0 to 1. A crown throws the shadow of
+// all its depth, an ellipse drawn out away from the sun, and the bare trunk under it throws a thin line from the foot of
+// the tree to it, so however low the sun a shadow starts where its tree stands. A spruce throws a spike from its base to
+// the shadow of its tip.
 inline float shadowOf(float2 q, float4 shape, float level, float z, float2 u) {
     float r = shape.x, h = shape.y;
     if (treeKind(shape) == spruce) {
@@ -96,19 +114,19 @@ inline float shadowOf(float2 q, float4 shape, float level, float z, float2 u) {
         float t = saturate(dot(pa, ba) / max(dot(ba, ba), 1e-4));
         return fill(length(pa - ba * t) - r * 0.9 * (1.0 - t) - 0.08, 0.2 + 0.03 * tip * t);
     }
-    float vert = treeKind(shape) == pine ? 0.55 : 0.95;
-    float above = h - vert * r - level;
-    if (above + vert * r <= 0.0) return 0.0;
+    float deep = crownDepth(shape);
+    float above = h - deep - level;
+    if (above + deep <= 0.0) return 0.0;
     float2 across = float2(-u.y, u.x);
-    float2 e = float2(r * 0.95, r * sqrt(1.0 + vert * vert * z * z));
+    float2 e = float2(r * 0.95, sqrt(r * r + deep * deep * z * z));
     float2 s = q + u * max(above, 0.0) * z;
     float d = (length(float2(dot(s, across), dot(s, u)) / e) - 1.0) * e.x;
     // A crown's shadow is as ragged as the crown, and softer the further it falls.
     d += r * 0.13 * sin(s.x * 2.7 / r + shape.w * 31.0) * sin(s.y * 2.3 / r + shape.w * 17.0);
     float cover = fill(d, 0.4 + 0.05 * max(above, 0.0) * z);
     if (level <= 0.0) {
-        float trunk = segmentDistance(q, 0.0, -u * max(above - vert * r * 0.6, 0.0) * z);
-        cover = max(cover, fill(trunk - 0.1 - 0.02 * r, 0.14) * 0.3);
+        float trunk = segmentDistance(q, 0.0, -u * max(above, 0.0) * z);
+        cover = max(cover, fill(trunk - 0.1 - 0.012 * h, 0.16) * 0.8);
     }
     return cover;
 }
@@ -337,8 +355,9 @@ inline Land grassland(float2 p, constant Biome &b, uint seed) {
             c = mix(b.crop0.rgb, b.crop1.rgb, tone) * (0.94 + 0.12 * vnoise(p / 40.0, seed + 56u));
             c = mix(c, l.color, 0.35);
         } else if (use < 0.55) {
-            c = b.ground.rgb * (0.9 + 0.2 * vnoise(p / 2.0, seed + 57u)) * (0.96 + 0.08 * tone);
-            c = mix(c, b.groundDark.rgb * 1.1, smoothstep(0.6, 0.85, vnoise(p / 7.0, seed + 58u)) * 0.4);
+            // Tussocks: fine and uneven, turned off the lattice so no clump comes out square.
+            c = b.ground.rgb * (0.86 + 0.28 * fbm(rotate(p, 0.6) / 2.6, 3, seed + 57u)) * (0.96 + 0.08 * tone);
+            c = mix(c, b.groundDark.rgb * 1.1, smoothstep(0.52, 0.74, fbm(rotate(p, -0.45) / 11.0, 2, seed + 58u)) * 0.4);
         } else if (use < 0.74) {
             c = b.crop2.rgb * (0.95 + 0.08 * tone) * (1.0 + 0.035 * (passes - 0.5));
             l.herd = 0.0;
@@ -563,6 +582,13 @@ inline float crossGap(float2 at, constant Scene &scene) {
     return abs(at.y - (k + 0.5) * crossroadSpacing + scene.road.w - 40.0 * sin(at.x / 380.0 + which));
 }
 
+// The same, for land with biome `b`: road() lays no cross-roads in pivot country, so nothing there keeps off them.
+// Only what pivot country builds asks this way, its ponds, farmsteads and trees (the trees through keepouts), as
+// each call costs GPU memory in the paths that inline it; it has no houses or road trees.
+inline float crossGap(float2 at, constant Scene &scene, constant Biome &b) {
+    return int(b.a.x) == layoutPivots ? 1e6 : crossGap(at, scene);
+}
+
 inline float railGap(float2 local, constant Biome &b) {
     if (b.railCurve.w < 0.5) return 1e6;
     float2 d = local - b.railLine.xy;
@@ -612,8 +638,9 @@ inline Land pivots(float2 p, constant Leg &leg, constant Scene &scene, uint seed
         // Some circles are planted in halves or quarters.
         if (split > 0.55) {
             float slices = split > 0.82 ? 4.0 : 2.0;
-            float start = hash21(cell, seed + 4u) * 6.283;
-            h = fract(h + floor((angle + start) / (6.283 / slices)) * 0.37);
+            // Counted round the whole circle, so the line where the angle wraps is not one more cut.
+            float start = hash21(cell, seed + 4u);
+            h = fract(h + floor(fract(angle / 6.283185 + start) * slices) * 0.37);
         }
         float3 crop = cropColor(b, h) * (0.95 + 0.1 * hash21(cell, seed + 5u));
         // Wheel tracks of the pivot arm.
@@ -679,7 +706,7 @@ inline bool pondStands(float2 center, float r, float2 shift, constant Biome &b, 
     float2 at = center + shift;
     if (b.d.z > 0.5 && abs(riverDistance(at, scene, wander)) < 90.0 + r) return false;
     float reach = r * 1.4 + 6.0;
-    if (min(abs(roadDistance(at, scene, wander)), crossGap(at, scene)) < b.e.x * 0.5 + reach) return false;
+    if (min(abs(roadDistance(at, scene, wander)), crossGap(at, scene, b)) < b.e.x * 0.5 + reach) return false;
     return railGap(center, b) >= reach;
 }
 
@@ -834,7 +861,7 @@ inline bool landmarkStands(int kind, float2 centerWorld, float2 shift, constant 
     // Where people live by the road it keeps clear of their homes too, front and back row.
     float homes = b.e.w > 0.0 || b.i.x > 0.0 ? 62.0 : 0.0;
     if (abs(roadDistance(centerWorld, scene, wander)) < b.e.x * 0.5 + reach + homes) return false;
-    if (crossGap(centerWorld, scene) < b.e.x * 0.5 + reach) return false;
+    if (crossGap(centerWorld, scene, b) < b.e.x * 0.5 + reach) return false;
     return railGap(centerWorld - shift, b) >= reach + 4.0;
 }
 
@@ -860,7 +887,7 @@ inline Keepouts keepouts(float2 world, float2 local, float span, constant Biome 
     Keepouts k;
     k.road = abs(roadDistance(world, scene, wander)) < b.e.x * 0.5 + 75.0 + span;
     k.river = riverHalf > 0.25 && abs(riverDistance(world, scene, wander)) < riverHalf + b.i.w + 20.0 + span;
-    k.crossNear = crossGap(world, scene) < b.e.x * 0.5 + 20.0 + span;
+    k.crossNear = crossGap(world, scene, b) < b.e.x * 0.5 + 20.0 + span;
     k.rail = railGap(local, b) < 20.0 + span;
     for (int i = 0; i < 2; i++) {
         int kind = int(i == 0 ? b.j.x : b.j.z);
@@ -948,12 +975,18 @@ inline void plantTrees(thread Canopy &k, thread float3 &c, float2 local, float2 
                     uint ts = seed + 42u + uint(t) * 9u;
                     float r = size * 0.5 * (0.7 + 0.5 * hash21(cell, ts));
                     float2 at = float2(cell) * spacing + r * 0.4 + hash22(cell, ts + 1u) * max(spacing - r * 0.8, 0.0);
+                    // Nothing stands in a planted circle: the arm sweeps all of it. The corners between circles are
+                    // where a shelter tree is left.
+                    if (int(b.a.x) == layoutPivots) {
+                        float2 pivot = floor((at - float2(b.l.y, 0.0)) / b.a.y);
+                        float2 pad = (pivot + 0.5) * b.a.y + float2(b.l.y, 0.0);
+                        if (hash21(int2(pivot), seed + 1u) > b.b.x && length(at - pad) < b.a.y * 0.485 + r + 2.0) continue;
+                    }
                     if (!clearSpot(at, at + shift, r, near, b, scene, seed, riverHalf, wander)) continue;
                     // Petals scattered round blossom trees.
                     if (b.d.y > 0.0 && b.blossom.w < 0.5) {
-                        float petal = hash21(int2(floor(local / 0.9)), seed + 46u);
                         float close = 1.0 - smoothstep(r, r * 2.6, length(local - at));
-                        c = mix(c, b.canopyLight.rgb * 1.05, step(1.0 - 0.22 * b.d.y * close, petal) * 0.9);
+                        c = mix(c, b.canopyLight.rgb * 1.05, petals(local, 0.22 * b.d.y * close, seed));
                     }
                     bool flat = b.l.z > 0.0;
                     plant(k, local, at, r, r * (flat ? b.l.z : 2.3 + 0.9 * hash21(cell, ts + 2u)), flat ? pine : broadleaf,
@@ -1601,6 +1634,8 @@ inline float3 landmarkTrack(float3 c, int kind, float density, float2 local, flo
             }
             float2 centerWorld = center + shift;
             float rx = roadX(lineY + shift.y, scene, wander) - shift.x;
+            // Each pixel looks for its landmark a cell either side, so a track runs only as far as that, whole or not at all.
+            if (abs(rx - center.x) > cell) continue;
             if (riverHalf > 0.25) {
                 float riverAt = riverX(lineY + shift.y, scene, wander) - shift.x;
                 if ((riverAt - center.x) * (riverAt - rx) < 0.0) continue;
@@ -1643,19 +1678,25 @@ inline float hedgeCrowns(float2 p, float crownSize, uint seed, thread float &rad
     return nearest;
 }
 
-// The oak nearest `p` among the hedge's crowns, `oaks` of which are oaks: how far `p` is from its middle as a share of
-// its radius, which is twice a shrub's, and where `p` lies from its middle.
-inline float hedgeOak(float2 p, float crownSize, float oaks, uint seed, thread float2 &offset) {
+// The oak nearest `p` among those standing out of the hedge: how far `p` is from its trunk as a share of its crown's
+// radius, where `p` lies from the trunk, and its tone. `oaks` of the hedge's crowns are marked to be one, and of those
+// only the ones whose trunk is in a hedge stand, each deciding that from where its own trunk is. So a crown is whole
+// wherever it reaches out over the field, and its shadow is the shadow of that same tree.
+inline float hedgeOak(float2 p, float crownSize, float oaks, constant Biome &b, uint seed, thread float2 &offset,
+                      thread float &tone) {
     float2 g = floor(p / crownSize);
     float nearest = 1e9;
-    offset = 0.0;
+    offset = 0.0; tone = 0.0;
     for (int j = -1; j <= 1; j++) {
         for (int i = -1; i <= 1; i++) {
             int2 cell = int2(g) + int2(i, j);
-            if (hash21(cell, seed + 20u) >= oaks) continue;
-            float2 q = p - (float2(cell) + 0.15 + 0.7 * hash22(cell, seed + 18u)) * crownSize;
-            float dist = length(q) / (crownSize * 1.25);
-            if (dist < nearest) { nearest = dist; offset = q; }
+            float pick = hash21(cell, seed + 20u);
+            if (pick >= oaks) continue;
+            float2 trunk = (float2(cell) + 0.15 + 0.7 * hash22(cell, seed + 18u)) * crownSize;
+            float dist = length(p - trunk) / (crownSize * 1.1);
+            if (dist >= min(nearest, 1.04)) continue;
+            if (voronoi(fieldSpace(trunk, b, seed), seed).border * b.a.y > crownSize * 0.5) continue;
+            nearest = dist; offset = p - trunk; tone = pick / oaks;
         }
     }
     return nearest;
@@ -1724,9 +1765,8 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                 if (near.rail && railGap(at, b) < r + 2.5) continue;
                 // Fallen petals in the grass round trees in flower.
                 if (b.d.y > 0.0 && b.blossom.w > 0.5) {
-                    float petal = hash21(int2(floor(p / 0.9)), seed + 46u);
                     float near = 1.0 - smoothstep(r, r * 2.4, length(p - at));
-                    l.color = mix(l.color, b.blossomLight.rgb * 1.03, step(1.0 - 0.3 * b.d.y * near, petal) * 0.9);
+                    l.color = mix(l.color, b.blossomLight.rgb * 1.03, petals(p, 0.3 * b.d.y * near, seed));
                 }
                 plant(orchard, p, at, r, r * 2.2, broadleaf, hash21(cell, seed + 14u), foliage, scene);
             }
@@ -1745,24 +1785,20 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
                            halfway.border * size - hedgeHalfWidth(p + toSun * 0.5, b, seed));
     l.color = shade(l.color, fill(shadowEdge, 1.2) * 0.8, scene);
 
-    // Here and there an oak stands out of the hedge, as in bocage: a round crown twice the width of the shrubs, twice
-    // as tall, its shadow thrown further out across the field. The shadow is found just as the crown is, from where
-    // the sun would see it, so it falls only from an oak that is there.
+    // Here and there an oak stands out of the hedge, as in bocage: a round crown twice the width of the shrubs and
+    // twice as tall, reaching out over the field. Its shadow is its crown's, thrown from 9 m up, far enough to run on
+    // out of the hedge's own.
     float crownSize = 3.0 + b.a.z * 0.25;
-    float oaks = b.c.w * 0.2;
+    float oaks = b.c.w * 0.15;
+    float oakRadius = crownSize * 1.1;
     if (oaks > 0.0) {
-        float2 from = p + scene.sun.xy * scene.sun.z * 14.0;
-        Cells high = voronoi(fieldSpace(from, b, seed), seed);
-        float edge = high.border * size - hedgeHalfWidth(from, b, seed);
-        if (edge < crownSize * 1.5) {
-            float2 offset;
-            float nearest = hedgeOak(from, crownSize, oaks, seed, offset);
-            float cast = fill((nearest - 1.0) * crownSize * 1.25, 0.9) * fill(edge - crownSize * 0.3, 1.2);
-            l.color = shade(l.color, cast * 0.75, scene);
-        }
+        float2 offset;
+        float tone;
+        float nearest = hedgeOak(p + scene.sun.xy * scene.sun.z * 9.0, crownSize, oaks, b, seed, offset, tone);
+        l.color = shade(l.color, fill((nearest - 0.82) * oakRadius, 0.2 * oakRadius) * 0.8, scene);
     }
 
-    if (border < hw + 2.5 + (oaks > 0.0 ? crownSize * 1.3 : 0.0)) {
+    if (border < hw + 2.5) {
         // The hedge from above: a line of tree crowns, each lit on its sunward side, dark in the gaps between them,
         // its edge bulging where a crown leans out.
         float radius, tone;
@@ -1780,23 +1816,37 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
         hedge = mix(hedge, b.snow.rgb * 0.9, b.f.y * 0.5 * smoothstep(0.5, 0.75, clump));
         float bulge = (1.0 - saturate(nearest)) * 2.0 - 0.6;
         l.color = mix(l.color, hedge, fill(border - hw - bulge, 0.45));
-        if (oaks > 0.0) {
-            float2 at;
-            float oak = hedgeOak(p, crownSize, oaks, seed, at);
-            float there = fill((oak - 1.0) * crownSize * 1.25, 0.4) * fill(border - crownSize * 0.3, 1.2);
-            if (there > 0.0) {
-                float3 on = normalize(float3(at / (crownSize * 1.25), sqrt(saturate(1.0 - oak * oak)) * 1.1));
-                float2 lp = at / (crownSize * 1.25) * 3.0;
-                float leaves = vnoise(lp + seed * 0.01, seed + 21u);
-                float3 crown = mix(b.hedge.rgb * 0.5, mix(b.hedge.rgb, b.canopyLight.rgb, 0.45) * 1.1,
-                                   saturate(0.6 * dot(on, sun) + 0.2 + 0.5 * (leaves - 0.5)));
-                l.color = mix(l.color, crown * float3(0.86, 0.95, 0.84), there);
-            }
-        }
         l.forest = fill(border - hw, 0.55);
         l.sway = mix(l.sway, 0.15, fill(border - hw, 0.55));
         l.herd = 0.0;
         l.water *= 1.0 - fill(border - hw, 0.55);
+    }
+    if (oaks > 0.0 && border < crownSize * 1.7) {
+        // The oak itself, over the hedge and the field's edge: lit as any tree is, its outline as ragged.
+        float2 at;
+        float tone;
+        float oak = hedgeOak(p, crownSize, oaks, b, seed, at, tone);
+        float a = atan2(at.y, at.x);
+        float lobes = 0.5 * sin(a * 3.0 + tone * 23.0) + 0.35 * sin(a * 5.0 + tone * 61.0) + 0.2 * sin(a * 11.0 + tone * 97.0);
+        float there = fill((oak - 0.86 - 0.12 * lobes) * oakRadius, 0.25);
+        if (there > 0.0) {
+            float elevation = max(scene.sun.w, 0.15);
+            float3 sun = float3(scene.sun.xy * cos(elevation), sin(elevation));
+            float lit = dot(normalize(float3(at / oakRadius, sqrt(saturate(1.0 - oak * oak)) / 0.95)), sun);
+            float2 lp = rotate(at, tone * 6.283) / oakRadius * 2.3 + tone * 37.0;
+            float clump = vnoise(lp, seed + 21u);
+            float bump = vnoise(lp + scene.sun.xy * 0.3, seed + 21u) - clump;
+            float3 crown = mix(b.canopy.rgb, b.canopyLight.rgb, saturate(0.6 * lit + 0.08 + 2.3 * bump + 0.35 * (clump - 0.5)));
+            crown *= 0.72 + 0.28 * smoothstep(0.22, 0.56, clump);
+            crown *= 1.0 - 0.24 * smoothstep(0.6, 1.0, oak) * saturate(0.6 - lit);
+            crown *= 0.84 + 0.32 * tone;
+            crown = mix(crown, b.snow.rgb * (0.85 + 0.15 * saturate(lit)), b.f.y * 0.6 * smoothstep(0.45, 0.75, clump));
+            l.color = mix(l.color, crown, there);
+            l.forest = max(l.forest, there);
+            l.sway = mix(l.sway, 0.15, there);
+            l.herd *= 1.0 - there;
+            l.water *= 1.0 - there;
+        }
     }
     return l;
 }
@@ -1831,7 +1881,10 @@ inline int taigaCut(float2 p, uint seed, thread float &edge) {
     if (hash21(cell, seed + 33u) > 0.17) return 0;
     float2 extent = compartment * (0.25 + 0.17 * hash22(cell, seed + 34u));
     float2 centre = (g + 0.5) * compartment + (hash22(cell, seed + 35u) - 0.5) * (compartment * 0.5 - extent);
-    edge = sdBox(p - centre, extent);
+    // Felled to the line of the stand, which is nearly straight and never square: corners rounded off, edges that wander
+    // a few metres with the ground.
+    edge = sdBox(p - centre, extent - 14.0) - 14.0;
+    if (abs(edge) < 8.0) edge += 9.0 * (vnoise(p / 26.0, seed + 26u) - 0.5);
     if (edge > 0.0) return 0;
     float stage = hash21(cell, seed + 36u);
     return stage < 0.35 ? 1 : stage < 0.7 ? 2 : 3;
@@ -1859,11 +1912,17 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
     float cutEdge;
     int cut = mire < 0.5 ? taigaCut(p, seed, cutEdge) : 0;
     if (cut > 0) {
+        // A strip of forest is left standing along the river, as the law has it.
         float inside = fill(cutEdge, 1.2);
-        float3 slash = mix(float3(0.55, 0.49, 0.40), moss, 0.35) * (0.9 + 0.2 * vnoise(p / 1.6, seed + 42u));
+        if (riverHalf > 0.25) inside *= smoothstep(riverHalf + 24.0, riverHalf + 30.0, abs(riverDistance(world, scene, wander)));
+        float3 slash = mix(float3(0.55, 0.49, 0.40), moss, 0.35) * (0.88 + 0.24 * fbm(rotate(p, -0.5) / 2.4, 2, seed + 42u));
         float tracks = fill(abs(fract(p.x / 16.0) - 0.5) * 16.0 - 1.2, 0.5);
         slash = mix(slash, slash * 0.8, tracks * 0.6);
-        float3 regrowth = mix(b.crop2.rgb * 1.18, b.hedge.rgb, 0.3) * (0.85 + 0.3 * vnoise(p / 1.8, seed + 43u));
+        // Regrowth: grass and fireweed with saplings coming through it in clumps, never one flat green.
+        float thicket = fbm(rotate(p, 0.9) / 2.6, 3, seed + 43u);
+        float3 regrowth = mix(b.crop2.rgb * 1.18, b.hedge.rgb, 0.3) * (0.8 + 0.4 * thicket);
+        regrowth = mix(regrowth, b.hedge.rgb * 0.82, smoothstep(0.55, 0.7, thicket) * 0.5);
+        regrowth = mix(regrowth, slash, smoothstep(0.6, 0.8, fbm(p / 19.0, 2, seed + 25u)) * 0.45);
         c = mix(c, cut == 1 ? slash : cut == 2 ? regrowth : moss, inside);
     }
 
@@ -1913,6 +1972,7 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
             float dry = 0.0;
             float edge;
             int stage = tw < 0.65 ? taigaCut(at, seed, edge) : 0;
+            if (stage > 0 && near.river && abs(riverDistance(at + shift, scene, wander)) < riverHalf + 27.0) stage = 0;
             if (tw > 0.65) { chance = 0.06; scale = 0.6; } // stunted pines out on the mire's drier edge
             else if (stage == 1) chance = 0.03;
             else if (stage == 2) chance = 0.0;
