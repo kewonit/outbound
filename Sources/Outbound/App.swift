@@ -434,6 +434,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
         displays.pausesWhenHidden = preferences.pausesWhenHidden
+        displays.showsPlaceName = preferences.showsPlaceName
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
