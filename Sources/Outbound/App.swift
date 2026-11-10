@@ -52,6 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var earlyLinks: [ActivationLink] = []
     /// Outbound is quitting to open again at once, as when the GPU stopped taking its work, so the painting stays.
     private var relaunching = false
+    #if DEV
+    private var dev: DevControls?
+    private var devPanel: DevPanel?
+    #endif
 
     private var world: World { displays.world }
 
@@ -90,7 +94,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays = DisplayManager(world: world, gpu: gpu, power: PowerMonitor(batteryMode: preferences.batteryMode))
         updates = Updates()
         updates.isQuiet = { [weak self] in self?.displays.isQuiet ?? false }
-        displays.onQuiet = { [weak self] in self?.updates.installIfQuiet() }
+        displays.onQuiet = { [weak self] in
+            #if DEV
+            // A sleep or lock the Developer panel pretends is no time to install an update over the dev build.
+            if self?.dev?.simulatingQuiet == true { return }
+            #endif
+            self?.updates.installIfQuiet()
+        }
         stillsWereOn = preferences.matchingStill
         applyPreferences()
         if !LicenseController.isGated { displays.note = String(localized: "Development build") }
@@ -112,6 +122,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.displays.setSessionEnding(ending)
         }
         sessionEnd.start()
+        #if DEV
+        dev = DevControls(displays: displays, license: license, gpu: gpu, preferences: preferences, sessionEnd: sessionEnd,
+                          actions: .init(fly: { [weak self] in self?.fly(to: $0) },
+                                         paintDesktop: { [weak self] in self?.refreshPainting(force: true) },
+                                         showActivation: { [weak self] in self?.showActivation() },
+                                         previewThankYou: { [weak self] in self?.previewThankYou() },
+                                         notice: { [weak self] claim in Task { await self?.showNotice(for: claim) } },
+                                         diagnostics: { [weak self] in self?.diagnostics ?? "" }))
+        #endif
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -303,14 +322,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func showActivation() {
-        if activation == nil {
-            let window = ActivationWindow(license: license, world: world, gpu: gpu)
-            window.onDone = { [weak self] in self?.activation = nil }
-            window.paperEdge = preferences.paperEdge
-            activation = window
-        }
-        activation?.show()
+        activationWindow().show()
     }
+
+    private func activationWindow() -> ActivationWindow {
+        if let activation { return activation }
+        let window = ActivationWindow(license: license, world: world, gpu: gpu)
+        window.onDone = { [weak self] in self?.activation = nil }
+        window.paperEdge = preferences.paperEdge
+        activation = window
+        return window
+    }
+
+    #if DEV
+    private func previewThankYou() {
+        activationWindow().previewThankYou()
+    }
+    #endif
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Logging out, restarting and shutting down quit each app with an Apple event that says why. One cancelled
@@ -377,14 +405,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             Log.license.info("Activation link: \(String(describing: result), privacy: .public)")
             guard wasUnlocked || result == .alreadyActive else { return }
-            switch result {
-            case .alreadyActive: await Notice.show(String(localized: "Outbound is already unlocked."), detail: "")
-            case .activated: await Notice.show(String(localized: "Outbound now uses your new key."), detail: "")
-            case .failed: await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "")
-            case .waiting:
-                await Notice.show(String(localized: "Still processing your purchase."), detail: String(localized: "Try again in a minute."))
-            case .declined: break
-            }
+            await showNotice(for: result)
+        }
+    }
+
+    /// Says how an activation link went, once the app was unlocked already.
+    private func showNotice(for result: LicenseController.Claim) async {
+        switch result {
+        case .alreadyActive: await Notice.show(String(localized: "Outbound is already unlocked."), detail: "")
+        case .activated: await Notice.show(String(localized: "Outbound now uses your new key."), detail: "")
+        case .failed: await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "")
+        case .waiting:
+            await Notice.show(String(localized: "Still processing your purchase."), detail: String(localized: "Try again in a minute."))
+        case .declined: break
         }
     }
 
@@ -447,6 +480,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
         }
         stillsWereOn = preferences.matchingStill
+        #if DEV
+        dev?.reapply()
+        #endif
     }
 
     // MARK: - Menu
@@ -492,6 +528,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(feedbackItem())
             menu.addItem(.separator())
             if let dev = devBuildItem() { menu.addItem(dev) }
+            #if DEV
+            menu.addItem(developerItem())
+            #endif
             menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             return
         }
@@ -582,6 +621,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
         if let dev = devBuildItem() { menu.addItem(dev) }
+        #if DEV
+        menu.addItem(developerItem())
+        #endif
         menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
@@ -615,6 +657,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.isEnabled = false
         return item
     }
+
+    #if DEV
+    /// Opens the Developer panel, naming what it pretends while anything is.
+    private func developerItem() -> NSMenuItem {
+        let pretending = dev?.overrides ?? []
+        let title = pretending.isEmpty ? "Developer…" : "Developer… (\(pretending.joined(separator: ", ")))"
+        let item = NSMenuItem(title: title, action: #selector(openDeveloper), keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    @objc private func openDeveloper() {
+        guard let dev else { return }
+        if devPanel == nil { devPanel = DevPanel(controls: dev) }
+        // Once the menu it was chosen from has closed.
+        DispatchQueue.main.async { [weak self] in self?.devPanel?.show() }
+    }
+    #endif
 
     /// The line a dev build's Info.plist carries, and nil for any other build's.
     nonisolated static func devBuildLine(_ info: [String: Any]?) -> String? {

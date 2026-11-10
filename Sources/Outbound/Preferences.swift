@@ -64,6 +64,28 @@ final class Preferences: ObservableObject {
 
     private let defaults: UserDefaults
 
+    #if DEV
+    /// Dev builds: every choice back to its default, and nothing saved, as on a Mac that never ran Outbound.
+    func resetToDefaults() {
+        let keys = ["light", "followsCalendar", "flightPace", "stay", "batteryMode", "matchingStill", "restsWhenAway",
+                    "holdsWhenHidden", "paperBorder", "showsPlaceName", "lastPlace"]
+        keys.forEach(defaults.removeObject(forKey:))
+        let fresh = Preferences(defaults: defaults)
+        light = fresh.light
+        followsCalendar = fresh.followsCalendar
+        pace = fresh.pace
+        stay = fresh.stay
+        batteryMode = fresh.batteryMode
+        matchingStill = fresh.matchingStill
+        restsWhenAway = fresh.restsWhenAway
+        pausesWhenHidden = fresh.pausesWhenHidden
+        paperEdge = fresh.paperEdge
+        showsPlaceName = fresh.showsPlaceName
+        lastPlace = fresh.lastPlace
+        keys.forEach(defaults.removeObject(forKey:))
+    }
+    #endif
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         light = World.Light(rawValue: defaults.string(forKey: "light") ?? "") ?? .alwaysDay
