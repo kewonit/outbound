@@ -6,7 +6,7 @@
 //                                                    Website/<language>/index.html, support.html, thanks.html,
 //                                                    waitlist.html and feedback.html,
 //                                                    the hreflang links of every page and the sitemap,
-//                                                    the newest version from changelog.html in the footer,
+//                                                    the newest version's notes from changelog.html in the footer,
 //                                                    and the hash of the pages' one inline script in _headers
 //
 // A translation keeps the English's markup exactly (the same tags with the same attributes), its prices and its
@@ -225,16 +225,42 @@ function sitemap() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
-// The newest version on the changelog, and its date in the page's language, for the link under the footer's buttons.
-const latest = /<article class="release" id="v([\d.]+)">[\s\S]*?<time datetime="(\d{4}-\d{2}-\d{2})">/.exec(read("changelog.html"));
-function withLatest(html, tag) {
-  if (!latest) throw new Error("changelog.html has no version to show");
-  const [, version, date] = latest;
+// The newest version on the changelog, in full under the footer's buttons: its date in the page's language, and its
+// notes from changelog.html, in English, or from i18n/latest.json, which has them in the other languages line for
+// line, with the headings. A language without them yet shows the English.
+const newest = /<article class="release" id="v([\d.]+)">[\s\S]*?<time datetime="(\d{4}-\d{2}-\d{2})">[\s\S]*?<div class="release-body">([\s\S]*?)<\/div>\s*<\/article>/
+  .exec(read("changelog.html"));
+const latestWords = JSON.parse(read("i18n/latest.json"));
+const NOTE = /<(li|p)>([\s\S]*?)<\/\1>/g;
+const escapeText = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const untranslated = new Set();
+function withLatest(html, tag, folder) {
+  if (!html.includes('class="latest-notes"')) return html;
+  if (!newest) throw new Error("changelog.html has no version to show");
+  const [, version, date, body] = newest;
   const shown = new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC", numberingSystem: "latn" })
     .format(new Date(`${date}T00:00:00Z`));
+  let notes = body.replace(/<(\/?)h3>/g, "<$1h4>");
+  let lang = "";
+  if (folder) {
+    const lines = latestWords.notes[version]?.[folder];
+    const headings = latestWords.headings[folder] ?? {};
+    if (lines?.length === [...notes.matchAll(NOTE)].length) {
+      let i = 0;
+      notes = notes.replace(NOTE, (whole, name) => `<${name}>${escapeText(lines[i++])}</${name}>`)
+        .replace(/<h4>([^<]*)<\/h4>/g, (whole, heading) => `<h4>${headings[heading] ?? heading}</h4>`);
+    } else {
+      untranslated.add(folder);
+      lang = ' lang="en" dir="ltr"';
+    }
+  }
+  const indented = notes.split("\n").map((line) => line.trim()).filter(Boolean)
+    .map((line) => `${line.startsWith("<li") ? "            " : "          "}${line}`);
   return html
-    .replace(/(<span class="foot-latest-version">)[^<]*(<\/span>)/, `$1v${version}$2`)
-    .replace(/(<time class="foot-latest-date" datetime=")[^"]*(">)[^<]*(<\/time>)/, `$1${date}$2${shown}$3`);
+    .replace(/(<span class="latest-version">)[^<]*(<\/span>)/, (whole, open, close) => `${open}v${version}${close}`)
+    .replace(/(<time class="latest-date" datetime=")[^"]*(">)[^<]*(<\/time>)/, (whole, open, middle, close) => `${open}${date}${middle}${shown}${close}`)
+    .replace(/<div class="latest-notes"[^>]*><!-- latest -->[\s\S]*?<!-- \/latest --><\/div>/,
+      () => `<div class="latest-notes"${lang}><!-- latest -->\n${indented.join("\n")}\n        <!-- /latest --></div>`);
 }
 
 const source = english();
@@ -262,6 +288,15 @@ for (const language of LANGUAGES) {
   translations[language.folder] = JSON.parse(readFileSync(path, "utf8"));
   problems.push(...check(source, language.folder, translations[language.folder]));
 }
+for (const [version, languages] of Object.entries(latestWords.notes)) {
+  for (const [folder, lines] of Object.entries(languages)) {
+    if (!LANGUAGES.some((language) => language.folder === folder)) problems.push(`latest.json: unknown language ${folder}`);
+    for (const line of lines) {
+      if (line.includes("—")) problems.push(`latest.json: em dash in ${folder}'s ${version}`);
+      if (/[<>]/.test(line)) problems.push(`latest.json: markup in ${folder}'s ${version}; write plain text`);
+    }
+  }
+}
 if (problems.length) {
   console.error(problems.slice(0, 80).join("\n") + (problems.length > 80 ? `\n... and ${problems.length - 80} more` : ""));
   process.exit(1);
@@ -271,9 +306,13 @@ for (const page of pages) {
   writeFileSync(join(root, `${page}.html`), html);
   for (const language of LANGUAGES) {
     mkdirSync(join(root, language.folder), { recursive: true });
-    const translated = withLatest(translatePage(html, page, language, translations[language.folder]), language.tag);
+    const translated = withLatest(translatePage(html, page, language, translations[language.folder]), language.tag, language.folder);
     writeFileSync(join(root, language.folder, `${page}.html`), translated);
   }
+}
+if (untranslated.size) {
+  console.warn(`The homepage shows v${newest[1]}'s notes in English in ${[...untranslated].join(", ")}: ` +
+    "add them to Website/i18n/latest.json, line for line, and build again.");
 }
 writeFileSync(join(root, "sitemap.xml"), sitemap());
 
