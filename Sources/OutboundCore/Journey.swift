@@ -141,14 +141,11 @@ public final class Journey {
 
     /// Appends legs so the land up to world y is decided, and forgets legs far behind. A new place begins no
     /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
-    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it. Nor is
-    /// any leg shorter than `shortest`, however short the stay.
-    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, shortest: Double = 0,
-                       date: Date = .now) {
-        let length = max(legLength, shortest)
-        while !staysPut, let last = legs.last, last.start + length < y {
+    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
+    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
+        while !staysPut, let last = legs.last, last.start + legLength < y {
             let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
-            let start = max(last.start + length, notBefore)
+            let start = max(last.start + legLength, notBefore)
             append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
         }
         while legs.count > 2, legs[1].start < behind {
