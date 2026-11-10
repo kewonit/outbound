@@ -546,6 +546,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         border.target = self
         border.state = preferences.paperEdge ? .on : .off
         menu.addItem(border)
+        let name = NSMenuItem(title: String(localized: "Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
+        name.target = self
+        name.state = preferences.showsPlaceName ? .on : .off
+        menu.addItem(name)
         menu.addItem(.separator())
 
         // How it flies.
@@ -662,6 +666,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleBorder() {
         preferences.paperEdge.toggle()
+    }
+
+    @objc private func toggleShowsPlaceName() {
+        preferences.showsPlaceName.toggle()
     }
 
     @objc private func togglePausesWhenHidden() {
