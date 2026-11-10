@@ -6,6 +6,7 @@
 //                                                    Website/<language>/index.html, support.html, thanks.html,
 //                                                    waitlist.html and feedback.html,
 //                                                    the hreflang links of every page and the sitemap,
+//                                                    the newest version from changelog.html in the footer,
 //                                                    and the hash of the pages' one inline script in _headers
 //
 // A translation keeps the English's markup exactly (the same tags with the same attributes), its prices and its
@@ -224,6 +225,18 @@ function sitemap() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
+// The newest version on the changelog, and its date in the page's language, for the link under the footer's buttons.
+const latest = /<article class="release" id="v([\d.]+)">[\s\S]*?<time datetime="(\d{4}-\d{2}-\d{2})">/.exec(read("changelog.html"));
+function withLatest(html, tag) {
+  if (!latest) throw new Error("changelog.html has no version to show");
+  const [, version, date] = latest;
+  const shown = new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC", numberingSystem: "latn" })
+    .format(new Date(`${date}T00:00:00Z`));
+  return html
+    .replace(/(<span class="foot-latest-version">)[^<]*(<\/span>)/, `$1v${version}$2`)
+    .replace(/(<time class="foot-latest-date" datetime=")[^"]*(">)[^<]*(<\/time>)/, `$1${date}$2${shown}$3`);
+}
+
 const source = english();
 if (process.argv[2] === "extract") {
   mkdirSync(join(root, "i18n"), { recursive: true });
@@ -254,11 +267,12 @@ if (problems.length) {
   process.exit(1);
 }
 for (const page of pages) {
-  const html = withAlternates(read(`${page}.html`), page);
+  const html = withLatest(withAlternates(read(`${page}.html`), page), "en-GB");
   writeFileSync(join(root, `${page}.html`), html);
   for (const language of LANGUAGES) {
     mkdirSync(join(root, language.folder), { recursive: true });
-    writeFileSync(join(root, language.folder, `${page}.html`), translatePage(html, page, language, translations[language.folder]));
+    const translated = withLatest(translatePage(html, page, language, translations[language.folder]), language.tag);
+    writeFileSync(join(root, language.folder, `${page}.html`), translated);
   }
 }
 writeFileSync(join(root, "sitemap.xml"), sitemap());

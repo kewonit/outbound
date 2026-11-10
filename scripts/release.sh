@@ -75,6 +75,9 @@ if ! grep -q "id=\"v$version\"" "$changelog"; then
     mv "$changelog.new" "$changelog"
     sed -i '' "s|\(<loc>https://outbound.edbn.me/changelog</loc><lastmod>\)[^<]*|\1$(date +%F)|" Website/sitemap.xml
 fi
+# The homepage's footer shows the newest version, in every language.
+node scripts/build-site-languages.mjs >/dev/null ||
+    echo "The footer still shows the last version: run node scripts/build-site-languages.mjs and push." >&2
 git commit --quiet -am "Offer Outbound v$version as an update"
 git push --quiet origin main
 echo "Outbound v$version is out. Copies will pick it up within a day."
