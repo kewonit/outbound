@@ -164,6 +164,13 @@ struct SessionEndWatchTests {
         return (watch, { changes })
     }
 
+    /// Waits up to five seconds for `count` changes, as other tests keeping the main thread busy can hold up the
+    /// watch's timer well past its time.
+    private func waitFor(_ count: Int, of changes: () -> [Bool]) async throws {
+        let end = Date().addingTimeInterval(5)
+        while changes().count < count, Date() < end { try await Task.sleep(for: .milliseconds(20)) }
+    }
+
     @Test func aShutdownIsHeardOnce() {
         let (watch, changes) = watching()
         watch.heard("com.apple.shutdownInitiated")
@@ -213,7 +220,7 @@ struct SessionEndWatchTests {
         let (watch, changes) = watching()
         watch.patience = 0.05
         watch.heard("com.apple.shutdownInitiated")
-        try await Task.sleep(for: .milliseconds(300))
+        try await waitFor(2, of: changes)
         #expect(changes() == [true, false])
     }
 
@@ -228,7 +235,7 @@ struct SessionEndWatchTests {
         watch.heard("com.apple.pointOfNoReturn")
         try await Task.sleep(for: .milliseconds(250))
         #expect(changes() == [true])
-        try await Task.sleep(for: .milliseconds(2000))
+        try await waitFor(2, of: changes)
         #expect(changes() == [true, false])
     }
 
