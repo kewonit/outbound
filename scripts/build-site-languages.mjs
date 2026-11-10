@@ -217,9 +217,8 @@ function sitemap() {
   }
   const old = read("sitemap.xml");
   // The English-only pages keep the date they last changed; one new to the sitemap starts from today.
-  for (const path of ["/privacy", "/license", "/terms"]) {
+  for (const path of ["/privacy", "/license", "/terms", "/changelog"]) {
     const kept = new RegExp(`\\s*<url><loc>${site}${path}</loc><lastmod>[^<]*</lastmod></url>`).exec(old);
-    const today = new Date().toISOString().slice(0, 10);
     urls.push(kept ? kept[0].trim().replace(/^/, "  ") : `  <url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`);
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join("\n")}\n</urlset>\n`;
