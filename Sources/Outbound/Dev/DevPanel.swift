@@ -125,7 +125,10 @@ private struct DevPanelView: View {
             }
             HStack {
                 Slider(value: $hourDraft, in: 0...23.75, step: 0.25) { editing in
-                    if !editing, controls.hour != nil { controls.hour = hourDraft }
+                    // Once the drag has ended, and not while SwiftUI is still applying it.
+                    guard !editing, controls.hour != nil else { return }
+                    let hour = hourDraft
+                    DispatchQueue.main.async { controls.hour = hour }
                 } label: { EmptyView() }
                 words(String(format: "%02d:%02d", Int(hourDraft), Int((hourDraft - hourDraft.rounded(.down)) * 60)))
                     .font(.system(.body, design: .monospaced))

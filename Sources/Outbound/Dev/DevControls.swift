@@ -66,6 +66,7 @@ final class DevControls: ObservableObject {
     @Published var timeScale = 1.0 {
         didSet {
             guard timeScale != oldValue else { return }
+            Log.display.info("Developer: timeScale \(String(describing: self.timeScale), privacy: .public)")
             world.setTimeScale(timeScale)
         }
     }
@@ -73,6 +74,7 @@ final class DevControls: ObservableObject {
     @Published var hour: Double? {
         didSet {
             guard hour != oldValue else { return }
+            Log.display.info("Developer: hour \(String(describing: self.hour), privacy: .public)")
             clockChanged()
         }
     }
@@ -80,12 +82,14 @@ final class DevControls: ObservableObject {
     @Published var month: Int? {
         didSet {
             guard month != oldValue else { return }
+            Log.display.info("Developer: month \(String(describing: self.month), privacy: .public)")
             clockChanged()
         }
     }
     @Published var cloudCover: Double {
         didSet {
             guard cloudCover != oldValue else { return }
+            Log.display.info("Developer: cloudCover \(String(describing: self.cloudCover), privacy: .public)")
             world.cloudCover = cloudCover
             displays.refreshClouds()
         }
@@ -93,42 +97,49 @@ final class DevControls: ObservableObject {
     @Published var cloudSpeed = 1.0 {
         didSet {
             guard cloudSpeed != oldValue else { return }
+            Log.display.info("Developer: cloudSpeed \(String(describing: self.cloudSpeed), privacy: .public)")
             world.setCloudSpeed(cloudSpeed)
         }
     }
     @Published var power: PowerMonitor.Forced? {
         didSet {
             guard power != oldValue else { return }
+            Log.display.info("Developer: power \(String(describing: self.power), privacy: .public)")
             displays.power.forced = power
         }
     }
     @Published var cover: Cover? {
         didSet {
             guard cover != oldValue else { return }
+            Log.display.info("Developer: cover \(String(describing: self.cover), privacy: .public)")
             displays.cover.forcedCoverage = cover?.coverage
         }
     }
     @Published var frameRate: Double? {
         didSet {
             guard frameRate != oldValue else { return }
+            Log.display.info("Developer: frameRate \(String(describing: self.frameRate), privacy: .public)")
             displays.forcedRate = frameRate
         }
     }
     @Published var smallPieces = false {
         didSet {
             guard smallPieces != oldValue else { return }
+            Log.display.info("Developer: smallPieces \(String(describing: self.smallPieces), privacy: .public)")
             gpu.paintsInSmallPieces = smallPieces
         }
     }
     @Published var asleep = false {
         didSet {
             guard asleep != oldValue else { return }
+            Log.display.info("Developer: asleep \(String(describing: self.asleep), privacy: .public)")
             quietly { displays.set(.asleep, asleep) }
         }
     }
     @Published var locked = false {
         didSet {
             guard locked != oldValue else { return }
+            Log.display.info("Developer: locked \(String(describing: self.locked), privacy: .public)")
             quietly {
                 displays.set(.locked, locked)
                 displays.onLockChange(locked)
@@ -138,6 +149,7 @@ final class DevControls: ObservableObject {
     @Published var licenseStatus: LicenseStatus? {
         didSet {
             guard licenseStatus != oldValue else { return }
+            Log.display.info("Developer: licenseStatus \(String(describing: self.licenseStatus), privacy: .public)")
             license.simulate(licenseStatus)
         }
     }
@@ -145,6 +157,7 @@ final class DevControls: ObservableObject {
     @Published var chasing = false {
         didSet {
             guard chasing != oldValue else { return }
+            Log.display.info("Developer: chasing \(String(describing: self.chasing), privacy: .public)")
             if chasing {
                 let home = world.home, start = CACurrentMediaTime()
                 world.isDesktop = { _ in true }
@@ -163,12 +176,15 @@ final class DevControls: ObservableObject {
     @Published var showsOnDesktop = false {
         didSet {
             if !showsOnDesktop { displays.note = usualNote }
-            tick()
+            // Not while SwiftUI is still applying the switch that set this.
+            DispatchQueue.main.async { [weak self] in self?.tick() }
             pace()
         }
     }
     /// What the last action did, or why it couldn't.
-    @Published var message: String?
+    @Published var message: String? {
+        didSet { if let message { Log.display.info("Developer: \(message, privacy: .public)") } }
+    }
     @Published private(set) var readout: [String] = []
 
     /// A sleep, lock or rest pretended here is no time to install an update over the dev build.
@@ -371,7 +387,7 @@ final class DevControls: ObservableObject {
     /// Whether the panel is open, which is when the readout needs reading.
     var panelOpen = false {
         didSet {
-            tick()
+            DispatchQueue.main.async { [weak self] in self?.tick() }
             pace()
         }
     }
