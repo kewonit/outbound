@@ -18,7 +18,9 @@ final class World {
     static let cloudHeight = 70.0
     /// How high the camera flies, as clouds 70 m up slide past 1.15 times as fast as the land.
     static let cameraHeight = cloudHeight / (1 - 1 / 1.15)
-    static let wind = SIMD2<Double>(1.3, 0.55)
+    /// A light breeze. Up at the clouds it is the 1.3 by 0.55 m/s they drifted on until 1.7, so at Slow they cross the
+    /// land at about its own pace rather than racing it.
+    static let wind = SIMD2<Double>(1.3, 0.55) / 2.6
     /// The wind up where the clouds are, which carries them faster than the gusts it sends over the crops and the water.
     static let cloudWind = wind * 2.6
     static let gustWind = wind * 1.3

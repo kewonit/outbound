@@ -68,6 +68,12 @@ struct PhysicsTests {
         #expect(abs(atan2(clouds.y, clouds.x) - atan2(gusts.y, gusts.x)) < 1e-9)
     }
 
+    /// At the slowest pace the clouds drift across the land at about its own pace, never racing it.
+    @Test func cloudsNeverRaceTheLand() {
+        let clouds = World.cloudWind
+        #expect((clouds.x * clouds.x + clouds.y * clouds.y).squareRoot() < 1.1 * Preferences.Pace.slow.speed)
+    }
+
     /// Cars gain on their slots and fall back, but never so far that one could reach the next, and an hour on, when
     /// the clock they run on wraps, each is just where it was.
     @Test func carsNeverReachEachOther() throws {
