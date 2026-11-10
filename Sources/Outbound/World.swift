@@ -226,7 +226,9 @@ final class World {
                        behind: bottom - 1500 - Self.reach,
                        // Clear of the view, and of any band left in it, as only one shows at a time.
                        notBefore: max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint
-                                      + Self.bankReach) + Self.bankReach + 20)
+                                      + Self.bankReach) + Self.bankReach + 20,
+                       // Seasons by the world's own clock, which a render or a test may set.
+                       date: now())
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
