@@ -546,7 +546,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         border.target = self
         border.state = preferences.paperEdge ? .on : .off
         menu.addItem(border)
-        let name = NSMenuItem(title: String(localized: "Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
+        let name = NSMenuItem(title: String(localized: "Show Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
         name.target = self
         name.state = preferences.showsPlaceName ? .on : .off
         menu.addItem(name)
