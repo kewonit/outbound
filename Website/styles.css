@@ -465,24 +465,22 @@ kbd {
 .legal h2 { scroll-margin-top: 5rem; }
 .legal h3 { margin: 1.5rem 0 0; font-size: 1rem; color: var(--ink-soft); }
 .legal li strong { color: var(--ink-soft); font-weight: 500; }
-/* The changelog: each version with its date and a line on what it brought, then what's new, changed and fixed. On
-   wide screens the version sits in a column of its own and stays in view while its notes scroll past. */
-.changelog .note { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-faint); }
-.changelog .note a { color: var(--ink-mute); }
-.changelog .note a:hover { color: var(--ink); }
-.release { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--line); scroll-margin-top: 4.5rem; }
+/* The changelog: each version and its date, then what's new, changed and fixed. On wide screens the version sits in
+   a column of its own and stays in view while its notes scroll past. */
+.release { margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--line); scroll-margin-top: 4.5rem; }
 .release-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.85rem; }
 .release-head h2 { margin: 0; font-size: 1.5rem; letter-spacing: -0.3px; }
 .release-head h2 a { text-decoration: none; }
 .release-head time { font-size: 0.875rem; color: var(--ink-faint); }
-.release-sum { margin: 0.75rem 0 0; font-size: 1.0625rem; color: var(--ink-soft); }
+.release-body p { margin: 0; color: var(--ink-mute); }
 .release h3 { margin: 1.75rem 0 0; font-size: 0.875rem; font-weight: 600; color: var(--ink-soft); }
 .release h3 + ul { margin-top: 0.6rem; }
+.release-body > :first-child { margin-top: 1rem; }
 @media (min-width: 720px) {
   .changelog { max-width: 52rem; }
   .release { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 0 2rem; }
   .release-head { position: sticky; top: 5rem; align-self: start; flex-direction: column; }
-  .release-sum { margin-top: 0.2rem; }
+  .release-body > :first-child { margin-top: 0.3rem; }
 }
 
 /* ---------- Footer: a last call to action, then the map of the site ---------- */

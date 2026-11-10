@@ -67,7 +67,7 @@ if ! grep -q "id=\"v$version\"" "$changelog"; then
         <time datetime=\"$(date +%F)\">$(LC_ALL=C date "+%-d %B %Y")</time>
       </header>
       <div class=\"release-body\">
-        <p class=\"release-sum\">$said</p>
+        <p>$said</p>
       </div>
     </article>
 "

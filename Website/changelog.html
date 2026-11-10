@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Changelog · Outbound</title>
-<meta name="description" content="What changed in each version of Outbound, the live painted wallpaper for Mac, newest first.">
+<meta name="description" content="What changed in each version of Outbound.">
 <link rel="canonical" href="https://outbound.edbn.me/changelog">
 <meta name="theme-color" content="#000000">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://outbound.edbn.me/changelog">
 <meta property="og:title" content="Changelog · Outbound">
-<meta property="og:description" content="What changed in each version of Outbound, the live painted wallpaper for Mac, newest first.">
+<meta property="og:description" content="What changed in each version of Outbound.">
 <meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
@@ -20,7 +20,7 @@
 <meta property="og:site_name" content="Outbound">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Changelog · Outbound">
-<meta name="twitter:description" content="What changed in each version of Outbound, the live painted wallpaper for Mac, newest first.">
+<meta name="twitter:description" content="What changed in each version of Outbound.">
 <meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
 <meta name="twitter:image:alt" content="Outbound: a painted world, flying by behind your desktop.">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
@@ -42,8 +42,6 @@
 <main class="page">
   <div class="wrap-narrow prose changelog">
     <h1>Changelog.</h1>
-    <p class="lede">What changed in each version of Outbound, newest first. Outbound updates itself, so there is nothing you need to download here.</p>
-    <p class="note">On the Mac App Store, each version arrives once Apple has reviewed it. Every download is also on <a href="https://github.com/kewonit/outbound/releases">GitHub</a>.</p>
 
     <!-- releases: scripts/release.sh adds each new version under this line, newest first -->
     <article class="release" id="v1.7">
@@ -52,24 +50,22 @@
         <time datetime="2026-11-08">8 November 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">Everything moves at about half the speed, the seagull is painted again, and the view comes to rest before your Mac shuts down.</p>
         <h3>New</h3>
         <ul>
-          <li>Everything moves at about half the speed it did. Cars, boats, trains, flocks and clouds slow down with the view, so the scene plays as it did, only slower.</li>
-          <li>Everyone starts on Slow once, then keeps what they pick. Gentle and Brisk are still under Pace in the menu.</li>
-          <li>The seagull is painted again: real wings with dark tips, a body that tapers both ways, a short fan of a tail and a yellow bill, lit from the side the sun is on. It stays white.</li>
-          <li>It flies in slow curves and leans into its turns, instead of flipping round on the spot when the cursor passes behind it.</li>
-          <li>When you shut down, restart or log out, the flight slows to a stop first, so the screen goes dark on a still picture that matches your desktop. If you cancel, it flies on.</li>
+          <li>Everything moves at about half speed, traffic and clouds included.</li>
+          <li>Everyone starts on Slow once. Gentle and Brisk are still under Pace.</li>
+          <li>New seagull. It flies in curves instead of turning on the spot.</li>
+          <li>When you shut down, restart or log out, the flight stops first, so the screen goes dark on the same picture as your desktop.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>The shortest stay over a place is now twelve minutes. At the new pace, six minutes was too short for one place to hand over to the next.</li>
-          <li>Flocks come at their own rates again, about half as often as before.</li>
+          <li>The shortest stay over a place is twelve minutes. Six is gone.</li>
+          <li>Flocks come about half as often.</li>
         </ul>
         <h3>Fixed</h3>
         <ul>
-          <li>On very tall displays, a third place could come into view before the last one had finished turning into the next.</li>
-          <li>A seagull that 1.6 saved partway through a flap now finishes its wingbeat, instead of holding its wings half closed.</li>
+          <li>On very tall displays, a third place could show up before the last handover finished.</li>
+          <li>A seagull saved mid-flap by 1.6 held its wings half closed.</li>
         </ul>
       </div>
     </article>
@@ -80,26 +76,26 @@
         <time datetime="2026-10-29">29 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">Slower Macs paint in small steps, Pause When Hidden is on by default, and Outbound opens where your desktop left off.</p>
         <h3>New</h3>
         <ul>
-          <li>Outbound opens on the same view your desktop showed when you shut down.</li>
-          <li>The menu says why the painting is holding still, and Fly To works while it does.</li>
-          <li>Settings has buttons for the website, support, feedback and Check for Updates.</li>
-          <li>Feedback sent from the app includes a short line about how the painting runs on your Mac.</li>
+          <li>Opens on the view your desktop showed when you shut down.</li>
+          <li>The menu says why the painting is paused. Fly To still works.</li>
+          <li>Settings has buttons for Website, Support, Feedback and Check for Updates.</li>
+          <li>Feedback sent from the app includes a line on how the painting runs on your Mac.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>Pause When Hidden is on by default. It holds the painting while windows cover nearly all of every desktop, and terminal windows count too.</li>
-          <li>It is on for everyone who had it off in 1.5, because 1.5 saved it as off whether you chose that or not. Each setting is now saved only when you change it, so if you turn it off, it stays off.</li>
-          <li>A display hidden behind windows while another still shows draws 24 frames a second instead of 30, and a 75 Hz display runs at 25 instead of 37.5.</li>
-          <li>Painting the ground ahead takes about 85% less GPU time, as it is painted in a few bigger steps instead of a row every frame.</li>
-          <li>On Battery and Pause When Hidden have a group of their own in the menu.</li>
+          <li>Pause When Hidden is on by default, for everyone. 1.5 had saved it as off without asking.</li>
+          <li>It now pauses once windows cover 82% of every desktop. Terminal windows count.</li>
+          <li>Settings are saved only when you change them, so off stays off.</li>
+          <li>A hidden display draws 24 frames a second instead of 30. A 75 Hz display runs at 25 instead of 37.5.</li>
+          <li>About 85% less GPU time spent painting the ground ahead.</li>
+          <li>On Battery and Pause When Hidden have their own group in the menu.</li>
         </ul>
         <h3>Fixed</h3>
         <ul>
-          <li>Slower Macs now paint the landscape in small pieces, so a slow GPU never stops the wallpaper. This should fix the painting standing still on some Macs after 1.5.</li>
-          <li>On battery with Low Power Mode, desktops you switched to could keep your own picture or an older painting on the lock screen.</li>
+          <li>The wallpaper could freeze on slower Macs after 1.5. The landscape is now painted in small pieces, which should stop it.</li>
+          <li>With Low Power Mode on battery, the lock screen could show your own picture or an old painting.</li>
         </ul>
       </div>
     </article>
@@ -110,15 +106,14 @@
         <time datetime="2026-10-28">28 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">Pause When Hidden, a way to send feedback from the menu, and the painted border off for everyone.</p>
         <h3>New</h3>
         <ul>
-          <li>Pause When Hidden, in the menu, holds the flight while windows cover every desktop, and carries on from the same moment when the desktop shows again.</li>
-          <li>Feedback, in the menu, opens a page where you can write to me directly.</li>
+          <li>Pause When Hidden, in the menu. The flight pauses while windows cover every desktop.</li>
+          <li>Feedback, in the menu.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>The painted border is off until you turn it on, for everyone, not only new installs.</li>
+          <li>The painted border is off for everyone until you turn it on.</li>
         </ul>
       </div>
     </article>
@@ -129,21 +124,20 @@
         <time datetime="2026-10-27">27 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">The painting on the lock screen, your own pictures back when you quit, and about half the memory.</p>
         <h3>New</h3>
         <ul>
-          <li>The painting stays on the lock screen and the login window.</li>
-          <li>When you quit, your own picture comes back on every desktop, including the ones out of view.</li>
+          <li>The painting shows on the lock screen and the login window.</li>
+          <li>Quitting puts your own picture back on every desktop.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>Outbound uses about half the memory. On two displays it went from about 606 MB to 321 MB.</li>
-          <li>It starts sooner after an update.</li>
+          <li>About half the memory: 606 MB down to 321 MB on two displays.</li>
+          <li>Starts faster after an update.</li>
           <li>New installs start without the painted border.</li>
         </ul>
         <h3>Fixed</h3>
         <ul>
-          <li>Moving between desktops no longer makes the view jump.</li>
+          <li>Switching desktops made the view jump.</li>
         </ul>
       </div>
     </article>
@@ -154,21 +148,19 @@
         <time datetime="2026-10-27">27 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">A new look for the land, fifteen more languages, and lights that stay steady.</p>
         <h3>New</h3>
         <ul>
-          <li>Trees are painted together, with crowns that overlap and shadows that fall from the trunk. They keep off roads, houses and ponds.</li>
-          <li>Rivers bend, widen and narrow, with sand bars inside the bends.</li>
-          <li>Cars and boats keep to the road and the river round bends, and no longer swap places or vanish. Houses face the road, with their sheds behind.</li>
-          <li>Headlights are soft low beams on the road ahead, with small red tail lights, instead of hard white wedges.</li>
-          <li>Lapland, La Pampa and Niigata are drawn again.</li>
-          <li>Outbound speaks your Mac's language, in 15 more: Spanish, French, German, Italian, Brazilian Portuguese, Dutch, Russian, Turkish, Polish, Japanese, Korean, Simplified and Traditional Chinese, Hindi and Arabic. Place names and seasons stay in English.</li>
-          <li>Time at Each Place has Do not change, which stays over one place until you pick another with Fly To.</li>
-          <li>The painted border can be turned off from the menu bar.</li>
+          <li>Trees with overlapping crowns and shadows, rivers that bend, and houses that face the road.</li>
+          <li>Cars and boats follow bends and no longer swap or vanish.</li>
+          <li>Headlights are soft low beams instead of white wedges.</li>
+          <li>Lapland, La Pampa and Niigata are redrawn.</li>
+          <li>15 more languages: Spanish, French, German, Italian, Brazilian Portuguese, Dutch, Russian, Turkish, Polish, Japanese, Korean, Simplified and Traditional Chinese, Hindi and Arabic.</li>
+          <li>Do not change, under Time at Each Place, stays over one place.</li>
+          <li>The painted border can be turned off from the menu.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>No light flickers any more. Street lamps are steady, a television lights its room with a steady glow, and the water no longer glints.</li>
+          <li>No more flickering lights or glinting water.</li>
           <li>New copies start in daylight, with each place in its best season.</li>
         </ul>
       </div>
@@ -180,12 +172,11 @@
         <time datetime="2026-10-26">26 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">Your choices move into the menu bar.</p>
         <h3>Changed</h3>
         <ul>
-          <li>Light, seasons, pace, time at each place and battery choices are in the menu bar, under a new seagull icon.</li>
-          <li>Settings keeps the toggles and your license, and always opens in front of your other windows.</li>
-          <li>New copies start over Kansas, the place on the website.</li>
+          <li>Light, seasons, pace, stay and battery options moved to the menu bar, under a new seagull icon.</li>
+          <li>Settings opens in front of other windows.</li>
+          <li>New copies start over Kansas.</li>
         </ul>
       </div>
     </article>
@@ -196,22 +187,20 @@
         <time datetime="2026-10-26">26 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">Smoother on every display, and it runs on macOS 13 Ventura and later.</p>
         <h3>New</h3>
         <ul>
-          <li>Outbound runs on macOS 13 Ventura and later. 1.0 needed macOS 26.</li>
+          <li>Runs on macOS 13 Ventura and later. 1.0 needed macOS 26.</li>
         </ul>
         <h3>Changed</h3>
         <ul>
-          <li>Frames reach the screen evenly, 30 a second on power and 24 on battery, so a 60 Hz display shows 30 instead of 20.</li>
+          <li>Steady 30 frames a second, 24 on battery. A 60 Hz display gets 30 instead of 20.</li>
           <li>The bird keeps up with the cursor, and Fly To no longer stutters.</li>
-          <li>On displays that aren't Retina, the ground no longer shimmers as it moves.</li>
+          <li>No shimmer on displays that aren't Retina.</li>
         </ul>
         <h3>Fixed</h3>
         <ul>
-          <li>Pasting a license key with ⌘V works, and stray spaces, line breaks and lowercase letters no longer get in the way.</li>
-          <li>Once Outbound is unlocked, the window says the bird in the menu bar is Outbound, and offers to open it at login.</li>
-          <li>The painting no longer stays behind on your other desktops after you quit.</li>
+          <li>⌘V didn't paste a license key.</li>
+          <li>After quitting, the painting could stay on other desktops.</li>
         </ul>
       </div>
     </article>
@@ -222,7 +211,7 @@
         <time datetime="2026-10-26">26 October 2026</time>
       </header>
       <div class="release-body">
-        <p class="release-sum">The first release. A painted landscape flies by behind your desktop over eight real places, the light follows your clock, and a little bird follows your cursor. Outbound keeps itself up to date from here on.</p>
+        <p>First release.</p>
       </div>
     </article>
   </div>
