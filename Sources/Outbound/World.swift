@@ -95,7 +95,12 @@ final class World {
     /// Every display renders its own moment, so one never draws another's, while `advance` keeps the shared parts
     /// (the journey, the pointer, the bird and the sun) at the latest moment any of them asked for.
     func renderTime(for displayTime: TimeInterval) -> TimeInterval {
-        heldSince == nil ? displayTime - heldFor - setOffLag(at: displayTime) : time
+        if heldSince != nil { return time }
+        if let settling {
+            // Slowing to a stop is setting off played backwards, so what setting off leaves behind is the distance flown.
+            return settling.from + Easing.rampLag(elapsed: displayTime - settling.since, length: Self.settleLength)
+        }
+        return displayTime - heldFor - setOffLag(at: displayTime)
     }
 
     /// The bird as it was, or is, at `t`.
@@ -112,11 +117,29 @@ final class World {
     /// rather than going from still to full pace in one frame.
     private var setOff: TimeInterval?
     static let setOffLength = 0.8
+    /// The flight coming to rest: when it began slowing, in display time, and its own time then.
+    private var settling: (since: TimeInterval, from: TimeInterval)?
+    /// How long the flight takes to come to rest, flying half that far as it does.
+    static let settleLength = 0.5
+
+    /// Brings the flight to rest over `settleLength`, as gently as it sets off, for `hold` to keep it there. Only a hold
+    /// ends this, so a call to let go of a hold that isn't there leaves it slowing.
+    func settle(at now: TimeInterval = CACurrentMediaTime()) {
+        guard heldSince == nil, settling == nil else { return }
+        settling = (now, renderTime(for: now))
+    }
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
-            // What setting off last time took off the clock stays taken off.
-            heldFor += setOffLag(at: now)
+            if settling != nil {
+                // Whatever the clock says, the flight carries on from where it slowed to, or from a frame already drawn
+                // a little ahead of it, never going back.
+                heldFor = now - max(time, renderTime(for: now))
+                settling = nil
+            } else {
+                // What setting off last time took off the clock stays taken off.
+                heldFor += setOffLag(at: now)
+            }
             setOff = nil
             heldSince = now
         } else if !on, let since = heldSince {
@@ -188,7 +211,7 @@ final class World {
 
     func advance(to displayTime: TimeInterval) {
         guard heldSince == nil else { return }
-        let t = displayTime - heldFor - setOffLag(at: displayTime)
+        let t = renderTime(for: displayTime)
         guard t > time else { return }
         let dt = t - time
         time = t

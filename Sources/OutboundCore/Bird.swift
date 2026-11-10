@@ -51,19 +51,33 @@ public struct Bird: Codable, Sendable {
         wings = saved.contains(.beats) ? try saved.decode(Double.self, forKey: .wings) : 1
         turning = try saved.decodeIfPresent(Double.self, forKey: .turning) ?? 0
         banking = try saved.decode(Spring.self, forKey: .banking)
-        beats = try saved.decodeIfPresent(Double.self, forKey: .beats) ?? 0
         flapPhase = try saved.decode(Double.self, forKey: .flapPhase)
         gliding = try saved.decode(Double.self, forKey: .gliding)
         orbitDirection = try saved.decode(Double.self, forKey: .orbitDirection)
+        if let saved = try saved.decodeIfPresent(Double.self, forKey: .beats) {
+            beats = saved
+        } else if wings < 1 {
+            // Saved part way through an older beat: it finishes this one, opening its wings from where they were.
+            beats = 1
+            flapPhase = 2 * .pi - acos(max(-1, min(1, (wings - 0.55) / 0.45)))
+        }
     }
 
-    /// Where the bird drifts when nobody is pointing: a slow loop around the middle of `area`.
+    /// Where the bird drifts when nobody is pointing: a slow loop around the middle of `area`. Over a big display the
+    /// loop is gone round more slowly, so it never moves faster than the gliding bird can follow.
     public static func wander(in area: CGRect, time: Double) -> SIMD2<Double> {
+        // The loop's fastest, in points a second, from the sizes and rates below: each way's fastest, together.
+        let across = 0.0196 * Double(area.width), up = 0.0137 * Double(area.height)
+        let fastest = (across * across + up * up).squareRoot()
+        let time = time * min(1, wanderPace / max(fastest, 1))
         let x = Double(area.midX) + Double(area.width) * 0.3 * sin(time * 0.036) + Double(area.width) * 0.08 * sin(time * 0.11)
         let y = Double(area.midY) + Double(area.height) * 0.26 * sin(time * 0.027 + 1.1)
             + Double(area.height) * 0.07 * cos(time * 0.095)
         return SIMD2(x, y)
     }
+
+    /// The fastest the wander loop goes: a little under cruising speed, which a laptop's display already keeps to.
+    public static let wanderPace = 33.0
 
     /// Puts the bird somewhere for a still picture.
     public mutating func pose(at position: SIMD2<Double>, heading: Double, wings: Double = 1) {

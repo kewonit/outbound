@@ -18,6 +18,44 @@ struct PaceTests {
         }
     }
 
+    /// However short the stay, a place lasts long enough for its band to leave the view before the next band comes
+    /// into it, on a desktop taller than any one display, as a display turned on its side is.
+    @Test(arguments: [982.0, 1692, 2560])
+    func noPlaceIsTooShortForTheDesktop(height: Double) {
+        let world = World(place: .first, time: 0, light: .alwaysDay)
+        world.pointer = { nil }
+        world.desktop = CGRect(x: 0, y: 0, width: 1440, height: height)
+        world.home = world.desktop
+        let speed = Preferences.Pace.slow.speed
+        world.journey.setSpeed(speed, at: 0)
+        world.journey.legLength = Double(Preferences.Stay.short.rawValue) * 60 * speed
+        var starts = Set<Double>()
+        for t in stride(from: 0.0, to: 4000, by: 5) {
+            world.advance(to: t)
+            world.journey.legs.forEach { starts.insert($0.start) }
+        }
+        let sorted = starts.sorted()
+        #expect(sorted.count > 3)
+        let room = height * World.metresPerPoint + 2 * World.bankReach + 20
+        for (a, b) in zip(sorted, sorted.dropFirst()) { #expect(b - a >= room - 1e-6) }
+    }
+
+    /// Each kind of flock keeps its own rate, so egrets come far more often than vultures.
+    @Test func flocksKeepTheirOwnRates() {
+        let area = CGRect(x: 0, y: 0, width: 1512, height: 982)
+        func flights(_ flock: Flock) -> Int {
+            var count = 0
+            var seen = false
+            for t in stride(from: 0.0, to: 840 * 400, by: 30) {
+                let now = flock.sighting(at: t, area: area, seed: 3) != nil
+                if now && !seen { count += 1 }
+                seen = now
+            }
+            return count
+        }
+        #expect(Double(flights(.egrets)) > 1.4 * Double(flights(.vultures)))
+    }
+
     /// The slowest birds over two wide displays, which must never vanish while they can still be seen.
     @Test func aFlightLeavesTheScreenBeforeItsTimeIsUp() {
         let area = CGRect(x: 0, y: 0, width: 5120, height: 1440)
