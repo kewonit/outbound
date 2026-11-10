@@ -102,7 +102,11 @@ final class World {
             // Slowing to a stop is setting off played backwards, so what setting off leaves behind is the distance flown.
             return settling.from + Easing.rampLag(elapsed: displayTime - settling.since, length: Self.settleLength)
         }
+        #if DEV
+        return displayTime - heldFor - setOffLag(at: displayTime) + warpAhead(at: displayTime)
+        #else
         return displayTime - heldFor - setOffLag(at: displayTime)
+        #endif
     }
 
     /// The bird as it was, or is, at `t`.
@@ -123,6 +127,17 @@ final class World {
     private var settling: (since: TimeInterval, from: TimeInterval)?
     /// How long the flight takes to come to rest, flying half that far as it does.
     static let settleLength = 0.5
+    #if DEV
+    /// Dev builds: the world running `scale` times as fast as the clock since `since`, in display time, or from when the
+    /// flight next sets off while it is held.
+    private var warp: (since: TimeInterval, scale: Double)?
+    /// Dev builds: how far the clouds had drifted when their speed last changed, so a change never jumps them.
+    private var cloudAnchor: (time: TimeInterval, drift: SIMD2<Double>, scale: Double)?
+    /// Dev builds: a flight of birds set off by hand, and when, in world time.
+    var forcedFlock: (flock: Flock, start: TimeInterval)?
+    /// Dev builds: the leg whose train runs whatever its roll.
+    var forcedTrainLeg: Int?
+    #endif
 
     /// Brings the flight to rest over `settleLength`, as gently as it sets off, for `hold` to keep it there. Only a hold
     /// ends this, so a call to let go of a hold that isn't there leaves it slowing.
@@ -133,6 +148,11 @@ final class World {
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
         if on, heldSince == nil {
+            #if DEV
+            // Running fast stops with the flight, and sets off again with it, without a jump either way.
+            if settling == nil { heldFor -= warpAhead(at: now) }
+            warp = warp.map { (.infinity, $0.scale) }
+            #endif
             if settling != nil {
                 // Whatever the clock says, the flight carries on from where it slowed to, or from a frame already drawn
                 // a little ahead of it, never going back.
@@ -148,6 +168,9 @@ final class World {
             heldFor += now - since
             heldSince = nil
             setOff = now
+            #if DEV
+            warp = warp.map { (now, $0.scale) }
+            #endif
         }
     }
 
@@ -495,21 +518,16 @@ final class World {
            let previous = journey.legs.first(where: { $0.index == crossing.leg }),
            let line = railLine(for: previous), let railway = previous.place.railway,
            line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway,
-                      seed: previous.index) != nil {
+                      seed: previous.index, always: runsTrain(on: previous)) != nil {
             leg = previous
         }
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
-        // When the middle of the main display passes over the line, following the camera's real path.
-        let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
-        let path = { [journey] (t: TimeInterval) -> SIMD2<Double> in
-            SIMD2(journey.cameraX(at: t), journey.cameraY(at: t) - leg.start) + offset
-        }
         if trainCrossing?.leg != leg.index {
-            trainCrossing = line.crossing(near: t, path: path).map { (leg.index, $0.time, $0.along) }
+            trainCrossing = line.crossing(near: t, path: middlePath(over: leg)).map { (leg.index, $0.time, $0.along) }
         }
         guard let crossing = trainCrossing,
               let run = line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway,
-                                   seed: leg.index) else { return .none }
+                                   seed: leg.index, always: runsTrain(on: leg)) else { return .none }
         func color(_ c: SIMD3<Float>) -> SIMD4<Float> { SIMD4(c, 1) }
         return TrainGPU(
             rail: SIMD4(Float(line.origin.x), Float(line.origin.y + leg.start - reference), Float(line.angle), 1),
@@ -518,6 +536,21 @@ final class World {
             info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), Float(Self.trainSide(of: leg, legA, legB)), 0),
             body: color(railway.body), stripe: color(railway.stripe), roof: color(railway.roof),
             locomotive: color(railway.locomotive))
+    }
+
+    /// Where the middle of the main display is over `leg`'s land at any time, following the camera's real path.
+    private func middlePath(over leg: Leg) -> (TimeInterval) -> SIMD2<Double> {
+        let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
+        return { [journey] t in SIMD2(journey.cameraX(at: t), journey.cameraY(at: t) - leg.start) + offset }
+    }
+
+    /// Whether `leg`'s train runs whatever its roll, as a dev build can ask.
+    private func runsTrain(on leg: Leg) -> Bool {
+        #if DEV
+        forcedTrainLeg == leg.index
+        #else
+        false
+        #endif
     }
 
     /// Half the length of the bank of cloud over each join between two places, in metres: a thin band across the land.
@@ -566,18 +599,24 @@ final class World {
     func flock(at t: TimeInterval) -> (Flock, FlockSighting)? {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
-        guard let flock = Flock.of(leg.place, month: month(at: now())) else { return nil }
-        // Lower than the camera, birds slide past faster than the land does, the higher the more; circling birds ride a
-        // thermal the wind carries.
-        let k = 1 / (1 - flock.altitude / Self.cameraHeight)
-        let land = { [self] (since: TimeInterval) -> SIMD2<Double> in
-            (camera(at: t - since) - camera(at: t)) * k / Self.metresPerPoint
+        #if DEV
+        if let forced = forcedFlock, let sighting = sighting(of: forced.flock, at: t, startedAt: forced.start) {
+            return (forced.flock, sighting)
         }
+        #endif
+        guard let flock = Flock.of(leg.place, month: month(at: now())) else { return nil }
         guard let sighting = flock.sighting(at: t, area: desktop,
                                              seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff,
-                                             drift: land, wind: Self.wind / Self.metresPerPoint)
+                                             drift: landDrift(for: flock, at: t), wind: Self.wind / Self.metresPerPoint)
         else { return nil }
         return (flock, sighting)
+    }
+
+    /// How far the land has carried `flock` since a moment `since` before `t`, in points. Lower than the camera, birds
+    /// slide past faster than the land does, the higher the more; circling birds ride a thermal the wind carries.
+    private func landDrift(for flock: Flock, at t: TimeInterval) -> (TimeInterval) -> SIMD2<Double> {
+        let k = 1 / (1 - flock.altitude / Self.cameraHeight)
+        return { [self] since in (camera(at: t - since) - camera(at: t)) * k / Self.metresPerPoint }
     }
 
     /// The month by the clock, when it begins and ends, and when that was worked out, so asking every frame costs a
@@ -598,7 +637,11 @@ final class World {
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being
     /// nearer the camera, slide past a little faster than the ground.
     func cloudSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
+        #if DEV
+        let p = metres + camera(at: t) * 1.15 - cloudDrift(at: t)
+        #else
         let p = metres + camera(at: t) * 1.15 - Self.cloudWind * t
+        #endif
         return SIMD2(p.x.positiveRemainder(16384), p.y.positiveRemainder(16384))
     }
 
@@ -622,3 +665,88 @@ extension Int {
         return r < 0 ? r + divisor : r
     }
 }
+
+#if DEV
+/// Dev builds: ways to bring on what would otherwise take a long wait.
+extension World {
+    /// How far running fast has taken the flight ahead of its usual schedule at `displayTime`.
+    private func warpAhead(at displayTime: TimeInterval) -> TimeInterval {
+        guard let warp else { return 0 }
+        return (warp.scale - 1) * max(0, displayTime - warp.since)
+    }
+
+    /// How many times as fast as the clock the world runs.
+    var timeScale: Double { warp?.scale ?? 1 }
+
+    /// Runs the world `scale` times as fast as the clock from now on, carrying on from just where it is.
+    func setTimeScale(_ scale: Double, at now: TimeInterval = CACurrentMediaTime()) {
+        heldFor -= warpAhead(at: now)
+        warp = scale == 1 ? nil : (isHeld ? .infinity : now, scale)
+    }
+
+    /// Jumps the flight `seconds` ahead, as if that long had gone by. It shows once the flight next moves.
+    func skip(_ seconds: TimeInterval) {
+        heldFor -= seconds
+    }
+
+    private func cloudDrift(at t: TimeInterval) -> SIMD2<Double> {
+        guard let anchor = cloudAnchor else { return Self.cloudWind * t }
+        return anchor.drift + Self.cloudWind * anchor.scale * (t - anchor.time)
+    }
+
+    /// How many times as fast as the wind the clouds drift.
+    var cloudSpeed: Double { cloudAnchor?.scale ?? 1 }
+
+    /// Lets the clouds drift `scale` times as fast as the wind from now on, from just where they are.
+    func setCloudSpeed(_ scale: Double) {
+        cloudAnchor = (time, cloudDrift(at: time), scale)
+    }
+
+    /// The flock this place has this month, if any.
+    var flockHere: Flock? {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: time)
+        return Flock.of(journey.leg(at: centre.y).place, month: month(at: now()))
+    }
+
+    /// Sends `flock` over the desktop now, whatever the place and month.
+    func bringFlock(_ flock: Flock) {
+        forcedFlock = (flock, time)
+    }
+
+    fileprivate func sighting(of flock: Flock, at t: TimeInterval, startedAt start: TimeInterval) -> FlockSighting? {
+        flock.flight(startedAt: start, at: t, area: desktop, seed: 7, drift: landDrift(for: flock, at: t),
+                     wind: Self.wind / Self.metresPerPoint)
+    }
+
+    /// Seconds until the middle of the main display passes over this place's railway, with its train running then
+    /// whatever its roll, or nil if the place has no railway here or the flight has already passed it.
+    func trainAhead() -> TimeInterval? {
+        let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: time)
+        let leg = journey.leg(at: centre.y)
+        guard let line = railLine(for: leg),
+              let crossing = line.crossing(near: time, path: middlePath(over: leg)), crossing.time > time - 30
+        else { return nil }
+        forcedTrainLeg = leg.index
+        trainCrossing = (leg.index, crossing.time, crossing.along)
+        return crossing.time - time
+    }
+
+    /// Brings on the next place as soon as it can come into view. Only one band shows at a time, so it waits while
+    /// one is in view, and returns false.
+    func moveOn() -> Bool {
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
+        let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        guard bank(from: bottom, to: top) == nil else { return false }
+        journey.moveOn(after: top + Self.bankReach)
+        return true
+    }
+
+    /// Back to the world as it runs: the clock's own pace, the wind's clouds and no flock or train brought on.
+    func clearDevOverrides() {
+        setTimeScale(1)
+        if cloudAnchor != nil { setCloudSpeed(1) }
+        forcedFlock = nil
+        forcedTrainLeg = nil
+    }
+}
+#endif
