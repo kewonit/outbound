@@ -47,8 +47,7 @@ public struct Bird: Codable, Sendable {
         velocity = try saved.decode(SIMD2<Double>.self, forKey: .velocity)
         heading = try saved.decode(Double.self, forKey: .heading)
         bank = try saved.decode(Double.self, forKey: .bank)
-        // A bird saved by an older version may be mid-flap, and its beats, which would bring the wings back, weren't saved.
-        wings = saved.contains(.beats) ? try saved.decode(Double.self, forKey: .wings) : 1
+        wings = try saved.decode(Double.self, forKey: .wings)
         turning = try saved.decodeIfPresent(Double.self, forKey: .turning) ?? 0
         banking = try saved.decode(Spring.self, forKey: .banking)
         flapPhase = try saved.decode(Double.self, forKey: .flapPhase)
