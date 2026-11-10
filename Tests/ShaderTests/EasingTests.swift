@@ -222,12 +222,13 @@ struct SessionEndWatchTests {
     @Test func pastThePointOfNoReturnItCarriesOnOnlyIfTheEndNeverComes() async throws {
         let (watch, changes) = watching()
         watch.patience = 0.05
-        watch.lastPatience = 0.5
+        // Long enough that the first look comes before it, even with other tests keeping the main thread busy.
+        watch.lastPatience = 2
         watch.heard("com.apple.shutdownInitiated")
         watch.heard("com.apple.pointOfNoReturn")
         try await Task.sleep(for: .milliseconds(250))
         #expect(changes() == [true])
-        try await Task.sleep(for: .milliseconds(600))
+        try await Task.sleep(for: .milliseconds(2000))
         #expect(changes() == [true, false])
     }
 
