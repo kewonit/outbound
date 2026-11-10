@@ -20,7 +20,8 @@ final class DevPanel {
         // Outbound is seldom the active app, and the panel should stay up while you look at the desktop.
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.opensWhereTheUserIs()
+        // On every desktop, beside full-screen apps too, so it stays in reach as you move between them.
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         if !panel.setFrameUsingName("Developer") { panel.center() }
         panel.setFrameAutosaveName("Developer")
         observer = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: panel,
