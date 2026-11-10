@@ -715,7 +715,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let reason = displays.power.state.holdReason { parts.append("power=\(reason)") }
         if let error = gpu.lastError { parts.append("gpu=\(error.name):\(error.count)") }
         parts.append("cost=\(Int(gpu.groundCost.millisecondsPerMillion.rounded()))")
-        parts.append("piece=\(gpu.groundCost.texelsPerPiece / 1000)k")
+        parts.append("piece=\(gpu.texelsPerPiece / 1000)k")
         // Only what the page and the shop's server let through.
         let line = parts.joined(separator: " ").filter { $0.isASCII && ($0.isLetter || $0.isNumber || " =:,._-".contains($0)) }
         Log.display.info("Feedback diagnostics: \(line, privacy: .public)")

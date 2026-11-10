@@ -20,8 +20,11 @@ public struct GroundCost: Codable, Equatable, Sendable {
     /// Texels one piece of painting may hold, never so few that painting crawls.
     public var texelsPerPiece: Int {
         let texels = target / max(millisecondsPerMillion, 0.5) * 1e6
-        return texels.isFinite ? max(Int(min(texels, 1e9)), 16_384) : 16_384
+        return texels.isFinite ? max(Int(min(texels, 1e9)), Self.smallestPiece) : Self.smallestPiece
     }
+
+    /// The fewest texels a piece ever holds.
+    public static let smallestPiece = 16_384
 
     /// A piece of `texels` took `milliseconds` of GPU time, and the next is sized from it, at most twice or half the
     /// last: one quick piece never leads to an overlong one, and a GPU that was idle, slow for its first few pieces

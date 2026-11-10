@@ -298,6 +298,14 @@ final class Wallpaper: NSObject {
         paintHeldGround()
     }
 
+    #if DEV
+    /// Dev builds: paints the clouds afresh, and draws again if held.
+    func refreshClouds() {
+        renderer.refreshClouds()
+        if !holds.isEmpty, !holds.contains(.starting) { redraw() }
+    }
+    #endif
+
     /// Held, nothing is drawn, so ground emptied meanwhile, by a change of scale or display or by work the GPU dropped,
     /// would stay empty, and no painting of the desktop could be made from it. So it is painted and the held frame drawn
     /// again, unless the display is asleep, locked or covered by a full-screen app, the session is away or the first

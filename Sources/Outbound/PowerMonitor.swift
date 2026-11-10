@@ -42,6 +42,18 @@ final class PowerMonitor {
     private var unplugged = false
     #endif
 
+    #if DEV
+    /// Dev builds: power as the Mac might have it, to try each case on any Mac.
+    enum Forced: String, CaseIterable {
+        case pluggedIn = "Plugged In", battery = "Battery", lowPower = "Low Power Mode", hot = "Hot"
+    }
+
+    /// What the power is taken to be instead of the Mac's own, or nil for the Mac's.
+    var forced: Forced? {
+        didSet { read() }
+    }
+    #endif
+
     var batteryMode: PowerState.BatteryMode {
         get { state.batteryMode }
         set { update { $0.batteryMode = newValue } }
@@ -73,6 +85,21 @@ final class PowerMonitor {
                     state.lowPower = true
                 }
             case let forced?: state.onBattery = forced == "battery"
+            case nil: break
+            }
+            #endif
+            #if DEV
+            switch forced {
+            case .pluggedIn:
+                state.onBattery = false
+                state.lowPower = false
+                state.thermal = .nominal
+            case .battery:
+                state.onBattery = true
+                state.lowPower = false
+                state.thermal = .nominal
+            case .lowPower: state.lowPower = true
+            case .hot: state.thermal = .serious
             case nil: break
             }
             #endif

@@ -20,6 +20,17 @@ final class GPU {
     /// What painting the ground costs on this GPU, which sets how much of it goes into one piece of GPU work. Kept
     /// for the next launch, so a slow GPU starts in small pieces.
     private(set) var groundCost: GroundCost
+    /// Texels one piece of ground painting may hold.
+    var texelsPerPiece: Int {
+        #if DEV
+        if paintsInSmallPieces { return GroundCost.smallestPiece }
+        #endif
+        return groundCost.texelsPerPiece
+    }
+    #if DEV
+    /// Dev builds: paints the ground in the smallest pieces, as the slowest GPUs come to.
+    var paintsInSmallPieces = false
+    #endif
     /// The GPU no longer takes Outbound's work, after too much of it ran too long: nothing it draws reaches the screen
     /// again until Outbound starts afresh.
     private(set) var revoked = false
@@ -378,6 +389,13 @@ final class ViewRenderer {
         chain?.superseded = true
     }
 
+    #if DEV
+    /// Dev builds: paints the clouds afresh at the next frame, as after a change of cloud cover.
+    func refreshClouds() {
+        cloudCorner = nil
+    }
+    #endif
+
     func invalidate() {
         valid = nil
         cloudCorner = nil
@@ -448,7 +466,7 @@ final class ViewRenderer {
             if world.frame(bottom: view.y0, top: view.top, at: t).sweepFront == nil { return true }
         }
         let texels = dy * cacheWidth + dx * (cacheHeight - dy)
-        return texels > max(gpu.groundCost.texelsPerPiece, cacheWidth * cacheHeight / 4)
+        return texels > max(gpu.texelsPerPiece, cacheWidth * cacheHeight / 4)
     }
 
     var isCatchingUp: Bool { chain != nil }
@@ -474,7 +492,7 @@ final class ViewRenderer {
     private func pump() {
         guard var chain else { return }
         while chain.inFlight < 2, !chain.failed, !chain.superseded, !chain.strokes.isEmpty {
-            let piece = chain.strokes.take(texels: gpu.groundCost.texelsPerPiece)
+            let piece = chain.strokes.take(texels: gpu.texelsPerPiece)
             guard let into = piece.first?.into, let commands = gpu.commandBuffer() else {
                 chain.failed = true
                 break
@@ -498,7 +516,7 @@ final class ViewRenderer {
             : chain.strokes.isEmpty ? .painted : .failed
         if end != .painted { valid = nil }
         gpu.saveCost()
-        Log.render.info("Ground \(String(describing: end), privacy: .public) in \(chain.pieces) pieces, the longest \(String(format: "%.1f", chain.longest), privacy: .public) ms; \(self.gpu.groundCost.texelsPerPiece) texels a piece now")
+        Log.render.info("Ground \(String(describing: end), privacy: .public) in \(chain.pieces) pieces, the longest \(String(format: "%.1f", chain.longest), privacy: .public) ms; \(self.gpu.texelsPerPiece) texels a piece now")
         chain.done(end)
     }
 
@@ -885,7 +903,7 @@ final class ViewRenderer {
     /// always does, or else in pieces of their own committed ahead of the frame.
     private func paintGround(_ work: Prepared, commandBuffer: MTLCommandBuffer) {
         var strokes = work.strokes
-        guard strokes.texels > gpu.groundCost.texelsPerPiece else {
+        guard strokes.texels > gpu.texelsPerPiece else {
             for (i, targets) in work.targets.enumerated() {
                 paint(strokes.strokes.filter { $0.into == i }, into: targets, scene: work.scenes[i],
                       clearing: i == 0 && work.full, commandBuffer: commandBuffer)
@@ -895,7 +913,7 @@ final class ViewRenderer {
         // The frame's own GPU time leaves these out, so it mustn't count them as its painting.
         paintedTexels = 0
         while !strokes.isEmpty {
-            let piece = strokes.take(texels: gpu.groundCost.texelsPerPiece)
+            let piece = strokes.take(texels: gpu.texelsPerPiece)
             guard let into = piece.first?.into else { return }
             guard let commands = gpu.commandBuffer() else {
                 // The rest isn't painted, so the next frame paints all of it again; an export stops here.
