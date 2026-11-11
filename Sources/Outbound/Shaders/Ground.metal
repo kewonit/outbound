@@ -1961,23 +1961,19 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
         sway *= 1.0 - fill(beyond - levee, 1.2);
     }
 
-    // Along the bank: a narrow lip of rough grass, and scrub in thickets (see the bushes below). A thicket is dense at
-    // the bank and thins away from it, deep in one reach and gone in the next, where the field comes to the lip, and
-    // thin along a cut bank, which the river is taking back. Behind a bar it runs deep, where the river has left
-    // ground that nobody ploughs.
+    // Along the bank the land turns to rough grass, and no line is drawn where it does: the grass is thickest at the
+    // bank and thins away into the field or the forest floor, over a few metres in one reach and a dozen in the next,
+    // and less along the outside of a bend, which the river is taking back. Scrub (see the bushes below) keeps to it.
     float growth = mix(0.35, 1.0, saturate(b.n.x * 1.6));
     float reachOf = alongNoise(float2(side * 5.0, p.y), float2(1.0, 85.0), 14u);
-    float deepest = (2.0 + (3.0 + 0.24 * width) * smoothstep(0.4, 0.85, reachOf) + 0.35 * width * inner * min(bars, 1.0))
-                  * (1.0 - 0.6 * outer) * (levee > 0.0 ? 0.3 : 1.0);
-    float thick = saturate(1.0 - out / deepest);
-    thick *= thick * smoothstep(-1.5, 0.5, out) * presence;
-    float3 rough = mix(grass, b.hedge.rgb, 0.35) * (0.9 + 0.16 * alongNoise(rp, float2(2.3, 2.9), 13u));
+    float verge = (2.6 + 6.0 * smoothstep(0.3, 0.8, reachOf) + 0.12 * width * inner * min(bars, 1.0))
+                * (1.0 - 0.35 * outer) * (levee > 0.0 ? 0.5 : 1.0);
+    float fringe = (1.0 - smoothstep(0.0, verge, out)) * smoothstep(-1.0, 0.3, out) * presence;
+    float3 rough = mix(mix(grass, b.hedge.rgb, 0.3) * (0.92 + 0.12 * alongNoise(rp, float2(2.3, 2.9), 13u)), c, 0.2);
     rough = mix(rough, snow * 0.95, snowCover * 0.8);
-    float lip = fill(out - 0.6 - 0.7 * alongNoise(float2(side * 11.0, p.y), float2(1.0, 26.0), 15u), 0.6)
-              * smoothstep(-0.6, 0.0, out) * presence;
-    c = mix(c, rough, lip * 0.7);
-    herd *= 1.0 - lip;
-    sway *= 1.0 - lip;
+    c = mix(c, rough, fringe * 0.85);
+    herd *= 1.0 - fringe;
+    sway *= 1.0 - fringe;
 
     // The channel's floor where it stands dry. On a bar: pale sand, damp and darker by the water, with a line or
     // two where the river stood at other heights, and grass and scrub taking hold at the back. Elsewhere a narrow
@@ -1996,7 +1992,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     // Growth at the back of the bar, thickest against the old bank and along the upper line.
     float back = smoothstep(-6.0 - 5.0 * wander2, -0.5, out);
     bar = mix(bar, snow * 0.96, snowCover * 0.85);
-    float3 mud = mix(sand * 0.66, c * 0.6, 0.5);
+    float3 mud = mix(dampSand, c, 0.4);
     mud = mix(mud, snow * 0.9, snowCover * 0.6);
     c = mix(c, mix(mud, bar, barred), inChannel);
 
@@ -2013,7 +2009,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     w = pigment(w, alongNoise(float2(ch.d / max(width * 0.6, 1.0), p.y), float2(1.0, 150.0), 5u), 0.3);
 
     // Where the current crosses over between bends the bed comes up, and the water over it is paler. It lies aslant
-    // across the channel, as the current crosses, and thins away at either end. The frame pass sets glints riding on it.
+    // across the channel, as the current crosses, and thins away at either end.
     float crossing = (1.0 - smoothstep(0.08, 0.32, abs(ch.bend))) * min(bars, 1.0) * presence
                    * smoothstep(0.56, 0.8, alongNoise(float2(0.5, p.y + 0.9 * ch.d), float2(1.0, 60.0), 21u))
                    * smoothstep(0.25, 0.7, ch.depth);
@@ -2037,7 +2033,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     float3 ice = mix(float3(0.86, 0.91, 0.96), float3(0.72, 0.81, 0.90), smoothstep(0.2, 0.9, uneven));
     w = mix(w, ice, iced);
 
-    float inWater = inChannel * mix(smoothstep(0.07, 0.12, ch.depth), smoothstep(0.0, 0.34, ch.depth), barred);
+    float inWater = inChannel * mix(smoothstep(0.06, 0.3, ch.depth), smoothstep(0.0, 0.34, ch.depth), barred);
     c = mix(c, w, inWater);
 
     // In the north a few stones stand out of the shallows where the current crosses, each with a pale crease of
@@ -2078,7 +2074,7 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
 
     // Bushes, one to a patch of ground where the scrub is thick enough: round, lit from the sun's side, each with its
     // shadow. Where the scrub thins out a bush is a smaller bush, so none is ever cut through.
-    float scrub = out > 0.0 ? thick * 0.8 * growth : barred * back * 0.5 * growth;
+    float scrub = out > 0.0 ? fringe * fringe * 0.6 * growth : barred * back * 0.5 * growth;
     if (scrub > 0.0) {
         const float patch = 2048.0 / 640.0;
         int2 here = int2(floor(p / patch));
@@ -2245,7 +2241,8 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
     l.light = 0.0;
     l.lightID = 0.0;
     float wet = taigaWet(p, seed);
-    float mire = smoothstep(0.645, 0.665, wet + 0.05 * (fbm(p / 40.0, 2, seed + 37u) - 0.5));
+    // The mire comes on over some tens of metres, the moss giving way to sedge, never along a line.
+    float mire = smoothstep(0.622, 0.676, wet + 0.05 * (fbm(p / 40.0, 2, seed + 37u) - 0.5));
     float dry = taigaDry(p, seed) * (1.0 - mire);
 
     // The forest floor: moss under the trees, pale lichen on the dry heath with patches of heather and crowberry.
@@ -2284,7 +2281,9 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
              + 0.25 * vnoise(float2(w.x / 9.0, w.y / 7.0), seed + 43u);
     float f = fract(ph);
     float hollow = floor(ph);
-    float strand = smoothstep(0.38, 0.6, vnoise(float2(w.x / 21.0, hollow * 3.1), seed + 47u));
+    // Its edge is plain sedge: the strings begin further in, thin at first.
+    float within = smoothstep(0.655, 0.705, wet);
+    float strand = smoothstep(0.38, 0.6, vnoise(float2(w.x / 21.0, hollow * 3.1), seed + 47u)) * within;
     float peat = fill(abs(f - 0.5) - (0.07 + 0.06 * vnoise(w / 6.0, seed + 42u)) * strand, 0.04) * step(0.02, strand);
     float core = smoothstep(0.69, 0.75, wet);
     // A pool lies where the phase is a whole number, between two strings, so it is told from its neighbours by the
@@ -2298,7 +2297,7 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
     sedge = mix(sedge, sedge * float3(1.06, 0.93, 0.78), smoothstep(0.5, 0.8, vnoise(p / 26.0, seed + 50u)) * 0.5);
     // Wetter, greener sedge lawns towards the middle and right round the pools.
     sedge = mix(sedge, mix(sedge, b.crop2.rgb * 1.3, 0.3), core * 0.6);
-    float3 strings = b.crop3.rgb * (0.85 + 0.3 * vnoise(p / 1.4, seed + 51u));
+    float3 strings = mix(sedge, b.crop3.rgb * (0.9 + 0.2 * vnoise(p / 1.4, seed + 51u)), 0.8);
     sedge = mix(sedge, strings, peat);
     float3 water = mix(mix(float3(0.2, 0.25, 0.24), b.water.rgb, 0.5) * 1.12, mix(b.snow.rgb, float3(0.78, 0.84, 0.9), 0.3), b.f.z);
     water = mix(sedge * 0.8, water, smoothstep(0.0, 0.06, poolReach - min(f, 1.0 - f)));
@@ -2333,7 +2332,7 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
             else if (stage == 3) { chance = 0.92; scale = 0.6; }
             else {
                 dry = taigaDry(at, seed);
-                chance = mix(0.9, 0.18, dry) * (1.0 - smoothstep(0.62, 0.66, tw));
+                chance = mix(0.9, 0.18, dry) * (1.0 - smoothstep(0.6, 0.665, tw));
             }
             if (h >= chance) continue;
             float kindPick = hash21(cell, seed + 54u);
