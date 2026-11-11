@@ -55,6 +55,17 @@ final class ActivationWindow {
         window.bringForward()
     }
 
+    #if DEV
+    /// Dev builds: shows the thank-you as a purchase would, with the login switch as it is now, so closing it changes
+    /// nothing.
+    func previewThankYou() {
+        preview.start()
+        window.bringForward()
+        state.opensAtLogin = LoginItem.isOn
+        state.unlocked = true
+    }
+    #endif
+
     /// Says thank you and where to find Outbound, and stays until the buyer is done reading. Someone who closed
     /// the window, or never saw it, isn't shown it again.
     func finish() {

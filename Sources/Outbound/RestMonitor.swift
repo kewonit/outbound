@@ -38,20 +38,41 @@ final class RestMonitor {
         }
         let idle = idleSeconds
         if !resting && idle > after {
-            resting = true
-            onChange(true)
-            schedule(every: 2)
-            monitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]) { [weak self] _ in
-                MainActor.assumeIsolated { self?.wake() }
-            }
-        } else if resting && idle < 2 {
+            rest()
+        } else if resting && idle < 2 && !restsByHand {
             wake()
         }
     }
 
+    private func rest() {
+        resting = true
+        onChange(true)
+        schedule(every: 2)
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]) { [weak self] _ in
+            MainActor.assumeIsolated { self?.wake() }
+        }
+    }
+
+    #if DEV
+    /// Dev builds: rests now, as if nobody had touched the Mac for a while. Moving the mouse outside Outbound's own
+    /// windows wakes it, as it does any rest.
+    func restNow() {
+        guard !resting else { return }
+        restsByHand = true
+        rest()
+    }
+
+    private var restsByHand = false
+    #else
+    private let restsByHand = false
+    #endif
+
     private func wake() {
         guard resting else { return }
         resting = false
+        #if DEV
+        restsByHand = false
+        #endif
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
         schedule(every: 10)

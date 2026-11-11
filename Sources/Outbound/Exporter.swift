@@ -99,7 +99,7 @@ enum Exporter {
         if options["best"] != nil {
             // Each place in the season it is known for, rather than the one it is in on --date.
             world.journey.followsCalendar = false
-            world.journey.refreshSeasons()
+            world.journey.refreshSeasons(date: world.now())
         }
         if let pace = options["pace"].flatMap(Double.init) { world.journey.setSpeed(pace, at: 0) }
         // How many minutes each place lasts at that pace, as Stay sets it in the app.
@@ -168,7 +168,7 @@ enum Exporter {
                 world.advance(to: time + elapsed)
                 if let destination, elapsed >= flyAt {
                     let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-                    world.journey.fly(to: destination, from: bottom, time: world.time)
+                    world.journey.fly(to: destination, from: bottom, time: world.time, date: world.now())
                     flyAt = .infinity
                 }
                 if elapsed >= repaintAt {
@@ -230,7 +230,7 @@ enum Exporter {
                 world.advance(to: clockTime)
                 if let (place, at) = flights.first, Double(frame) / fps >= at {
                     let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-                    world.journey.fly(to: place, from: bottom, time: world.time)
+                    world.journey.fly(to: place, from: bottom, time: world.time, date: world.now())
                     flights.removeFirst()
                 }
                 _ = try paintFrame()

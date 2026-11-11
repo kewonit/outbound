@@ -34,6 +34,12 @@ final class CoverWatch {
     private var clicks: Any?
     /// Each app's bundle, by process, for telling apps whose windows may be see-through.
     private var bundles: [pid_t: String] = [:]
+    #if DEV
+    /// Dev builds: how much of every desktop windows are taken to cover, instead of what they do.
+    var forcedCoverage: Double? {
+        didSet { check() }
+    }
+    #endif
 
     func start() {
         guard !running else { return }
@@ -123,6 +129,9 @@ final class CoverWatch {
             case "hidden": coverage = 1
             default: break
             }
+            #endif
+            #if DEV
+            if let forcedCoverage { coverage = forcedCoverage }
             #endif
             var debounce = debounces[id] ?? CoverDebounce(confirm: Self.confirm)
             let covered = coverage >= DesktopCover.hidden

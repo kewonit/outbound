@@ -28,6 +28,8 @@ public final class Journey {
     public var followsCalendar: Bool
     /// Stays over the place in view rather than moving on to the next one. A Fly To still goes somewhere new.
     public var staysPut = false
+    /// The next place comes on as soon as `extend` lets it, however long this one has lasted.
+    private var movesOn = false
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
@@ -143,14 +145,22 @@ public final class Journey {
     /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
     /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
     public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
-        while !staysPut, let last = legs.last, last.start + legLength < y {
+        while !staysPut || movesOn, let last = legs.last, last.start + legLength < y || movesOn {
             let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
-            let start = max(last.start + legLength, notBefore)
+            let start = max(movesOn ? last.start + 1 : last.start + legLength, notBefore)
+            movesOn = false
             append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
         }
         while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
         }
+    }
+
+    /// Forgets the places laid out beyond world y, and brings the next one on as soon as `extend` lets it, rather than
+    /// when the stay is up, for trying the change between places out.
+    public func moveOn(after y: Double) {
+        legs.removeAll { $0.start > y }
+        movesOn = true
     }
 
     /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over

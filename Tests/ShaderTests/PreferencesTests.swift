@@ -134,4 +134,23 @@ struct PreferencesTests {
             #expect(preferences.pausesWhenHidden)
         }
     }
+
+    /// The Developer panel's reset leaves every choice at its default with nothing saved, as on a Mac new to Outbound.
+    @Test func resettingPutsEveryChoiceBackUnsaved() throws {
+        try withDefaults { defaults in
+            let preferences = Preferences(defaults: defaults)
+            preferences.pace = .brisk
+            preferences.stay = .hour
+            preferences.paperEdge = true
+            preferences.showsPlaceName = false
+            preferences.resetToDefaults()
+            #expect(preferences.pace == .slow)
+            #expect(preferences.stay == .short)
+            #expect(!preferences.paperEdge)
+            #expect(preferences.showsPlaceName)
+            for key in ["flightPace", "stay", "paperBorder", "showsPlaceName", "lastPlace"] {
+                #expect(defaults.object(forKey: key) == nil, "\(key)")
+            }
+        }
+    }
 }

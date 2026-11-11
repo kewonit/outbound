@@ -20,9 +20,19 @@ configuration="$edition"
 [[ "$edition" == dev ]] && configuration=release
 arch=()
 [[ "$configuration" == release ]] && arch=(--arch arm64)
+# A dev build has the developer controls compiled in, in its own build folder, so a release never picks them up from
+# a cached manifest.
+if [[ "$edition" == dev ]]; then
+    export OUTBOUND_DEV=1
+    arch+=(--scratch-path .build/dev)
+fi
 
 swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --product Outbound
 bin="$(swift build -c "$configuration" ${arch[@]+"${arch[@]}"} --show-bin-path)"
+if [[ "$edition" == release ]] && grep -aq DevControls "$bin/Outbound"; then
+    echo "The release build has the developer controls in it." >&2
+    exit 1
+fi
 
 app="build/Outbound.app"
 [[ "$edition" == dev ]] && app="build/dev/Outbound.app"

@@ -2,6 +2,10 @@
 import Foundation
 import PackageDescription
 
+// Developer controls are compiled into debug builds and into dev builds (scripts/build-app.sh dev), never a release.
+var devSettings: [SwiftSetting] = [.define("DEV", .when(configuration: .debug))]
+if ProcessInfo.processInfo.environment["OUTBOUND_DEV"] == "1" { devSettings = [.define("DEV")] }
+
 let package = Package(
     name: "Outbound",
     platforms: [.macOS(.v13)],
@@ -13,7 +17,7 @@ let package = Package(
         .target(name: "OutboundCore"),
         // Shaders ship as source and are compiled at launch, so they can be edited live while developing.
         .executableTarget(name: "Outbound", dependencies: ["OutboundCore", .product(name: "Sparkle", package: "Sparkle")],
-                          resources: [.copy("Shaders")]),
+                          resources: [.copy("Shaders")], swiftSettings: devSettings),
         // Runs the shaders on the GPU, next to a frozen copy of how they shipped. Reads its .metal files from the
         // source tree.
         .testTarget(name: "ShaderTests", dependencies: ["Outbound", "OutboundCore"],

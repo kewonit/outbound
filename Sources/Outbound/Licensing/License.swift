@@ -249,6 +249,14 @@ final class LicenseController: ObservableObject {
         update(.unlicensed)
     }
 
+    #if DEV
+    /// Dev builds: takes the license to be in `status`, as if it were, or as it really is for nil. Nothing is stored or
+    /// asked of the store.
+    func simulate(_ status: LicenseStatus?) {
+        update(status ?? LicenseStatus(record))
+    }
+    #endif
+
     private func update(_ newStatus: LicenseStatus) {
         let was = unlocks
         status = newStatus

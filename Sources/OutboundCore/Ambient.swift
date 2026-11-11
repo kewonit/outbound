@@ -75,11 +75,12 @@ public struct RailLine: Equatable, Sendable {
 extension RailLine {
     /// The train on this line at time `t`, if one is passing. `crossing` is when the middle of the screen
     /// passes over the line and `middle` the along-track position where it does; the train's nose reaches
-    /// that point at that moment, so it runs through the middle of the screen.
+    /// that point at that moment, so it runs through the middle of the screen. Most legs' lines have one; `always`
+    /// runs it whatever the roll.
     public func train(at t: TimeInterval, crossing: TimeInterval, middle: Double, railway: Railway,
-                      seed: Int) -> TrainRun? {
+                      seed: Int, always: Bool = false) -> TrainRun? {
         var random = Shuffle(seed: UInt64(bitPattern: Int64(seed)) &+ 0xC0FFEE)
-        guard random.next() < 0.85 else { return nil }
+        guard random.next() < 0.85 || always else { return nil }
         let direction: Double = random.next() < 0.5 ? 1 : -1
         let length = Double(railway.cars + railway.locomotives) * railway.carLength
         let elapsed = t - crossing
@@ -187,6 +188,19 @@ extension Flock {
         var random = Shuffle(seed: UInt64(bitPattern: Int64(index)) &* 0x2545F4914F6CDD1D &+ UInt64(seed))
         guard random.next() < min(window / (interval * 60), 0.95) else { return nil }
         let start = index * window + random.next() * window * 0.4
+        return flight(at: t, start: start, area: area, random: &random, drift: drift, wind: wind)
+    }
+
+    /// A flight that sets off at `start` whatever the windows roll, for trying each kind of flock out.
+    public func flight(startedAt start: TimeInterval, at t: TimeInterval, area: CGRect, seed: Int,
+                       drift: (TimeInterval) -> SIMD2<Double> = { _ in .zero },
+                       wind: SIMD2<Double> = .zero) -> FlockSighting? {
+        var random = Shuffle(seed: UInt64(bitPattern: Int64(start.rounded())) &* 0x2545F4914F6CDD1D &+ UInt64(seed))
+        return flight(at: t, start: start, area: area, random: &random, drift: drift, wind: wind)
+    }
+
+    private func flight(at t: TimeInterval, start: TimeInterval, area: CGRect, random: inout Shuffle,
+                        drift: (TimeInterval) -> SIMD2<Double>, wind: SIMD2<Double>) -> FlockSighting? {
         let elapsed = t - start
         guard elapsed >= 0 else { return nil }
         let w = Double(area.width), h = Double(area.height)

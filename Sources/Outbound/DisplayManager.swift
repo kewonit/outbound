@@ -278,6 +278,18 @@ final class DisplayManager {
         world.repaint()
     }
 
+    #if DEV
+    /// Dev builds: paints every display's clouds afresh, as after a change of cloud cover.
+    func refreshClouds() {
+        wallpapers.values.forEach { $0.refreshClouds() }
+    }
+
+    /// Dev builds: the frames a second every display draws instead of the tier's, or nil for the tier's.
+    var forcedRate: Double? {
+        didSet { refreshRates() }
+    }
+    #endif
+
     private func sync() {
         // Before any new wallpaper paints: its first frame bakes the river into the ground it keeps.
         world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
@@ -353,6 +365,9 @@ final class DisplayManager {
             let target = wallpaper.coveredByWindows ? min(tier.framesPerSecond, Self.stripRate) : tier.framesPerSecond
             wallpaper.framesPerSecond = Float(FramePacing.rate(target: target, fastest: fastest, slowest: slowest,
                                                                lowest: Self.stripRate))
+            #if DEV
+            if let forcedRate { wallpaper.framesPerSecond = Float(forcedRate) }
+            #endif
             wallpaper.birdFramesPerSecond = Float(FramePacing.rate(target: tier.birdFramesPerSecond, fastest: fastest,
                                                                    slowest: slowest))
             wallpaper.halfRateClouds = tier.halfRateClouds
