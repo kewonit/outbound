@@ -2275,7 +2275,8 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
     }
 
     // The mire. Strings of peat about 2 m wide and 11 m apart run along the slope's contours, which turn slowly across
-    // it; each breaks off now and then. Towards the wet middle the hollows between them hold long dark pools.
+    // it; each thins away to a point now and then. Towards the wet middle the hollows between them hold long dark
+    // pools, each drawn out to a point at either end.
     float turn = 0.4 + 1.6 * (vnoise(p / 900.0, seed + 44u) - 0.5);
     float2 w = rotate(p, turn);
     float ph = w.y / 11.0 + 2.2 * vnoise(float2(w.x / 150.0, w.y / 110.0), seed + 45u)
@@ -2283,19 +2284,24 @@ inline Land taiga(float2 p, float2 world, constant Biome &b, constant Scene &sce
              + 0.25 * vnoise(float2(w.x / 9.0, w.y / 7.0), seed + 43u);
     float f = fract(ph);
     float hollow = floor(ph);
-    float strand = smoothstep(0.42, 0.55, vnoise(float2(w.x / 21.0, hollow * 3.1), seed + 47u));
-    float peat = fill(abs(f - 0.5) - 0.07 - 0.06 * vnoise(w / 6.0, seed + 42u), 0.035) * strand;
+    float strand = smoothstep(0.38, 0.6, vnoise(float2(w.x / 21.0, hollow * 3.1), seed + 47u));
+    float peat = fill(abs(f - 0.5) - (0.07 + 0.06 * vnoise(w / 6.0, seed + 42u)) * strand, 0.04) * step(0.02, strand);
     float core = smoothstep(0.69, 0.75, wet);
-    float flark = smoothstep(0.42, 0.58, vnoise(float2(w.x / (18.0 + 30.0 * core), hollow * 1.7), seed + 48u));
-    float pool = fill(min(f, 1.0 - f) - 0.1 - 0.12 * core, 0.03) * flark * smoothstep(0.0, 0.5, core);
+    // A pool lies where the phase is a whole number, between two strings, so it is told from its neighbours by the
+    // nearest whole number. Told by the one below, as the strings are, each pool was two halves that did not agree,
+    // and broke into blocks along its middle.
+    float between = floor(ph + 0.5);
+    float flark = smoothstep(0.38, 0.62, vnoise(float2(w.x / (18.0 + 30.0 * core), between * 1.7), seed + 48u));
+    float poolReach = (0.1 + 0.12 * core) * flark;
+    float pool = fill(min(f, 1.0 - f) - poolReach, 0.045) * step(0.02, flark) * smoothstep(0.0, 0.5, core);
     float3 sedge = b.crop1.rgb * (0.93 + 0.12 * vnoise(p / 4.0, seed + 49u));
     sedge = mix(sedge, sedge * float3(1.06, 0.93, 0.78), smoothstep(0.5, 0.8, vnoise(p / 26.0, seed + 50u)) * 0.5);
     // Wetter, greener sedge lawns towards the middle and right round the pools.
     sedge = mix(sedge, mix(sedge, b.crop2.rgb * 1.3, 0.3), core * 0.6);
     float3 strings = b.crop3.rgb * (0.85 + 0.3 * vnoise(p / 1.4, seed + 51u));
     sedge = mix(sedge, strings, peat);
-    float3 water = mix(float3(0.2, 0.25, 0.24), mix(b.snow.rgb, float3(0.78, 0.84, 0.9), 0.3), b.f.z);
-    water = mix(sedge * 0.75, water, smoothstep(0.0, 0.04, 0.1 + 0.12 * core - min(f, 1.0 - f)));
+    float3 water = mix(mix(float3(0.2, 0.25, 0.24), b.water.rgb, 0.5) * 1.12, mix(b.snow.rgb, float3(0.78, 0.84, 0.9), 0.3), b.f.z);
+    water = mix(sedge * 0.8, water, smoothstep(0.0, 0.06, poolReach - min(f, 1.0 - f)));
     sedge = mix(sedge, water, pool);
     c = mix(c, sedge, mire);
     l.water = pool * mire * (1.0 - b.f.z);
