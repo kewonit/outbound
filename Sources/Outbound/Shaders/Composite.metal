@@ -600,15 +600,13 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float water = mask.water;
     float3 light = 0.0;
 
-    // The gusts, from their own texture: how much tall crops sway, and the cats' paws on water.
-    float2 gusts = 0.0;
-    if (mask.sway > 0.01 || water > 0.01) {
-        float2 gustSize = float2(gustTexture.get_width(), gustTexture.get_height());
-        float2 gustPx = (params.gusts.xy + pixel * mpp) / params.gusts.z;
-        gusts = gustTexture.sample(clampSampler, float2(gustPx.x, gustSize.y - gustPx.y) / gustSize).rg;
-    }
-    // Gusts roll across tall crops in long soft bands, lying across the wind.
-    if (mask.sway > 0.01) c *= 1.0 + mask.sway * 0.09 * (gusts.x - 0.45);
+    // The gusts, from their own texture: how much tall crops sway, and the cats' paws on water. Read for every pixel,
+    // though only crops and water use them: asking first which pixels do cost a tenth of a daytime frame.
+    float2 gustSize = float2(gustTexture.get_width(), gustTexture.get_height());
+    float2 gustPx = (params.gusts.xy + pixel * mpp) / params.gusts.z;
+    float2 gusts = gustTexture.sample(clampSampler, float2(gustPx.x, gustSize.y - gustPx.y) / gustSize).rg;
+    // Gusts roll across tall crops in long soft bands, lying across the wind. Nothing else sways, so nothing else changes.
+    c *= 1.0 + mask.sway * 0.09 * (gusts.x - 0.45);
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
     // Only what moves casts a shadow here, so only its pixels ask how much sun gets through the clouds.
