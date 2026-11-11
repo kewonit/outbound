@@ -365,7 +365,7 @@ struct Channel {
     float bend;   // how hard the river turned a little upstream, -1 to 1: positive with the inside of the bend at +x
     float left;   // the top of the bank on the -x side, in metres from the centre line
     float right;  // and on the +x side
-    float edge;   // the top of the bank on this point's own side, with its slumps and its small unevenness
+    float edge;   // the top of the bank on this point's own side, with its small unevenness
     float t;      // across the channel, -1 at the left bank's top to 1 at the right's
     float tilt;   // how the bed lies there: 1 on a straight, more towards a pool, below 0 on a bar that stands dry
     float depth;  // in mean depths: 0 on a bar or a bank, about 1 down the middle of a straight, 2 or 3 in a pool
@@ -475,15 +475,11 @@ inline Channel channelAt(float2 p, constant Scene &scene, float2 wander, float w
     c.right = riverBank(1.0, p.y, semi, c.bend, bars, exact);
     float side = c.d > 0.0 ? 1.0 : -1.0;
     float inner = saturate(c.bend * side), outer = saturate(-c.bend * side);
-    // A cut bank falls in a bay at a time, leaving points between the bays; a bar's edge is smooth.
     c.edge = side > 0.0 ? c.right : c.left;
     if (exact) {
-        float bays = abs(2.0 * alongNoise(float2(side * 9.0, p.y), float2(1.0, 15.0), 3u) - 1.0);
-        bays *= sqrt(bays);
-        float uneven = alongNoise(float2(side * 7.0, p.y), float2(1.0, 4.0), 4u) - 0.5;
-        float wild = saturate(bars * 4.0);
-        c.edge += (1.6 + 0.05 * width) * smoothstep(0.1, 0.5, outer) * bays * wild
-                + 0.7 * uneven * (1.0 - 0.7 * smoothstep(0.0, 0.3, inner)) * (0.15 + 0.85 * wild);
+        // A bank's line is never quite true, but it is smooth: a slow unevenness of a few hand's breadths.
+        float uneven = alongNoise(float2(side * 7.0, p.y), float2(1.0, 13.0), 4u) - 0.5;
+        c.edge += 0.5 * uneven * (1.0 - 0.7 * smoothstep(0.0, 0.3, inner)) * saturate(bars * 4.0);
     }
     c.t = c.d / c.edge;
     // The bed tilts down towards the outside of the bend, where the bank is steep; inside, it shelves up into the bar.

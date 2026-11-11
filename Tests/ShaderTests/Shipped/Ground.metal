@@ -1268,8 +1268,19 @@ inline float3 houses(float3 c, float2 local, float2 world, constant Biome &b, co
             Plot h;
             if (!plot(h, k0 + float(dk), row, side, world, local, b, scene, seed, wander)) continue;
             // Its way out comes first, under the house, and reaches further than the house looks.
-            float path = fill(pathGap(rotate(world - h.center, -h.road), h) - 0.6, 0.35) * (1.0 - 0.6 * b.f.y);
-            c = mix(c, mix(c, b.road.rgb, 0.72), path);
+            // A path walked, not ruled: it bows a little to one side on its way to the road, is wider where feet have
+            // spread it and where it opens onto the road, and is worn earth, thin in places, with soft edges.
+            float2 way = rotate(world - h.center, -h.road);
+            float front = -h.size.x - 2.6;
+            float along = saturate((front - way.x) / max(h.reach - h.size.x - 2.6, 1.0));
+            float lean = hash11(h.id, seed + 431u) - 0.5;
+            way.y -= sin(along * 3.14159) * (lean > 0.0 ? 0.5 + 1.8 * lean : -0.5 + 1.8 * lean)
+                   + 0.3 * sin(along * 7.0 + lean * 30.0) * along * (1.0 - along) * 4.0;
+            float worn = vnoise(way * 0.4 + float(h.id & 63), seed + 432u);
+            float wide = 0.4 + 0.3 * worn + 0.9 * smoothstep(0.8, 1.0, along);
+            float path = fill(pathGap(way, h) - wide, 0.5) * (0.55 + 0.4 * vnoise(way * 1.1, seed + 433u))
+                       * (1.0 - 0.6 * b.f.y);
+            c = mix(c, mix(b.road.rgb, b.sand.rgb, 0.45) * 0.97, path * 0.8);
             c = house(c, rotate(world - h.center, -h.angle), h.angle, h.size, h.id, b, scene, seed, cover, light, lightID);
             // Where homesteads keep a windbreak, an L of dark evergreens behind and beside the house.
             if (b.l.x > 0.5 && hash11(h.id, seed + 71u) < 0.85) {
@@ -1915,11 +1926,10 @@ inline Land fields(float2 p, float2 world, constant Biome &b, constant Scene &sc
 // MARK: - The river
 
 // The river, painted before the trees are grown so that crowns hang over it and shadows fall across it. Everything
-// here follows from the channel (see channelAt): on the outside of a bend a cut bank, steep and dark, with the pool
-// under it; on the inside a bar of sand that shelves into the water with no hard line, dry and pale at the back where
-// growth is taking hold; between bends a low grass bank and paler, broken water where the current crosses over.
-// The water is laid in three flat washes by depth, each drying a little darker at its edge, with a few long strokes
-// drawn out along the current. Everything along it is laid out in coordinates that survive the reference stepping on
+// here follows from the channel (see channelAt): on the outside of a bend the bank is steeper, with the pool under
+// it; on the inside a bar of sand shelves into the water with no hard line, dry and pale at the back where growth is
+// taking hold; between bends a low grass bank and paler water where the current crosses over. It is all kept soft:
+// smooth banks, the water's depths running into each other, and a few faint strokes drawn out along the current. Everything along it is laid out in coordinates that survive the reference stepping on
 // (see alongNoise), so it never shows a seam.
 inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b, Channel ch, float width,
                     thread float &water, thread float &herd, thread float &sway) {
@@ -1969,9 +1979,9 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     thick *= thick * smoothstep(-1.5, 0.5, out) * presence;
     float3 rough = mix(grass, b.hedge.rgb, 0.35) * (0.9 + 0.16 * alongNoise(rp, float2(2.3, 2.9), 13u));
     rough = mix(rough, snow * 0.95, snowCover * 0.8);
-    float lip = fill(out - 0.5 - 1.6 * alongNoise(float2(side * 11.0, p.y), float2(1.0, 9.0), 15u), 0.35)
+    float lip = fill(out - 0.6 - 0.7 * alongNoise(float2(side * 11.0, p.y), float2(1.0, 26.0), 15u), 0.6)
               * smoothstep(-0.6, 0.0, out) * presence;
-    c = mix(c, rough, lip * 0.85);
+    c = mix(c, rough, lip * 0.7);
     herd *= 1.0 - lip;
     sway *= 1.0 - lip;
 
@@ -1986,14 +1996,11 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     float wander2 = alongNoise(float2(side * 19.0, p.y), float2(1.0, 31.0), 29u);
     float line1 = fill(abs(rise - 0.3 - 0.16 * wander1) - 0.022, 0.02) * smoothstep(0.34, 0.5, wander2);
     float line2 = fill(abs(rise - 0.85 - 0.3 * wander2) - 0.03, 0.03) * smoothstep(0.4, 0.55, wander1);
-    bar *= 1.0 - 0.14 * line1 - 0.1 * line2;
+    bar *= 1.0 - 0.06 * line1 - 0.04 * line2;
     float3 dampSand = sand * float3(0.74, 0.72, 0.68);
     bar = mix(bar, dampSand, 1.0 - smoothstep(-0.02, 0.16 + 0.1 * wander1, rise));
     // Growth at the back of the bar, thickest against the old bank and along the upper line.
     float back = smoothstep(-6.0 - 5.0 * wander2, -0.5, out);
-    float taken = smoothstep(0.86 - 0.4 * back, 0.92 - 0.4 * back, 0.6 * alongNoise(rp, float2(5.0, 6.5), 30u)
-                                                                   + 0.4 * alongNoise(rp, float2(2.2, 3.0), 18u));
-    bar = mix(bar, rough * (0.94 + 0.14 * grain), taken * step(0.001, back));
     bar = mix(bar, snow * 0.96, snowCover * 0.85);
     float3 mud = mix(sand * 0.66, c * 0.6, 0.5);
     mud = mix(mud, snow * 0.9, snowCover * 0.6);
@@ -2001,16 +2008,14 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
 
     float cutting = smoothstep(0.1, 0.5, outer);
 
-    // The water. Shelf, body and pool, the edge of each wandering a little; over a bar it thins away into the sand.
+    // The water. Shelf, body and pool run into each other; over a bar it thins away into the sand.
     float3 deep = b.water.rgb;
     float3 shelf = mix(dampSand, b.shallows.rgb, 0.62);
-    float3 pool = deep * float3(0.7, 0.76, 0.84);
+    float3 pool = deep * float3(0.8, 0.85, 0.91);
     float uneven = alongNoise(float2(ch.t / 0.45, p.y), float2(1.0, 64.0), 19u);
     float dp = ch.depth * (0.86 + 0.28 * uneven);
-    float3 w = mix(shelf, deep, smoothstep(0.42, 0.5, dp));
-    w = mix(w, pool, smoothstep(1.55, 1.7, dp));
-    w *= 1.0 - 0.07 * (smoothstep(0.42, 0.5, dp) * (1.0 - smoothstep(0.5, 0.72, dp))
-                       + smoothstep(1.55, 1.7, dp) * (1.0 - smoothstep(1.7, 2.1, dp)));
+    float3 w = mix(shelf, deep, smoothstep(0.2, 0.8, dp));
+    w = mix(w, pool, smoothstep(1.2, 2.4, dp));
     w = pigment(w, alongNoise(float2(ch.d / max(width * 0.6, 1.0), p.y), float2(1.0, 150.0), 5u), 0.3);
 
     // Where the current crosses over between bends the bed comes up, and the water over it is paler. It lies aslant
@@ -2025,13 +2030,13 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
     float pale = smoothstep(0.68, 0.73, alongNoise(float2(lane / 0.09, p.y), float2(1.0, 46.0), 20u));
     float dark = smoothstep(0.7, 0.75, alongNoise(float2(lane / 0.06 + 31.0, p.y), float2(1.0, 27.0), 24u));
     float run = smoothstep(0.35, 0.8, ch.depth) * (0.35 + 0.65 * saturate((width - 8.0) / 22.0));
-    w = mix(w, w * 1.07 + float3(0.035, 0.04, 0.045), pale * run * 0.7);
-    w *= 1.0 - 0.08 * dark * run;
+    w = mix(w, w * 1.05 + float3(0.025, 0.03, 0.035), pale * run * 0.5);
+    w *= 1.0 - 0.03 * dark * run;
 
     // The bank on the sun's side shades the water under it: a hard-edged shadow as long as the bank is high.
     float height = mix(0.5, 1.7, smoothstep(0.1, 0.5, outer)) * (1.0 - barred);
     float cast = height * scene.sun.z * saturate(sunward * 3.0);
-    w = shade(w, fill(-out - cast - 0.2, 0.25) * 0.6 * step(0.001, cast), scene);
+    w = shade(w, fill(-out - cast - 0.2, 0.8) * 0.4 * step(0.001, cast), scene);
 
     // Ice takes the still margins first and the pools last.
     float iced = b.f.z > 0.0 ? smoothstep(0.0, 0.3, b.f.z * 4.0 - ch.depth) : 0.0;
@@ -2060,38 +2065,15 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
         }
     }
 
-    // Now and then a tree has gone over where the river cut the bank from under it: its trunk lies out into the pool,
-    // its head downstream, with a branch or two showing.
-    if (b.n.x > 0.3 && cutting > 0.0) {
-        const float stretchOf = 2048.0 / 24.0;
-        float k = floor(p.y / stretchOf);
-        int key = (((int(k) % 24) + 24) % 24) * 2 + (side > 0.0 ? 1 : 0);
-        if (hash11(key, 42u) < 0.4) {
-            float2 foot = float2(0.5, (k + 0.3 + 0.4 * hash11(key, 43u)) * stretchOf);
-            float long_ = 5.0 + 4.0 * hash11(key, 44u);
-            float2 q = float2(-out, p.y) - foot;
-            float2 head = float2(long_ * 0.75, -long_ * 0.66);
-            float trunk = segmentDistance(q, 0.0, head) - 0.24;
-            float2 fork = head * 0.55;
-            float twigs = min(segmentDistance(q, fork, fork + float2(0.4, -1.9)) - 0.1,
-                              segmentDistance(q, head * 0.8, head * 0.8 + float2(1.6, -0.4)) - 0.1);
-            float lying = fill(min(trunk, twigs), 0.1) * cutting * presence;
-            float2 lee = -scene.sun.xy * min(scene.sun.z, 2.0) * 0.35;
-            float2 qs = q - float2(lee.x * side, lee.y);
-            c = shade(c, fill(segmentDistance(qs, 0.0, head) - 0.24, 0.15) * (1.0 - lying) * cutting * presence * 0.45, scene);
-            c = mix(c, mix(float3(0.34, 0.27, 0.2), snow, snowCover * 0.5) * (0.85 + 0.3 * hash11(key, 45u)), lying);
-        }
-    }
-
-    // Reeds stand in the quiet water along a bank where no trees shade it: beds with ragged edges, here and there,
+    // Reeds stand in the quiet water along a bank where no trees shade it: soft-edged beds, here and there,
     // never on the outside of a bend, where the current would have them out.
     float reedy = (1.0 - saturate(b.n.x * 2.0)) * presence * (1.0 - barred) * (1.0 - smoothstep(0.0, 0.25, outer));
     float bed = 0.0;
     if (reedy > 0.0) {
         float beds = alongNoise(float2(side * 37.0, p.y), float2(1.0, 26.0), 36u);
-        float reach = (1.2 + 0.1 * width) * smoothstep(0.42, 0.7, beds) * (0.6 + 0.8 * alongNoise(rp, float2(1.6, 2.4), 37u));
-        bed = fill(-out - reach, 0.25) * inChannel * reedy * step(0.001, reach);
-        float3 reeds = mix(grass, float3(0.63, 0.6, 0.33), 0.4) * (0.82 + 0.3 * alongNoise(rp, float2(0.5, 0.9), 38u));
+        float reach = (1.2 + 0.1 * width) * smoothstep(0.42, 0.7, beds);
+        bed = fill(-out - reach, 0.6) * inChannel * reedy * step(0.001, reach);
+        float3 reeds = mix(grass, float3(0.63, 0.6, 0.33), 0.35) * (0.93 + 0.12 * alongNoise(rp, float2(1.2, 2.0), 38u));
         reeds = mix(reeds, snow * 0.9, snowCover * 0.5);
         c = mix(c, reeds, bed);
         // Their shade on the water beside them.
@@ -2135,16 +2117,11 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
         herd *= 1.0 - cover;
     }
 
-    // The bank itself, where it is steep: bare earth below the lip, in shade or in sun as it faces, and a thin pale
-    // line along a sunlit lip, as a painter leaves the paper showing.
-    float steep = (1.0 - barred) * presence
-                * smoothstep(0.42, 0.6, alongNoise(float2(side * 29.0, p.y), float2(1.0, 33.0), 31u) + 0.7 * cutting);
-    float face = 0.35 + 1.2 * cutting;
-    float lit = saturate(-sunward * 2.0);
-    float3 earth = mix(sand * 0.58, b.groundDark.rgb * 0.5, 0.45) * mix(0.66, 1.02, lit);
-    earth = mix(earth, snow * 0.85, snowCover * 0.5);
-    c = mix(c, earth, fill(abs(out + face * 0.5) - face * 0.5, 0.18) * steep);
-    c = mix(c, mix(c, float3(0.97, 0.95, 0.88), 0.5), fill(abs(out - 0.25) - 0.22, 0.15) * steep * cutting * lit * (1.0 - snowCover));
+    // The bank itself, where it is steep: a soft darker edge under the lip, a little wider round the outside of a
+    // bend, as every field here has along its hedge.
+    float steep = (1.0 - barred) * presence;
+    float face = 0.5 + 0.7 * cutting;
+    c = shade(c, fill(abs(out + face * 0.5) - face * 0.5, 0.45) * steep * (0.3 + 0.25 * cutting), scene);
 
     herd *= 1.0 - fill(out - 1.0, 0.8);
     sway *= 1.0 - inChannel;
@@ -2154,12 +2131,17 @@ inline float3 river(float3 c, float2 p, constant Scene &scene, constant Biome &b
 // Trees along the river's banks, in runs with gaps between: big crowns at the lip of a cut bank, hanging over the
 // water, smaller ones further back, and none on the bare sand of a bar, only behind it. They are placed along the
 // river from where this point stands abreast of it, so they keep to the banks round every bend.
-inline void bankTrees(thread Canopy &k, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
+//
+// Never inlined. Inlined into land(), this hung the GPU on some frames and not others, with the same picture painted
+// whenever it did finish: up to three frames in five, coming and going with changes elsewhere in the shader that had
+// nothing to do with it (a call to railGap here, a few lines in houses()). Why was never found. As a call of its own
+// it ran clean through 120 frames across four such changes. If the ground ever hangs again, look here first.
+__attribute__((noinline)) void bankTrees(thread Canopy &k, float2 local, float2 world, constant Biome &b, constant Scene &scene, uint seed,
                       Channel ch, float width, float2 wander) {
     float amount = b.n.x;
     if (amount <= 0.0 || width < 6.0) return;
     float size = clamp(b.c.z, 8.0, 12.0) * 0.5;
-    if (abs(ch.d) > max(ch.left, ch.right) + size * 4.0 + 12.0 + k.reach) return;
+    if (!(abs(ch.d) < max(ch.left, ch.right) + size * 4.0 + 12.0 + k.reach)) return;
     float stretch = sqrt(1.0 + ch.slope * ch.slope);
     float2 along = float2(ch.slope, 1.0);
     float2 across = float2(1.0, -ch.slope) / stretch;
@@ -2173,14 +2155,13 @@ inline void bankTrees(thread Canopy &k, float2 local, float2 world, constant Bio
     float j0 = floor((foot + (min(reachAlong, 0.0) - size * 1.3) / stretch) / step);
     float j1 = min(floor((foot + (max(reachAlong, 0.0) + size * 1.3) / stretch) / step), j0 + 6.0);
     float2 shift = world - local;
-    // The railway is read here, once, and its gap worked out below as railGap does. Asking railGap itself for each
-    // tree hung the GPU now and then: about two frames in five.
-    float4 railLine = b.railLine, railCurve = b.railCurve;
-    bool rail = railCurve.w > 0.5;
-    // Neither loop unrolled, so there is one copy of what each tree asks of the road and the cross-roads.
+    // Rows are counted in whole numbers and never more than seven, whatever j0 and j1 come to. Neither loop is
+    // unrolled, so there is one copy of what each tree asks of the road and the railway.
+    int firstRow = int(j0), rowCount = clamp(int(j1 - j0) + 1, 0, 7);
     #pragma clang loop unroll(disable)
-    for (float j = j0; j <= j1; j += 1.0) {
-        int row = ((int(j) % rows) + rows) % rows;
+    for (int nth = 0; nth < rowCount; nth++) {
+        float j = float(firstRow + nth);
+        int row = (((firstRow + nth) % rows) + rows) % rows;
         #pragma clang loop unroll(disable)
         for (int n = 0; n < ranks * 2; n++) {
             float side = n < ranks ? -1.0 : 1.0;
@@ -2201,17 +2182,13 @@ inline void bankTrees(thread Canopy &k, float2 local, float2 world, constant Bio
             float r = size * (pick < 0.3 ? 0.4 : pick < 0.68 ? 0.66 : pick < 0.9 ? 0.95 : 1.3) * (0.85 + 0.3 * hash11(id, 703u))
                     * (0.45 + 0.55 * grown);
             if (taiga) r *= 0.58;
-            float bank = (side > 0.0 ? ch.right : ch.left) + (1.0 + 0.035 * width) * smoothstep(0.1, 0.5, outer);
+            float bank = side > 0.0 ? ch.right : ch.left;
             float from = bank + r * (0.25 + 0.6 * hash11(id, 704u))
                        + float(rank) * (taiga ? 4.4 : r * 1.1 + 2.0 + 6.0 * hash11(id, 705u));
             float2 at = local + along * (y - foot) + across * (side * from - ch.d);
             if (abs(roadDistance(at + shift, scene, wander)) < b.e.x * 0.5 + r + 3.0) continue;
             if (crossGap(at + shift, scene, b) < r + 4.5) continue;
-            if (rail) {
-                float2 fromLine = at - railLine.xy;
-                float2 q = float2(dot(fromLine, railLine.zw), dot(fromLine, float2(-railLine.w, railLine.z)));
-                if (abs(q.y - railCurve.x * sin(q.x * railCurve.y + railCurve.z)) < r + 4.0) continue;
-            }
+            if (railGap(at, b) < r + 4.0) continue;
             float tone = hash11(id, 706u);
             int kind = broadleaf, foliage = leaves;
             float tall = 2.3 + 0.9 * hash11(id, 707u);
