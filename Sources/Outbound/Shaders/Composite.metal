@@ -316,14 +316,12 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
     return c;
 }
 
+// Hull colours: white and pale grey plastic, navy, red, green, and varnished wood.
 inline float3 boatPaint(float h) {
-    return h < 0.3 ? float3(0.94, 0.94, 0.92) : h < 0.5 ? float3(0.78, 0.22, 0.18)
-         : h < 0.7 ? float3(0.20, 0.38, 0.62) : h < 0.85 ? float3(0.22, 0.48, 0.32) : float3(0.66, 0.46, 0.28);
+    return h < 0.35 ? float3(0.9, 0.9, 0.88) : h < 0.5 ? float3(0.16, 0.22, 0.33) : h < 0.62 ? float3(0.58, 0.19, 0.16)
+         : h < 0.74 ? float3(0.19, 0.32, 0.25) : h < 0.86 ? float3(0.6, 0.65, 0.68) : float3(0.55, 0.37, 0.21);
 }
 
-// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two thin arms at 19.5 degrees
-// either side of its track and smoothed water straight behind. The wake is laid out along the river rather than
-// straight back, so it follows the boat round a bend.
 // How far the river can stray from the valley's middle, scene.road.x, in either place: the most its wander and its
 // bends can add up to (the sums of their waves' weights in riverShape and riverBends).
 inline float riverReach(constant Scene &scene) {
@@ -333,11 +331,35 @@ inline float riverReach(constant Scene &scene) {
 }
 
 // A boat and its wake reach no further than this from the point on the river it is abreast of: 80 m back along it,
-// the wake's arms 32 m out at their widest, and the boat up to a quarter of the river's width off its middle.
+// the wake's arms 33 m out at their widest, and the boat up to a quarter of the river's width off its middle.
 inline float boatReach(float width) {
-    return 112.0 + 0.25 * width;
+    return 113.0 + 0.25 * width;
 }
 
+// The outline of a small open boat seen from above, as a distance in metres, negative inside. `q` runs across the
+// boat and along it, with the stem at +L/2, and `B` is its beam. The sides run straight, draw in over the front half
+// to a pointed stem, and narrow a little aft to a square transom.
+inline float boatOutline(float2 q, float L, float B) {
+    float reach = L * 0.5;
+    float s = q.y / reach;
+    float t = saturate((s + 0.1) / 1.1), a = saturate((-0.1 - s) / 0.9);
+    float width = B * 0.5 * (1.0 - t * t) * (1.0 - 0.12 * a * a);
+    float slope = B * 0.5 * (2.0 * t / 1.1 + 0.24 * a / 0.9) / reach;
+    return max((abs(q.x) - width) / sqrt(1.0 + slope * slope), abs(q.y) - reach);
+}
+
+// Someone sitting in a boat, seen from above: shoulders in a coat, and a head of dark or fair hair.
+inline float3 boater(float3 c, float2 p, float h, float mpp) {
+    float3 coat = h < 0.25 ? float3(0.17, 0.21, 0.31) : h < 0.45 ? float3(0.62, 0.2, 0.15)
+                : h < 0.6 ? float3(0.83, 0.68, 0.22) : h < 0.8 ? float3(0.36, 0.39, 0.27) : float3(0.82, 0.82, 0.8);
+    c = mix(c, coat, fill((length(p / float2(0.25, 0.16)) - 1.0) * 0.16, mpp * 0.6));
+    float3 hair = fract(h * 7.3) < 0.6 ? float3(0.16, 0.12, 0.09) : float3(0.47, 0.37, 0.25);
+    return mix(c, hair, fill(length(p - float2(0.0, 0.03)) - 0.1, mpp * 0.6));
+}
+
+// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two arms at 19.5 degrees either
+// side of its track and churned, then smoothed, water straight behind. The wake is laid out along the river rather
+// than straight back, so it follows the boat round a bend.
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
                     thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
@@ -396,35 +418,69 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
             result = mix(boatless, result, present);
             continue;
         }
-        float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
+        float L = 4.5 + 3.0 * hash11(id, 604u), B = L * (0.33 + 0.05 * hash11(id, 606u));
+        // Across the boat and along it, with the stem at +L/2 and the transom at -L/2.
+        float2 q = float2(v * dir, L * 0.5 - u);
+        float hull = boatOutline(q, L, B);
         if (water > 0.3 && u > 0.0) {
-            // A small boat at a walking pace leaves little behind it: two thin arms, each a row of short wavelets that
-            // flatten out within a few lengths, a faint trough inside each, and a ribbon of smoothed water straight
-            // astern that outlasts them. Nothing is drawn across the wedge between the arms: from this height the waves
-            // there are too low to see.
+            // At a walking pace a small boat leaves little behind it. Two soft arms of short crests, slanting out from
+            // its track, run back from the bow and are gone within a few lengths. The propeller churns a short trail
+            // of foam straight astern, which stays where it is in the water as the boat goes on, and leaves a ribbon of
+            // smoothed water that outlasts the rest.
             float reach = 5.0 + 2.6 * speed * speed;
-            float fade = exp(-u / reach);
             float edge = abs(v) - 0.354 * u;
-            float arm = fill(abs(edge) - 0.1 - 0.01 * u, 0.28 + 0.025 * u);
-            float feather = smoothstep(0.3, 0.9, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / 1.5));
-            result *= 1.0 - 0.05 * fill(abs(edge + 0.55) - 0.3, 0.4) * fade * water;
-            result = mix(result, float3(0.93, 0.95, 0.96), arm * (0.3 + 0.7 * feather) * fade * 0.42 * water);
-            float astern = fill(abs(v) - W * 0.55 - 0.02 * u, 0.5) * smoothstep(0.0, 1.5, u - L) * exp(-u / (reach * 2.2));
-            result = mix(result, result * 1.05 + 0.03, astern * 0.8 * water);
+            float spread = edge < 0.0 ? 0.5 + 0.05 * u : 0.2 + 0.015 * u;
+            float arm = abs(edge) < 3.0 * spread ? exp(-edge * edge / (spread * spread)) : 0.0;
+            float crest = 0.5 + 0.5 * cos(6.283 * (0.57 * abs(v) - 0.82 * u) / 1.5);
+            float swell = arm * exp(-u / reach) * smoothstep(0.0, 1.5, u) * water;
+            result *= 1.0 - 0.06 * swell * (1.0 - crest);
+            result = mix(result, float3(0.86, 0.9, 0.93), 0.22 * swell * crest);
+            float behind = u - L;
+            if (behind > -0.3) {
+                float wide = B * 0.22 + 0.06 * max(behind, 0.0);
+                float churn = vnoise(float2(v / 0.4 + 17.0 * hash11(id, 608u), (u - speed * t) / 0.8), 609u);
+                float foam = exp(-max(behind, 0.0) / (0.6 * L)) * (1.0 - smoothstep(0.55, 1.0, abs(v) / wide))
+                           * smoothstep(-0.3, 0.3, behind) * (0.55 + 0.45 * smoothstep(0.35, 0.75, churn));
+                result = mix(result, float3(0.9, 0.93, 0.94), foam * 0.5 * water);
+                float slick = fill(abs(v) - B * 0.4 - 0.025 * behind, 0.6) * smoothstep(0.0, L, behind)
+                            * exp(-behind / (reach * 2.5));
+                result = mix(result, result * 1.04 + 0.025, slick * 0.7 * water);
+            }
+            // The bow pushes a little wave up along each side.
+            float bowWave = fill(abs(hull - 0.18) - 0.08, 0.12) * smoothstep(-0.2 * L, 0.35 * L, q.y);
+            result = mix(result, float3(0.9, 0.93, 0.94), bowWave * 0.45 * water);
         }
-        // Hull: pointed bow, rounded stern, a little shadow, someone aboard.
-        float2 hp = float2(v * dir, -u + L * 0.5);
-        float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
-        float2 hs = hp + sun * scene.sun.z * 0.5;
-        float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
-        result = shade(result, fill(hullShadow, 0.3) * 0.6 * sunlit, scene);
-        float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
-        float3 paint = boatPaint(hash11(id, 605u));
-        result = mix(result, paint, fill(hull, mpp * 0.6));
-        result = mix(result, float3(0.60, 0.42, 0.26), fill(hull + 0.22, mpp * 0.6));
-        result = mix(result, float3(0.18, 0.17, 0.2), fill(length(hp - float2(0.0, -L * 0.15)) - 0.32, mpp));
+        // Its shadow on the water, from a hull standing about half a metre out of it.
+        result = shade(result, fill(boatOutline(q + sun * scene.sun.z * 0.45, L, B) - 0.05, 0.2) * 0.5 * sunlit, scene);
+        float k = hash11(id, 605u);
+        float3 paint = boatPaint(k);
+        bool plastic = k < 0.35 || (k >= 0.74 && k < 0.86);
+        bool launch = hash11(id, 607u) < 0.55;
+        // The topsides, lit on the sun's side.
+        result = mix(result, paint * (0.93 + 0.09 * sign(q.x) * sun.x), fill(hull, mpp * 0.6));
+        // Inside the gunwale the cockpit, open to the stern and closed by a foredeck on the launches. The gunwale
+        // shades its floor on the side away from the sun.
+        float deck = L * (launch ? 0.16 : 0.36);
+        float cockpit = max(hull + 0.12, q.y - deck);
+        float2 up = sun * scene.sun.z * 0.4;
+        float lee = 1.0 - fill(max(boatOutline(q + up, L, B) + 0.12, q.y + up.y - deck), 0.08);
+        float3 floorColor = (plastic ? float3(0.66, 0.69, 0.7) : float3(0.42, 0.31, 0.2)) * (1.0 - 0.35 * lee * sunlit);
+        result = mix(result, floorColor, fill(cockpit, mpp * 0.6));
+        // A seat across the middle, and on the launches a windscreen where the foredeck ends.
+        float3 seat = plastic ? paint * 0.97 : float3(0.58, 0.45, 0.3);
+        result = mix(result, seat, fill(max(abs(q.y + L * 0.06) - 0.13, cockpit), mpp * 0.6));
+        if (launch) {
+            result = mix(result, float3(0.24, 0.29, 0.34), fill(max(abs(q.y - deck + 0.05) - 0.07, hull + 0.18), mpp * 0.6));
+        }
+        // Whoever steers sits in the stern beside the outboard, and now and then someone sits on the seat too.
+        float side = hash11(id, 611u) < 0.5 ? -1.0 : 1.0;
+        result = boater(result, q - float2(0.17 * side, 0.7 - L * 0.5), hash11(id, 610u), mpp);
+        if (hash11(id, 612u) < 0.4) result = boater(result, q - float2(0.0, -L * 0.06), hash11(id, 613u), mpp);
+        float motor = sdBox(q - float2(0.0, -L * 0.5 - 0.16), float2(0.13, 0.2)) - 0.06;
+        result = mix(result, float3(0.13, 0.13, 0.14), fill(motor, mpp * 0.6));
+        result = mix(result, float3(0.3, 0.31, 0.33), fill(motor + 0.07, mpp * 0.5) * 0.6);
         if (scene.time.w > 0.0) {
-            float2 port = hp - float2(-W, L * 0.1), starboard = hp - float2(W, L * 0.1), stern = hp - float2(0.0, -L * 0.5);
+            float2 port = q - float2(-B * 0.45, L * 0.2), starboard = q - float2(B * 0.45, L * 0.2), stern = q - float2(0.0, -L * 0.5);
             light += float3(1.0, 0.12, 0.08) / (1.0 + dot(port, port) / 0.03);
             light += float3(0.15, 1.0, 0.35) / (1.0 + dot(starboard, starboard) / 0.03);
             light += float3(1.0, 0.95, 0.85) / (1.0 + dot(stern, stern) / 0.04);
