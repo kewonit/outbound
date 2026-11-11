@@ -324,6 +324,20 @@ inline float3 boatPaint(float h) {
 // Boats ride slots along the river, up and down stream, each with a Kelvin wake: two thin arms at 19.5 degrees
 // either side of its track and smoothed water straight behind. The wake is laid out along the river rather than
 // straight back, so it follows the boat round a bend.
+// How far the river can stray from the valley's middle, scene.road.x, in either place: the most its wander and its
+// bends can add up to (the sums of their waves' weights in riverShape and riverBends).
+inline float riverReach(constant Scene &scene) {
+    constant Biome &a = scene.legA.biome;
+    constant Biome &b = scene.legB.biome;
+    return 1.36 * max(abs(a.d.w), abs(b.d.w)) + 1.25 * max(max(a.k.z, b.k.z), 0.0);
+}
+
+// A boat and its wake reach no further than this from the point on the river it is abreast of: 80 m back along it,
+// the wake's arms 32 m out at their widest, and the boat up to a quarter of the river's width off its middle.
+inline float boatReach(float width) {
+    return 112.0 + 0.25 * width;
+}
+
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
                     thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
@@ -354,6 +368,8 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float2 wander = course(scene, m);
         float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, m);
         bool hippos = b.h.w > 1.5;
+        float riverAt = riverX(slot.y, scene, wander);
+        if (abs(world.x - riverAt) > boatReach(width)) continue;
         // How fast it goes through the water, which sets its wake, whichever way the current takes it.
         float speed = hippos ? 0.0 : 1.9;
         float slope = riverSlope(slot.y, scene, wander);
@@ -361,7 +377,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float2 along = float2(slope, 1.0) / stretch;
         float2 across = float2(along.y, -along.x);
         // u runs back from the bow along the boat, v square across it from the boat's line.
-        float2 rel = world - float2(riverX(slot.y, scene, wander), slot.y);
+        float2 rel = world - float2(riverAt, slot.y);
         float u = -dot(rel, along) * dir;
         float v = dot(rel, across) - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
         if (u < -10.0 || u > 80.0) continue;
@@ -453,6 +469,21 @@ inline float3 groundColorAt(texture2d<float> ground, sampler wrap, float2 texel,
          + g1.y * ground.sample(wrap, float2(texel.x, h1.y) / size).rgb;
 }
 
+// The gusts only drift with the wind, so like the clouds they are painted at a quarter of the screen's resolution with
+// a margin and slid along. Red is how much tall crops sway; green is the cats' paws the wind roughens on water, in cells
+// that divide the gust space's period, bent by a slower noise so they never show its grid. params: gust-space corner
+// (x, y), metres per pixel, the texture's height.
+fragment float4 gusts(VertexOut in [[stage_in]], constant float4 &params [[buffer(0)]],
+                      texture2d<float> noise [[texture(0)]], sampler wrap [[sampler(0)]]) {
+    float2 gust = params.xy + float2(in.position.x, params.w - in.position.y) * params.z;
+    float sway = latticeNoise(noise, wrap, gust / float2(55.0, 160.0));
+    float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(44.0, 53.3333)) - 0.5,
+                                       latticeNoise(noise, wrap, gust.yx / float2(53.3333, 44.0) + 31.0) - 0.5);
+    float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(27.5, 20.0))
+               + 0.35 * latticeNoise(noise, wrap, bent / float2(13.75, 10.0));
+    return float4(sway, paws, 0.0, 1.0);
+}
+
 fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             constant CompositeParams &params [[buffer(0)]],
                             constant Scene &scene [[buffer(1)]],
@@ -463,6 +494,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
                             texture2d<float> incomingColor [[texture(5)]],
                             texture2d<float> incomingNight [[texture(6)]],
                             texture2d<float> bankTexture [[texture(7)]],
+                            texture2d<float> gustTexture [[texture(8)]],
                             sampler wrap [[sampler(0)]],
                             sampler clampSampler [[sampler(1)]]) {
     float2 size = params.view.xy;
@@ -487,16 +519,23 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float water = mask.water;
     float3 light = 0.0;
 
-    // Gusts roll across tall crops in long soft bands, lying across the wind.
-    if (mask.sway > 0.01) {
-        float2 gp = (params.world.zw + pixel * mpp) / float2(55.0, 160.0);
-        c *= 1.0 + mask.sway * 0.09 * (latticeNoise(noise, wrap, gp) - 0.45);
+    // The gusts, from their own texture: how much tall crops sway, and the cats' paws on water.
+    float2 gusts = 0.0;
+    if (mask.sway > 0.01 || water > 0.01) {
+        float2 gustSize = float2(gustTexture.get_width(), gustTexture.get_height());
+        float2 gustPx = (params.gusts.xy + pixel * mpp) / params.gusts.z;
+        gusts = gustTexture.sample(clampSampler, float2(gustPx.x, gustSize.y - gustPx.y) / gustSize).rg;
     }
+    // Gusts roll across tall crops in long soft bands, lying across the wind.
+    if (mask.sway > 0.01) c *= 1.0 + mask.sway * 0.09 * (gusts.x - 0.45);
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
     // Only what moves casts a shadow here, so only its pixels ask how much sun gets through the clouds.
     if (mask.road) c = cars(c, world, scene, mpp, light, directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
-    if (water > 0.99) {
+    // Lakes and paddies away from the river have no boats to look for.
+    float riverRoom = riverReach(scene);
+    if (water > 0.99
+        && abs(world.x - scene.road.x) < riverRoom + boatReach(max(scene.legA.biome.d.z, scene.legB.biome.d.z))) {
         c = boats(c, world, water, scene, mpp, scene.time.x, light,
                   directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
     }
@@ -524,20 +563,16 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         float2 cloudSize = float2(cloudTexture.get_width(), cloudTexture.get_height());
         float overhead = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudSize.y - cloudPx.y) / cloudSize).x;
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
-        // Cell sizes that divide the gust space's period; bent by a slower noise so they never show its grid.
-        float2 gust = params.world.zw + pixel * mpp;
-        float2 bent = gust + 30.0 * float2(latticeNoise(noise, wrap, gust / float2(44.0, 53.3333)) - 0.5,
-                                           latticeNoise(noise, wrap, gust.yx / float2(53.3333, 44.0) + 31.0) - 0.5);
-        float paws = 0.65 * latticeNoise(noise, wrap, bent / float2(27.5, 20.0))
-                   + 0.35 * latticeNoise(noise, wrap, bent / float2(13.75, 10.0));
-        c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, paws) * 0.12);
+        c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, gusts.y) * 0.12);
         // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
-        if (water > 0.9) {
+        if (water > 0.9 && abs(world.x - scene.road.x) < riverRoom + max(scene.legA.biome.d.z, scene.legB.biome.d.z)) {
             float turned = landTurn(world.y, scene);
             float across = world.x - riverX(world.y, scene, course(scene, turned));
             float bank = max(riverWidth(scene, turned) * 0.5, 0.001);
             float current = smoothstep(0.9, 1.0, water) * (1.0 - smoothstep(0.8, 1.0, abs(across) / bank));
-            c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+            if (current > 0.0) {
+                c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+            }
         }
     }
 

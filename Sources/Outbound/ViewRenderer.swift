@@ -266,6 +266,10 @@ final class ViewRenderer {
     private var sweepLeg: Int?
     /// Cloud-space position of the cloud texture's bottom-left corner when it was last painted.
     private var cloudCorner: SIMD2<Double>?
+    /// The gusts over the land, which only drift with the wind, painted and slid as the clouds are, and the gust-space
+    /// position of its bottom-left corner when it was last painted.
+    private var gusts: MTLTexture?
+    private var gustCorner: SIMD2<Double>?
     private static let cloudMargin = 48
     private var paper: MTLTexture?
     private var paperDirty = true
@@ -366,6 +370,10 @@ final class ViewRenderer {
         band = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
                            height: Int((2 * World.bankReach / bandPixel).rounded(.up)) + 4, label: "Band")
         bandJoin = nil
+        gusts = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
+                            height: max(pixelHeight / 4, 1) + Self.cloudMargin * 2, label: "Gusts",
+                            format: ShaderLibrary.gustFormat)
+        gustCorner = nil
         paper = makeTexture(width: max(pixelWidth / 2, 1), height: max(pixelHeight / 2, 1), label: "Paper",
                             format: ShaderLibrary.paperFormat)
         paperDirty = true
@@ -381,6 +389,7 @@ final class ViewRenderer {
     func invalidate() {
         valid = nil
         cloudCorner = nil
+        gustCorner = nil
         paperDirty = true
         chain?.superseded = true
     }
@@ -697,6 +706,7 @@ final class ViewRenderer {
 
         // Composite into the target. The bird is drawn by whichever display it is over.
         let gust = world.gustSpace(origin, at: t)
+        let gustOffset = paintGusts(at: gust, pixel: cloudPixel, afresh: full, commandBuffer: commandBuffer)
         let bird = world.birdPose(at: t)
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
@@ -706,7 +716,7 @@ final class ViewRenderer {
         finish.w = groundFilter
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
-            world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), Float(gust.x), Float(gust.y)),
+            world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), 0, 0),
             cache: SIMD4(Float((x0 / texel).positiveRemainder(Double(cacheWidth))),
                          Float((y0 / texel).positiveRemainder(Double(cacheHeight))),
                          Float(cacheWidth), Float(cacheHeight)),
@@ -716,7 +726,8 @@ final class ViewRenderer {
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0),
             flock: .zero, flockShape: .zero, flockLook: .zero,
-            bank: bandOffset.map { SIMD4(Float($0.x), Float($0.y), Float(cloudPixel), 1) } ?? .zero)
+            bank: bandOffset.map { SIMD4(Float($0.x), Float($0.y), Float(cloudPixel), 1) } ?? .zero,
+            gusts: SIMD4(Float(gustOffset.x), Float(gustOffset.y), Float(cloudPixel), 0))
         if let (flock, sighting) = world.flock(at: t) {
             let point = sighting.position - SIMD2(Double(frame.minX), Double(frame.minY))
             let reach = flock.size * Double(flock.count) * 3 + 300
@@ -754,6 +765,7 @@ final class ViewRenderer {
             encoder.setFragmentTexture(incoming?.color ?? color, index: 5)
             encoder.setFragmentTexture(incoming?.mask ?? mask, index: 6)
             encoder.setFragmentTexture(band ?? clouds, index: 7)
+            encoder.setFragmentTexture(gusts ?? clouds, index: 8)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
             encoder.setRenderPipelineState(pipelines.view)
@@ -810,6 +822,39 @@ final class ViewRenderer {
         bandJoin = join
         bandCorner = corner
         return corner
+    }
+
+    /// Paints the gusts with the view's corner at `view` in gust space, unless what is painted still covers it, and hands
+    /// back the view's offset from the texture's corner. Each water pixel then reads one sample rather than working
+    /// out four layers of noise.
+    private func paintGusts(at view: SIMD2<Double>, pixel: Double, afresh: Bool,
+                            commandBuffer: MTLCommandBuffer) -> SIMD2<Double> {
+        guard let gusts else { return .zero }
+        let margin = Double(Self.cloudMargin) * pixel
+        if !afresh, let gustCorner {
+            // Gust space repeats, so the way from the corner to the view is the shorter one round it.
+            let period = World.gustPeriod
+            var offset = view - gustCorner
+            offset.x -= (offset.x / period.x).rounded() * period.x
+            offset.y -= (offset.y / period.y).rounded() * period.y
+            if offset.x >= 0, offset.y >= 0, offset.x <= margin * 2, offset.y <= margin * 2 { return offset }
+        }
+        let corner = view - SIMD2(margin, margin)
+        var params = SIMD4<Float>(Float(corner.x), Float(corner.y), Float(pixel), Float(gusts.height))
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = gusts
+        pass.colorAttachments[0].loadAction = .dontCare
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return .zero }
+        encoder.label = "Gusts"
+        encoder.setRenderPipelineState(gpu.shaders.pipelines.gusts)
+        encoder.setFragmentBytes(&params, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+        encoder.setFragmentTexture(gpu.noise, index: 0)
+        encoder.setFragmentSamplerState(gpu.wrap, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
+        gustCorner = corner
+        return SIMD2(margin, margin)
     }
 
     private var light: MTLTexture?

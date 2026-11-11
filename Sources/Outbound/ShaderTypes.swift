@@ -153,7 +153,7 @@ struct AnimalsGPU {
 struct CompositeGPU {
     /// view width and height in pixels, metres per pixel, cache texels per pixel
     var view: SIMD4<Float>
-    /// world x and y (relative to the reference) of the bottom-left pixel corner, gust-space origin (x, y)
+    /// world x and y (relative to the reference) of the bottom-left pixel corner, unused, unused
     var world: SIMD4<Float>
     /// cache texel coordinate of the bottom-left pixel corner, wrapped (x, y), cache size (w, h)
     var cache: SIMD4<Float>
@@ -173,4 +173,6 @@ struct CompositeGPU {
     var flockLook: SIMD4<Float>
     /// offset of the view from the band's texture (x, y), metres per band pixel, whether one shows
     var bank: SIMD4<Float> = .zero
+    /// gust-space offset of the view's corner from the gust texture's corner (x, y), metres per gust pixel
+    var gusts: SIMD4<Float> = .zero
 }

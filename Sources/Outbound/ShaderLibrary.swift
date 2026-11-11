@@ -9,6 +9,7 @@ final class ShaderLibrary {
         let ground: MTLRenderPipelineState
         let clouds: MTLRenderPipelineState
         let bank: MTLRenderPipelineState
+        let gusts: MTLRenderPipelineState
         let paper: MTLRenderPipelineState
         /// The three draws of the frame pass: ground, instanced animals, sky.
         let view: MTLRenderPipelineState
@@ -22,6 +23,8 @@ final class ShaderLibrary {
     static let nightFormat = MTLPixelFormat.rg8Unorm
     static let viewFormat = MTLPixelFormat.bgra8Unorm
     static let paperFormat = MTLPixelFormat.rg8Unorm
+    /// Half floats, as the cats' paws are cut out of their field by a steep smoothstep.
+    static let gustFormat = MTLPixelFormat.rg16Float
     /// Night light, which only ever lives in tile memory, so its size costs nothing.
     static let lightFormat = MTLPixelFormat.rgba8Unorm
 
@@ -83,6 +86,7 @@ final class ShaderLibrary {
         return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, nightFormat]),
                          clouds: try pipeline("clouds", formats: [cacheFormat]),
                          bank: try pipeline("bank", formats: [cacheFormat]),
+                         gusts: try pipeline("gusts", formats: [gustFormat]),
                          paper: try pipeline("paper", formats: [paperFormat]),
                          view: try pipeline("viewGround", formats: frame),
                          animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),

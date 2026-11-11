@@ -79,6 +79,7 @@ struct CompositeParams {
     float4 flockShape; // formation, birds, half wingspan px, shadow px per unit shadow length
     float4 flockLook;  // rgb, seconds aloft
     float4 bank;       // offset of the view from the band's texture (xy), metres per band pixel, whether one shows
+    float4 gusts;      // gust-space offset of the view from the gust texture's corner (xy), metres per gust pixel
 };
 
 enum Layout { layoutGrassland = 0, layoutPaddies = 1, layoutFields = 2, layoutStripes = 3, layoutPivots = 4, layoutTaiga = 5 };

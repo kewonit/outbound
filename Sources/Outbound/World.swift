@@ -603,8 +603,11 @@ final class World {
     /// Space for the gusts rolling over the crops, which travel with the wind across the ground.
     func gustSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
         let p = metres + camera(at: t) - Self.gustWind * t
-        return SIMD2(p.x.positiveRemainder(55 * 1024), p.y.positiveRemainder(160 * 1024))
+        return SIMD2(p.x.positiveRemainder(Self.gustPeriod.x), p.y.positiveRemainder(Self.gustPeriod.y))
     }
+
+    /// How often gust space repeats, in metres: a whole number of every gust cell the shaders use.
+    static let gustPeriod = SIMD2(55.0 * 1024, 160.0 * 1024)
 }
 
 extension Double {
