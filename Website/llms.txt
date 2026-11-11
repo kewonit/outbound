@@ -16,6 +16,7 @@
 - [Privacy](https://outbound.edbn.me/privacy): what the app sends and what it keeps on your Mac
 - [License](https://outbound.edbn.me/license): the source is public to read; using the app needs a license
 - [Terms](https://outbound.edbn.me/terms): buying through Polar, refunds within 14 days, and your license
+- [Changelog](https://outbound.edbn.me/changelog): what changed in each version, newest first
 
 ## Links
 

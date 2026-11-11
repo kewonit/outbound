@@ -33,8 +33,14 @@ struct BiomeGPU {
     var k: SIMD4<Float>
     /// Orchard trees in flower, shaded (w is 1 when only orchards flower) and lit.
     var blossom, blossomLight: SIMD4<Float>
-    /// evergreen gardens, unused, unused, unused
+    /// evergreen gardens, where the river runs (world x; the road and a section grid line up on it), scattered trees'
+    /// height for their width (0 the usual), river bars
     var l: SIMD4<Float>
+    /// bank trees, then unused
+    var n: SIMD4<Float>
+    /// The leg's railway again, for what has to keep clear of it (see railGap in Ground.metal): origin, cos and sin of
+    /// its angle; then amplitude, 1 / wavelength, phase, and 1 if there is one.
+    var railLine = SIMD4<Float>.zero, railCurve = SIMD4<Float>.zero
 
     init(_ b: Biome) {
         func c(_ v: SIMD3<Float>) -> SIMD4<Float> { SIMD4(v, 1) }
@@ -60,7 +66,8 @@ struct BiomeGPU {
         let flowers = b.blossom ?? (b.canopy, b.canopyLight)
         blossom = SIMD4(flowers.0, b.blossom == nil ? 0 : 1)
         blossomLight = c(flowers.1)
-        l = SIMD4(b.evergreenGardens ? 1 : 0, 0, 0, 0)
+        l = SIMD4(b.evergreenGardens ? 1 : 0, 0, b.treeHeight, b.riverBars)
+        n = SIMD4(b.bankTrees, 0, 0, 0)
     }
 }
 
@@ -82,7 +89,8 @@ struct TrainGPU {
     var shape: SIMD4<Float>
     /// nose position along the rail, direction, car length, cars
     var run: SIMD4<Float>
-    /// locomotives, kind (0 passenger, 1 freight), unused, unused
+    /// locomotives, kind (0 passenger, 1 freight), whose line it is near a join (0 either, 1 the old place,
+    /// 2 the new), unused
     var info: SIMD4<Float>
     var body, stripe, roof, locomotive: SIMD4<Float>
 
@@ -100,7 +108,7 @@ struct SceneGPU {
     var sun: SIMD4<Float>
     /// light colour and strength
     var light: SIMD4<Float>
-    /// boundary (world y where leg B starts), morph length, sweep progress (-1 when flying), sweep wave length
+    /// boundary (world y where leg B starts), unused, sweep progress (-1 when flying), sweep wave length
     var morph: SIMD4<Float>
     /// seconds wrapped hourly, seconds wrapped every two hours, car phase 0...1, night 0...1
     var time: SIMD4<Float>
@@ -113,6 +121,9 @@ struct SceneGPU {
     var train: TrainGPU
     var legA: LegGPU
     var legB: LegGPU
+    /// phase of boats going downstream, which move faster than those going up; the reference counted in boat slots,
+    /// for what keeps still on the water; unused, unused
+    var water: SIMD4<Float> = .zero
 }
 
 /// One rectangle of the ground cache being painted.
@@ -145,7 +156,7 @@ struct AnimalsGPU {
 struct CompositeGPU {
     /// view width and height in pixels, metres per pixel, cache texels per pixel
     var view: SIMD4<Float>
-    /// world x and y (relative to the reference) of the bottom-left pixel corner, gust-space origin (x, y)
+    /// world x and y (relative to the reference) of the bottom-left pixel corner, unused, unused
     var world: SIMD4<Float>
     /// cache texel coordinate of the bottom-left pixel corner, wrapped (x, y), cache size (w, h)
     var cache: SIMD4<Float>
@@ -163,4 +174,8 @@ struct CompositeGPU {
     var flockShape: SIMD4<Float>
     /// colour, seconds since the flock appeared
     var flockLook: SIMD4<Float>
+    /// offset of the view from the band's texture (x, y), metres per band pixel, whether one shows
+    var bank: SIMD4<Float> = .zero
+    /// gust-space offset of the view's corner from the gust texture's corner (x, y), metres per gust pixel
+    var gusts: SIMD4<Float> = .zero
 }

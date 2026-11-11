@@ -32,6 +32,16 @@ final class CaptionView: NSView {
         redraw(animated: false)
     }
 
+    /// Shows or hides the words, fading as a change of place does, or at once before anyone can see them.
+    func show(_ shown: Bool, animated: Bool) {
+        let opacity: Float = shown ? 1 : 0
+        guard text.opacity != opacity else { return }
+        CATransaction.begin()
+        if animated { CATransaction.setAnimationDuration(0.8) } else { CATransaction.setDisableActions(true) }
+        text.opacity = opacity
+        CATransaction.commit()
+    }
+
     func update(place newPlace: String, note newNote: String?) {
         guard newPlace != place || newNote != note else { return }
         let animated = !place.isEmpty

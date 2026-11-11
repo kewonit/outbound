@@ -44,6 +44,7 @@ kernel void layouts(device uint *out [[buffer(0)]], uint id [[thread_position_in
     out[i++] = __builtin_offsetof(Biome, k);
     out[i++] = __builtin_offsetof(Biome, blossomLight);
     out[i++] = __builtin_offsetof(Biome, l);
+    out[i++] = __builtin_offsetof(Biome, n);
     out[i++] = __builtin_offsetof(Leg, info);
     out[i++] = __builtin_offsetof(Leg, railShape);
     out[i++] = __builtin_offsetof(Train, run);
@@ -217,14 +218,19 @@ inline ProbeSpot probeSpot(uint id, float step, constant Scene &scene) {
     return spot;
 }
 
+// The river's channel at a probe's point, as the ground pass works it out for the place in view.
+inline Channel probeChannel(float2 world, constant Scene &scene) {
+    return channelAt(world, scene, course(scene, 1.0), scene.legB.biome.d.z, scene.legB.biome.l.w);
+}
+
 // The paint the painting helpers are given to paint over.
 constant float3 probeBase = float3(0.45, 0.5, 0.35);
 
-// The land of the place in view, as the ground pass paints it before the river, railway and road: its colour
+// The land of the place in view, as the ground pass paints it, river and all, before the railway and road: its colour
 // and water here, and its sway, herds, road and night light in probeLandMasks.
 inline Land probeLand(uint id, constant Scene &scene) {
     ProbeSpot spot = probeSpot(id, 5.0, scene);
-    return land(spot.world, scene.legB, scene, spot.riverHalf, spot.wander);
+    return land(spot.world, scene.legB, scene, scene.legB.biome.d.z, spot.wander, probeChannel(spot.world, scene));
 }
 
 kernel void probeLandColour(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
@@ -387,9 +393,12 @@ kernel void probePonds(device float4 *out [[buffer(0)]], constant Scene &scene [
 kernel void probeRiver(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 2.0, scene);
-    float water = 0.0, herd = 0.0;
-    float3 c = river(probeBase, spot.world, scene, scene.legA.biome, scene.legB.biome, 1.0, scene.legB.biome.d.z,
-                     spot.wander, water, herd);
+    float water = 0.0, herd = 0.0, sway = 0.0;
+    float3 c = probeBase;
+    if (scene.legB.biome.d.z >= 0.5) {
+        c = river(c, spot.world, scene, scene.legB.biome, probeChannel(spot.world, scene), scene.legB.biome.d.z, water,
+                  herd, sway);
+    }
     out[id] = float4(c, water);
 }
 
@@ -401,7 +410,7 @@ kernel void probeRoad(device float4 *out [[buffer(0)]], constant Scene &scene [[
     float2 world = probePoint(id, 1.0, float2(roadX(y, scene, spot.wander), y));
     float onRoad = 0.0, traffic = 0.0, water = 0.0, herd = 0.0;
     float3 c = road(probeBase, world, scene, scene.legA.biome, scene.legB.biome, 1.0, spot.riverHalf,
-                    spot.wander, onRoad, traffic, water, herd);
+                    spot.wander, probeChannel(world, scene), onRoad, traffic, water, herd);
     out[id] = float4(c, onRoad);
 }
 
@@ -412,7 +421,7 @@ kernel void probeRailway(device float4 *out [[buffer(0)]], constant Scene &scene
     float2 onLine = leg.rail.xy + rotate(float2(0.0, leg.railShape.x * sin(leg.railShape.z)), leg.rail.z);
     float2 world = probePoint(id, 0.6, float2(onLine.x, onLine.y + leg.info.x));
     float herd = 0.0, water = 0.0;
-    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, course(scene, 1.0), herd, water);
+    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, probeChannel(world, scene), herd, water);
     out[id] = float4(c, luma(railOverRoad(probeBase, world, leg, 1.0, 0.45)));
 }
 
@@ -651,6 +660,31 @@ kernel void promiseCentreLines(device float4 *out [[buffer(0)]], constant Scene 
                      beyond(x - (scene.road.x + wander.x * riverShape(y, scene.river) + riverBends(y, scene, wander.y).x), 1e-3));
 }
 
+// The river's channel, along some 15 km of it and from bank to bank: its banks stand either side of the centre line
+// and no further out than what keeps clear of the river allows for, a bend is never counted as more than a full one,
+// there is water only between the banks, and a canal's banks run straight.
+kernel void promiseChannel(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    float width = b.d.z;
+    if (width < 0.5) {
+        out[id] = 0.0;
+        return;
+    }
+    float semi = width * 0.5;
+    float y = (float(id) - 2048.0) * 3.7;
+    float2 wander = course(scene, 1.0);
+    float slope = riverSlope(y, scene, wander);
+    float across = (probeRandom(id, 11u) * 2.0 - 1.0) * width * 1.3;
+    float2 p = float2(riverX(y, scene, wander) + across * sqrt(1.0 + slope * slope), y);
+    Channel ch = channelAt(p, scene, wander, width, b.l.w);
+    float widest = semi + riverSpread(semi, b.l.w) + 6.0;
+    out[id] = float4(outside(ch.left, semi * 0.5, widest) + outside(ch.right, semi * 0.5, widest),
+                     outside(ch.bend, -1.0, 1.0),
+                     ch.depth > 0.0 && abs(ch.d) >= ch.edge ? 1.0 : 0.0,
+                     b.l.w > 0.0 ? 0.0 : beyond(ch.left - semi, 1e-3) + beyond(ch.right - semi, 1e-3));
+}
+
 // The ground's alpha byte keeps water to a third, sway to a fifteenth, and the road and herd bits exactly,
 // through the 8 bits the cache stores it in.
 kernel void promisePacking(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
@@ -755,4 +789,235 @@ kernel void promiseAlongNoise(device float4 *out [[buffer(0)]], constant Scene &
     out[id] = float4(beyond(n - alongNoise(p + float2(0.0, referenceStep), cell, 31u), 1e-4),
                      beyond(fract(p.y / alongSpacing(7.0)) - fract((p.y + referenceStep) / alongSpacing(7.0)), 2e-3),
                      outside(n, 0.0, 1.0), 0.0);
+}
+
+// MARK: - Nothing stands on anything else
+
+// Kernels named audit… walk a long way along the place in legB and write how far each thing intrudes on what it should
+// give way to, 0 when it keeps clear.
+
+// As road() lays them: none in pivot country.
+inline float auditCross(float2 at, constant Scene &scene) {
+    return int(scene.legB.biome.a.x) == layoutPivots ? 1e6 : crossGap(at, scene);
+}
+inline float auditRail(float2 at, constant Scene &scene) { return railGap(at - float2(0.0, scene.legB.info.x), scene.legB.biome); }
+
+// How far ahead of its slot each car is: 64 cars in each thread's row, at a moment set by the column. Parts: the drift
+// now, and an hour on, when the clock it runs on wraps.
+kernel void auditCarDrift(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                          uint id [[thread_position_in_grid]]) {
+    int car = int(id / probeSide);
+    float t = float(id % probeSide) * 56.0;
+    out[id] = float4(carDrift(car, t), carDrift(car, t + 3600.0) - carDrift(car, t), 0.0, 0.0);
+}
+
+// A house in each thread, as auditHomes walks them, for how many a place builds. Part: whether it stands.
+kernel void countHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    Plot h;
+    bool stands = plot(h, k, int((id >> 1) & 1u), side, local + float2(0.0, scene.legB.info.x), local, b, scene,
+                       uint(scene.legB.info.y), course(scene, 1.0));
+    out[id] = float4(stands ? 1.0 : 0.0, 0.0, 0.0, 0.0);
+}
+
+// A house in each thread: 1024 slots either side of the road, front and back row. Parts: into a cross-road, onto the
+// railway, into a pond, into a landmark.
+kernel void auditHomes(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    uint seed = uint(scene.legB.info.y);
+    float2 wander = course(scene, 1.0);
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    int row = int((id >> 1) & 1u);
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    float2 world = local + float2(0.0, scene.legB.info.x);
+    out[id] = float4(0.0);
+    Plot h;
+    if (!plot(h, k, row, side, world, local, b, scene, seed, wander)) return;
+    float2 shift = world - local;
+    float2 at = h.center - shift;
+    float reach = length(h.size) + 6.0;
+    float4 hit = float4(0.0);
+    hit.x = max(b.e.x * 0.45 + reach - auditCross(h.center, scene), 0.0);
+    hit.y = max(reach + 4.0 - auditRail(h.center, scene), 0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(at, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, shift, b, scene, wander)) {
+        hit.z = max(pondRadius * 1.25 + length(h.size) - length((at - pond) * float2(1.0, 1.25)), 0.0);
+    }
+    for (int i = 0; i < 2; i++) {
+        int kind = int(i == 0 ? b.j.x : b.j.z);
+        float density = i == 0 ? b.j.y : b.j.w;
+        float2 center;
+        int2 cell;
+        uint s = seed + uint(i) * 17u;
+        if (landmarkSite(kind, density, at, b, s, center, cell)
+            && landmarkStands(kind, center + shift, shift, b, scene, b.d.z * 0.5, wander, s)) {
+            hit.w = max(hit.w, landmarkRadius(kind) * 0.9 + reach - length(at - center));
+        }
+    }
+    out[id] = hit;
+}
+
+// A spot for a tree in each thread, scattered round the things it must keep off, in a place's open land. Parts: on a
+// cross-road, on the railway, on a pond, and on the main road.
+kernel void auditTrees(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float r = 3.0;
+    float2 world = float2(roadX(scene.legB.info.x + 700.0, scene, wander), scene.legB.info.x + 700.0);
+    world += (float2(probeRandom(id, 40u), probeRandom(id, 41u)) - 0.5) * float2(1800.0, 6000.0);
+    bool built;
+    float cross = crossroadY(world, scene, built);
+    // Half the spots are moved close to the cross-road, the things that are thin enough to be missed otherwise.
+    if (built && probeRandom(id, 42u) < 0.5) world.y = cross + (probeRandom(id, 43u) - 0.5) * 16.0;
+    float2 local = world - float2(0.0, leg.info.x);
+    if (leg.rail.w > 0.5 && probeRandom(id, 44u) > 0.7) {
+        float along;
+        float d = railSigned(local, leg.rail.xy, leg.rail.z, leg.railShape.xyz, along);
+        float2 toward = float2(-sin(leg.rail.z), cos(leg.rail.z));
+        local -= toward * (d - (probeRandom(id, 45u) - 0.5) * 12.0);
+        world = local + float2(0.0, leg.info.x);
+    }
+    Keepouts near = keepouts(world, local, 40.0, b, scene, seed, b.d.z * 0.5, wander);
+    out[id] = float4(0.0);
+    if (!clearSpot(local, world, r, near, b, scene, seed, b.d.z * 0.5, wander)) return;
+    float4 hit = float4(0.0);
+    hit.x = max(b.e.x * 0.45 + r + 0.5 - auditCross(world, scene), 0.0);
+    hit.y = max(r + 1.5 - auditRail(world, scene), 0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(local, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, world - local, b, scene, wander)) {
+        hit.z = max(pondRadius * 0.9 + r - length((local - pond) * float2(1.0, 1.25)), 0.0);
+    }
+    hit.w = max(b.e.x * 0.5 + r - abs(roadDistance(world, scene, wander)), 0.0);
+    out[id] = hit;
+}
+
+// A pond or a landmark in each thread. Parts: a pond on a road, a pond on the railway, a landmark on a cross-road, and a
+// landmark on the railway.
+kernel void auditLandmarks(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float2 world = float2(roadX(leg.info.x + 700.0, scene, wander), leg.info.x + 700.0);
+    world += (float2(id % probeSide, id / probeSide) / float(probeSide) - 0.5) * float2(6000.0, 60000.0);
+    float2 local = world - float2(0.0, leg.info.x);
+    float2 shift = world - local;
+    float4 hit = float4(0.0);
+    float2 pond;
+    float pondRadius;
+    if (pondSite(local, b, seed, pond, pondRadius) && pondStands(pond, pondRadius, shift, b, scene, wander)) {
+        float2 at = pond + shift;
+        float gap = min(abs(roadDistance(at, scene, wander)), auditCross(at, scene)) - b.e.x * 0.5;
+        hit.x = max(pondRadius * 1.3 - gap, 0.0);
+        hit.y = max(pondRadius * 1.3 - auditRail(at, scene), 0.0);
+    }
+    for (int i = 0; i < 2; i++) {
+        int kind = int(i == 0 ? b.j.x : b.j.z);
+        float density = i == 0 ? b.j.y : b.j.w;
+        float2 center;
+        int2 cell;
+        if (landmarkSite(kind, density, local, b, seed + uint(i) * 17u, center, cell)
+            && landmarkStands(kind, center + shift, shift, b, scene, b.d.z * 0.5, wander,
+                              seed + uint(i) * 17u)) {
+            float reach = landmarkRadius(kind) * 0.8;
+            hit.z = max(hit.z, reach - auditCross(center + shift, scene));
+            hit.w = max(hit.w, reach - auditRail(center + shift, scene));
+        }
+    }
+    out[id] = hit;
+}
+
+// A landmark of the place's second kind in each thread, looking through the cells round it for one of the first kind, which
+// it gives way to. Part: how far they overlap.
+kernel void auditRivals(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                        uint id [[thread_position_in_grid]]) {
+    constant Leg &leg = scene.legB;
+    constant Biome &b = leg.biome;
+    uint seed = uint(leg.info.y);
+    float2 wander = course(scene, 1.0);
+    float2 world = float2(roadX(leg.info.x + 700.0, scene, wander), leg.info.x + 700.0);
+    world += (float2(id % probeSide, id / probeSide) / float(probeSide) - 0.5) * float2(6000.0, 60000.0);
+    float2 local = world - float2(0.0, leg.info.x);
+    float2 shift = world - local;
+    float4 hit = float4(0.0);
+    int first = int(b.j.x), second = int(b.j.z);
+    float2 center;
+    int2 cell;
+    if (b.j.y > 0.0 && landmarkSite(second, b.j.w, local, b, seed + 17u, center, cell)
+        && landmarkStands(second, center + shift, shift, b, scene, b.d.z * 0.5, wander, seed + 17u)) {
+        float size = landmarkCell(first), touch = landmarkRadius(first) + landmarkRadius(second);
+        int reach = int(ceil(touch / size)) + 1;
+        for (int j = -reach; j <= reach; j++) {
+            for (int i = -reach; i <= reach; i++) {
+                float2 other;
+                if (landmarkSite(first, b.j.y, center + float2(i, j) * size, b, seed, other, cell)
+                    && landmarkStands(first, other + shift, shift, b, scene, b.d.z * 0.5, wander, seed)) {
+                    hit.x = max(hit.x, touch - length(center - other));
+                }
+            }
+        }
+    }
+    out[id] = hit;
+}
+
+// A way out to the road in each thread: every point along it keeps off every house round it, wing and shed included, and
+// it ends on the road. Parts: on a house, short of the road.
+kernel void auditPaths(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                       uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    uint seed = uint(scene.legB.info.y);
+    float2 wander = course(scene, 1.0);
+    float side = (id & 1u) != 0u ? 1.0 : -1.0;
+    int row = int((id >> 1) & 1u);
+    float k = float(id >> 2) - 512.0;
+    float2 local = float2(0.0, (k + 0.5) * 30.0);
+    float2 world = local + float2(0.0, scene.legB.info.x);
+    out[id] = float4(0.0);
+    Plot h;
+    if (!plot(h, k, row, side, world, local, b, scene, seed, wander)) return;
+    float4 hit = float4(0.0);
+    float front = -h.size.x - 2.6;
+    for (int i = 0; i <= 16; i++) {
+        float2 p = float2(mix(front, -h.reach, float(i) / 16.0), h.lane);
+        float2 at = h.center + rotate(p, h.road);
+        for (int dk = -1; dk <= 1; dk++) {
+            for (int other = 0; other < 2; other++) {
+                Plot n;
+                if (!plot(n, k + float(dk), other, side, world, local, b, scene, seed, wander)) continue;
+                if (dk == 0 && other == row) continue;
+                float2 d = rotate(at - n.center, -n.angle);
+                hit.x = max(hit.x, -sdBox(d - float2(2.9, 0.0), n.size + float2(2.9, 0.0)));
+            }
+        }
+    }
+    float2 end = h.center + rotate(float2(-h.reach, h.lane), h.road);
+    hit.y = max(abs(roadDistance(end, scene, wander)) - b.e.x * 0.5, 0.0);
+    out[id] = hit;
+}
+
+// A cross-road in each thread, along a few hundred kilometres. Parts: built with its junction in the river or on its banks.
+kernel void auditJunctions(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    float y = (float(id % 512u) - 256.0 + 0.5) * crossroadSpacing;
+    float turned = landTurn(y, scene);
+    float2 wander = course(scene, turned);
+    float width = mix(scene.legA.biome.d.z, scene.legB.biome.d.z, turned);
+    float2 p = float2(roadX(y, scene, wander), y);
+    bool built;
+    float crossing = crossroadY(p, scene, built);
+    p = float2(roadX(crossing, scene, wander), crossing);
+    float gap = abs(riverDistance(p, scene, wander)) - width * 0.5;
+    out[id] = float4(built && width > 0.5 ? max(24.0 - gap, 0.0) : 0.0, 0.0, 0.0, 0.0);
 }

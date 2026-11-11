@@ -15,8 +15,6 @@ public struct Leg: Sendable {
 
 /// Where the camera is and which places lie ahead.
 public final class Journey {
-    /// Distance over which one place turns into the next while flying.
-    public static let morphLength = 700.0
     /// How long a Fly To repaint takes.
     public static let sweepDuration: TimeInterval = 1.6
     /// The caption's coordinates run faster than the painted ground so the digits visibly tick.
@@ -46,8 +44,9 @@ public final class Journey {
         anchorY = 0
         driftStart = time
         let season = followsCalendar ? place.season(on: date) : place.signatureSeason
-        // The first leg starts a little behind the camera, so the land on screen at launch belongs to it.
-        legs = [Leg(index: 0, place: place, season: season, start: -legLength * 0.15, sweepStart: nil)]
+        // The first leg starts a little behind the camera, so the land on screen at launch belongs to it. Not by a share of
+        // the stay, which at this point is only a guess: the settings come after.
+        legs = [Leg(index: 0, place: place, season: season, start: -300, sweepStart: nil)]
     }
 
     /// What it takes to pick the journey up again just where it was, after Outbound quits and opens again.
@@ -114,6 +113,11 @@ public final class Journey {
         speed = newSpeed
     }
 
+    /// World y of each line where one place stops and the next begins, with a bank of cloud lying over it.
+    public var joins: [Double] {
+        legs.dropFirst().filter { $0.sweepStart == nil }.map(\.start)
+    }
+
     /// The leg painted at world y.
     public func leg(at y: Double) -> Leg {
         legs.last { $0.start <= y } ?? legs[0]
@@ -137,17 +141,14 @@ public final class Journey {
 
     /// Appends legs so the land up to world y is decided, and forgets legs far behind. A new place begins no
     /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
-    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it. Nor is
-    /// any leg shorter than `shortest`, however short the stay.
-    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, shortest: Double = 0,
-                       date: Date = .now) {
-        let length = max(legLength, shortest)
-        while !staysPut, let last = legs.last, last.start + length < y {
+    /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
+    public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
+        while !staysPut, let last = legs.last, last.start + legLength < y {
             let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
-            let start = max(last.start + length, notBefore)
+            let start = max(last.start + legLength, notBefore)
             append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
         }
-        while legs.count > 2, legs[1].start + Self.morphLength < behind {
+        while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
         }
     }

@@ -103,6 +103,11 @@ final class Wallpaper: NSObject {
     private var observers: [NSObjectProtocol] = []
     /// A line under the caption, for development builds and licensing.
     var note: String?
+    /// Whether the place's name, and any line under it, shows in the corner. Changed while the desktop is up, it
+    /// fades; before, it is simply so.
+    var showsPlaceName = true {
+        didSet { label.show(showsPlaceName, animated: window.isVisible) }
+    }
     var framesPerSecond: Float = 30 {
         didSet { if framesPerSecond != oldValue { applyFrameRate() } }
     }
@@ -114,6 +119,9 @@ final class Wallpaper: NSObject {
         window = WallpaperWindow(screen: screen)
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
+        // A way out, should the lean copies of the frame's shaders ever misbehave on a Mac they weren't tried on:
+        // `defaults write app.outbound.Outbound leanShaders -bool false` draws every frame with the whole shaders.
+        renderer.leanShaders = UserDefaults.standard.object(forKey: "leanShaders") as? Bool ?? true
         birdView = MetalView(device: gpu.device, opaque: false)
         birdView.metalLayer.presentsWithTransaction = true
         super.init()
