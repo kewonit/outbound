@@ -119,6 +119,9 @@ final class Wallpaper: NSObject {
         window = WallpaperWindow(screen: screen)
         view = MetalView(device: gpu.device)
         renderer = ViewRenderer(gpu: gpu)
+        // A way out, should the lean copies of the frame's shaders ever misbehave on a Mac they weren't tried on:
+        // `defaults write app.outbound.Outbound leanShaders -bool false` draws every frame with the whole shaders.
+        renderer.leanShaders = UserDefaults.standard.object(forKey: "leanShaders") as? Bool ?? true
         birdView = MetalView(device: gpu.device, opaque: false)
         birdView.metalLayer.presentsWithTransaction = true
         super.init()

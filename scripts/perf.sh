@@ -82,8 +82,11 @@ footprint_of() {
     local pid=$!
     perl -e 'select(undef, undef, undef, 8)'
     footprint "$pid" 2>/dev/null | awk '
-        /phys_footprint:/ { total = $2 }
-        /Owned physical footprint \(unmapped\) \(graphics\)/ { graphics = $1 }
+        function megabytes(value, unit) {
+            return int(value * (unit == "KB" ? 1 / 1024 : unit == "GB" ? 1024 : unit == "MB" ? 1 : 0) + 0.5)
+        }
+        /phys_footprint:/ { total = megabytes($2, $3) }
+        /Owned physical footprint \(unmapped\) \(graphics\)/ { graphics = megabytes($1, $2) }
         END { print total, graphics }'
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
@@ -92,6 +95,11 @@ footprint_of() {
 memory() {
     read -r kept_total kept_graphics <<< "$(footprint_of "$kept")"
     read -r now_total now_graphics <<< "$(footprint_of "$now")"
+    # A flight that died before it could be read leaves nothing to compare, which must never pass for no growth.
+    local read
+    for read in "$kept_total" "$kept_graphics" "$now_total" "$now_graphics"; do
+        [[ "$read" =~ ^[1-9][0-9]*$ ]] || { echo "Couldn't read the footprint of a flight: did it start?" >&2; exit 1; }
+    done
     printf "%-18s %10s %10s\n" "megabytes" "$name" "now"
     printf "%-18s %10s %10s\n" "footprint" "$kept_total" "$now_total"
     printf "%-18s %10s %10s\n" "GPU memory" "$kept_graphics" "$now_graphics"
@@ -111,9 +119,12 @@ cold_compile() {
     grep -q '0\.299, 0\.587, 0\.114' "$common" || { echo "The line this changes has moved in Common.metal." >&2; exit 2; }
     sed -i '' -E "s/0\.299, 0\.587, 0\.114/0.299, 0.587, 0.114$(printf '%06d' $((salt % 1000000)))/" "$common"
     local run=("$copy/Outbound" --render /dev/null --bench 0.2 --size 400x300 --scale 1)
+    # Seconds a run takes, or nothing if it fails: a build that falls over at once would otherwise look quick.
+    local timed='$t = time; $failed = system(@ARGV); exit 1 if $failed; printf "\n%.2f\n", time - $t'
     local cold warm
-    cold="$(perl -MTime::HiRes=time -e '$t = time; system(@ARGV); printf "%.2f", time - $t' "${run[@]}" 2>/dev/null | tail -1)"
-    warm="$(perl -MTime::HiRes=time -e '$t = time; system(@ARGV); printf "%.2f", time - $t' "${run[@]}" 2>/dev/null | tail -1)"
+    cold="$(perl -MTime::HiRes=time -e "$timed" "${run[@]}" 2>/dev/null | tail -1)" || true
+    warm="$(perl -MTime::HiRes=time -e "$timed" "${run[@]}" 2>/dev/null | tail -1)" || true
+    [[ "$cold" =~ ^[0-9.]+$ && "$warm" =~ ^[0-9.]+$ ]] || { echo "$1/Outbound didn't run." >&2; exit 1; }
     awk -v cold="$cold" -v warm="$warm" 'BEGIN { printf "%.2f\n", cold - warm }'
 }
 
@@ -157,7 +168,15 @@ frames() {
         # shellcheck disable=SC2086
         "$now/Outbound" --render - --best --seconds 3 --fps 2 ${options[@]+"${options[@]}"} $arguments > "$scratch/b.raw" 2>/dev/null
         printf "%-26s " "$scene"
-        "$differ" "$scratch/a.raw" "$scratch/b.raw" "$width" "$height" || failed=1
+        if ! "$differ" "$scratch/a.raw" "$scratch/b.raw" "$width" "$height"; then
+            failed=1
+            # Kept to look at: a difference that comes once and never again can't be told from one that does otherwise.
+            local evidence="build/perf/differed/${scene// /-}"
+            mkdir -p "$evidence"
+            cp "$scratch/a.raw" "$evidence/$name.raw"
+            cp "$scratch/b.raw" "$evidence/now.raw"
+            echo "    kept both in $evidence (raw BGRA, ${width}x${height}, 6 frames)"
+        fi
     done < <(scenes)
     rm -f "$scratch/a.raw" "$scratch/b.raw"
     return "$failed"
@@ -204,10 +223,12 @@ check)
     echo
     memory
     # GPU memory moves in lumps of about 4 MB.
-    (( ${now_graphics%% *} > ${kept_graphics%% *} + 4 )) && { echo "GPU memory grew."; failed=1; }
+    (( now_graphics > kept_graphics + 4 )) && { echo "GPU memory grew."; failed=1; }
     echo
     compile
-    awk -v a="$kept_compile" -v b="$now_compile" 'BEGIN { exit !(b > a + 0.3) }' && { echo "Shaders take longer to compile."; failed=1; }
+    # Read from a headless run, which compiles the lean copies of the frame's shaders before it draws; the app doesn't
+    # wait for those. Two readings of one build can be a few tenths apart.
+    awk -v a="$kept_compile" -v b="$now_compile" 'BEGIN { exit !(b > a + 0.5) }' && { echo "Shaders take longer to compile."; failed=1; }
     exit "$failed"
     ;;
 *)

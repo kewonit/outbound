@@ -807,18 +807,25 @@ final class ViewRenderer {
                          height: Int) {
         let pipelines = gpu.shaders.pipelines, lean = leanShaders ? pipelines.lean : ShaderLibrary.Lean()
         let band = params.bank.w > 0
-        guard params.flock.w <= 0, let plain = band ? lean.skyBand : lean.skyPlain else {
+        func whole() {
             encoder.setRenderPipelineState(pipelines.sky)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            return
+            skyDrawn = .whole
         }
-        guard params.wings.w > 0, let around = band ? lean.skyBandAround : lean.skyAround, let over = lean.skyBird,
+        guard params.flock.w <= 0, let plain = band ? lean.skyBand : lean.skyPlain else { return whole() }
+        guard params.wings.w > 0,
               let box = Self.birdBox(bird: params.bird, wings: params.wings, sun: scene.sun,
                                      metresPerPixel: params.view.z, width: width, height: height) else {
             encoder.setRenderPipelineState(plain)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            skyDrawn = .plain
             return
         }
+        // The bird is in the frame, which the copy with no bird in it can't draw all of. Until the copies that draw
+        // round the bird and over it are both there, the whole shader draws the frame, or the bird would be gone
+        // for as long as they took.
+        guard let around = band ? lean.skyBandAround : lean.skyAround, let over = lean.skyBird else { return whole() }
+        skyDrawn = .roundBird
         // Pixels from the top left to where the vertex stage puts them.
         func x(_ pixel: Int) -> Float { Float(pixel) / Float(width) * 2 - 1 }
         func y(_ pixel: Int) -> Float { 1 - Float(pixel) / Float(height) * 2 }
@@ -835,6 +842,13 @@ final class ViewRenderer {
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: 1)
     }
 
+    /// Which shaders drew the last frame's sky: the whole one, a copy with neither bird nor flock in it, or that copy
+    /// round the bird's box and the whole one over it.
+    enum SkyDraw {
+        case whole, plain, roundBird
+    }
+    private(set) var skyDrawn = SkyDraw.whole
+
     /// The pixels of a target, counted from its top left, that hold anything of the bird: the bird itself, its shadow on
     /// the ground and its shadow on a band of cloud, each within a circle the sky shader keeps to (see `sky`), with a
     /// couple of pixels to spare. Nil when none of it falls on the target.
@@ -847,10 +861,12 @@ final class ViewRenderer {
         // The shader counts pixels up from the bottom.
         let left = centres.map(\.x).min()! - reach, right = centres.map(\.x).max()! + reach
         let low = centres.map(\.y).min()! - reach, high = centres.map(\.y).max()! + reach
+        // Kept within reach of the target before they are counted in whole pixels, which a shadow thrown a long way by a
+        // low sun needn't be.
         let limit = Float(max(width, height)) * 4
-        guard abs(left) < limit, abs(right) < limit, abs(low) < limit, abs(high) < limit else { return nil }
-        let x0 = max(Int(left.rounded(.down)), 0), x1 = min(Int(right.rounded(.up)), width)
-        let y0 = max(height - Int(high.rounded(.up)), 0), y1 = min(height - Int(low.rounded(.down)), height)
+        func near(_ pixel: Float) -> Float { min(max(pixel, -limit), limit) }
+        let x0 = max(Int(near(left).rounded(.down)), 0), x1 = min(Int(near(right).rounded(.up)), width)
+        let y0 = max(height - Int(near(high).rounded(.up)), 0), y1 = min(height - Int(near(low).rounded(.down)), height)
         guard x1 > x0, y1 > y0 else { return nil }
         return (x0, y0, x1, y1)
     }

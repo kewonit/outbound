@@ -11,12 +11,17 @@ import Testing
 struct LeanShaderTests {
     static let width = 720, height = 450
 
-    /// A frame of `place` at `seconds` into a flight, and at `hour` if given, drawn with the lean copies or without.
-    private func frame(_ place: Place, seconds: Double, hour: Double? = nil, lean: Bool, gpu: GPU,
-                       prepare: (World) -> Void = { _ in }) throws -> [UInt8] {
+    static let area = CGRect(x: 0, y: 0, width: width, height: height)
+
+    /// A frame of `place` at `seconds` into a flight, and at `hour` if given, drawn with the lean copies or without, at
+    /// `scale` pixels a point, with the bird at `bird` in the frame or left to a layer of its own, and which shaders
+    /// drew its sky.
+    private func frame(_ place: Place, seconds: Double, hour: Double? = nil, lean: Bool, gpu: GPU, scale: Int = 1,
+                       drawsBird: Bool = true, bird: CGPoint = CGPoint(x: 300, y: 240),
+                       prepare: (World) -> Void = { _ in }) throws -> (bytes: [UInt8], sky: ViewRenderer.SkyDraw) {
         let date = Date(timeIntervalSince1970: 1_782_907_200)
         let world = World(place: place, time: 0, date: date, light: .alwaysDay)
-        let area = CGRect(x: 0, y: 0, width: Self.width, height: Self.height)
+        let area = Self.area
         world.pointer = { nil }
         world.isDesktop = { _ in false }
         if let hour {
@@ -33,12 +38,15 @@ struct LeanShaderTests {
         world.centreRiver(on: area)
         world.advance(to: seconds)
         prepare(world)
+        world.poseBird(at: bird, heading: 0.8)
         let renderer = ViewRenderer(gpu: gpu)
         renderer.waitsForPieces = true
         renderer.leanShaders = lean
-        renderer.configure(frame: area, scale: 1)
+        renderer.drawsBird = drawsBird
+        renderer.configure(frame: area, scale: Double(scale))
+        let width = Self.width * scale, height = Self.height * scale
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,
-                                                                  width: Self.width, height: Self.height, mipmapped: false)
+                                                                  width: width, height: height, mipmapped: false)
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .shared
         let target = try #require(gpu.device.makeTexture(descriptor: descriptor))
@@ -47,10 +55,14 @@ struct LeanShaderTests {
         commands.commit()
         commands.waitUntilCompleted()
         #expect(commands.error == nil)
-        var bytes = [UInt8](repeating: 0, count: Self.width * Self.height * 4)
-        target.getBytes(&bytes, bytesPerRow: Self.width * 4,
-                        from: MTLRegionMake2D(0, 0, Self.width, Self.height), mipmapLevel: 0)
-        return bytes
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        target.getBytes(&bytes, bytesPerRow: width * 4, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        return (bytes, renderer.skyDrawn)
+    }
+
+    /// Every lean copy is there, as it must be for a test of them to mean anything.
+    private func whole(_ gpu: GPU) -> Bool {
+        ShaderLibrary.LeanCopy.allCases.allSatisfy { gpu.shaders.pipelines.lean[$0] != nil }
     }
 
     /// The most any channel differs by, and how many bytes differ at all.
@@ -66,16 +78,63 @@ struct LeanShaderTests {
     @Test(arguments: Place.all.map(\.id))
     func leanCopiesPaintTheSamePicture(_ id: String) throws {
         let gpu = try GPU(leanNow: true)
+        #expect(whole(gpu))
         let place = try #require(Place.named(id))
-        for hour in [nil, 23.0] as [Double?] {
-            let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu)
-            let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu)
-            let differs = difference(whole, lean)
-            // Fast maths may round a stray pixel the other way in another copy of a shader, and no more than that.
-            #expect(differs.worst <= 1, "\(id) at \(hour.map { "\($0)" } ?? "noon")")
-            #expect(differs.count <= whole.count / 1000, "\(id) at \(hour.map { "\($0)" } ?? "noon")")
-            // And the picture is of something: a frame that came out blank would match itself too.
-            #expect(Set(whole).count > 32)
+        // On a plain display with the bird in the frame, and on a Retina one with the bird on a layer of its own, which
+        // leaves only its shadow to the frame.
+        for (scale, drawsBird) in [(1, true), (2, false)] {
+            for hour in [nil, 23.0] as [Double?] {
+                let name = "\(id) at \(hour.map { "\($0)" } ?? "noon") @\(scale)x"
+                let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale,
+                                      drawsBird: drawsBird)
+                let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu, scale: scale,
+                                     drawsBird: drawsBird)
+                let differs = difference(whole.bytes, lean.bytes)
+                // Fast maths may round a stray pixel the other way in another copy of a shader, and no more than that.
+                #expect(differs.worst <= 1, "\(name)")
+                #expect(differs.count <= whole.bytes.count / 1000, "\(name)")
+                // And the picture is of something: a frame that came out blank would match itself too.
+                #expect(Set(whole.bytes).count > 32)
+                // The bird is over the desktop, so the copy with no bird in it never draws the whole sky.
+                #expect(whole.sky == .whole)
+                #expect(lean.sky != .plain, "\(name)")
+            }
+        }
+    }
+
+    @Test func aBirdInViewIsNeverLeftToACopyWithoutIt() throws {
+        // Copies arrive one by one after launch, and one may never arrive. A frame drawn meanwhile has to be the same.
+        let place = try #require(Place.named("kansas"))
+        let missing: [Set<ShaderLibrary.LeanCopy>] = [
+            [.skyBird], [.skyAround], [.skyAround, .skyBandAround], [.skyBandAround], [.skyPlain], [.skyBand],
+            [.viewByDay, .viewAfterDark], [.skyPlain, .skyAround], Set(ShaderLibrary.LeanCopy.allCases)
+        ]
+        // With and without a band of cloud in the frame, which takes copies of its own.
+        let toABand: (World) -> Void = { world in
+            var time = world.time
+            while time < 7200, !world.handoverPassing {
+                time += 2
+                world.advance(to: time)
+            }
+        }
+        for (band, prepare) in [(false, { (_: World) in }), (true, toABand)] {
+            for drawsBird in [true, false] {
+                let all = try GPU(leanNow: true)
+                #expect(whole(all))
+                let reference = try frame(place, seconds: 30, lean: false, gpu: all, drawsBird: drawsBird, prepare: prepare)
+                let lean = try frame(place, seconds: 30, lean: true, gpu: all, drawsBird: drawsBird, prepare: prepare)
+                #expect(lean.sky == .roundBird, "band \(band)")
+                for gone in missing {
+                    let gpu = try GPU(leanNow: true)
+                    gpu.shaders.forget(gone)
+                    let drawn = try frame(place, seconds: 30, lean: true, gpu: gpu, drawsBird: drawsBird,
+                                          prepare: prepare)
+                    let differs = difference(reference.bytes, drawn.bytes)
+                    #expect(differs.worst <= 1, "without \(gone), band \(band), bird drawn \(drawsBird)")
+                    #expect(differs.count <= reference.bytes.count / 1000, "without \(gone), band \(band)")
+                    #expect(drawn.sky != .plain, "without \(gone), band \(band)")
+                }
+            }
         }
     }
 
@@ -92,9 +151,14 @@ struct LeanShaderTests {
                 }
             }
         }
+        // A flock counts once it is over the desktop, where the frame draws it.
+        let flockInView: (World) -> Bool = { world in
+            guard let (_, sighting) = world.flock else { return false }
+            return Self.area.contains(CGPoint(x: sighting.position.x, y: sighting.position.y))
+        }
         let cases: [(String, (World) -> Void)] = [
             ("train", until { $0.trainPassing }),
-            ("flock", until { $0.flock != nil }),
+            ("flock", until(flockInView)),
             ("band", until { $0.handoverPassing }),
             ("fly to", { world in
                 let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
@@ -105,9 +169,11 @@ struct LeanShaderTests {
         for (name, prepare) in cases {
             let whole = try frame(first, seconds: 30, lean: false, gpu: gpu, prepare: prepare)
             let lean = try frame(first, seconds: 30, lean: true, gpu: gpu, prepare: prepare)
-            let differs = difference(whole, lean)
+            let differs = difference(whole.bytes, lean.bytes)
             #expect(differs.worst <= 1, "\(name)")
-            #expect(differs.count <= whole.count / 1000, "\(name)")
+            #expect(differs.count <= whole.bytes.count / 1000, "\(name)")
+            // A flock takes the whole sky shader, and nothing else here does.
+            #expect((lean.sky == .whole) == (name == "flock"), "\(name)")
         }
     }
 
@@ -121,6 +187,28 @@ struct LeanShaderTests {
         }
         for _ in 0..<400 where !ready() { try await Task.sleep(for: .milliseconds(50)) }
         #expect(ready())
+    }
+
+    @Test func theBirdWhereverItIs() throws {
+        // In a corner, half off an edge, just off the desktop with its shadow still on it, and nowhere near.
+        let gpu = try GPU(leanNow: true)
+        let place = try #require(Place.named("lisse"))
+        let spots: [(CGPoint, ViewRenderer.SkyDraw?)] = [
+            (CGPoint(x: 12, y: 10), .roundBird), (CGPoint(x: 715, y: 440), .roundBird), (CGPoint(x: 360, y: -20), .roundBird),
+            (CGPoint(x: -34, y: 200), nil), (CGPoint(x: 360, y: 482), nil), (CGPoint(x: -400, y: -400), .plain)
+        ]
+        for scale in [1, 2] {
+            for hour in [7.0, 18.5] {
+                for (spot, expected) in spots {
+                    let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale, bird: spot)
+                    let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu, scale: scale, bird: spot)
+                    let differs = difference(whole.bytes, lean.bytes)
+                    #expect(differs.worst <= 1, "bird at \(spot) at \(hour) @\(scale)x")
+                    #expect(differs.count <= whole.bytes.count / 1000, "bird at \(spot) at \(hour) @\(scale)x")
+                    if let expected { #expect(lean.sky == expected, "bird at \(spot) at \(hour) @\(scale)x") }
+                }
+            }
+        }
     }
 
     @Test func theBirdsBoxHoldsTheBirdAndItsShadows() throws {
@@ -148,6 +236,10 @@ struct LeanShaderTests {
                 }
             }
         }
+        // A shadow thrown far off the target by a low sun doesn't take the bird's own box with it.
+        let far = try #require(ViewRenderer.birdBox(bird: SIMD4(40, 30, 0, 0), wings: wings, sun: SIMD4(1, 0, 4000, 0.01),
+                                                    metresPerPixel: 0.225, width: 64, height: 64))
+        #expect(far.x0 == 0 && far.x1 == 64 && far.y0 == 0 && far.y1 == 64)
         // Nowhere near the target, there is no box at all, nor for numbers that are none.
         #expect(ViewRenderer.birdBox(bird: SIMD4(-900, -900, 0, 0), wings: wings, sun: SIMD4(0, 1, 0.1, 1),
                                      metresPerPixel: 0.225, width: width, height: height) == nil)
