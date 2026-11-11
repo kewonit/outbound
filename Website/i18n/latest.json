@@ -1,0 +1,173 @@
+{
+  "headings": {
+    "es": { "New": "Novedades", "Changed": "Cambios", "Fixed": "Correcciones" },
+    "fr": { "New": "Nouveautés", "Changed": "Modifications", "Fixed": "Corrections" },
+    "de": { "New": "Neu", "Changed": "Geändert", "Fixed": "Behoben" },
+    "it": { "New": "Novità", "Changed": "Modifiche", "Fixed": "Correzioni" },
+    "pt-br": { "New": "Novidades", "Changed": "Mudanças", "Fixed": "Correções" },
+    "nl": { "New": "Nieuw", "Changed": "Gewijzigd", "Fixed": "Opgelost" },
+    "ru": { "New": "Новое", "Changed": "Изменения", "Fixed": "Исправления" },
+    "tr": { "New": "Yeni", "Changed": "Değişenler", "Fixed": "Düzeltilenler" },
+    "pl": { "New": "Nowe", "Changed": "Zmiany", "Fixed": "Poprawki" },
+    "ja": { "New": "新機能", "Changed": "変更", "Fixed": "修正" },
+    "ko": { "New": "새 기능", "Changed": "변경", "Fixed": "수정" },
+    "zh-hans": { "New": "新功能", "Changed": "改动", "Fixed": "修复" },
+    "zh-hant": { "New": "新功能", "Changed": "變更", "Fixed": "修正" },
+    "hi": { "New": "नया", "Changed": "बदलाव", "Fixed": "सुधार" },
+    "ar": { "New": "جديد", "Changed": "تغييرات", "Fixed": "إصلاحات" }
+  },
+  "notes": {
+    "1.7": {
+      "es": [
+        "Todo va a más o menos la mitad de velocidad, tráfico y nubes incluidos.",
+        "Todos empiezan una vez en Lento. Suave y Vivo siguen en Ritmo.",
+        "Nueva gaviota. Vuela en curvas en vez de girar en el sitio.",
+        "Al apagar, reiniciar o cerrar sesión, el vuelo se detiene primero, así que la pantalla se apaga con la misma imagen que tu escritorio.",
+        "La estancia más corta sobre un lugar es de doce minutos. Ya no hay seis.",
+        "Las bandadas pasan más o menos la mitad de veces.",
+        "En pantallas muy altas, un tercer lugar podía aparecer antes de que terminara el cambio anterior.",
+        "Una gaviota guardada a medio aleteo por la 1.6 se quedaba con las alas medio cerradas."
+      ],
+      "fr": [
+        "Tout bouge environ deux fois moins vite, circulation et nuages compris.",
+        "Tout le monde démarre une fois sur Lente. Douce et Vive restent dans Allure.",
+        "Nouvelle mouette. Elle vole en courbes au lieu de tourner sur place.",
+        "Quand tu éteins, redémarres ou fermes ta session, le vol s'arrête d'abord, et l'écran s'éteint sur la même image que ton bureau.",
+        "Le séjour le plus court au-dessus d'un lieu est de douze minutes. Six minutes, c'est fini.",
+        "Les vols d'oiseaux passent environ deux fois moins souvent.",
+        "Sur les écrans très hauts, un troisième lieu pouvait apparaître avant la fin du passage précédent.",
+        "Une mouette enregistrée en plein battement d'ailes par la 1.6 gardait les ailes à demi fermées."
+      ],
+      "de": [
+        "Alles bewegt sich etwa halb so schnell, Verkehr und Wolken eingeschlossen.",
+        "Alle starten einmal auf Langsam. Sanft und Zügig gibt es weiter unter Tempo.",
+        "Neue Möwe. Sie fliegt in Kurven, statt sich auf der Stelle zu drehen.",
+        "Beim Ausschalten, Neustarten oder Abmelden hält der Flug zuerst an, damit der Bildschirm mit demselben Bild wie dein Schreibtisch dunkel wird.",
+        "Der kürzeste Aufenthalt über einem Ort sind zwölf Minuten. Sechs gibt es nicht mehr.",
+        "Schwärme kommen etwa halb so oft.",
+        "Auf sehr hohen Bildschirmen konnte ein dritter Ort auftauchen, bevor der letzte Übergang fertig war.",
+        "Eine Möwe, die 1.6 mitten im Flügelschlag gespeichert hatte, hielt ihre Flügel halb geschlossen."
+      ],
+      "it": [
+        "Tutto si muove a circa metà velocità, traffico e nuvole compresi.",
+        "Tutti partono una volta da Lento. Tranquillo e Vivace sono ancora in Ritmo.",
+        "Nuovo gabbiano. Vola in curve invece di girarsi sul posto.",
+        "Quando spegni, riavvii o esci, il volo si ferma prima, così lo schermo si spegne sulla stessa immagine della tua scrivania.",
+        "La sosta più breve su un luogo è di dodici minuti. Sei non c'è più.",
+        "Gli stormi passano circa la metà delle volte.",
+        "Su schermi molto alti, un terzo luogo poteva comparire prima che finisse il passaggio precedente.",
+        "Un gabbiano salvato dalla 1.6 a metà battito d'ali teneva le ali chiuse a metà."
+      ],
+      "pt-br": [
+        "Tudo se move a mais ou menos metade da velocidade, trânsito e nuvens incluídos.",
+        "Todo mundo começa uma vez no Lento. Suave e Ágil continuam em Ritmo.",
+        "Gaivota nova. Ela voa em curvas em vez de girar no lugar.",
+        "Ao desligar, reiniciar ou encerrar a sessão, o voo para antes, e a tela apaga com a mesma imagem da sua área de trabalho.",
+        "A estadia mais curta sobre um lugar é de doze minutos. Seis não existe mais.",
+        "Os bandos passam mais ou menos metade das vezes.",
+        "Em telas muito altas, um terceiro lugar podia aparecer antes de a troca anterior terminar.",
+        "Uma gaivota salva pela 1.6 no meio de uma batida de asas ficava com as asas meio fechadas."
+      ],
+      "nl": [
+        "Alles beweegt ongeveer half zo snel, verkeer en wolken inbegrepen.",
+        "Iedereen begint één keer op Langzaam. Rustig en Vlot staan nog onder Tempo.",
+        "Nieuwe meeuw. Hij vliegt in bochten in plaats van ter plekke te draaien.",
+        "Als je afsluit, herstart of uitlogt, stopt de vlucht eerst, zodat het scherm donker wordt op hetzelfde beeld als je bureaublad.",
+        "Het kortste verblijf boven een plek is twaalf minuten. Zes is weg.",
+        "Zwermen komen ongeveer half zo vaak.",
+        "Op heel hoge schermen kon een derde plek verschijnen voordat de vorige overgang klaar was.",
+        "Een meeuw die 1.6 midden in een vleugelslag had bewaard, hield zijn vleugels half dicht."
+      ],
+      "ru": [
+        "Всё движется примерно вдвое медленнее, вместе с машинами и облаками.",
+        "Все один раз начинают с темпа «Медленно». «Спокойно» и «Бодро» по-прежнему в меню «Темп».",
+        "Новая чайка. Она летает по дугам, а не разворачивается на месте.",
+        "При выключении, перезагрузке или выходе из системы полёт сначала останавливается, и экран гаснет на той же картинке, что и на рабочем столе.",
+        "Самая короткая остановка над местом теперь двенадцать минут. Шести больше нет.",
+        "Стаи пролетают примерно вдвое реже.",
+        "На очень высоких экранах третье место могло появиться раньше, чем заканчивалась предыдущая смена.",
+        "Чайка, которую версия 1.6 сохранила посреди взмаха, держала крылья полузакрытыми."
+      ],
+      "tr": [
+        "Her şey yaklaşık yarı hızda ilerliyor, trafik ve bulutlar dahil.",
+        "Herkes bir kez Yavaş ile başlıyor. Rahat ve Canlı hâlâ Hız altında.",
+        "Yeni martı. Olduğu yerde dönmek yerine kavis çizerek uçuyor.",
+        "Bilgisayarı kapattığında, yeniden başlattığında ya da oturumu kapattığında uçuş önce duruyor, böylece ekran masaüstünle aynı resimle kararıyor.",
+        "Bir yerin üzerinde en kısa kalış on iki dakika. Altı dakika artık yok.",
+        "Sürüler yaklaşık yarı sıklıkta geliyor.",
+        "Çok uzun ekranlarda, önceki geçiş bitmeden üçüncü bir yer görünebiliyordu.",
+        "1.6'nın kanat çırpışının ortasında kaydettiği martı, kanatlarını yarı kapalı tutuyordu."
+      ],
+      "pl": [
+        "Wszystko porusza się mniej więcej o połowę wolniej, łącznie z ruchem ulicznym i chmurami.",
+        "Każdy raz zaczyna od tempa Wolno. Spokojnie i Żwawo nadal są w menu Tempo.",
+        "Nowa mewa. Lata po łukach zamiast obracać się w miejscu.",
+        "Gdy wyłączasz komputer, uruchamiasz go ponownie lub się wylogowujesz, lot najpierw się zatrzymuje, więc ekran gaśnie na tym samym obrazie co Twoje biurko.",
+        "Najkrótszy pobyt nad jednym miejscem to dwanaście minut. Sześciu już nie ma.",
+        "Stada przelatują mniej więcej o połowę rzadziej.",
+        "Na bardzo wysokich ekranach trzecie miejsce mogło się pojawić, zanim skończyło się poprzednie przejście.",
+        "Mewa zapisana przez 1.6 w połowie machnięcia skrzydłami trzymała je na wpół złożone."
+      ],
+      "ja": [
+        "すべての動きがおよそ半分の速さになりました。車や雲も同じです。",
+        "最初に一度だけ、全員が「ゆっくり」から始まります。「おだやか」と「軽快」は今も「速さ」にあります。",
+        "新しいカモメ。その場で向きを変えず、カーブを描いて飛びます。",
+        "システム終了、再起動、ログアウトのときは先に飛行が止まり、デスクトップと同じ絵のまま画面が暗くなります。",
+        "1か所にとどまる最短時間は12分になりました。6分はなくなりました。",
+        "鳥の群れが来る回数は約半分になりました。",
+        "縦にとても長いディスプレイで、前の切り替えが終わる前に3つ目の場所が見えることがありました。",
+        "1.6が羽ばたきの途中で保存したカモメが、翼を半分閉じたままになっていました。"
+      ],
+      "ko": [
+        "모든 게 약 절반 속도로 움직여요. 차와 구름도 마찬가지예요.",
+        "처음 한 번은 모두 ‘느리게’로 시작해요. ‘부드럽게’와 ‘경쾌하게’는 여전히 ‘속도’에 있어요.",
+        "새 갈매기. 제자리에서 도는 대신 곡선을 그리며 날아요.",
+        "시스템 종료, 재시동, 로그아웃할 때 비행이 먼저 멈춰서, 데스크탑과 같은 그림으로 화면이 꺼져요.",
+        "한 장소에 머무는 가장 짧은 시간은 12분이에요. 6분은 없어졌어요.",
+        "새 떼가 나타나는 횟수가 약 절반으로 줄었어요.",
+        "세로로 아주 긴 디스플레이에서 이전 전환이 끝나기 전에 세 번째 장소가 보일 수 있었어요.",
+        "1.6이 날갯짓 도중에 저장한 갈매기가 날개를 반쯤 접은 채로 있었어요."
+      ],
+      "zh-hans": [
+        "所有东西的速度都降到了大约一半，车流和云也一样。",
+        "每个人都会先从“缓慢”开始一次。“舒缓”和“轻快”仍在“速度”里。",
+        "新的海鸥。它沿着弧线飞，不再原地掉头。",
+        "关机、重新启动或退出登录时，飞行会先停下，屏幕变暗时显示的是和桌面相同的画面。",
+        "在一个地方停留的最短时间是十二分钟。六分钟取消了。",
+        "鸟群出现的次数减少到大约一半。",
+        "在非常高的显示器上，上一次切换结束前可能会出现第三个地方。",
+        "1.6 在扇动翅膀中途保存的海鸥，翅膀会一直半合着。"
+      ],
+      "zh-hant": [
+        "所有東西的速度都降到大約一半，車流和雲也一樣。",
+        "每個人都會先從「緩慢」開始一次。「舒緩」和「輕快」仍在「速度」裡。",
+        "新的海鷗。牠沿著弧線飛，不再原地轉身。",
+        "關機、重新開機或登出時，飛行會先停下，螢幕變暗時顯示的是和桌面相同的畫面。",
+        "在一個地方停留的最短時間是十二分鐘。六分鐘取消了。",
+        "鳥群出現的次數減少到大約一半。",
+        "在非常高的螢幕上，上一次切換結束前可能會出現第三個地方。",
+        "1.6 在拍動翅膀中途儲存的海鷗，翅膀會一直半合著。"
+      ],
+      "hi": [
+        "सब कुछ लगभग आधी रफ़्तार से चलता है, ट्रैफ़िक और बादल भी।",
+        "सभी एक बार “धीमी” से शुरू करते हैं। “सहज” और “तेज़” अब भी “रफ़्तार” में हैं।",
+        "नया सीगल। यह अपनी जगह पर घूमने के बजाय घुमावदार रास्ते पर उड़ता है।",
+        "शट डाउन, रीस्टार्ट या लॉग आउट करने पर उड़ान पहले रुकती है, इसलिए स्क्रीन उसी तस्वीर पर बंद होती है जो आपके डेस्कटॉप पर है।",
+        "किसी जगह के ऊपर सबसे कम ठहराव अब बारह मिनट है। छह मिनट का विकल्प हटा दिया गया है।",
+        "पक्षियों के झुंड लगभग आधी बार आते हैं।",
+        "बहुत ऊँचे डिस्प्ले पर, पिछला बदलाव पूरा होने से पहले तीसरी जगह दिख सकती थी।",
+        "1.6 ने जिस सीगल को पंख फड़फड़ाने के बीच में सेव किया था, उसके पंख आधे बंद रह जाते थे।"
+      ],
+      "ar": [
+        "كل شيء يتحرك بنحو نصف السرعة، ومعه حركة السير والغيوم.",
+        "يبدأ الجميع مرة واحدة على «بطيء». ولا يزال «هادئ» و«نشيط» ضمن «السرعة».",
+        "نورس جديد. يطير في منحنيات بدل أن يستدير في مكانه.",
+        "عند إيقاف التشغيل أو إعادة التشغيل أو تسجيل الخروج، تتوقف الرحلة أولًا، فتنطفئ الشاشة على الصورة نفسها التي على سطح المكتب.",
+        "أقصر مدة فوق أي مكان هي اثنتا عشرة دقيقة. لم تعد هناك ست دقائق.",
+        "تظهر أسراب الطيور بنحو نصف ما كانت عليه.",
+        "على الشاشات الطويلة جدًا، كان يمكن أن يظهر مكان ثالث قبل أن ينتهي الانتقال السابق.",
+        "نورس حفظه الإصدار 1.6 في منتصف رفّة جناح كان يُبقي جناحيه نصف مغلقين."
+      ]
+    }
+  }
+}
