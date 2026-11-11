@@ -4,6 +4,35 @@
 //   2. animalVertex/animalFragment: herds as small instanced sprites, so they only cost the pixels they cover.
 //   3. sky: cloud shadow, clouds, the bird, paper and the light of the hour, reading the frame back in place.
 
+// The ground and sky draws are compiled more than once, each copy holding only the parts some frames need. A part a
+// frame never reaches still slows every pixel just by being in the shader, as the more a shader holds the fewer pixels
+// the GPU works on at a time: with all of them in, a daytime frame with no train, flock or band of cloud in it took over
+// a third longer. Every copy paints the same picture.
+//
+// The copies are made with function constants, from a second library compiled with OUTBOUND_LEAN. The library every
+// other shader comes from must have none: with even one in it Metal compiles all its shaders another way, and the
+// ground's, so compiled, now and then painted a block of eight texels by four without a tree or its shadow, about once
+// in two hundred paintings of a screen.
+#ifdef OUTBOUND_LEAN
+// Lamps, headlights and lit windows, which only show after dark.
+constant bool withDark [[function_constant(0)]];
+constant bool withTrain [[function_constant(1)]];
+// The new place blended in during a Fly To.
+constant bool withSweep [[function_constant(2)]];
+// The gull and its shadow.
+constant bool withBird [[function_constant(3)]];
+constant bool withFlock [[function_constant(4)]];
+// The band of cloud between two places.
+constant bool withBand [[function_constant(5)]];
+#else
+constant bool withDark = true;
+constant bool withTrain = true;
+constant bool withSweep = true;
+constant bool withBird = true;
+constant bool withFlock = true;
+constant bool withBand = true;
+#endif
+
 struct ViewOut {
     float4 color [[color(0)]];
     // Light that falls on the scene after dark, added once the night grade is done.
@@ -143,7 +172,7 @@ inline float carDrift(int id, float t) {
 // and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
 // is, so a car is never cut in two where one place turns into the next.
 inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light, float sunlit = 1.0) {
-    float night = scene.time.w;
+    float night = withDark ? scene.time.w : 0.0;
     constant Biome &a = scene.legA.biome;
     constant Biome &b = scene.legB.biome;
     float3 result = c;
@@ -301,14 +330,14 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
         }
         c = mix(c, roof, fill(db, mpp * 0.7));
     }
-    if (scene.time.w > 0.0 && !freight) {
+    if (withDark && scene.time.w > 0.0 && !freight) {
         // Warm windows spill onto the ballast either side; the leading car throws a beam down the line.
         float out = abs(lp.x) - 1.65;
         float bay = step(0.5, fract(lp.y / 1.9 + 0.25));
         light += (c * 0.85 + 0.18) * float3(1.0, 0.83, 0.65) * 0.6 * fill(out - 1.4, 0.8) * smoothstep(-0.2, 0.3, out)
                * exp(-max(out, 0.0) / 0.9) * bay * step(abs(lp.y), tr.run.z * 0.5 - 1.0) * step(tr.info.x, k);
     }
-    if (scene.time.w > 0.0) {
+    if (withDark && scene.time.w > 0.0) {
         float ahead = -(lp.y + tr.run.z * 0.5) * step(k, 0.0);
         light += float3(1.0, 0.92, 0.8) * 0.45 * fill(abs(lp.x) - 0.9 - ahead * 0.05, 0.6)
                * smoothstep(0.0, 1.0, ahead) * exp(-ahead / 25.0);
@@ -316,14 +345,12 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
     return c;
 }
 
+// Hull colours: white and pale grey plastic, navy, red, green, and varnished wood.
 inline float3 boatPaint(float h) {
-    return h < 0.3 ? float3(0.94, 0.94, 0.92) : h < 0.5 ? float3(0.78, 0.22, 0.18)
-         : h < 0.7 ? float3(0.20, 0.38, 0.62) : h < 0.85 ? float3(0.22, 0.48, 0.32) : float3(0.66, 0.46, 0.28);
+    return h < 0.35 ? float3(0.9, 0.9, 0.88) : h < 0.5 ? float3(0.16, 0.22, 0.33) : h < 0.62 ? float3(0.58, 0.19, 0.16)
+         : h < 0.74 ? float3(0.19, 0.32, 0.25) : h < 0.86 ? float3(0.6, 0.65, 0.68) : float3(0.55, 0.37, 0.21);
 }
 
-// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two thin arms at 19.5 degrees
-// either side of its track and smoothed water straight behind. The wake is laid out along the river rather than
-// straight back, so it follows the boat round a bend.
 // How far the river can stray from the valley's middle, scene.road.x, in either place: the most its wander and its
 // bends can add up to (the sums of their waves' weights in riverShape and riverBends).
 inline float riverReach(constant Scene &scene) {
@@ -333,11 +360,35 @@ inline float riverReach(constant Scene &scene) {
 }
 
 // A boat and its wake reach no further than this from the point on the river it is abreast of: 80 m back along it,
-// the wake's arms 32 m out at their widest, and the boat up to a quarter of the river's width off its middle.
+// the wake's arms 33 m out at their widest, and the boat up to a quarter of the river's width off its middle.
 inline float boatReach(float width) {
-    return 112.0 + 0.25 * width;
+    return 113.0 + 0.25 * width;
 }
 
+// The outline of a small open boat seen from above, as a distance in metres, negative inside. `q` runs across the
+// boat and along it, with the stem at +L/2, and `B` is its beam. The sides run straight, draw in over the front half
+// to a pointed stem, and narrow a little aft to a square transom.
+inline float boatOutline(float2 q, float L, float B) {
+    float reach = L * 0.5;
+    float s = q.y / reach;
+    float t = saturate((s + 0.1) / 1.1), a = saturate((-0.1 - s) / 0.9);
+    float width = B * 0.5 * (1.0 - t * t) * (1.0 - 0.12 * a * a);
+    float slope = B * 0.5 * (2.0 * t / 1.1 + 0.24 * a / 0.9) / reach;
+    return max((abs(q.x) - width) / sqrt(1.0 + slope * slope), abs(q.y) - reach);
+}
+
+// Someone sitting in a boat, seen from above: shoulders in a coat, and a head of dark or fair hair.
+inline float3 boater(float3 c, float2 p, float h, float mpp) {
+    float3 coat = h < 0.25 ? float3(0.17, 0.21, 0.31) : h < 0.45 ? float3(0.62, 0.2, 0.15)
+                : h < 0.6 ? float3(0.83, 0.68, 0.22) : h < 0.8 ? float3(0.36, 0.39, 0.27) : float3(0.82, 0.82, 0.8);
+    c = mix(c, coat, fill((length(p / float2(0.25, 0.16)) - 1.0) * 0.16, mpp * 0.6));
+    float3 hair = fract(h * 7.3) < 0.6 ? float3(0.16, 0.12, 0.09) : float3(0.47, 0.37, 0.25);
+    return mix(c, hair, fill(length(p - float2(0.0, 0.03)) - 0.1, mpp * 0.6));
+}
+
+// Boats ride slots along the river, up and down stream, each with a Kelvin wake: two arms at 19.5 degrees either
+// side of its track and churned, then smoothed, water straight behind. The wake is laid out along the river rather
+// than straight back, so it follows the boat round a bend.
 inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, float mpp, float t,
                     thread float3 &light, float sunlit = 1.0) {
     float3 result = c;
@@ -379,7 +430,11 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         // u runs back from the bow along the boat, v square across it from the boat's line.
         float2 rel = world - float2(riverAt, slot.y);
         float u = -dot(rel, along) * dir;
-        float v = dot(rel, across) - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
+        // It keeps to its own side of the river, and to the deep water round a bend, away from the bar.
+        float bars = mix(scene.legA.biome.l.w, scene.legB.biome.l.w, m);
+        float deepSide = -riverTurn(slot.y + clamp(width, 14.0, 44.0), scene, wander, slope) * saturate(width / 12.0);
+        float v = dot(rel, across) - width * ((0.1 + 0.15 * hash11(id, 601u)) * dir * (1.0 - 0.6 * abs(deepSide))
+                                             + 0.2 * deepSide * min(bars, 1.0));
         if (u < -10.0 || u > 80.0) continue;
         float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
         if (hippos) {
@@ -396,35 +451,69 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
             result = mix(boatless, result, present);
             continue;
         }
-        float L = 4.0 + 4.0 * hash11(id, 604u), W = L * 0.22;
+        float L = 4.5 + 3.0 * hash11(id, 604u), B = L * (0.33 + 0.05 * hash11(id, 606u));
+        // Across the boat and along it, with the stem at +L/2 and the transom at -L/2.
+        float2 q = float2(v * dir, L * 0.5 - u);
+        float hull = boatOutline(q, L, B);
         if (water > 0.3 && u > 0.0) {
-            // A small boat at a walking pace leaves little behind it: two thin arms, each a row of short wavelets that
-            // flatten out within a few lengths, a faint trough inside each, and a ribbon of smoothed water straight
-            // astern that outlasts them. Nothing is drawn across the wedge between the arms: from this height the waves
-            // there are too low to see.
+            // At a walking pace a small boat leaves little behind it. Two soft arms of short crests, slanting out from
+            // its track, run back from the bow and are gone within a few lengths. The propeller churns a short trail
+            // of foam straight astern, which stays where it is in the water as the boat goes on, and leaves a ribbon of
+            // smoothed water that outlasts the rest.
             float reach = 5.0 + 2.6 * speed * speed;
-            float fade = exp(-u / reach);
             float edge = abs(v) - 0.354 * u;
-            float arm = fill(abs(edge) - 0.1 - 0.01 * u, 0.28 + 0.025 * u);
-            float feather = smoothstep(0.3, 0.9, 0.5 + 0.5 * sin((u * 0.82 + abs(v) * 0.57) * 6.283 / 1.5));
-            result *= 1.0 - 0.05 * fill(abs(edge + 0.55) - 0.3, 0.4) * fade * water;
-            result = mix(result, float3(0.93, 0.95, 0.96), arm * (0.3 + 0.7 * feather) * fade * 0.42 * water);
-            float astern = fill(abs(v) - W * 0.55 - 0.02 * u, 0.5) * smoothstep(0.0, 1.5, u - L) * exp(-u / (reach * 2.2));
-            result = mix(result, result * 1.05 + 0.03, astern * 0.8 * water);
+            float spread = edge < 0.0 ? 0.5 + 0.05 * u : 0.2 + 0.015 * u;
+            float arm = abs(edge) < 3.0 * spread ? exp(-edge * edge / (spread * spread)) : 0.0;
+            float crest = 0.5 + 0.5 * cos(6.283 * (0.57 * abs(v) - 0.82 * u) / 1.5);
+            float swell = arm * exp(-u / reach) * smoothstep(0.0, 1.5, u) * water;
+            result *= 1.0 - 0.06 * swell * (1.0 - crest);
+            result = mix(result, float3(0.86, 0.9, 0.93), 0.22 * swell * crest);
+            float behind = u - L;
+            if (behind > -0.3) {
+                float wide = B * 0.22 + 0.06 * max(behind, 0.0);
+                float churn = vnoise(float2(v / 0.4 + 17.0 * hash11(id, 608u), (u - speed * t) / 0.8), 609u);
+                float foam = exp(-max(behind, 0.0) / (0.6 * L)) * (1.0 - smoothstep(0.55, 1.0, abs(v) / wide))
+                           * smoothstep(-0.3, 0.3, behind) * (0.55 + 0.45 * smoothstep(0.35, 0.75, churn));
+                result = mix(result, float3(0.9, 0.93, 0.94), foam * 0.5 * water);
+                float slick = fill(abs(v) - B * 0.4 - 0.025 * behind, 0.6) * smoothstep(0.0, L, behind)
+                            * exp(-behind / (reach * 2.5));
+                result = mix(result, result * 1.04 + 0.025, slick * 0.7 * water);
+            }
+            // The bow pushes a little wave up along each side.
+            float bowWave = fill(abs(hull - 0.18) - 0.08, 0.12) * smoothstep(-0.2 * L, 0.35 * L, q.y);
+            result = mix(result, float3(0.9, 0.93, 0.94), bowWave * 0.45 * water);
         }
-        // Hull: pointed bow, rounded stern, a little shadow, someone aboard.
-        float2 hp = float2(v * dir, -u + L * 0.5);
-        float taper = 1.0 + 1.3 * saturate(hp.y / (L * 0.5));
-        float2 hs = hp + sun * scene.sun.z * 0.5;
-        float hullShadow = (length(float2(hs.x * taper / W, hs.y / (L * 0.5))) - 1.0) * W;
-        result = shade(result, fill(hullShadow, 0.3) * 0.6 * sunlit, scene);
-        float hull = (length(float2(hp.x * taper / W, hp.y / (L * 0.5))) - 1.0) * W;
-        float3 paint = boatPaint(hash11(id, 605u));
-        result = mix(result, paint, fill(hull, mpp * 0.6));
-        result = mix(result, float3(0.60, 0.42, 0.26), fill(hull + 0.22, mpp * 0.6));
-        result = mix(result, float3(0.18, 0.17, 0.2), fill(length(hp - float2(0.0, -L * 0.15)) - 0.32, mpp));
-        if (scene.time.w > 0.0) {
-            float2 port = hp - float2(-W, L * 0.1), starboard = hp - float2(W, L * 0.1), stern = hp - float2(0.0, -L * 0.5);
+        // Its shadow on the water, from a hull standing about half a metre out of it.
+        result = shade(result, fill(boatOutline(q + sun * scene.sun.z * 0.45, L, B) - 0.05, 0.2) * 0.5 * sunlit, scene);
+        float k = hash11(id, 605u);
+        float3 paint = boatPaint(k);
+        bool plastic = k < 0.35 || (k >= 0.74 && k < 0.86);
+        bool launch = hash11(id, 607u) < 0.55;
+        // The topsides, lit on the sun's side.
+        result = mix(result, paint * (0.93 + 0.09 * sign(q.x) * sun.x), fill(hull, mpp * 0.6));
+        // Inside the gunwale the cockpit, open to the stern and closed by a foredeck on the launches. The gunwale
+        // shades its floor on the side away from the sun.
+        float deck = L * (launch ? 0.16 : 0.36);
+        float cockpit = max(hull + 0.12, q.y - deck);
+        float2 up = sun * scene.sun.z * 0.4;
+        float lee = 1.0 - fill(max(boatOutline(q + up, L, B) + 0.12, q.y + up.y - deck), 0.08);
+        float3 floorColor = (plastic ? float3(0.66, 0.69, 0.7) : float3(0.42, 0.31, 0.2)) * (1.0 - 0.35 * lee * sunlit);
+        result = mix(result, floorColor, fill(cockpit, mpp * 0.6));
+        // A seat across the middle, and on the launches a windscreen where the foredeck ends.
+        float3 seat = plastic ? paint * 0.97 : float3(0.58, 0.45, 0.3);
+        result = mix(result, seat, fill(max(abs(q.y + L * 0.06) - 0.13, cockpit), mpp * 0.6));
+        if (launch) {
+            result = mix(result, float3(0.24, 0.29, 0.34), fill(max(abs(q.y - deck + 0.05) - 0.07, hull + 0.18), mpp * 0.6));
+        }
+        // Whoever steers sits in the stern beside the outboard, and now and then someone sits on the seat too.
+        float side = hash11(id, 611u) < 0.5 ? -1.0 : 1.0;
+        result = boater(result, q - float2(0.17 * side, 0.7 - L * 0.5), hash11(id, 610u), mpp);
+        if (hash11(id, 612u) < 0.4) result = boater(result, q - float2(0.0, -L * 0.06), hash11(id, 613u), mpp);
+        float motor = sdBox(q - float2(0.0, -L * 0.5 - 0.16), float2(0.13, 0.2)) - 0.06;
+        result = mix(result, float3(0.13, 0.13, 0.14), fill(motor, mpp * 0.6));
+        result = mix(result, float3(0.3, 0.31, 0.33), fill(motor + 0.07, mpp * 0.5) * 0.6);
+        if (withDark && scene.time.w > 0.0) {
+            float2 port = q - float2(-B * 0.45, L * 0.2), starboard = q - float2(B * 0.45, L * 0.2), stern = q - float2(0.0, -L * 0.5);
             light += float3(1.0, 0.12, 0.08) / (1.0 + dot(port, port) / 0.03);
             light += float3(0.15, 1.0, 0.35) / (1.0 + dot(starboard, starboard) / 0.03);
             light += float3(1.0, 0.95, 0.85) / (1.0 + dot(stern, stern) / 0.04);
@@ -508,8 +597,8 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     uint2 nearest = uint2(min(wrapped, params.cache.zw - 1.0));
     // While a Fly To sweeps, the new place is painted into a cache of its own and blended in here, with a darker
     // tide line where the two paints meet.
-    float turned = sweepBlend(world, scene);
-    if (turned > 0.0) {
+    float turned = withSweep ? sweepBlend(world, scene) : 0.0;
+    if (withSweep && turned > 0.0) {
         float3 next = groundColorAt(incomingColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
         c = mix(c, next, turned) * (1.0 - 0.12 * (1.0 - abs(turned * 2.0 - 1.0)));
     }
@@ -519,15 +608,13 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     float water = mask.water;
     float3 light = 0.0;
 
-    // The gusts, from their own texture: how much tall crops sway, and the cats' paws on water.
-    float2 gusts = 0.0;
-    if (mask.sway > 0.01 || water > 0.01) {
-        float2 gustSize = float2(gustTexture.get_width(), gustTexture.get_height());
-        float2 gustPx = (params.gusts.xy + pixel * mpp) / params.gusts.z;
-        gusts = gustTexture.sample(clampSampler, float2(gustPx.x, gustSize.y - gustPx.y) / gustSize).rg;
-    }
-    // Gusts roll across tall crops in long soft bands, lying across the wind.
-    if (mask.sway > 0.01) c *= 1.0 + mask.sway * 0.09 * (gusts.x - 0.45);
+    // The gusts, from their own texture: how much tall crops sway, and the cats' paws on water. Read for every pixel,
+    // though only crops and water use them: asking first which pixels do cost a tenth of a daytime frame.
+    float2 gustSize = float2(gustTexture.get_width(), gustTexture.get_height());
+    float2 gustPx = (params.gusts.xy + pixel * mpp) / params.gusts.z;
+    float2 gusts = gustTexture.sample(clampSampler, float2(gustPx.x, gustSize.y - gustPx.y) / gustSize).rg;
+    // Gusts roll across tall crops in long soft bands, lying across the wind. Nothing else sways, so nothing else changes.
+    c *= 1.0 + mask.sway * 0.09 * (gusts.x - 0.45);
 
     constant Leg &leg = landTurn(world.y, scene) > 0.5 ? scene.legB : scene.legA;
     // Only what moves casts a shadow here, so only its pixels ask how much sun gets through the clouds.
@@ -539,7 +626,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c = boats(c, world, water, scene, mpp, scene.time.x, light,
                   directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
     }
-    if (scene.train.rail.w > 0.0) {
+    if (withTrain && scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
             // Where two places meet a train goes no further than its line does, and over other places it isn't drawn.
@@ -564,25 +651,32 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         float overhead = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudSize.y - cloudPx.y) / cloudSize).x;
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
         c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, gusts.y) * 0.12);
-        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
+        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current. Its
+        // threads follow the current, not the middle of the river: they crowd to the outside of each bend, and run
+        // twice as fast down the deep water there as over the shallows.
         if (water > 0.9 && abs(world.x - scene.road.x) < riverRoom + max(scene.legA.biome.d.z, scene.legB.biome.d.z)) {
             float turned = landTurn(world.y, scene);
-            float across = world.x - riverX(world.y, scene, course(scene, turned));
-            float bank = max(riverWidth(scene, turned) * 0.5, 0.001);
-            float current = smoothstep(0.9, 1.0, water) * (1.0 - smoothstep(0.8, 1.0, abs(across) / bank));
+            float width = riverWidth(scene, turned);
+            float bars = mix(scene.legA.biome.l.w, scene.legB.biome.l.w, turned);
+            Channel ch = channelAt(world, scene, course(scene, turned), width, bars, false);
+            float current = smoothstep(0.9, 1.0, water) * smoothstep(0.15, 0.6, ch.depth) * step(abs(ch.t), 1.0);
             if (current > 0.0) {
-                c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+                float lane = (ch.t + 0.4 * ch.bend * (1.0 - ch.t * ch.t)) * ch.edge / 7.0;
+                float slow = latticeNoise(noise, wrap, float2(lane, (world.y + scene.clock.w) / 64.0));
+                float quick = latticeNoise(noise, wrap, float2(lane + 0.37, (world.y + 2.0 * scene.clock.w) / 64.0));
+                c *= 1.0 + 0.08 * current * (mix(slow, quick, smoothstep(0.9, 1.7, ch.depth)) - 0.5);
             }
         }
     }
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.
-    float night = scene.time.w;
-    float2 lamp = night > 0.0 ? landNight.read(nearest).rg : 0.0;
+    float night = withDark ? scene.time.w : 0.0;
+    float2 lamp = 0.0;
+    if (withDark && night > 0.0) lamp = landNight.read(nearest).rg;
     // Smoothed ground gets smoothed lamplight too, or the pools step a whole texel at a time; the lamp's id stays
     // the nearest texel's.
-    if (night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
-    if (lamp.x > 0.004) {
+    if (withDark && night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
+    if (withDark && lamp.x > 0.004) {
         float id = lamp.y;
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
         if (id > 0.895) {
@@ -910,7 +1004,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
 
     // The band between two places, which moves with the land rather than the sky.
     float4 band = 0.0;
-    if (params.bank.w > 0.0) {
+    if (withBand && params.bank.w > 0.0) {
         float2 bandSize = float2(bankTexture.get_width(), bankTexture.get_height());
         float2 bandPx = (params.bank.xy + pixel * mpp) / params.bank.z;
         band = bankTexture.sample(clampSampler, float2(bandPx.x, bandSize.y - bandPx.y) / bandSize);
@@ -920,10 +1014,10 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float sunlit = 1.0 - smoothstep(0.05, 0.8, max(cloud.z, band.z));
     c = shade(c, (1.0 - sunlit) * 0.62, scene);
 
-    float birdVisible = params.wings.w;
+    float birdVisible = withBird ? params.wings.w : 0.0;
     float2 birdPx = params.bird.xy;
     float scale = params.wings.z;
-    if (birdVisible > 0.0) {
+    if (withBird && birdVisible > 0.0) {
         float2 shadowPx = birdPx - scene.sun.xy * scene.sun.z * params.wings.y / mpp;
         float2 offset = pixel - shadowPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
@@ -934,7 +1028,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // A flock: soft shadows far below for high birds, crisp ones for low egrets, then the birds themselves.
-    if (params.flock.w > 0.0) {
+    if (withFlock && params.flock.w > 0.0) {
         float t = params.flockLook.w;
         float reach = flockReach(params);
         float2 q;
@@ -961,10 +1055,10 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // The band lies over all that, and the gull flies above it, its shadow close beneath it.
-    float bank = smoothstep(0.02, 0.6, band.x);
-    if (bank > 0.0) {
+    float bank = withBand ? smoothstep(0.02, 0.6, band.x) : 0.0;
+    if (withBand && bank > 0.0) {
         c = mix(c, mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, band.y)), bank);
-        if (birdVisible > 0.0) {
+        if (withBird && birdVisible > 0.0) {
             float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
             if (dot(offset, offset) < scale * scale * 1.6) {
                 float2 q = rotate(offset, -params.bird.z) / scale;
@@ -975,7 +1069,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
-    if (birdVisible > 0.0 && params.finish.z > 0.5) {
+    if (withBird && birdVisible > 0.0 && params.finish.z > 0.5) {
         float2 offset = pixel - birdPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;

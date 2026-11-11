@@ -20,7 +20,8 @@ struct Biome {
     float4 j; // landmark A, density, landmark B, density
     float4 k; // sodium lamps, lamps off late, river bends, pond size
     float4 blossom, blossomLight; // orchard trees in flower; blossom.w is 1 when only orchards flower
-    float4 l; // evergreen gardens, where the river runs (world x), scattered trees' height for their width, unused
+    float4 l; // evergreen gardens, where the river runs (world x), scattered trees' height for their width, river bars
+    float4 n; // bank trees
     float4 railLine;  // the leg's railway: origin (leg-local x, y), cos and sin of its angle
     float4 railCurve; // its wiggle: amplitude, 1 / wavelength, phase, then whether there is one
 };
@@ -96,6 +97,16 @@ vertex VertexOut fullscreen(uint id [[vertex_id]]) {
     float2 p = float2((id << 1) & 2, id & 2);
     VertexOut out;
     out.position = float4(p * 2.0 - 1.0, 0.0, 1.0);
+    return out;
+}
+
+// Rectangles of the target, each drawn as a strip of two triangles. Corners are given as the vertex stage wants them,
+// -1 to 1 each way, left, top, right, bottom, so rectangles that share an edge share its very numbers and no pixel
+// along it is drawn twice or left out.
+vertex VertexOut tiles(uint id [[vertex_id]], uint tile [[instance_id]], constant float4 *rects [[buffer(0)]]) {
+    float4 r = rects[tile];
+    VertexOut out;
+    out.position = float4((id & 1u) ? r.z : r.x, (id & 2u) ? r.w : r.y, 0.0, 1.0);
     return out;
 }
 
@@ -283,8 +294,11 @@ inline float valleySlope(float y, constant Scene &scene, float wander) {
 }
 
 constant float roadWave = 2100.0;
-// The river's own bends, about 380 to 950 m from one to the next.
-constant float3 bendWaves = float3(95.0, 61.0, 151.0);
+// The river's own bends, about 350 to 650 m from one to the next: the first wave sets them, the last draws them
+// closer together and further apart, and the second is a small unevenness laid over them.
+constant float3 bendWaves = float3(72.0, 61.0, 151.0);
+// How far each bend leans downstream, as the third harmonic of its turn. The river flows south.
+constant float riverLean = 0.07;
 
 // Where the road crosses from one side of the valley to the other, -1 to 1, and how fast it does, per metre.
 inline float2 roadSwap(float y, constant Scene &scene) {
@@ -294,14 +308,25 @@ inline float2 roadSwap(float y, constant Scene &scene) {
     return float2(t, (1.0 - t * t) * 8.0 * cos(a) / roadWave);
 }
 
-// The bends the river makes within the valley, and their slope. The road doesn't follow them, so they straighten
+// The bends the river makes within the valley, and their slope: one run of bends rather than waves laid over each
+// other, so each is a bend in its own right. They come closer together and further apart as the longest wave has it,
+// swell and fade with the valley's own waves, so a tight bend follows a nearly straight reach, and each leans
+// downstream and is a little fuller than a sine, as a river's are. The road doesn't follow them, so they straighten
 // out where the road crosses, as rivers are trained to under a bridge, and the road never meets the river twice.
+// Never further out than 1.25 times `bend`, which riverReach counts on.
 inline float2 riverBends(float y, constant Scene &scene, float bend) {
     if (bend <= 0.0) return 0.0;
     float3 a = y / bendWaves + scene.bends.xyz;
-    float3 w = float3(0.55, 0.3, 0.4);
-    float shape = dot(w, sin(a));
-    float dshape = dot(w, cos(a) / bendWaves);
+    float4 v = y / riverWaves + scene.river;
+    float phase = a.x + 0.55 * sin(a.z);
+    float dphase = 1.0 / bendWaves.x + 0.55 * cos(a.z) / bendWaves.z;
+    float swell = v.w + 1.3 * sin(v.y);
+    float strength = 0.74 + 0.26 * sin(swell);
+    float dstrength = 0.26 * cos(swell) * (1.0 / riverWaves.w + 1.3 * cos(v.y) / riverWaves.y);
+    float turn = sin(phase) + riverLean * cos(3.0 * phase) + 0.035 * sin(3.0 * phase);
+    float dturn = (cos(phase) - 3.0 * riverLean * sin(3.0 * phase) + 0.105 * cos(3.0 * phase)) * dphase;
+    float shape = strength * turn + 0.1 * sin(a.y);
+    float dshape = dstrength * turn + strength * dturn + 0.1 * cos(a.y) / bendWaves.y;
     float2 swap = roadSwap(y, scene);
     float u = saturate((abs(swap.x) - 0.08) / 0.47);
     float damp = u * u * (3.0 - 2.0 * u);
@@ -337,6 +362,143 @@ inline float2 course(constant Scene &scene, float m) {
 inline float riverWidth(constant Scene &scene, float m) {
     float a = scene.legA.biome.d.z, b = scene.legB.biome.d.z;
     return (a < 0.5) != (b < 0.5) ? max(a, b) : mix(a, b, m);
+}
+
+// MARK: - The river's channel
+
+// What the river is like across its channel at one point. Water shapes it: the current swings to the outside of each
+// bend and cuts that bank back, drops its sand on the inside as a bar, and both happen a little downstream of where
+// the bend is tightest. So nothing here is a copy of the centre line moved sideways.
+struct Channel {
+    float d;      // metres from the centre line, positive towards +x
+    float slope;  // the centre line's slope there
+    float bend;   // how hard the river turned a little upstream, -1 to 1: positive with the inside of the bend at +x
+    float left;   // the top of the bank on the -x side, in metres from the centre line
+    float right;  // and on the +x side
+    float edge;   // the top of the bank on this point's own side, with its small unevenness
+    float t;      // across the channel, -1 at the left bank's top to 1 at the right's
+    float tilt;   // how the bed lies there: 1 on a straight, more towards a pool, below 0 on a bar that stands dry
+    float depth;  // in mean depths: 0 on a bar or a bank, about 1 down the middle of a straight, 2 or 3 in a pool
+};
+
+// A bend of this radius or tighter counts as a full one.
+constant float bendRadius = 115.0;
+
+// How hard the river turns at y, where its slope is `slope`: its curvature against bendRadius, positive where it turns
+// towards +x going north. Worked out from the same waves as valleyX and riverBends, and to be kept in step with them;
+// it leaves out how slowly the bends swell and how they straighten for the road, which change it by a few parts in
+// a hundred, and is a third of the work of measuring the slope twice.
+inline float riverTurn(float y, constant Scene &scene, float2 wander, float slope) {
+    float4 v = y / riverWaves + scene.river;
+    float4 waves = sin(v);
+    float curve = -wander.x * dot(float4(0.62, 0.24, 0.45, 0.05) * waves, 1.0 / (riverWaves * riverWaves));
+    if (wander.y > 0.0) {
+        float3 a = y / bendWaves + scene.bends.xyz;
+        float phase = a.x + 0.55 * sin(a.z);
+        float dphase = 1.0 / bendWaves.x + 0.55 * cos(a.z) / bendWaves.z;
+        float ddphase = -0.55 * sin(a.z) / (bendWaves.z * bendWaves.z);
+        float strength = 0.74 + 0.26 * sin(v.w + 1.3 * waves.y);
+        float s1 = sin(phase), c1 = cos(phase), s3 = sin(3.0 * phase), c3 = cos(3.0 * phase);
+        float dturn = c1 - 3.0 * riverLean * s3 + 0.105 * c3;
+        float ddturn = -s1 - 9.0 * riverLean * c3 - 0.315 * s3;
+        float shape = strength * (ddturn * dphase * dphase + dturn * ddphase) - 0.1 * sin(a.y) / (bendWaves.y * bendWaves.y);
+        float u = saturate((abs(roadSwap(y, scene).x) - 0.08) / 0.47);
+        curve += wander.y * shape * u * u * (3.0 - 2.0 * u);
+    }
+    float k = 1.0 + slope * slope;
+    return clamp(curve / (k * sqrt(k)) * bendRadius, -1.0, 1.0);
+}
+
+// For the frame pass, which asks on every frame: how far `p` is across the river from its centre line, and how hard
+// the river turned `lag` upstream, with the centre line's slope there. The centre line is riverX exactly; the slope
+// leaves out the valley's, which is slight, and the turn is taken from the bends' own wave moved on by `lag`. Near
+// enough to send the current the right way, at a third of what channelAt asks of the ground. Keep in step with
+// riverBends.
+inline float2 riverCurrent(float2 p, constant Scene &scene, float2 wander, float lag, thread float &slope) {
+    float4 waves = sin(p.y / riverWaves + scene.river);
+    float x = scene.road.x + wander.x * dot(float4(0.62, 0.24, 0.45, 0.05), waves);
+    float curve = -wander.x * dot(float4(0.62, 0.24, 0.45, 0.05) * waves, 1.0 / (riverWaves * riverWaves));
+    slope = 0.0;
+    if (wander.y > 0.0) {
+        float3 a = p.y / bendWaves + scene.bends.xyz;
+        float phase = a.x + 0.55 * sin(a.z);
+        float dphase = 1.0 / bendWaves.x + 0.55 * cos(a.z) / bendWaves.z;
+        float strength = 0.74 + 0.26 * sin(p.y / riverWaves.w + scene.river.w + 1.3 * waves.y);
+        float u = saturate((abs(roadSwap(p.y, scene).x) - 0.08) / 0.47);
+        float reach = wander.y * u * u * (3.0 - 2.0 * u);
+        float s1 = sin(phase), c1 = cos(phase);
+        float s3 = s1 * (3.0 - 4.0 * s1 * s1), c3 = c1 * (4.0 * c1 * c1 - 3.0);
+        x += reach * (strength * (s1 + riverLean * c3 + 0.035 * s3) + 0.1 * sin(a.y));
+        slope = reach * strength * (c1 - 3.0 * riverLean * s3 + 0.105 * c3) * dphase;
+        float ahead = phase + lag * dphase;
+        float sa = sin(ahead), ca = cos(ahead);
+        float sa3 = sa * (3.0 - 4.0 * sa * sa), ca3 = ca * (4.0 * ca * ca - 3.0);
+        curve += reach * strength * (-sa - 9.0 * riverLean * ca3 - 0.315 * sa3) * dphase * dphase;
+    }
+    float k = 1.0 + slope * slope;
+    return float2((p.x - x) / sqrt(k), clamp(curve / (k * sqrt(k)) * bendRadius, -1.0, 1.0));
+}
+
+// The top of one bank (`side` -1 or 1), in metres from the centre line: wider and narrower on its own along the
+// river, set back by the bar on the inside of a bend, cut back a little on the outside.
+inline float riverBank(float side, float y, float semi, float bend, float bars, bool exact) {
+    float inner = saturate(bend * side), outer = saturate(-bend * side);
+    float slow = exact ? alongNoise(float2(side * 3.0, y), float2(1.0, 170.0), 12u) - 0.5 : 0.0;
+    // A canal's banks are dug straight and stay where they were dug.
+    float wild = saturate(bars * 4.0);
+    return semi * (1.0 + (0.24 * slow + 0.16 * outer) * wild + 0.55 * bars * inner);
+}
+
+// How much further from the river than it used to what stands on the land must keep, for the banks' wandering: the
+// most a bank can stand beyond half the river's width, less the 6 m everything already allowed.
+inline float riverSpread(float semi, float bars) {
+    return max(semi * (0.12 + max(0.55 * bars, 0.16)) - 6.0, 0.0);
+}
+
+// `exact` is for the ground, which paints the banks. Without it they are left smooth, which is enough for the frame
+// pass to send the current the right way, and costs it far less on every frame.
+inline Channel channelAt(float2 p, constant Scene &scene, float2 wander, float width, float bars, bool exact = true) {
+    Channel c;
+    float semi = width * 0.5;
+    // The river flows south, so upstream is north: bars and pools lie about a width below the bend that makes them.
+    float lag = clamp(width, 14.0, 44.0);
+    float turned = 0.0;
+    if (exact) {
+        c.slope = riverSlope(p.y, scene, wander);
+        c.d = (p.x - riverX(p.y, scene, wander)) / sqrt(1.0 + c.slope * c.slope);
+    } else {
+        float2 across = riverCurrent(p, scene, wander, lag, c.slope);
+        c.d = across.x;
+        turned = across.y;
+    }
+    c.bend = 0.0;
+    c.left = semi;
+    c.right = semi;
+    c.edge = semi;
+    c.t = c.d / max(semi, 0.01);
+    c.tilt = 1.0;
+    c.depth = 0.0;
+    if (width < 0.5 || abs(c.d) > (exact ? semi * 2.0 + 60.0 : semi * (1.3 + 0.55 * bars) + 3.0)) return c;
+    if (exact) turned = riverTurn(p.y + lag, scene, wander, c.slope);
+    c.bend = turned * saturate(width / 12.0);
+    c.left = riverBank(-1.0, p.y, semi, c.bend, bars, exact);
+    c.right = riverBank(1.0, p.y, semi, c.bend, bars, exact);
+    float side = c.d > 0.0 ? 1.0 : -1.0;
+    float inner = saturate(c.bend * side), outer = saturate(-c.bend * side);
+    c.edge = side > 0.0 ? c.right : c.left;
+    if (exact) {
+        // A bank's line is never quite true, but it is smooth: a slow unevenness of a few hand's breadths.
+        float uneven = alongNoise(float2(side * 7.0, p.y), float2(1.0, 13.0), 4u) - 0.5;
+        c.edge += 0.5 * uneven * (1.0 - 0.7 * smoothstep(0.0, 0.3, inner)) * saturate(bars * 4.0);
+    }
+    c.t = c.d / c.edge;
+    // The bed tilts down towards the outside of the bend, where the bank is steep; inside, it shelves up into the bar.
+    c.tilt = 1.0 - (0.9 + 1.7 * bars) * c.bend * c.t;
+    // A bar shelves gently into the water; any other bank drops away under it.
+    float across = c.t * c.t;
+    float wall = across * across * across;
+    c.depth = max(c.tilt, 0.0) * max(1.0 - mix(wall, across, smoothstep(0.0, 0.3, inner * bars)), 0.0);
+    return c;
 }
 
 // MARK: - Traffic

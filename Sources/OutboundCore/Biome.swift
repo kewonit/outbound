@@ -68,6 +68,11 @@ public struct Biome: Sendable {
     public var riverWander: Float = 90
     /// How far, in metres, the river bends to either side within its valley. The road keeps to the valley.
     public var riverBends: Float = 0
+    /// How much sand the river lays down inside its bends: 0 for a canal or a river held between dykes, 1 for an
+    /// ordinary lowland river, more for a sand-bed river that is half bar at low water.
+    public var riverBars: Float = 1
+    /// How wooded the river's own banks are, 0 for grass to the water's edge, 1 for trees nearly all the way along.
+    public var bankTrees: Float = 0.5
     public var roadWidth: Float = 9
     public var paved: Float = 1
     public var ponds: Float = 0.2

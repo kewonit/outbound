@@ -44,6 +44,11 @@ open build/Outbound.app
 
 Ship an update to everyone: `scripts/release.sh 1.1 "What's new."`
 
+Before changing the shaders or the renderer, run `scripts/perf.sh keep`, and afterwards `scripts/perf.sh check`: it
+compares GPU time a frame, memory, shader compile time and the pictures themselves with the build that was kept. After
+any change to the shaders also run `scripts/perf.sh steady`, which paints one frame 1,200 times and fails unless every
+painting is the same.
+
 ## License
 
 The code is open to read and improve. Using the app needs a license. See [LICENSE](LICENSE).

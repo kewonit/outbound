@@ -44,6 +44,7 @@ kernel void layouts(device uint *out [[buffer(0)]], uint id [[thread_position_in
     out[i++] = __builtin_offsetof(Biome, k);
     out[i++] = __builtin_offsetof(Biome, blossomLight);
     out[i++] = __builtin_offsetof(Biome, l);
+    out[i++] = __builtin_offsetof(Biome, n);
     out[i++] = __builtin_offsetof(Leg, info);
     out[i++] = __builtin_offsetof(Leg, railShape);
     out[i++] = __builtin_offsetof(Train, run);
@@ -217,14 +218,19 @@ inline ProbeSpot probeSpot(uint id, float step, constant Scene &scene) {
     return spot;
 }
 
+// The river's channel at a probe's point, as the ground pass works it out for the place in view.
+inline Channel probeChannel(float2 world, constant Scene &scene) {
+    return channelAt(world, scene, course(scene, 1.0), scene.legB.biome.d.z, scene.legB.biome.l.w);
+}
+
 // The paint the painting helpers are given to paint over.
 constant float3 probeBase = float3(0.45, 0.5, 0.35);
 
-// The land of the place in view, as the ground pass paints it before the river, railway and road: its colour
+// The land of the place in view, as the ground pass paints it, river and all, before the railway and road: its colour
 // and water here, and its sway, herds, road and night light in probeLandMasks.
 inline Land probeLand(uint id, constant Scene &scene) {
     ProbeSpot spot = probeSpot(id, 5.0, scene);
-    return land(spot.world, scene.legB, scene, spot.riverHalf, spot.wander);
+    return land(spot.world, scene.legB, scene, scene.legB.biome.d.z, spot.wander, probeChannel(spot.world, scene));
 }
 
 kernel void probeLandColour(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
@@ -387,9 +393,12 @@ kernel void probePonds(device float4 *out [[buffer(0)]], constant Scene &scene [
 kernel void probeRiver(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
                        uint id [[thread_position_in_grid]]) {
     ProbeSpot spot = probeSpot(id, 2.0, scene);
-    float water = 0.0, herd = 0.0;
-    float3 c = river(probeBase, spot.world, scene, scene.legA.biome, scene.legB.biome, 1.0, scene.legB.biome.d.z,
-                     spot.wander, water, herd);
+    float water = 0.0, herd = 0.0, sway = 0.0;
+    float3 c = probeBase;
+    if (scene.legB.biome.d.z >= 0.5) {
+        c = river(c, spot.world, scene, scene.legB.biome, probeChannel(spot.world, scene), scene.legB.biome.d.z, water,
+                  herd, sway);
+    }
     out[id] = float4(c, water);
 }
 
@@ -401,7 +410,7 @@ kernel void probeRoad(device float4 *out [[buffer(0)]], constant Scene &scene [[
     float2 world = probePoint(id, 1.0, float2(roadX(y, scene, spot.wander), y));
     float onRoad = 0.0, traffic = 0.0, water = 0.0, herd = 0.0;
     float3 c = road(probeBase, world, scene, scene.legA.biome, scene.legB.biome, 1.0, spot.riverHalf,
-                    spot.wander, onRoad, traffic, water, herd);
+                    spot.wander, probeChannel(world, scene), onRoad, traffic, water, herd);
     out[id] = float4(c, onRoad);
 }
 
@@ -412,7 +421,7 @@ kernel void probeRailway(device float4 *out [[buffer(0)]], constant Scene &scene
     float2 onLine = leg.rail.xy + rotate(float2(0.0, leg.railShape.x * sin(leg.railShape.z)), leg.rail.z);
     float2 world = probePoint(id, 0.6, float2(onLine.x, onLine.y + leg.info.x));
     float herd = 0.0, water = 0.0;
-    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, course(scene, 1.0), herd, water);
+    float3 c = railway(probeBase, world, leg, scene, 0.45, leg.biome.d.z * 0.5, probeChannel(world, scene), herd, water);
     out[id] = float4(c, luma(railOverRoad(probeBase, world, leg, 1.0, 0.45)));
 }
 
@@ -649,6 +658,31 @@ kernel void promiseCentreLines(device float4 *out [[buffer(0)]], constant Scene 
                      beyond(riverDistance(float2(x, y), scene, wander), 1e-2),
                      beyond(roadDistance(float2(road, y), scene, wander), 1e-2),
                      beyond(x - (scene.road.x + wander.x * riverShape(y, scene.river) + riverBends(y, scene, wander.y).x), 1e-3));
+}
+
+// The river's channel, along some 15 km of it and from bank to bank: its banks stand either side of the centre line
+// and no further out than what keeps clear of the river allows for, a bend is never counted as more than a full one,
+// there is water only between the banks, and a canal's banks run straight.
+kernel void promiseChannel(device float4 *out [[buffer(0)]], constant Scene &scene [[buffer(1)]],
+                           uint id [[thread_position_in_grid]]) {
+    constant Biome &b = scene.legB.biome;
+    float width = b.d.z;
+    if (width < 0.5) {
+        out[id] = 0.0;
+        return;
+    }
+    float semi = width * 0.5;
+    float y = (float(id) - 2048.0) * 3.7;
+    float2 wander = course(scene, 1.0);
+    float slope = riverSlope(y, scene, wander);
+    float across = (probeRandom(id, 11u) * 2.0 - 1.0) * width * 1.3;
+    float2 p = float2(riverX(y, scene, wander) + across * sqrt(1.0 + slope * slope), y);
+    Channel ch = channelAt(p, scene, wander, width, b.l.w);
+    float widest = semi + riverSpread(semi, b.l.w) + 6.0;
+    out[id] = float4(outside(ch.left, semi * 0.5, widest) + outside(ch.right, semi * 0.5, widest),
+                     outside(ch.bend, -1.0, 1.0),
+                     ch.depth > 0.0 && abs(ch.d) >= ch.edge ? 1.0 : 0.0,
+                     b.l.w > 0.0 ? 0.0 : beyond(ch.left - semi, 1e-3) + beyond(ch.right - semi, 1e-3));
 }
 
 // The ground's alpha byte keeps water to a third, sway to a fifteenth, and the road and herd bits exactly,

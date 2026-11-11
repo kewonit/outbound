@@ -457,7 +457,7 @@ final class World {
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0
-    static let bendWaves = SIMD3<Double>(95, 61, 151)
+    static let bendWaves = SIMD3<Double>(72, 61, 151)
 
     /// The fraction of a slot that traffic heading north has moved on, and how many slots traffic each way has
     /// passed, measured from the reference. The counts wrap only after a million slots.

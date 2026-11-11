@@ -34,8 +34,10 @@ struct BiomeGPU {
     /// Orchard trees in flower, shaded (w is 1 when only orchards flower) and lit.
     var blossom, blossomLight: SIMD4<Float>
     /// evergreen gardens, where the river runs (world x; the road and a section grid line up on it), scattered trees'
-    /// height for their width (0 the usual), unused
+    /// height for their width (0 the usual), river bars
     var l: SIMD4<Float>
+    /// bank trees, then unused
+    var n: SIMD4<Float>
     /// The leg's railway again, for what has to keep clear of it (see railGap in Ground.metal): origin, cos and sin of
     /// its angle; then amplitude, 1 / wavelength, phase, and 1 if there is one.
     var railLine = SIMD4<Float>.zero, railCurve = SIMD4<Float>.zero
@@ -64,7 +66,8 @@ struct BiomeGPU {
         let flowers = b.blossom ?? (b.canopy, b.canopyLight)
         blossom = SIMD4(flowers.0, b.blossom == nil ? 0 : 1)
         blossomLight = c(flowers.1)
-        l = SIMD4(b.evergreenGardens ? 1 : 0, 0, b.treeHeight, 0)
+        l = SIMD4(b.evergreenGardens ? 1 : 0, 0, b.treeHeight, b.riverBars)
+        n = SIMD4(b.bankTrees, 0, 0, 0)
     }
 }
 
