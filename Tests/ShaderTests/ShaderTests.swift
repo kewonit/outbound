@@ -41,6 +41,7 @@ struct ShaderTests {
             ("Biome.k", MemoryLayout<BiomeGPU>.offset(of: \.k)!),
             ("Biome.blossomLight", MemoryLayout<BiomeGPU>.offset(of: \.blossomLight)!),
             ("Biome.l", MemoryLayout<BiomeGPU>.offset(of: \.l)!),
+            ("Biome.n", MemoryLayout<BiomeGPU>.offset(of: \.n)!),
             ("Leg.info", MemoryLayout<LegGPU>.offset(of: \.info)!),
             ("Leg.railShape", MemoryLayout<LegGPU>.offset(of: \.railShape)!),
             ("Train.run", MemoryLayout<TrainGPU>.offset(of: \.run)!),

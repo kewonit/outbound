@@ -401,7 +401,11 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         // u runs back from the bow along the boat, v square across it from the boat's line.
         float2 rel = world - float2(riverAt, slot.y);
         float u = -dot(rel, along) * dir;
-        float v = dot(rel, across) - width * (0.1 + 0.15 * hash11(id, 601u)) * dir;
+        // It keeps to its own side of the river, and to the deep water round a bend, away from the bar.
+        float bars = mix(scene.legA.biome.l.w, scene.legB.biome.l.w, m);
+        float deepSide = -riverTurn(slot.y + clamp(width, 14.0, 44.0), scene, wander, slope) * saturate(width / 12.0);
+        float v = dot(rel, across) - width * ((0.1 + 0.15 * hash11(id, 601u)) * dir * (1.0 - 0.6 * abs(deepSide))
+                                             + 0.2 * deepSide * min(bars, 1.0));
         if (u < -10.0 || u > 80.0) continue;
         float2 sun = float2(dot(scene.sun.xy, across), dot(scene.sun.xy, along)) * dir;
         if (hippos) {
@@ -620,14 +624,29 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         float overhead = cloudTexture.sample(clampSampler, float2(cloudPx.x, cloudSize.y - cloudPx.y) / cloudSize).x;
         c = mix(c, c + float3(0.16, 0.17, 0.2), water * overhead * 0.8);
         c = mix(c, float3(0.66, 0.74, 0.8), water * smoothstep(0.5, 0.8, gusts.y) * 0.12);
-        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current.
+        // The mask can't tell a river from a lake, so only what lies between the river's banks gets a current. Its
+        // threads follow the current, not the middle of the river: they crowd to the outside of each bend, and run
+        // twice as fast down the deep water there as over the shallows.
         if (water > 0.9 && abs(world.x - scene.road.x) < riverRoom + max(scene.legA.biome.d.z, scene.legB.biome.d.z)) {
             float turned = landTurn(world.y, scene);
-            float across = world.x - riverX(world.y, scene, course(scene, turned));
-            float bank = max(riverWidth(scene, turned) * 0.5, 0.001);
-            float current = smoothstep(0.9, 1.0, water) * (1.0 - smoothstep(0.8, 1.0, abs(across) / bank));
+            float width = riverWidth(scene, turned);
+            float bars = mix(scene.legA.biome.l.w, scene.legB.biome.l.w, turned);
+            Channel ch = channelAt(world, scene, course(scene, turned), width, bars, false);
+            float current = smoothstep(0.9, 1.0, water) * smoothstep(0.15, 0.6, ch.depth) * step(abs(ch.t), 1.0);
             if (current > 0.0) {
-                c *= 1.0 + 0.07 * current * (latticeNoise(noise, wrap, float2(across / 7.0, (world.y + scene.clock.w) / 64.0)) - 0.5);
+                float lane = (ch.t + 0.4 * ch.bend * (1.0 - ch.t * ch.t)) * ch.edge / 7.0;
+                float slow = latticeNoise(noise, wrap, float2(lane, (world.y + scene.clock.w) / 64.0));
+                float quick = latticeNoise(noise, wrap, float2(lane + 0.37, (world.y + 2.0 * scene.clock.w) / 64.0));
+                c *= 1.0 + 0.08 * current * (mix(slow, quick, smoothstep(0.9, 1.7, ch.depth)) - 0.5);
+                // Over the shallows where the current crosses between bends, small glints ride down with it: each
+                // one steady, none of them blinking.
+                float crossing = (1.0 - smoothstep(0.08, 0.32, abs(ch.bend))) * min(bars, 1.0) * saturate(width / 12.0);
+                if (crossing > 0.0) {
+                    crossing *= smoothstep(0.56, 0.8, alongNoise(float2(0.5, world.y + 0.9 * ch.d), float2(1.0, 60.0), 21u));
+                    float glint = latticeNoise(noise, wrap, float2(ch.d / 0.7, (world.y + 2.0 * scene.clock.w) / 4.0));
+                    c = mix(c, float3(0.9, 0.93, 0.94), smoothstep(1.0 - 0.2 * crossing, 1.03 - 0.2 * crossing, glint)
+                                                        * current * 0.4);
+                }
             }
         }
     }
