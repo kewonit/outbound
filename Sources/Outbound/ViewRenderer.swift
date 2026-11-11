@@ -35,7 +35,8 @@ final class GPU {
     private var detailedErrors = false
     private static let costKey = "groundCost"
 
-    init() throws {
+    /// `lean` says when the lean copies of the frame's shaders are compiled (see `ShaderLibrary`).
+    init(lean: ShaderLibrary.LeanCopies = .later) throws {
         // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
         // Apple's own GPUs can do.
         guard let device = MTLCreateSystemDefaultDevice(), device.supportsFamily(.apple7),
@@ -57,7 +58,7 @@ final class GPU {
                 : nil
         } ?? .initial
         paintBudget = PaintBudget(costPerMillion: min(max(groundCost.millisecondsPerMillion, 1), 400))
-        shaders = try ShaderLibrary(device: device)
+        shaders = try ShaderLibrary(device: device, lean: lean)
 
         let descriptor = MTLSamplerDescriptor()
         descriptor.minFilter = .linear
@@ -266,6 +267,10 @@ final class ViewRenderer {
     private var sweepLeg: Int?
     /// Cloud-space position of the cloud texture's bottom-left corner when it was last painted.
     private var cloudCorner: SIMD2<Double>?
+    /// The gusts over the land, which only drift with the wind, painted and slid as the clouds are, and the gust-space
+    /// position of its bottom-left corner when it was last painted.
+    private var gusts: MTLTexture?
+    private var gustCorner: SIMD2<Double>?
     private static let cloudMargin = 48
     private var paper: MTLTexture?
     private var paperDirty = true
@@ -281,6 +286,9 @@ final class ViewRenderer {
     var birdSize = 27.0
     /// Draw the bird into the frame, for stills and exports; live it has a layer of its own.
     var drawsBird = true
+    /// Draws each frame with the lean copies of its shaders wherever they will do (see `ShaderLibrary.Lean`). Off, every
+    /// frame takes the whole shaders, to compare the two.
+    var leanShaders = true
     /// How the ground cache is read; see `groundColorAt` in Composite.metal. 0, one bilinear tap, suits Retina.
     var groundFilter: Float = 0
     /// Ground texels painted by the last frame.
@@ -311,6 +319,10 @@ final class ViewRenderer {
     }
     /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
     private var settlesSweep = false
+    /// The band of cloud over a join, in a texture of its own, and which join and where it was last painted for.
+    private var band: MTLTexture?
+    private var bandJoin: Double?
+    private var bandCorner: SIMD2<Double>?
     /// Ground a frame must paint that is too much for one piece of GPU work goes in pieces committed ahead of the
     /// frame. The exporter waits for each, and learns nothing from them, so its pictures never vary.
     var waitsForPieces = false
@@ -357,6 +369,15 @@ final class ViewRenderer {
         let pixelHeight = Int((Double(frame.height) * scale).rounded())
         clouds = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
                              height: max(pixelHeight / 4, 1) + Self.cloudMargin * 2, label: "Clouds")
+        // With a clear row at each end, as anything past them reads the nearest.
+        let bandPixel = World.metresPerPoint / scale * 4
+        band = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
+                           height: Int((2 * World.bankReach / bandPixel).rounded(.up)) + 4, label: "Band")
+        bandJoin = nil
+        gusts = makeTexture(width: max(pixelWidth / 4, 1) + Self.cloudMargin * 2,
+                            height: max(pixelHeight / 4, 1) + Self.cloudMargin * 2, label: "Gusts",
+                            format: ShaderLibrary.gustFormat)
+        gustCorner = nil
         paper = makeTexture(width: max(pixelWidth / 2, 1), height: max(pixelHeight / 2, 1), label: "Paper",
                             format: ShaderLibrary.paperFormat)
         paperDirty = true
@@ -372,6 +393,7 @@ final class ViewRenderer {
     func invalidate() {
         valid = nil
         cloudCorner = nil
+        gustCorner = nil
         paperDirty = true
         chain?.superseded = true
     }
@@ -534,7 +556,8 @@ final class ViewRenderer {
         let x0 = Double(frame.minX) * mpp + camera.x
         let y0 = Double(frame.minY) * mpp + camera.y
         let top = Double(frame.maxY) * mpp + camera.y
-        let worldFrame = world.frame(bottom: y0, top: top, at: t)
+        // As far up as the cache paints, or the rows just past a join would be painted as the old place, and stay so.
+        let worldFrame = world.frame(bottom: y0, top: top + Double(Self.ahead + Self.pad + 1) * texel, at: t)
         let scene = worldFrame.scene
         lastScene = scene
         if worldFrame.sweepFront == nil, lastSweepFront != nil { finishSweep() }
@@ -548,6 +571,7 @@ final class ViewRenderer {
         if revision != world.revision {
             repaintRow = valid == nil ? nil : (valid!.y + cacheHeight)
             cloudCorner = nil
+            bandJoin = nil
             incomingFilled = nil
         }
         var rects: [Rect] = []
@@ -605,7 +629,6 @@ final class ViewRenderer {
         if let incoming, !incomingRects.isEmpty {
             // The new place as it will be once the sweep is over.
             var settled = scene
-            settled.morph.y = 0.001
             settled.morph.z = -1
             strokes += self.strokes(incomingRects, into: 1, texel: texel, reference: worldFrame.reference)
             targets.append([incoming.color, incoming.mask])
@@ -638,11 +661,12 @@ final class ViewRenderer {
             || offset.x > marginMetres * 2 || offset.y > marginMetres * 2 {
             let corner = viewCloud - SIMD2(marginMetres, marginMetres)
             let toSun = SIMD2<Double>(Double(scene.sun.x), Double(scene.sun.y))
+            let lean = Double(scene.sun.z)
             var cloudParams = CloudsGPU(
                 origin: SIMD4(Float(corner.x.positiveRemainder(16384)), Float(corner.y.positiveRemainder(16384)),
                               Float(cloudPixel), Float(world.cloudCover)),
-                offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
-                               Float(toSun.y * World.cloudHeight)),
+                offsets: SIMD4(Float(toSun.x * 26 * lean), Float(toSun.y * 26 * lean),
+                               Float(toSun.x * World.cloudHeight * lean), Float(toSun.y * World.cloudHeight * lean)),
                 view: SIMD4(Float(clouds.height), 0, 0, 0))
             let cloudPass = MTLRenderPassDescriptor()
             cloudPass.colorAttachments[0].texture = clouds
@@ -660,6 +684,12 @@ final class ViewRenderer {
             #if DEBUG
             events.append("clouds")
             #endif
+        }
+
+        let bandOffset = world.bank(from: y0, to: top).flatMap { join in
+            paintBand(over: join, x0: x0, pixel: cloudPixel,
+                      toSun: SIMD2(Double(scene.sun.x), Double(scene.sun.y)) * Double(scene.sun.z), commandBuffer: commandBuffer)
+                .map { SIMD2(x0, y0) - $0 }
         }
 
         if paperDirty, let paper {
@@ -680,6 +710,7 @@ final class ViewRenderer {
 
         // Composite into the target. The bird is drawn by whichever display it is over.
         let gust = world.gustSpace(origin, at: t)
+        let gustOffset = paintGusts(at: gust, pixel: cloudPixel, afresh: full, commandBuffer: commandBuffer)
         let bird = world.birdPose(at: t)
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
@@ -689,7 +720,7 @@ final class ViewRenderer {
         finish.w = groundFilter
         var params = CompositeGPU(
             view: SIMD4(Float(target.width), Float(target.height), Float(metresPerPixel), Float(density / scale)),
-            world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), Float(gust.x), Float(gust.y)),
+            world: SIMD4(Float(x0), Float(y0 - worldFrame.reference), 0, 0),
             cache: SIMD4(Float((x0 / texel).positiveRemainder(Double(cacheWidth))),
                          Float((y0 / texel).positiveRemainder(Double(cacheHeight))),
                          Float(cacheWidth), Float(cacheHeight)),
@@ -698,16 +729,22 @@ final class ViewRenderer {
             wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0),
-            flock: .zero, flockShape: .zero, flockLook: .zero)
+            flock: .zero, flockShape: .zero, flockLook: .zero,
+            bank: bandOffset.map { SIMD4(Float($0.x), Float($0.y), Float(cloudPixel), 1) } ?? .zero,
+            gusts: SIMD4(Float(gustOffset.x), Float(gustOffset.y), Float(cloudPixel), 0))
         if let (flock, sighting) = world.flock(at: t) {
             let point = sighting.position - SIMD2(Double(frame.minX), Double(frame.minY))
             let reach = flock.size * Double(flock.count) * 3 + 300
             if point.x > -reach, point.y > -reach, point.x < Double(frame.width) + reach,
                point.y < Double(frame.height) + reach {
-                params.flock = SIMD4(Float(point.x * scale), Float(point.y * scale), Float(sighting.heading), 1)
+                // Circling birds come down into view and climb back out of it, growing smaller and fainter as they go up.
+                let seen = flock.formation == .circling ? Flock.circlingVisibility(sighting.time) : 1
+                let climb = 1 + 2.5 * (1 - seen)
+                params.flock = SIMD4(Float(point.x * scale), Float(point.y * scale), Float(sighting.heading), Float(seen))
                 // Shadows fall altitude x shadow length metres from the birds, in pixels.
-                params.flockShape = SIMD4(Float(flock.formation.rawValue), Float(flock.count), Float(flock.size * scale),
-                                          Float(flock.altitude / metresPerPixel))
+                params.flockShape = SIMD4(Float(flock.formation.rawValue), Float(flock.count),
+                                          Float(flock.size * scale / climb.squareRoot()),
+                                          Float(flock.altitude * climb / metresPerPixel))
                 params.flockLook = SIMD4(flock.color, Float(sighting.time))
             }
         }
@@ -731,9 +768,14 @@ final class ViewRenderer {
             encoder.setFragmentTexture(gpu.noise, index: 4)
             encoder.setFragmentTexture(incoming?.color ?? color, index: 5)
             encoder.setFragmentTexture(incoming?.mask ?? mask, index: 6)
+            encoder.setFragmentTexture(band ?? clouds, index: 7)
+            encoder.setFragmentTexture(gusts ?? clouds, index: 8)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
-            encoder.setRenderPipelineState(pipelines.view)
+            // The copy of the ground's shader with only what this frame can need, once it has compiled.
+            let lean = leanShaders ? pipelines.lean : ShaderLibrary.Lean()
+            let dark = scene.time.w > 0, special = scene.train.rail.w > 0 || scene.morph.z >= 0
+            encoder.setRenderPipelineState((special ? nil : dark ? lean.viewAfterDark : lean.viewByDay) ?? pipelines.view)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
             let batches = animalBatches(frame: worldFrame, time: t, x0: x0, x1: x0 + Double(frame.width) * mpp,
@@ -752,10 +794,144 @@ final class ViewRenderer {
                 }
             }
 
-            encoder.setRenderPipelineState(pipelines.sky)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            drawSky(with: encoder, params: params, scene: scene, width: target.width, height: target.height)
             encoder.endEncoding()
         }
+    }
+
+    /// The frame's last draw. A flock in view takes the whole sky shader. Otherwise all the frame but the bird's corner
+    /// of it is drawn by a copy with neither bird nor flock in it, and only that corner, if the bird is over this
+    /// display at all, by the whole one.
+    private func drawSky(with encoder: MTLRenderCommandEncoder, params: CompositeGPU, scene: SceneGPU, width: Int,
+                         height: Int) {
+        let pipelines = gpu.shaders.pipelines, lean = leanShaders ? pipelines.lean : ShaderLibrary.Lean()
+        let band = params.bank.w > 0
+        func whole() {
+            encoder.setRenderPipelineState(pipelines.sky)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            skyDrawn = .whole
+        }
+        guard params.flock.w <= 0, let plain = band ? lean.skyBand : lean.skyPlain else { return whole() }
+        guard params.wings.w > 0,
+              let box = Self.birdBox(bird: params.bird, wings: params.wings, sun: scene.sun,
+                                     metresPerPixel: params.view.z, width: width, height: height) else {
+            encoder.setRenderPipelineState(plain)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            skyDrawn = .plain
+            return
+        }
+        // The bird is in the frame, which the copy with no bird in it can't draw all of. Until the copies that draw
+        // round the bird and over it are both there, the whole shader draws the frame, or the bird would be gone
+        // for as long as they took.
+        guard let around = band ? lean.skyBandAround : lean.skyAround, let over = lean.skyBird else { return whole() }
+        skyDrawn = .roundBird
+        // Pixels from the top left to where the vertex stage puts them.
+        func x(_ pixel: Int) -> Float { Float(pixel) / Float(width) * 2 - 1 }
+        func y(_ pixel: Int) -> Float { 1 - Float(pixel) / Float(height) * 2 }
+        func rect(_ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> SIMD4<Float> { SIMD4(x(x0), y(y0), x(x1), y(y1)) }
+        // Above the bird's box, below it, and to its left and right.
+        var rest = [rect(0, 0, width, box.y0), rect(0, box.y1, width, height),
+                    rect(0, box.y0, box.x0, box.y1), rect(box.x1, box.y0, width, box.y1)]
+        var corner = rect(box.x0, box.y0, box.x1, box.y1)
+        encoder.setRenderPipelineState(around)
+        encoder.setVertexBytes(&rest, length: MemoryLayout<SIMD4<Float>>.stride * rest.count, index: 0)
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: rest.count)
+        encoder.setRenderPipelineState(over)
+        encoder.setVertexBytes(&corner, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: 1)
+    }
+
+    /// Which shaders drew the last frame's sky: the whole one, a copy with neither bird nor flock in it, or that copy
+    /// round the bird's box and the whole one over it.
+    enum SkyDraw {
+        case whole, plain, roundBird
+    }
+    private(set) var skyDrawn = SkyDraw.whole
+
+    /// The pixels of a target, counted from its top left, that hold anything of the bird: the bird itself, its shadow on
+    /// the ground and its shadow on a band of cloud, each within a circle the sky shader keeps to (see `sky`), with a
+    /// couple of pixels to spare. Nil when none of it falls on the target.
+    static func birdBox(bird: SIMD4<Float>, wings: SIMD4<Float>, sun: SIMD4<Float>, metresPerPixel: Float, width: Int,
+                        height: Int) -> (x0: Int, y0: Int, x1: Int, y1: Int)? {
+        let reach = wings.z * Float(1.6).squareRoot() + 2
+        let fall = SIMD2(sun.x, sun.y) * wings.y / metresPerPixel
+        let centres = [SIMD2(bird.x, bird.y), SIMD2(bird.x, bird.y) - fall * sun.z, SIMD2(bird.x, bird.y) - fall * 0.35]
+        guard reach.isFinite, centres.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else { return nil }
+        // The shader counts pixels up from the bottom.
+        let left = centres.map(\.x).min()! - reach, right = centres.map(\.x).max()! + reach
+        let low = centres.map(\.y).min()! - reach, high = centres.map(\.y).max()! + reach
+        // Kept within reach of the target before they are counted in whole pixels, which a shadow thrown a long way by a
+        // low sun needn't be.
+        let limit = Float(max(width, height)) * 4
+        func near(_ pixel: Float) -> Float { min(max(pixel, -limit), limit) }
+        let x0 = max(Int(near(left).rounded(.down)), 0), x1 = min(Int(near(right).rounded(.up)), width)
+        let y0 = max(height - Int(near(high).rounded(.up)), 0), y1 = min(height - Int(near(low).rounded(.down)), height)
+        guard x1 > x0, y1 > y0 else { return nil }
+        return (x0, y0, x1, y1)
+    }
+
+    /// Paints the band of cloud over the join at world y `join`, lit and shadowed from `toSun`, the way to the sun scaled
+    /// by the shadow length, if what is painted won't do, and hands back the world
+    /// position of its texture's bottom-left corner. It belongs to the land, so it is painted once and only slides, unless
+    /// the flight drifts sideways past its margin. Pixels stay on one grid so a repaint can't shift it.
+    private func paintBand(over join: Double, x0: Double, pixel: Double, toSun: SIMD2<Double>,
+                           commandBuffer: MTLCommandBuffer) -> SIMD2<Double>? {
+        guard let band else { return nil }
+        let margin = Double(Self.cloudMargin) * pixel
+        if bandJoin == join, let bandCorner, x0 >= bandCorner.x, x0 <= bandCorner.x + margin * 2 { return bandCorner }
+        let corner = SIMD2(((x0 - margin) / pixel).rounded(.down) * pixel, join - Double(band.height) / 2 * pixel)
+        // Each band its own: the field is the same everywhere, so where along it this one lies is what makes it different.
+        let across = (corner.x + join * 7.3).positiveRemainder(16384)
+        var params = CloudsGPU(origin: SIMD4(Float(across), Float(corner.y - join), Float(pixel), Float(World.bankHalf)),
+                               offsets: SIMD4(Float(toSun.x * 26), Float(toSun.y * 26), Float(toSun.x * World.cloudHeight),
+                                              Float(toSun.y * World.cloudHeight)),
+                               view: SIMD4(Float(band.height), 0, 0, 0))
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = band
+        pass.colorAttachments[0].loadAction = .dontCare
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return nil }
+        encoder.label = "Band"
+        encoder.setRenderPipelineState(gpu.shaders.pipelines.bank)
+        encoder.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
+        bandJoin = join
+        bandCorner = corner
+        return corner
+    }
+
+    /// Paints the gusts with the view's corner at `view` in gust space, unless what is painted still covers it, and hands
+    /// back the view's offset from the texture's corner. Each water pixel then reads one sample rather than working
+    /// out four layers of noise.
+    private func paintGusts(at view: SIMD2<Double>, pixel: Double, afresh: Bool,
+                            commandBuffer: MTLCommandBuffer) -> SIMD2<Double> {
+        guard let gusts else { return .zero }
+        let margin = Double(Self.cloudMargin) * pixel
+        if !afresh, let gustCorner {
+            // Gust space repeats, so the way from the corner to the view is the shorter one round it.
+            let period = World.gustPeriod
+            var offset = view - gustCorner
+            offset.x -= (offset.x / period.x).rounded() * period.x
+            offset.y -= (offset.y / period.y).rounded() * period.y
+            if offset.x >= 0, offset.y >= 0, offset.x <= margin * 2, offset.y <= margin * 2 { return offset }
+        }
+        let corner = view - SIMD2(margin, margin)
+        var params = SIMD4<Float>(Float(corner.x), Float(corner.y), Float(pixel), Float(gusts.height))
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = gusts
+        pass.colorAttachments[0].loadAction = .dontCare
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return .zero }
+        encoder.label = "Gusts"
+        encoder.setRenderPipelineState(gpu.shaders.pipelines.gusts)
+        encoder.setFragmentBytes(&params, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+        encoder.setFragmentTexture(gpu.noise, index: 0)
+        encoder.setFragmentSamplerState(gpu.wrap, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
+        gustCorner = corner
+        return SIMD2(margin, margin)
     }
 
     private var light: MTLTexture?
@@ -784,9 +960,8 @@ final class ViewRenderer {
         if frame.legA.index == frame.legB.index {
             regions.append((frame.legB, frame.scene.legB, -.infinity, .infinity))
         } else {
-            let split = frame.legB.start + Journey.morphLength * 0.5
-            regions.append((frame.legA, frame.scene.legA, -.infinity, split))
-            regions.append((frame.legB, frame.scene.legB, split, .infinity))
+            regions.append((frame.legA, frame.scene.legA, -.infinity, frame.legB.start))
+            regions.append((frame.legB, frame.scene.legB, frame.legB.start, .infinity))
         }
         var batches: [AnimalBatch] = []
         for region in regions {

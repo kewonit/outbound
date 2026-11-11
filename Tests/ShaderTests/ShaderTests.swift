@@ -41,6 +41,7 @@ struct ShaderTests {
             ("Biome.k", MemoryLayout<BiomeGPU>.offset(of: \.k)!),
             ("Biome.blossomLight", MemoryLayout<BiomeGPU>.offset(of: \.blossomLight)!),
             ("Biome.l", MemoryLayout<BiomeGPU>.offset(of: \.l)!),
+            ("Biome.n", MemoryLayout<BiomeGPU>.offset(of: \.n)!),
             ("Leg.info", MemoryLayout<LegGPU>.offset(of: \.info)!),
             ("Leg.railShape", MemoryLayout<LegGPU>.offset(of: \.railShape)!),
             ("Train.run", MemoryLayout<TrainGPU>.offset(of: \.run)!),
@@ -248,7 +249,7 @@ final class Bench {
             world.journey.refreshSeasons(date: noon)
             var time = 120.0
             world.advance(to: time)
-            while place.railway != nil, !world.trainPassing, time < 7200 {
+            while place.railway != nil, !world.trainPassing || world.handoverPassing, time < 7200 {
                 time += 2
                 world.advance(to: time)
             }
@@ -310,11 +311,18 @@ final class Bench {
 
     /// A square of ground 256 texels across, a point to a texel, around the river at the bottom of the view.
     func renderGround(_ scene: Scene, in library: MTLLibrary) throws -> (color: [UInt8], night: [UInt8]) {
+        try renderGround(scene, from: scene.bottom, width: 256, height: 256, in: library)
+    }
+
+    /// Ground `width` by `height` texels, a point to a texel, around the river and rising from world y `from`.
+    func renderGround(_ scene: Scene, from y: Float, width: Int, height: Int,
+                      in library: MTLLibrary) throws -> (color: [UInt8], night: [UInt8]) {
         let texel = Float(World.metresPerPoint)
-        var params = GroundGPU(origin: SIMD4(0, 0, scene.gpu.road.x - 128 * texel, scene.bottom),
+        var params = GroundGPU(origin: SIMD4(0, 0, scene.gpu.road.x - Float(width / 2) * texel, y),
                                texel: SIMD4(texel, 0, 0, 0))
         var gpu = scene.gpu
-        let images = try render("ground", in: library, formats: [ShaderLibrary.cacheFormat, ShaderLibrary.nightFormat]) {
+        let images = try render("ground", in: library, formats: [ShaderLibrary.cacheFormat, ShaderLibrary.nightFormat],
+                                width: width, height: height) {
             $0.setFragmentBytes(&params, length: MemoryLayout<GroundGPU>.stride, index: 0)
             $0.setFragmentBytes(&gpu, length: MemoryLayout<SceneGPU>.stride, index: 1)
         }
@@ -329,6 +337,17 @@ final class Bench {
         }[0]
     }
 
+    /// The band's texture at a metre a pixel with its bottom row `above` metres above a join, its shadow falling
+    /// `shadow` metres from the cloud.
+    func renderBand(above: Float, x: Float = 900, shadow: SIMD2<Float> = SIMD2(-43, 49)) throws -> [UInt8] {
+        var params = CloudsGPU(origin: SIMD4(x, above, 1, Float(World.bankHalf)),
+                               offsets: SIMD4(8, -9, -shadow.x, -shadow.y),
+                               view: SIMD4(256, 0, 0, 0))
+        return try render("bank", in: current, formats: [ShaderLibrary.cacheFormat]) {
+            $0.setFragmentBytes(&params, length: MemoryLayout<CloudsGPU>.stride, index: 0)
+        }[0]
+    }
+
     func renderPaper(in library: MTLLibrary) throws -> [UInt8] {
         var params = SIMD4<Float>(256, 256, 1, 0)
         return try render("paper", in: library, formats: [ShaderLibrary.paperFormat]) {
@@ -336,10 +355,9 @@ final class Bench {
         }[0]
     }
 
-    /// Draws one fragment over a 256 by 256 target per format and reads every target back.
-    private func render(_ fragment: String, in library: MTLLibrary, formats: [MTLPixelFormat],
-                        bind: (MTLRenderCommandEncoder) -> Void) throws -> [[UInt8]] {
-        let size = 256
+    /// Draws one fragment over a target per format, 256 by 256 unless asked otherwise, and reads every target back.
+    private func render(_ fragment: String, in library: MTLLibrary, formats: [MTLPixelFormat], width: Int = 256,
+                        height: Int = 256, bind: (MTLRenderCommandEncoder) -> Void) throws -> [[UInt8]] {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = library.makeFunction(name: "fullscreen")
         descriptor.fragmentFunction = library.makeFunction(name: fragment)
@@ -347,7 +365,7 @@ final class Bench {
         var targets: [MTLTexture] = []
         for (i, format) in formats.enumerated() {
             descriptor.colorAttachments[i].pixelFormat = format
-            let texture = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: size, height: size,
+            let texture = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: format, width: width, height: height,
                                                                    mipmapped: false)
             texture.usage = .renderTarget
             texture.storageMode = .shared
@@ -369,8 +387,8 @@ final class Bench {
         if let error = commands.error { throw error }
         return zip(targets, formats).map { target, format in
             let bytes = format == .rg8Unorm ? 2 : 4
-            var pixels = [UInt8](repeating: 0, count: size * size * bytes)
-            target.getBytes(&pixels, bytesPerRow: size * bytes, from: MTLRegionMake2D(0, 0, size, size),
+            var pixels = [UInt8](repeating: 0, count: width * height * bytes)
+            target.getBytes(&pixels, bytesPerRow: width * bytes, from: MTLRegionMake2D(0, 0, width, height),
                             mipmapLevel: 0)
             return pixels
         }

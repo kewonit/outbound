@@ -421,7 +421,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if journey.followsCalendar != preferences.followsCalendar {
             journey.followsCalendar = preferences.followsCalendar
             journey.refreshSeasons()
-            world.repaint()
+            world.seasonsChanged()
             looks = true
         }
         if journey.speed != preferences.pace.speed {
@@ -434,6 +434,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displays.power.batteryMode = preferences.batteryMode
         displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
         displays.pausesWhenHidden = preferences.pausesWhenHidden
+        displays.showsPlaceName = preferences.showsPlaceName
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
@@ -545,6 +546,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         border.target = self
         border.state = preferences.paperEdge ? .on : .off
         menu.addItem(border)
+        let name = NSMenuItem(title: String(localized: "Show Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
+        name.target = self
+        name.state = preferences.showsPlaceName ? .on : .off
+        menu.addItem(name)
         menu.addItem(.separator())
 
         // How it flies.
@@ -661,6 +666,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleBorder() {
         preferences.paperEdge.toggle()
+    }
+
+    @objc private func toggleShowsPlaceName() {
+        preferences.showsPlaceName.toggle()
     }
 
     @objc private func togglePausesWhenHidden() {

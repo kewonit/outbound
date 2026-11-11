@@ -160,7 +160,7 @@
      "name": "날아갈 곳을 고를 수 있나요?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "네. 메뉴 막대의 갈매기를 클릭하고 ‘날아갈 곳’을 선택하세요. 장소마다 머무는 시간도 12분에서 1시간까지 정할 수 있고, 한 곳에 계속 머물게 할 수도 있어요."
+      "text": "네. 메뉴 막대의 갈매기를 클릭하고 ‘날아갈 곳’을 선택하세요. 장소마다 머무는 시간도 20분에서 1시간까지 정할 수 있고, 한 곳에 계속 머물게 할 수도 있어요."
      }
     },
     {
@@ -427,7 +427,7 @@
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q4">날아갈 곳을 고를 수 있나요?</button>
-          <div class="faq-a"><p data-i18n="faq.a4">네. 메뉴 막대의 갈매기를 클릭하고 ‘날아갈 곳’을 선택하세요. 장소마다 머무는 시간도 12분에서 1시간까지 정할 수 있고, 한 곳에 계속 머물게 할 수도 있어요.</p></div>
+          <div class="faq-a"><p data-i18n="faq.a4">네. 메뉴 막대의 갈매기를 클릭하고 ‘날아갈 곳’을 선택하세요. 장소마다 머무는 시간도 20분에서 1시간까지 정할 수 있고, 한 곳에 계속 머물게 할 수도 있어요.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" aria-expanded="false" data-i18n="faq.q5">밤이 되면 어두워지나요?</button>
@@ -486,26 +486,33 @@
       </div>
       <section class="latest" aria-labelledby="latest-title">
         <div class="latest-head">
-          <h3 id="latest-title"><span class="latest-version">v1.7</span><time class="latest-date" datetime="2026-11-08">2026년 11월 8일</time></h3>
+          <h3 id="latest-title"><span class="latest-version">v1.8</span><time class="latest-date" datetime="2026-11-12">2026년 11월 12일</time></h3>
           <a class="latest-all" href="/changelog"><span data-i18n="footer.changelog">업데이트 내역</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a>
         </div>
         <div class="latest-notes"><!-- latest -->
           <h4>새 기능</h4>
           <ul>
-            <li>모든 게 약 절반 속도로 움직여요. 차와 구름도 마찬가지예요.</li>
-            <li>처음 한 번은 모두 ‘느리게’로 시작해요. ‘부드럽게’와 ‘경쾌하게’는 여전히 ‘속도’에 있어요.</li>
-            <li>새 갈매기. 제자리에서 도는 대신 곡선을 그리며 날아요.</li>
-            <li>시스템 종료, 재시동, 로그아웃할 때 비행이 먼저 멈춰서, 데스크탑과 같은 그림으로 화면이 꺼져요.</li>
+            <li>두 장소가 이제 한쪽이 다른 쪽으로 바뀌는 대신, 가느다란 구름 띠 아래에서 만나요.</li>
+            <li>강, 호수, 논이 물로 그려지고, 수면이 움직여요.</li>
+            <li>강이 굽이치고, 굽이 안쪽에는 모래톱이, 강가에는 나무가 있어요.</li>
+            <li>새 보트. 키를 잡은 사람이 타고 있어요.</li>
+            <li>모든 집에 도로까지 이어지는 길이 있어요. 도로는 다리로 물을 건너고, 철도는 다리로 도로를 넘어가요.</li>
+            <li>Kansas는 측량 격자에 맞춰 놓이고, Normandy의 산울타리에는 참나무가 서 있고, Lisse에는 새 온실과 풍차가 생겼어요.</li>
+            <li>메뉴에 ‘장소 이름 표시’. 체크를 해제하면 데스크탑 구석의 이름이 사라져요.</li>
           </ul>
           <h4>변경</h4>
           <ul>
-            <li>한 장소에 머무는 가장 짧은 시간은 12분이에요. 6분은 없어졌어요.</li>
-            <li>새 떼가 나타나는 횟수가 약 절반으로 줄었어요.</li>
+            <li>‘느리게’, ‘부드럽게’, ‘경쾌하게’가 각각 약 3분의 1씩 느려졌어요.</li>
+            <li>한 장소에 머무는 가장 짧은 시간은 20분이에요. 12분은 없어졌어요.</li>
+            <li>집이 약 3분의 2 줄었어요.</li>
+            <li>차, 보트, 기차, 동물 무리가 실제 속도로 움직여요.</li>
+            <li>그림자가 나무 밑동에서 시작해요.</li>
+            <li>프레임마다 GPU 시간이 약 15% 줄었어요.</li>
           </ul>
           <h4>수정</h4>
           <ul>
-            <li>세로로 아주 긴 디스플레이에서 이전 전환이 끝나기 전에 세 번째 장소가 보일 수 있었어요.</li>
-            <li>1.6이 날갯짓 도중에 저장한 갈매기가 날개를 반쯤 접은 채로 있었어요.</li>
+            <li>비행 중에 교차로가 다른 곳으로 튀는 일이 있었어요.</li>
+            <li>Lapland 습지의 웅덩이가 블록으로 쪼개져 보였어요.</li>
           </ul>
         <!-- /latest --></div>
       </section>

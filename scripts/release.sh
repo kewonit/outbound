@@ -57,9 +57,12 @@ item="    <item>
 ITEM="$item" awk '{ print } /<language>/ && !done { print ENVIRON["ITEM"]; done = 1 }' "$appcast" > "$appcast.new"
 mv "$appcast.new" "$appcast"
 
-# And at the top of the changelog, with the notes as its line, unless it already has one. Fill it out by hand later.
+# And at the top of the changelog. An entry written ahead of the release takes today's date. Without one, the notes go
+# in as its line, to fill out by hand later.
 changelog=Website/changelog.html
-if ! grep -q "id=\"v$version\"" "$changelog"; then
+if grep -q "id=\"v$version\"" "$changelog"; then
+    sed -i '' "/<article class=\"release\" id=\"v$version\">/,/<\/header>/s|<time datetime=\"[^\"]*\">[^<]*</time>|<time datetime=\"$(date +%F)\">$(LC_ALL=C date "+%-d %B %Y")</time>|" "$changelog"
+else
     said=$(printf '%s' "$notes" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
     entry="    <article class=\"release\" id=\"v$version\">
       <header class=\"release-head\">
@@ -73,8 +76,8 @@ if ! grep -q "id=\"v$version\"" "$changelog"; then
 "
     ENTRY="$entry" awk '{ print } /<!-- releases:/ && !done { print ENVIRON["ENTRY"]; done = 1 }' "$changelog" > "$changelog.new"
     mv "$changelog.new" "$changelog"
-    sed -i '' "s|\(<loc>https://outbound.edbn.me/changelog</loc><lastmod>\)[^<]*|\1$(date +%F)|" Website/sitemap.xml
 fi
+sed -i '' "s|\(<loc>https://outbound.edbn.me/changelog</loc><lastmod>\)[^<]*|\1$(date +%F)|" Website/sitemap.xml
 # The homepage's footer shows the newest version, in every language.
 node scripts/build-site-languages.mjs >/dev/null ||
     echo "The footer still shows the last version: run node scripts/build-site-languages.mjs and push." >&2

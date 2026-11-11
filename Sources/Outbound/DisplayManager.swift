@@ -39,6 +39,10 @@ final class DisplayManager {
     var note: String? {
         didSet { wallpapers.values.forEach { $0.note = note } }
     }
+    /// Whether each desktop shows the place's name in its corner.
+    var showsPlaceName = true {
+        didSet { wallpapers.values.forEach { $0.showsPlaceName = showsPlaceName } }
+    }
     /// Whether the paintings have their pale border.
     var paperEdge = true {
         didSet { wallpapers.values.forEach { $0.paperEdge = paperEdge } }
@@ -292,6 +296,7 @@ final class DisplayManager {
                 let wallpaper = Wallpaper(screen: screen, displayID: id, world: world, gpu: gpu)
                 wallpaper.note = note
                 wallpaper.paperEdge = paperEdge
+                wallpaper.showsPlaceName = showsPlaceName
                 wallpaper.economical = power.state.onBattery
                 globalHolds.forEach { wallpaper.set($0, true) }
                 if pausedHidden { wallpaper.set(.hidden, true) }

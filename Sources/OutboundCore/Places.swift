@@ -6,6 +6,13 @@ public struct Season: Sendable {
     /// "Late winter – mustard in flower"
     public let line: String
     public let biome: Biome
+
+    /// A day of the year in the middle of the season, for where the sun stands while it is shown.
+    public var middleDay: Int {
+        let angles = months.map { (Double($0) - 0.5) / 12 * 2 * .pi }
+        let middle = atan2(angles.map(sin).reduce(0, +), angles.map(cos).reduce(0, +))
+        return Int(((middle / (2 * .pi) + 1) * 365).truncatingRemainder(dividingBy: 365)) + 1
+    }
 }
 
 public struct Place: Sendable, Identifiable {
@@ -58,11 +65,13 @@ private extension Biome {
 private let punjabBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8fbf45), groundDark: rgb(0x5f9a35),
                   crops: (rgb(0xf3cf1d), rgb(0xf6dc3c), rgb(0xe9bd12), rgb(0x9cc845)), hedge: rgb(0x2f7c34),
-                  water: rgb(0x4a6f86), shallows: rgb(0x7f9488), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
+                  water: rgb(0x4d8580), shallows: rgb(0x8fb39c), road: rgb(0xc7c1b4), canopy: rgb(0x2c6a3b),
                   canopyLight: rgb(0x3f8a45))
     b.fieldSize = 190; b.hedgeWidth = 9; b.warp = 0.55; b.fallow = 0.06; b.sway = 0.9; b.strokes = 0.6
     b.trees = 0.2; b.treeSize = 10; b.hedgeTrees = 0.35; b.clumping = 0.85; b.houses = 0.35; b.ponds = 0.25
     b.riverWidth = 34; b.riverWander = 60; b.riverBends = 50; b.roadWidth = 12; b.paved = 1
+    // A river of the plains: broad bars of pale sand inside its bends, crops to the lip, tamarisk scrub and the odd tree.
+    b.riverBars = 1.3; b.bankTrees = 0.4
     b.animal = .cattle; b.herds = 0.15; b.animalColor = rgb(0x3d3530); b.cars = 0.25
     // Smaller rounded fields between narrow bunds dotted with trees (few stand out in the crops), compact brick
     // villages with flat roofs and water tanks, tube-well huts and the odd brick kiln; traffic keeps left.
@@ -95,7 +104,7 @@ private let punjab = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0x33549e), stripe: rgb(0xe6d9b3), roof: rgb(0x5c6370), locomotive: rgb(0xa82924),
-                     cars: 18, carLength: 23, locomotives: 1, speed: 13.5, electrified: true, chance: 0.7))
+                     cars: 18, carLength: 23, locomotives: 1, speed: 14, electrified: true, chance: 0.7))
 
 // MARK: - Niigata: flooded rice paddies and sakura
 
@@ -103,11 +112,13 @@ private let niigataBase: Biome = {
     // Flooded plots mirroring the sky, then newly planted ones with the seedlings showing green through the water.
     var b = Biome(layout: .paddies, ground: rgb(0x8aa86a), groundDark: rgb(0x5f8a52),
                   crops: (rgb(0x86a6b8), rgb(0x9cb4c2), rgb(0x86a487), rgb(0x95ae84)), hedge: rgb(0x8fa25e),
-                  water: rgb(0x4f7179), shallows: rgb(0x7e938a), sand: rgb(0xc7bfa6), road: rgb(0xbdb8ab),
+                  water: rgb(0x3f7f8a), shallows: rgb(0x80b0a4), sand: rgb(0xc7bfa6), road: rgb(0xbdb8ab),
                   canopy: rgb(0xf0b7c4), canopyLight: rgb(0xfbdde4))
     b.fieldSize = 30; b.hedgeWidth = 2.4; b.warp = 0.08; b.fallow = 0.2; b.flooded = 0.8; b.sway = 0.3
     b.strokes = 0.35; b.trees = 0; b.treeSize = 13; b.hedgeTrees = 0; b.clumping = 0.15; b.petals = 0.8
     b.riverWidth = 60; b.riverWander = 18; b.riverBends = 30; b.roadWidth = 7; b.paved = 1; b.houses = 0.15
+    // Trained between its dykes: thin gravel bars and hardly a tree.
+    b.riverBars = 0.25; b.bankTrees = 0.06
     b.ponds = 0.1; b.cars = 0.2
     // Sakura along the lanes and dykes rather than in the fields, villages of dark tile and coloured metal roofs, each
     // homestead in its windbreak of dark evergreens, a wide river between grassy dykes, white LED street lights;
@@ -149,16 +160,20 @@ private let niigata = Place(
 private let serengetiBase: Biome = {
     var b = Biome(layout: .grassland, ground: rgb(0xe0ad48), groundDark: rgb(0xc58f34),
                   crops: (rgb(0xd9a443), rgb(0xe7bb5c), rgb(0xc99a3e), rgb(0xb98a38)), hedge: rgb(0xa77a33),
-                  water: rgb(0x3d8f8a), shallows: rgb(0x5fb3a8), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
+                  water: rgb(0x6e6c4c), shallows: rgb(0x9b9268), sand: rgb(0xc9a46a), road: rgb(0xb7774a),
                   canopy: rgb(0x55803a), canopyLight: rgb(0x77a04a))
     b.patchiness = 0.85; b.strokes = 0.45; b.sway = 0.6; b.trees = 0.035; b.treeSize = 17; b.hedgeTrees = 0
+    // Umbrella thorns: as wide as they are tall, and flat on top.
+    b.treeHeight = 1.1
     b.clumping = 0.1
     b.riverWidth = 26; b.riverWander = 70; b.roadWidth = 6; b.paved = 0; b.houses = 0; b.ponds = 0.35
     b.animal = .zebra; b.herds = 0.6; b.animalColor = rgb(0xf2efe8); b.cars = 0.04
     // Granite kopjes ringed with green, burn scars, olive-brown seasonal water with hippos, and through the dry
     // season mostly gazelles: the great herds are up north until December.
     b.animal = .gazelle; b.herds = 0.3; b.animalColor = rgb(0xc49a5c)
-    b.water = rgb(0x5f6b48); b.shallows = rgb(0x7a7a52); b.riverWidth = 16; b.riverBends = 45
+    b.water = rgb(0x5d6e46); b.shallows = rgb(0x8a8553); b.riverWidth = 16; b.riverBends = 45
+    // A gallery river: ochre sand, and trees crowding its banks in a land that has few.
+    b.riverBars = 1.0; b.bankTrees = 0.75
     b.canopy = rgb(0x5d7a36); b.canopyLight = rgb(0x7f9a48); b.treeSize = 16; b.trees = 0.045
     b.rock = rgb(0xb9ab98)
     b.landmarks = (.kopje, 0.4, .burn, 0.22)
@@ -197,15 +212,18 @@ private let pampaBase: Biome = {
     // Natural grass and tilled soil, then pasture, lusher pasture, wheat and stubble.
     var b = Biome(layout: .grassland, ground: rgb(0xa2a865), groundDark: rgb(0x8e7556),
                   crops: (rgb(0x8fae55), rgb(0x76a046), rgb(0xa4b54e), rgb(0xc8b98a)), hedge: rgb(0x5f9330),
-                  water: rgb(0x6c7e6a), shallows: rgb(0x8e9c7c), sand: rgb(0xcfc29a), road: rgb(0xcbb995),
+                  water: rgb(0x47664f), shallows: rgb(0x869a6c), sand: rgb(0xcfc29a), road: rgb(0xcbb995),
                   canopy: rgb(0x2f5a33), canopyLight: rgb(0x557a45))
     b.patchiness = 0.5; b.strokes = 0.4; b.sway = 0.35; b.trees = 0.012; b.treeSize = 11; b.hedgeTrees = 0
     b.clumping = 0.7; b.treeLines = 0.3
     b.riverWidth = 9; b.riverWander = 22; b.riverBends = 32; b.levees = 0
+    // Grass to the water's edge and no trees along it.
+    b.riverBars = 0.4; b.bankTrees = 0
     b.roadWidth = 7; b.paved = 0; b.ponds = 0.35; b.pondSize = 3.2
     // Paddocks of 30 to 60 hectares, a windmill and round tank in many with cattle trails fanning out, estancias in
     // eucalyptus, black Angus, lagunas rimmed with salt, and only a thin winding creek for a river.
-    b.fieldSize = 340
+    // Paddocks of 30 to 60 ha, as the estancias run them.
+    b.fieldSize = 480
     b.animal = .cattle; b.herds = 0.45; b.animalColor = rgb(0x1e1b1a); b.cars = 0.12
     b.landmarks = (.waterPoint, 0.55, .grove, 0.3)
     b.villages = 0.05; b.houses = 0.03; b.streetLights = 0
@@ -233,7 +251,7 @@ private let pampa = Place(
     ],
     signature: 0,
     railway: Railway(kind: .freight, body: rgb(0xa6a29a), stripe: rgb(0x9c4a38), roof: rgb(0x9a968e), locomotive: rgb(0xb84d33),
-                     cars: 40, carLength: 16, locomotives: 2, speed: 7.5, electrified: false, chance: 0.35))
+                     cars: 40, carLength: 16, locomotives: 2, speed: 11, electrified: false, chance: 0.35))
 
 // MARK: - Lapland: boreal forest, lichen heath, aapa mires and lakes
 
@@ -241,10 +259,12 @@ private let laplandBase: Biome = {
     var b = Biome(layout: .taiga, ground: rgb(0x5f6b3e), groundDark: rgb(0x46522f),
                   // Lichen, sedge, moss and heather, peat strings.
                   crops: (rgb(0xc4c2a3), rgb(0x9e9a62), rgb(0x56633a), rgb(0x5e5434)), hedge: rgb(0x6c843e),
-                  water: rgb(0x34484f), shallows: rgb(0x55686a), sand: rgb(0xbdb295), road: rgb(0x9d9b96),
+                  water: rgb(0x263e4c), shallows: rgb(0x76684a), sand: rgb(0xc4b998), road: rgb(0x9d9b96),
                   canopy: rgb(0x3b5134), canopyLight: rgb(0x5f7444), rock: rgb(0x9a9890))
     b.strokes = 0.5; b.sway = 0.25; b.trees = 0; b.treeSize = 8; b.houses = 0.05; b.ponds = 0.2
-    b.riverWidth = 46; b.riverWander = 60; b.riverBends = 90; b.roadWidth = 7; b.paved = 1
+    b.riverWidth = 46; b.riverWander = 60; b.riverBends = 70; b.roadWidth = 7; b.paved = 1
+    // Forest to the lip of its banks, and bars of pale gravel smaller than a lowland river's.
+    b.riverBars = 0.6; b.bankTrees = 1
     b.animal = .reindeer; b.herds = 0.2; b.animalColor = rgb(0x6b5a4a); b.cars = 0.06
     // Pine and spruce forest with birch about the wet ground, pale lichen heath, clear-cuts, patterned mires,
     // dark lakes, reindeer corrals, red houses under dark metal roofs, cold white lamps.
@@ -276,14 +296,14 @@ private let lapland = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xeceeee), stripe: rgb(0x008c4d), roof: rgb(0x9a9ca0), locomotive: rgb(0x008c4d),
-                     cars: 5, carLength: 26, locomotives: 1, speed: 12.5, electrified: true, chance: 0.4))
+                     cars: 5, carLength: 26, locomotives: 1, speed: 13, electrified: true, chance: 0.4))
 
 // MARK: - Normandy: bocage hedgerows and orchards
 
 private let normandyBase: Biome = {
     var b = Biome(layout: .fields, ground: rgb(0x8cc74e), groundDark: rgb(0x3f8a3a),
                   crops: (rgb(0x92cc52), rgb(0xb7d95e), rgb(0xd7d44a), rgb(0x7cbd4a)), hedge: rgb(0x2e6e34),
-                  water: rgb(0x3f6378), shallows: rgb(0x6c8a86), sand: rgb(0x9a9a6a), road: rgb(0xbfbab2),
+                  water: rgb(0x3d695c), shallows: rgb(0x709472), sand: rgb(0xa9a377), road: rgb(0xbfbab2),
                   canopy: rgb(0x4f8a3a), canopyLight: rgb(0x7db04f))
     b.fieldSize = 150; b.hedgeWidth = 8; b.warp = 0.6; b.fallow = 0.1; b.sway = 0.5
     b.trees = 0.08; b.treeSize = 8; b.hedgeTrees = 0.6; b.clumping = 0.7; b.orchards = 0.22; b.petals = 0.4; b.houses = 0.3
@@ -295,6 +315,8 @@ private let normandyBase: Biome = {
     b.roofs = (rgb(0x5d636b), rgb(0x9a5a42), rgb(0x8a7a5a))
     b.animalColor = rgb(0xf0ebe2); b.animalPatches = rgb(0x8a4a2a); b.herds = 0.35
     b.riverWidth = 22; b.riverBends = 35; b.streetLights = 0.5; b.lampColor = rgb(0xffd6a0); b.sodiumLamps = 0.45
+    // A stream under alder and willow nearly all the way, with little sand to show.
+    b.riverBars = 0.45; b.bankTrees = 0.85
     b.lampsOffLate = true
     b.boats = 0.3
     return b
@@ -322,18 +344,21 @@ private let normandy = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xebebed), stripe: rgb(0x295cad), roof: rgb(0x9a9ca2), locomotive: rgb(0xebebed),
-                     cars: 4, carLength: 22, locomotives: 0, speed: 15, electrified: true, chance: 0.6))
+                     cars: 4, carLength: 22, locomotives: 0, speed: 14, electrified: true, chance: 0.6))
 
 // MARK: - Lisse: bulb fields in stripes
 
 private let lisseBase: Biome = {
     var b = Biome(layout: .stripes, ground: rgb(0x7fb352), groundDark: rgb(0x5c9443),
                   crops: (rgb(0xe3392f), rgb(0xf6cd2f), rgb(0xef7fa8), rgb(0x8f58b8)), hedge: rgb(0x6e9a4a),
-                  water: rgb(0x3d5a6e), shallows: rgb(0x5e7a84), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
+                  water: rgb(0x486064), shallows: rgb(0x6e8484), sand: rgb(0x9fb27a), road: rgb(0xb9b4ac),
                   canopy: rgb(0x2f6635), canopyLight: rgb(0x4a8a44))
     b.fieldSize = 22; b.hedgeWidth = 3; b.warp = 0.03; b.fallow = 0.18; b.strokes = 0.3; b.sway = 0.4
-    b.trees = 0.03; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
+    // No tree stands in a bulb bed: the trees here line the lanes and shelter the houses.
+    b.trees = 0; b.treeSize = 8; b.hedgeTrees = 0.1; b.houses = 0.25; b.ponds = 0
     b.riverWidth = 18; b.riverWander = 8; b.roadWidth = 7; b.paved = 1; b.cars = 0.3
+    // A canal: straight sides and no bars.
+    b.riverBars = 0; b.bankTrees = 0.12
     // Tree-lined lanes, brick villages under orange pantile, glasshouses and the odd polder mill, bright LED lamps,
     // and boats on the canals. Many beds are already topped, leaving green stripes.
     b.fallow = 0.3; b.roadTrees = 0.6; b.villages = 0.5
@@ -358,14 +383,14 @@ private let lisse = Place(
     ],
     signature: 0,
     railway: Railway(kind: .passenger, body: rgb(0xfac91a), stripe: rgb(0x1a338c), roof: rgb(0x8c8e94), locomotive: rgb(0xfac91a),
-                     cars: 6, carLength: 26, locomotives: 0, speed: 17, electrified: true, chance: 0.9))
+                     cars: 6, carLength: 26, locomotives: 0, speed: 15, electrified: true, chance: 0.9))
 
 // MARK: - Kansas: centre pivots on the section grid
 
 private let kansasBase: Biome = {
     var b = Biome(layout: .pivots, ground: rgb(0xd6c08a), groundDark: rgb(0xc2aa72),
                   crops: (rgb(0x5f9e3e), rgb(0x76ad45), rgb(0xd9b24a), rgb(0x4e8f3a)), hedge: rgb(0xc8b893),
-                  water: rgb(0x5f7f86), shallows: rgb(0x8aa0a0), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
+                  water: rgb(0x7a7358), shallows: rgb(0xa59a76), sand: rgb(0xd2bf92), road: rgb(0xcbbd9e),
                   canopy: rgb(0x4a6e35), canopyLight: rgb(0x6a8f45))
     b.fieldSize = 270; b.hedgeWidth = 6; b.warp = 0; b.fallow = 0.12; b.strokes = 0.5; b.sway = 0.6
     b.trees = 0.015; b.treeSize = 10; b.hedgeTrees = 0.05; b.clumping = 0.95; b.houses = 0.08
@@ -399,4 +424,4 @@ private let kansas = Place(
     ],
     signature: 0,
     railway: Railway(kind: .freight, body: rgb(0xb8b8b3), stripe: rgb(0x8c6b54), roof: rgb(0xa8a8a2), locomotive: rgb(0xf27319),
-                     cars: 100, carLength: 16, locomotives: 3, speed: 10, electrified: false, chance: 0.55))
+                     cars: 100, carLength: 16, locomotives: 3, speed: 11, electrified: false, chance: 0.55))

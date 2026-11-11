@@ -16,8 +16,16 @@ final class World {
     static let roadOffset = 150.0
     /// Height of the cloud layer, which sets how far cloud shadows fall from their clouds.
     static let cloudHeight = 70.0
-    static let wind = SIMD2<Double>(1.3, 0.55)
-    static let carSpeed = 5.5
+    /// How high the camera flies, as clouds 70 m up slide past 1.15 times as fast as the land.
+    static let cameraHeight = cloudHeight / (1 - 1 / 1.15)
+    /// A light breeze. Up at the clouds it is the 1.3 by 0.55 m/s they drifted on until 1.7, so at Slow they cross the
+    /// land at about its own pace rather than racing it.
+    static let wind = SIMD2<Double>(1.3, 0.55) / 2.6
+    /// The wind up where the clouds are, which carries them faster than the gusts it sends over the crops and the water.
+    static let cloudWind = wind * 2.6
+    static let gustWind = wind * 1.3
+    /// About 33 km/h: unhurried country driving, still over a minute across the screen at Slow, and slower than trains.
+    static let carSpeed = 9.2
 
     enum Light: String, CaseIterable {
         /// The sun as it stands at the place at your clock's time of day.
@@ -77,6 +85,7 @@ final class World {
         time = moment.time
         self.light = light
         self.journey = journey
+        lastBand = moment.band
         bird = moment.bird
         birdTrail = BirdTrail(bird.pose, at: time)
         heldFor = displayTime - moment.time
@@ -159,10 +168,13 @@ final class World {
         let revision: Int
         let cameraY: Double
         let journey: Journey.Snapshot
+        /// A band left in view after a Fly To, which the journey no longer knows of.
+        let band: Double?
     }
 
     func moment() -> Moment {
-        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time), journey: journey.snapshot)
+        Moment(time: time, bird: bird, revision: revision, cameraY: journey.cameraY(at: time), journey: journey.snapshot,
+               band: lastBand)
     }
 
     /// How far back, in metres, the flight can go to a moment. The legs behind are kept that much longer.
@@ -177,7 +189,7 @@ final class World {
     /// ground has changed since, nor the pace, no Fly To has swept in a place since or was sweeping then, and the
     /// legs it showed are still kept.
     func canRewind(to moment: Moment) -> Bool {
-        let bottom = moment.cameraY + Double(desktop.minY) * Self.metresPerPoint - Journey.morphLength
+        let bottom = moment.cameraY + Double(desktop.minY) * Self.metresPerPoint
         return heldSince != nil && moment.time <= time && moment.revision == revision
             && abs(journey.cameraY(at: moment.time) - moment.cameraY) < 0.01
             && !journey.legs.contains { ($0.sweepStart ?? -.infinity) > moment.time - Journey.sweepDuration }
@@ -194,6 +206,7 @@ final class World {
         pointerMoved -= back
         desktopChecked -= back
         sunUpdated -= back
+        lastBand = moment.band
         bird = moment.bird
         birdTrail.reset(to: bird.pose, at: time)
     }
@@ -206,12 +219,14 @@ final class World {
         time = t
         let camera = self.camera
         let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        // The band over the whole desktop, whichever displays are drawing.
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
+        if let join = journey.joins.first(where: { Self.bandShows(over: $0, from: bottom, to: top) }) { lastBand = join }
         journey.extend(through: top + 1500,
-                       behind: camera.y + Double(desktop.minY) * Self.metresPerPoint - 1500 - Self.reach,
-                       notBefore: top + 200,
-                       // Only two places can be on screen at once, so a place lasts long enough to finish turning
-                       // into the next before a third comes into view, however tall the desktop.
-                       shortest: Journey.morphLength + Double(desktop.height) * Self.metresPerPoint + 200)
+                       behind: bottom - 1500 - Self.reach,
+                       // Clear of the view, and of any band left in it, as only one shows at a time.
+                       notBefore: max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint
+                                      + Self.bankReach) + Self.bankReach + 20)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
         if let point = pointer() {
@@ -242,10 +257,12 @@ final class World {
 
     private func updateSun(force: Bool) {
         sunUpdated = time
-        let place = journey.leg(at: camera.y).place
+        let leg = journey.leg(at: camera.y)
+        let place = leg.place
         let now = self.now()
         let calendar = Calendar.current
-        let day = calendar.ordinality(of: .day, in: .year, for: now) ?? 172
+        // A place shown at its best is lit as it is in that season, so summer in the north isn't lit like December.
+        let day = journey.followsCalendar ? calendar.ordinality(of: .day, in: .year, for: now) ?? 172 : leg.season.middleDay
         let next: Sun
         var hour = 12.0
         switch light {
@@ -268,6 +285,12 @@ final class World {
         let moved = abs(next.azimuth - sun.azimuth) + abs(next.elevation - sun.elevation)
         sun = next
         if force || moved > 0.06 { repaint() }
+    }
+
+    /// The seasons have changed: a place at its best is lit for the season it shows, so the sun moves with them, and
+    /// the ground is painted again once, under the new sun.
+    func seasonsChanged() {
+        updateSun(force: true)
     }
 
     func repaint() {
@@ -349,13 +372,12 @@ final class World {
         let reference = (camera(at: t).y / 2048).rounded(.down) * 2048
         let topLeg = journey.leg(at: top)
         var legA = topLeg
-        if let previous = journey.leg(before: topLeg), topLeg.start + Journey.morphLength > bottom - 200 {
+        if let previous = journey.leg(before: topLeg), topLeg.start > bottom - 200 {
             legA = previous
         }
         let legB = topLeg
 
         var boundary = -1e9
-        var length = Journey.morphLength
         var sweep = -1.0
         var sweepFront: Double?
         if legA.index != legB.index {
@@ -365,8 +387,6 @@ final class World {
                 if progress < 1 {
                     sweep = max(progress, 0)
                     sweepFront = legB.start + sweep * (top - legB.start + 400)
-                } else {
-                    length = 0.001
                 }
             }
         }
@@ -377,11 +397,14 @@ final class World {
         let river = SIMD4<Float>(phase(Self.riverWaves.x, 0.3), phase(Self.riverWaves.y, 1.9),
                                  phase(Self.riverWaves.z, 4.1), phase(Self.riverWaves.w, 2.7))
         let bends = SIMD4<Float>(phase(Self.bendWaves.x, 5.2), phase(Self.bendWaves.y, 0.7),
-                                 phase(Self.bendWaves.z, 3.3), 0)
+                                 phase(Self.bendWaves.z, 3.3), Float((reference / Self.crossroadSpacing).rounded(.down)))
         // Traffic slots, counted from the world's origin so they survive the reference stepping on (see slotAt).
         let cars = Self.slots(speed: Self.carSpeed, spacing: Self.carSlot, time: t, reference: reference)
-        let boats = Self.slots(speed: Self.boatSpeed, spacing: Self.boatSlot, time: t, reference: reference)
-        let crossPhase = Float(reference.truncatingRemainder(dividingBy: Self.crossroadSpacing))
+        // The river flows south, so boats heading north go against the current.
+        let boats = Self.slots(speed: Self.boatSpeed - Self.current, spacing: Self.boatSlot, time: t, reference: reference)
+        let downstream = Self.slots(speed: Self.boatSpeed + Self.current, spacing: Self.boatSlot, time: t,
+                                    reference: reference)
+        let crossPhase = Float(reference.positiveRemainder(Self.crossroadSpacing))
         let toSun = SIMD2<Float>(Float(sun.direction.x), Float(sun.direction.y))
         let light = sun.light
 
@@ -390,15 +413,18 @@ final class World {
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
-            morph: SIMD4(Float(boundary), Float(length), Float(sweep), Float(top - legB.start)),
+            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(top - legB.start)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
-            clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase, 0),
-            traffic: SIMD4(cars.north, cars.south, boats.north, boats.south),
+            clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
+                         Float((reference + t * Self.current).positiveRemainder(256 * 64))),
+            traffic: SIMD4(cars.north, cars.south, boats.north, downstream.south),
             bends: bends,
-            train: train(reference: reference, at: t),
+            train: train(reference: reference, at: t, legA: legA, legB: legB),
             legA: gpu(legA, reference: reference),
-            legB: gpu(legB, reference: reference))
+            legB: gpu(legB, reference: reference),
+            water: SIMD4(downstream.phase,
+                         Float((reference / Self.boatSlot).rounded(.down).positiveRemainder(Double(1 << 20))), 0, 0))
         return Frame(scene: scene, reference: reference, sweepFront: sweepFront, legA: legA, legB: legB)
     }
 
@@ -409,20 +435,29 @@ final class World {
         let biome = legCache[leg.index] ?? BiomeGPU(leg.season.biome)
         legCache[leg.index] = biome
         var rail = SIMD4<Float>.zero, shape = SIMD4<Float>.zero
+        var keeping = biome
+        // Where the river runs, which a place without one still lines its road and its section grid up on.
+        keeping.l.y = Float(riverX)
         if let line = railLine(for: leg) {
             rail = SIMD4(Float(line.origin.x), Float(line.origin.y), Float(line.angle), 1)
             shape = SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase),
                           leg.place.railway?.electrified == true ? 1 : 0)
+            keeping.railLine = SIMD4(rail.x, rail.y, Float(cos(line.angle)), Float(sin(line.angle)))
+            keeping.railCurve = SIMD4(shape.x, 1 / shape.y, shape.z, 1)
         }
-        return LegGPU(biome: biome, info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0),
+        return LegGPU(biome: keeping, info: SIMD4(Float(leg.start - reference), seed, Float(leg.index), 0),
                       rail: rail, railShape: shape)
     }
 
-    static let boatSpeed = 1.25
+    /// Through the water. Over the ground boats going upstream make that less the current, those going down that more.
+    static let boatSpeed = 1.9
+    /// How fast a river's surface slides downstream, in metres a second. Its threads repeat every 256 lattice cells of
+    /// 64 m, so this is kept as how far along those it has come, counted from the world's origin (see viewGround).
+    static let current = 0.35
     /// Must match carSlot, boatSlot and bendWaves in Common.metal. Slots divide 2048 m, the reference's step.
     static let carSlot = 128.0
     static let boatSlot = 512.0
-    static let bendWaves = SIMD3<Double>(95, 61, 151)
+    static let bendWaves = SIMD3<Double>(72, 61, 151)
 
     /// The fraction of a slot that traffic heading north has moved on, and how many slots traffic each way has
     /// passed, measured from the reference. The counts wrap only after a million slots.
@@ -447,10 +482,20 @@ final class World {
         return line
     }
 
-    /// The train passing the middle of the main display at `t`, if one is.
-    private func train(reference: Double, at t: TimeInterval) -> TrainGPU {
+    /// The train passing the middle of the main display at `t`, if one is, for a view that shows `legA` below a join and
+    /// `legB` above it, or one leg when they are the same. It is only ever drawn over its own place's land.
+    private func train(reference: Double, at t: TimeInterval, legA: Leg? = nil, legB: Leg? = nil) -> TrainGPU {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
-        let leg = journey.leg(at: centre.y)
+        var leg = journey.leg(at: centre.y)
+        // A train still running carries on along its own line once the middle is over the next place, rather than
+        // vanishing from track still in view.
+        if let crossing = trainCrossing, crossing.leg != leg.index,
+           let previous = journey.legs.first(where: { $0.index == crossing.leg }),
+           let line = railLine(for: previous), let railway = previous.place.railway,
+           line.train(at: t, crossing: crossing.time, middle: crossing.along, railway: railway,
+                      seed: previous.index) != nil {
+            leg = previous
+        }
         guard let line = railLine(for: leg), let railway = leg.place.railway else { return .none }
         // When the middle of the main display passes over the line, following the camera's real path.
         let offset = SIMD2(Double(home.midX), Double(home.midY)) * Self.metresPerPoint
@@ -468,9 +513,42 @@ final class World {
             rail: SIMD4(Float(line.origin.x), Float(line.origin.y + leg.start - reference), Float(line.angle), 1),
             shape: SIMD4(Float(line.amplitude), Float(line.wavelength), Float(line.phase), 0),
             run: SIMD4(Float(run.head), Float(run.direction), Float(railway.carLength), Float(railway.cars)),
-            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), 0, 0),
+            info: SIMD4(Float(railway.locomotives), Float(railway.kind.rawValue), Float(Self.trainSide(of: leg, legA, legB)), 0),
             body: color(railway.body), stripe: color(railway.stripe), roof: color(railway.roof),
             locomotive: color(railway.locomotive))
+    }
+
+    /// Half the length of the bank of cloud over each join between two places, in metres: a thin band across the land.
+    static let bankHalf = 75.0
+    /// How far from a join anything of its bank can be seen: its ragged edge comes up to 147 m out (bankReach in
+    /// Clouds.metal), and its shadow can fall a cloud's height times the longest shadow beyond that.
+    static let bankReach = 150 + cloudHeight * Sun.longestShadow
+
+    /// The last join whose band was in view. A Fly To takes the place beyond a join away, but cloud already in view stays
+    /// in the sky and drifts off with the land.
+    private var lastBand: Double?
+
+    /// World y of the join whose band shows anywhere from `bottom` to `top`, if one does.
+    func bank(from bottom: Double, to top: Double) -> Double? {
+        let shows = { (join: Double) in Self.bandShows(over: join, from: bottom, to: top) }
+        return journey.joins.first(where: shows) ?? lastBand.flatMap { shows($0) ? $0 : nil }
+    }
+
+    private static func bandShows(over join: Double, from bottom: Double, to top: Double) -> Bool {
+        join - bankReach < top && join + bankReach > bottom
+    }
+
+    /// Whether the middle of the main display has reached the first join between two places.
+    var handoverPassing: Bool {
+        journey.leg(at: camera.y + Double(home.midY) * Self.metresPerPoint).index > 0
+    }
+
+    /// Where over a view showing `legA` below a join and `legB` above it the train on `leg`'s line may be drawn: 0
+    /// everywhere, 1 below the join, 2 above it, 3 nowhere, as that view shows other places.
+    static func trainSide(of leg: Leg, _ legA: Leg?, _ legB: Leg?) -> Int {
+        guard let legA, let legB else { return 0 }
+        if legA.index == legB.index { return leg.index == legA.index ? 0 : 3 }
+        return leg.index == legA.index ? 1 : leg.index == legB.index ? 2 : 3
     }
 
     /// Whether a train is passing the middle of the main display.
@@ -486,9 +564,16 @@ final class World {
     func flock(at t: TimeInterval) -> (Flock, FlockSighting)? {
         let centre = ground(at: CGPoint(x: home.midX, y: home.midY), time: t)
         let leg = journey.leg(at: centre.y)
-        guard let flock = Flock.of(leg.place, month: month(at: now())),
-              let sighting = flock.sighting(at: t, area: desktop,
-                                             seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff)
+        guard let flock = Flock.of(leg.place, month: month(at: now())) else { return nil }
+        // Lower than the camera, birds slide past faster than the land does, the higher the more; circling birds ride a
+        // thermal the wind carries.
+        let k = 1 / (1 - flock.altitude / Self.cameraHeight)
+        let land = { [self] (since: TimeInterval) -> SIMD2<Double> in
+            (camera(at: t - since) - camera(at: t)) * k / Self.metresPerPoint
+        }
+        guard let sighting = flock.sighting(at: t, area: desktop,
+                                             seed: leg.place.id.unicodeScalars.reduce(7) { $0 &* 31 &+ Int($1.value) } & 0xffff,
+                                             drift: land, wind: Self.wind / Self.metresPerPoint)
         else { return nil }
         return (flock, sighting)
     }
@@ -511,15 +596,18 @@ final class World {
     /// Cloud space for a point `metres` from the desktop origin: clouds drift with the wind and, being
     /// nearer the camera, slide past a little faster than the ground.
     func cloudSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
-        let p = metres + camera(at: t) * 1.15 - Self.wind * t
+        let p = metres + camera(at: t) * 1.15 - Self.cloudWind * t
         return SIMD2(p.x.positiveRemainder(16384), p.y.positiveRemainder(16384))
     }
 
     /// Space for the gusts rolling over the crops, which travel with the wind across the ground.
     func gustSpace(_ metres: SIMD2<Double>, at t: TimeInterval) -> SIMD2<Double> {
-        let p = metres + camera(at: t) - Self.wind * 2.2 * t
-        return SIMD2(p.x.positiveRemainder(160 * 1024), p.y.positiveRemainder(55 * 1024))
+        let p = metres + camera(at: t) - Self.gustWind * t
+        return SIMD2(p.x.positiveRemainder(Self.gustPeriod.x), p.y.positiveRemainder(Self.gustPeriod.y))
     }
+
+    /// How often gust space repeats, in metres: a whole number of every gust cell the shaders use.
+    static let gustPeriod = SIMD2(55.0 * 1024, 160.0 * 1024)
 }
 
 extension Double {

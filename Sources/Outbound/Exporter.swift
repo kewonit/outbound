@@ -77,7 +77,8 @@ enum Exporter {
         let scale = Double(options["scale"] ?? "2") ?? 2
         var time = Double(options["time"] ?? "20") ?? 20
 
-        let gpu = try GPU()
+        // With --whole, every frame is drawn by the whole shaders, as the app draws until its lean copies have compiled.
+        let gpu = try GPU(lean: options["whole"] == nil ? .now : .never)
         let frame = CGRect(x: 0, y: 0, width: size[0], height: size[1])
         var light = World.Light.alwaysDay
         var clock = date
@@ -102,6 +103,10 @@ enum Exporter {
             world.journey.refreshSeasons()
         }
         if let pace = options["pace"].flatMap(Double.init) { world.journey.setSpeed(pace, at: 0) }
+        // How many minutes each place lasts at that pace, as Stay sets it in the app.
+        if let stay = options["stay"].flatMap(Double.init), stay > 0, world.journey.speed > 0 {
+            world.journey.legLength = stay * 60 * world.journey.speed
+        }
         // A pointer that wanders over the frame and rests now and then, for the bird to chase.
         let cursor = options["cursor"] != nil
         var clockTime = time
@@ -110,10 +115,12 @@ enum Exporter {
             world.pointer = { cursorPoint(at: clockTime, in: frame) }
         }
         world.advance(to: time)
-        // With --find train or --find flock, fly on until one is in view.
+        // With --find train, --find flock or --find handover, fly on until one is in view. Small steps get there as
+        // the app would: one long one would run past the place the journey means to turn into the next.
         if let event = options["find"] {
             while time < 7200 {
-                if event == "train" ? world.trainPassing : world.flock != nil { break }
+                if event == "train" ? world.trainPassing
+                    : event == "handover" ? world.handoverPassing : world.flock != nil { break }
                 time += 2
                 world.advance(to: time)
             }
@@ -244,7 +251,7 @@ enum Exporter {
     private static func paint(_ place: Place, season: Int, frame: CGRect, scale: Double, bird: (CGPoint, Double)?,
                               birdSize: Double = 27, time: Double = 30, hour: Double? = nil,
                               clouds: Bool = true) throws -> CGImage {
-        let gpu = try GPU()
+        let gpu = try GPU(lean: .now)
         let date = Calendar.current.date(from: DateComponents(year: 2026, month: place.seasons[season].months.min() ?? 1, day: 15))!
         let world = World(place: place, time: 0, date: date, light: .alwaysDay)
         world.pointer = { nil }
