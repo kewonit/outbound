@@ -293,7 +293,9 @@ final class Bench {
 
     private func compute(_ name: String, in library: MTLLibrary, threads: Int,
                          bind: (MTLComputeCommandEncoder) -> Void) throws {
-        let function = try #require(library.makeFunction(name: name), "\(name) in \(library.label ?? "")")
+        // The frame's shaders come in copies with and without some of their parts (see Composite.metal), and a probe
+        // that reaches into one has to say which: none said, it gets them all.
+        let function = try library.makeFunction(name: name, constantValues: MTLFunctionConstantValues())
         let pipeline = try device.makeComputePipelineState(function: function)
         let commands = try #require(queue.makeCommandBuffer())
         let encoder = try #require(commands.makeComputeCommandEncoder())

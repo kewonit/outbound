@@ -100,6 +100,16 @@ vertex VertexOut fullscreen(uint id [[vertex_id]]) {
     return out;
 }
 
+// Rectangles of the target, each drawn as a strip of two triangles. Corners are given as the vertex stage wants them,
+// -1 to 1 each way, left, top, right, bottom, so rectangles that share an edge share its very numbers and no pixel
+// along it is drawn twice or left out.
+vertex VertexOut tiles(uint id [[vertex_id]], uint tile [[instance_id]], constant float4 *rects [[buffer(0)]]) {
+    float4 r = rects[tile];
+    VertexOut out;
+    out.position = float4((id & 1u) ? r.z : r.x, (id & 2u) ? r.w : r.y, 0.0, 1.0);
+    return out;
+}
+
 // MARK: - Hashing and noise
 
 inline uint hashu(uint x) {

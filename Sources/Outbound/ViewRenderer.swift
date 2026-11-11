@@ -35,7 +35,9 @@ final class GPU {
     private var detailedErrors = false
     private static let costKey = "groundCost"
 
-    init() throws {
+    /// With `leanNow`, the lean copies of the frame's shaders are compiled before anything is drawn (see
+    /// `ShaderLibrary`).
+    init(leanNow: Bool = false) throws {
         // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
         // Apple's own GPUs can do.
         guard let device = MTLCreateSystemDefaultDevice(), device.supportsFamily(.apple7),
@@ -57,7 +59,7 @@ final class GPU {
                 : nil
         } ?? .initial
         paintBudget = PaintBudget(costPerMillion: min(max(groundCost.millisecondsPerMillion, 1), 400))
-        shaders = try ShaderLibrary(device: device)
+        shaders = try ShaderLibrary(device: device, leanNow: leanNow)
 
         let descriptor = MTLSamplerDescriptor()
         descriptor.minFilter = .linear
@@ -285,6 +287,9 @@ final class ViewRenderer {
     var birdSize = 27.0
     /// Draw the bird into the frame, for stills and exports; live it has a layer of its own.
     var drawsBird = true
+    /// Draws each frame with the lean copies of its shaders wherever they will do (see `ShaderLibrary.Lean`). Off, every
+    /// frame takes the whole shaders, to compare the two.
+    var leanShaders = true
     /// How the ground cache is read; see `groundColorAt` in Composite.metal. 0, one bilinear tap, suits Retina.
     var groundFilter: Float = 0
     /// Ground texels painted by the last frame.
@@ -768,7 +773,10 @@ final class ViewRenderer {
             encoder.setFragmentTexture(gusts ?? clouds, index: 8)
             encoder.setFragmentSamplerState(gpu.wrap, index: 0)
             encoder.setFragmentSamplerState(gpu.clamp, index: 1)
-            encoder.setRenderPipelineState(pipelines.view)
+            // The copy of the ground's shader with only what this frame can need, once it has compiled.
+            let lean = leanShaders ? pipelines.lean : ShaderLibrary.Lean()
+            let dark = scene.time.w > 0, special = scene.train.rail.w > 0 || scene.morph.z >= 0
+            encoder.setRenderPipelineState((special ? nil : dark ? lean.viewAfterDark : lean.viewByDay) ?? pipelines.view)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
             let batches = animalBatches(frame: worldFrame, time: t, x0: x0, x1: x0 + Double(frame.width) * mpp,
@@ -787,10 +795,64 @@ final class ViewRenderer {
                 }
             }
 
-            encoder.setRenderPipelineState(pipelines.sky)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            drawSky(with: encoder, params: params, scene: scene, width: target.width, height: target.height)
             encoder.endEncoding()
         }
+    }
+
+    /// The frame's last draw. A flock in view takes the whole sky shader. Otherwise all the frame but the bird's corner
+    /// of it is drawn by a copy with neither bird nor flock in it, and only that corner, if the bird is over this
+    /// display at all, by the whole one.
+    private func drawSky(with encoder: MTLRenderCommandEncoder, params: CompositeGPU, scene: SceneGPU, width: Int,
+                         height: Int) {
+        let pipelines = gpu.shaders.pipelines, lean = leanShaders ? pipelines.lean : ShaderLibrary.Lean()
+        let band = params.bank.w > 0
+        guard params.flock.w <= 0, let plain = band ? lean.skyBand : lean.skyPlain else {
+            encoder.setRenderPipelineState(pipelines.sky)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            return
+        }
+        guard params.wings.w > 0, let around = band ? lean.skyBandAround : lean.skyAround, let over = lean.skyBird,
+              let box = Self.birdBox(bird: params.bird, wings: params.wings, sun: scene.sun,
+                                     metresPerPixel: params.view.z, width: width, height: height) else {
+            encoder.setRenderPipelineState(plain)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            return
+        }
+        // Pixels from the top left to where the vertex stage puts them.
+        func x(_ pixel: Int) -> Float { Float(pixel) / Float(width) * 2 - 1 }
+        func y(_ pixel: Int) -> Float { 1 - Float(pixel) / Float(height) * 2 }
+        func rect(_ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) -> SIMD4<Float> { SIMD4(x(x0), y(y0), x(x1), y(y1)) }
+        // Above the bird's box, below it, and to its left and right.
+        var rest = [rect(0, 0, width, box.y0), rect(0, box.y1, width, height),
+                    rect(0, box.y0, box.x0, box.y1), rect(box.x1, box.y0, width, box.y1)]
+        var corner = rect(box.x0, box.y0, box.x1, box.y1)
+        encoder.setRenderPipelineState(around)
+        encoder.setVertexBytes(&rest, length: MemoryLayout<SIMD4<Float>>.stride * rest.count, index: 0)
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: rest.count)
+        encoder.setRenderPipelineState(over)
+        encoder.setVertexBytes(&corner, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: 1)
+    }
+
+    /// The pixels of a target, counted from its top left, that hold anything of the bird: the bird itself, its shadow on
+    /// the ground and its shadow on a band of cloud, each within a circle the sky shader keeps to (see `sky`), with a
+    /// couple of pixels to spare. Nil when none of it falls on the target.
+    static func birdBox(bird: SIMD4<Float>, wings: SIMD4<Float>, sun: SIMD4<Float>, metresPerPixel: Float, width: Int,
+                        height: Int) -> (x0: Int, y0: Int, x1: Int, y1: Int)? {
+        let reach = wings.z * Float(1.6).squareRoot() + 2
+        let fall = SIMD2(sun.x, sun.y) * wings.y / metresPerPixel
+        let centres = [SIMD2(bird.x, bird.y), SIMD2(bird.x, bird.y) - fall * sun.z, SIMD2(bird.x, bird.y) - fall * 0.35]
+        guard reach.isFinite, centres.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else { return nil }
+        // The shader counts pixels up from the bottom.
+        let left = centres.map(\.x).min()! - reach, right = centres.map(\.x).max()! + reach
+        let low = centres.map(\.y).min()! - reach, high = centres.map(\.y).max()! + reach
+        let limit = Float(max(width, height)) * 4
+        guard abs(left) < limit, abs(right) < limit, abs(low) < limit, abs(high) < limit else { return nil }
+        let x0 = max(Int(left.rounded(.down)), 0), x1 = min(Int(right.rounded(.up)), width)
+        let y0 = max(height - Int(high.rounded(.up)), 0), y1 = min(height - Int(low.rounded(.down)), height)
+        guard x1 > x0, y1 > y0 else { return nil }
+        return (x0, y0, x1, y1)
     }
 
     /// Paints the band of cloud over the join at world y `join`, lit and shadowed from `toSun`, the way to the sun scaled

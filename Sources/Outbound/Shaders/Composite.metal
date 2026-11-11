@@ -4,6 +4,27 @@
 //   2. animalVertex/animalFragment: herds as small instanced sprites, so they only cost the pixels they cover.
 //   3. sky: cloud shadow, clouds, the bird, paper and the light of the hour, reading the frame back in place.
 
+// These shaders are compiled more than once, each copy holding only the parts some frames need. A part a frame never
+// reaches still slows every pixel just by being in the shader, as the more a shader holds the fewer pixels the GPU works
+// on at a time: with all of them in, a daytime frame with no train, flock or band of cloud in it took over a third longer.
+// A copy made without saying which parts to have has them all, and every copy paints the same picture.
+constant bool darkGiven [[function_constant(0)]];
+constant bool trainGiven [[function_constant(1)]];
+constant bool sweepGiven [[function_constant(2)]];
+constant bool birdGiven [[function_constant(3)]];
+constant bool flockGiven [[function_constant(4)]];
+constant bool bandGiven [[function_constant(5)]];
+// Lamps, headlights and lit windows, which only show after dark.
+constant bool withDark = is_function_constant_defined(darkGiven) ? darkGiven : true;
+constant bool withTrain = is_function_constant_defined(trainGiven) ? trainGiven : true;
+// The new place blended in during a Fly To.
+constant bool withSweep = is_function_constant_defined(sweepGiven) ? sweepGiven : true;
+// The gull and its shadow.
+constant bool withBird = is_function_constant_defined(birdGiven) ? birdGiven : true;
+constant bool withFlock = is_function_constant_defined(flockGiven) ? flockGiven : true;
+// The band of cloud between two places.
+constant bool withBand = is_function_constant_defined(bandGiven) ? bandGiven : true;
+
 struct ViewOut {
     float4 color [[color(0)]];
     // Light that falls on the scene after dark, added once the night grade is done.
@@ -143,7 +164,7 @@ inline float carDrift(int id, float t) {
 // and keeping to its lane through the bends. Whose traffic it is and where the road runs are decided where the car
 // is, so a car is never cut in two where one place turns into the next.
 inline float3 cars(float3 c, float2 world, constant Scene &scene, float mpp, thread float3 &light, float sunlit = 1.0) {
-    float night = scene.time.w;
+    float night = withDark ? scene.time.w : 0.0;
     constant Biome &a = scene.legA.biome;
     constant Biome &b = scene.legB.biome;
     float3 result = c;
@@ -301,14 +322,14 @@ inline float3 train(float3 c, float2 world, constant Train &tr, constant Scene &
         }
         c = mix(c, roof, fill(db, mpp * 0.7));
     }
-    if (scene.time.w > 0.0 && !freight) {
+    if (withDark && scene.time.w > 0.0 && !freight) {
         // Warm windows spill onto the ballast either side; the leading car throws a beam down the line.
         float out = abs(lp.x) - 1.65;
         float bay = step(0.5, fract(lp.y / 1.9 + 0.25));
         light += (c * 0.85 + 0.18) * float3(1.0, 0.83, 0.65) * 0.6 * fill(out - 1.4, 0.8) * smoothstep(-0.2, 0.3, out)
                * exp(-max(out, 0.0) / 0.9) * bay * step(abs(lp.y), tr.run.z * 0.5 - 1.0) * step(tr.info.x, k);
     }
-    if (scene.time.w > 0.0) {
+    if (withDark && scene.time.w > 0.0) {
         float ahead = -(lp.y + tr.run.z * 0.5) * step(k, 0.0);
         light += float3(1.0, 0.92, 0.8) * 0.45 * fill(abs(lp.x) - 0.9 - ahead * 0.05, 0.6)
                * smoothstep(0.0, 1.0, ahead) * exp(-ahead / 25.0);
@@ -483,7 +504,7 @@ inline float3 boats(float3 c, float2 world, float water, constant Scene &scene, 
         float motor = sdBox(q - float2(0.0, -L * 0.5 - 0.16), float2(0.13, 0.2)) - 0.06;
         result = mix(result, float3(0.13, 0.13, 0.14), fill(motor, mpp * 0.6));
         result = mix(result, float3(0.3, 0.31, 0.33), fill(motor + 0.07, mpp * 0.5) * 0.6);
-        if (scene.time.w > 0.0) {
+        if (withDark && scene.time.w > 0.0) {
             float2 port = q - float2(-B * 0.45, L * 0.2), starboard = q - float2(B * 0.45, L * 0.2), stern = q - float2(0.0, -L * 0.5);
             light += float3(1.0, 0.12, 0.08) / (1.0 + dot(port, port) / 0.03);
             light += float3(0.15, 1.0, 0.35) / (1.0 + dot(starboard, starboard) / 0.03);
@@ -568,8 +589,8 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     uint2 nearest = uint2(min(wrapped, params.cache.zw - 1.0));
     // While a Fly To sweeps, the new place is painted into a cache of its own and blended in here, with a darker
     // tide line where the two paints meet.
-    float turned = sweepBlend(world, scene);
-    if (turned > 0.0) {
+    float turned = withSweep ? sweepBlend(world, scene) : 0.0;
+    if (withSweep && turned > 0.0) {
         float3 next = groundColorAt(incomingColor, wrap, texel, params.cache.zw, params.finish.w, params.view.w);
         c = mix(c, next, turned) * (1.0 - 0.12 * (1.0 - abs(turned * 2.0 - 1.0)));
     }
@@ -599,7 +620,7 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
         c = boats(c, world, water, scene, mpp, scene.time.x, light,
                   directSun(pixel, params, cloudTexture, bankTexture, clampSampler));
     }
-    if (scene.train.rail.w > 0.0) {
+    if (withTrain && scene.train.rail.w > 0.0) {
         float along;
         if (abs(railSigned(world, scene.train.rail.xy, scene.train.rail.z, scene.train.shape.xyz, along)) < 9.0 + 4.2 * scene.sun.z) {
             // Where two places meet a train goes no further than its line does, and over other places it isn't drawn.
@@ -643,12 +664,13 @@ fragment ViewOut viewGround(VertexOut in [[stage_in]],
     }
 
     // After dark, baked lamplight comes on house by house; the ground it falls on shows its day colour, warmed.
-    float night = scene.time.w;
-    float2 lamp = night > 0.0 ? landNight.read(nearest).rg : 0.0;
+    float night = withDark ? scene.time.w : 0.0;
+    float2 lamp = 0.0;
+    if (withDark && night > 0.0) lamp = landNight.read(nearest).rg;
     // Smoothed ground gets smoothed lamplight too, or the pools step a whole texel at a time; the lamp's id stays
     // the nearest texel's.
-    if (night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
-    if (lamp.x > 0.004) {
+    if (withDark && night > 0.0 && params.finish.w > 0.5) lamp.x = landNight.sample(wrap, texel / params.cache.zw).r;
+    if (withDark && lamp.x > 0.004) {
         float id = lamp.y;
         float hour = scene.clock.x < 12.0 ? scene.clock.x + 24.0 : scene.clock.x;
         if (id > 0.895) {
@@ -976,7 +998,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
 
     // The band between two places, which moves with the land rather than the sky.
     float4 band = 0.0;
-    if (params.bank.w > 0.0) {
+    if (withBand && params.bank.w > 0.0) {
         float2 bandSize = float2(bankTexture.get_width(), bankTexture.get_height());
         float2 bandPx = (params.bank.xy + pixel * mpp) / params.bank.z;
         band = bankTexture.sample(clampSampler, float2(bandPx.x, bandSize.y - bandPx.y) / bandSize);
@@ -986,10 +1008,10 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     float sunlit = 1.0 - smoothstep(0.05, 0.8, max(cloud.z, band.z));
     c = shade(c, (1.0 - sunlit) * 0.62, scene);
 
-    float birdVisible = params.wings.w;
+    float birdVisible = withBird ? params.wings.w : 0.0;
     float2 birdPx = params.bird.xy;
     float scale = params.wings.z;
-    if (birdVisible > 0.0) {
+    if (withBird && birdVisible > 0.0) {
         float2 shadowPx = birdPx - scene.sun.xy * scene.sun.z * params.wings.y / mpp;
         float2 offset = pixel - shadowPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
@@ -1000,7 +1022,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // A flock: soft shadows far below for high birds, crisp ones for low egrets, then the birds themselves.
-    if (params.flock.w > 0.0) {
+    if (withFlock && params.flock.w > 0.0) {
         float t = params.flockLook.w;
         float reach = flockReach(params);
         float2 q;
@@ -1027,10 +1049,10 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // The band lies over all that, and the gull flies above it, its shadow close beneath it.
-    float bank = smoothstep(0.02, 0.6, band.x);
-    if (bank > 0.0) {
+    float bank = withBand ? smoothstep(0.02, 0.6, band.x) : 0.0;
+    if (withBand && bank > 0.0) {
         c = mix(c, mix(float3(0.66, 0.72, 0.86), float3(1.0, 1.0, 0.99), smoothstep(0.1, 0.95, band.y)), bank);
-        if (birdVisible > 0.0) {
+        if (withBird && birdVisible > 0.0) {
             float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
             if (dot(offset, offset) < scale * scale * 1.6) {
                 float2 q = rotate(offset, -params.bird.z) / scale;
@@ -1041,7 +1063,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
     }
 
     // Live, the bird has its own layer above the wallpaper; stills and exports draw it here.
-    if (birdVisible > 0.0 && params.finish.z > 0.5) {
+    if (withBird && birdVisible > 0.0 && params.finish.z > 0.5) {
         float2 offset = pixel - birdPx;
         if (dot(offset, offset) < scale * scale * 1.6) {
             float2 q = rotate(offset, -params.bird.z) / scale;
