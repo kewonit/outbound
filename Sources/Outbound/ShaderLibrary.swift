@@ -86,13 +86,18 @@ final class ShaderLibrary {
     /// Counts builds, so a lean copy that finishes compiling after the shaders were reloaded is never used.
     private var builds = 0
 
-    /// Compiles the shaders. The lean copies of the frame's shaders compile afterwards on their own, as nothing waits
-    /// for them, unless `leanNow`, as where every picture must come out the same whenever it is made.
-    init(device: MTLDevice, leanNow: Bool = false) throws {
+    /// When the lean copies of the frame's shaders are compiled: afterwards on their own, as nothing waits for them;
+    /// at once, where every picture must come out the same whenever it is made; or not at all.
+    enum LeanCopies {
+        case later, now, never
+    }
+
+    init(device: MTLDevice, lean: LeanCopies = .later) throws {
         self.device = device
-        let library = try Self.library(device: device, source: try Self.source())
+        let source = try Self.source()
+        let library = try Self.library(device: device, source: source)
         pipelines = try Self.build(device: device, library: library)
-        compileLean(from: library, now: leanNow)
+        if lean != .never { compileLean(source: source, whole: library, now: lean == .now) }
         #if DEBUG
         watch()
         #endif
@@ -111,8 +116,11 @@ final class ShaderLibrary {
             .joined(separator: "\n")
     }
 
-    private static func library(device: MTLDevice, source: String) throws -> MTLLibrary {
+    /// Compiles the shaders. With `lean`, the frame's ground and sky shaders take function constants that say which of
+    /// their parts a copy has; that library is for those copies alone (see Composite.metal).
+    nonisolated private static func library(device: MTLDevice, source: String, lean: Bool = false) throws -> MTLLibrary {
         let options = MTLCompileOptions()
+        var macros: [String: NSObject] = lean ? ["OUTBOUND_LEAN": NSNumber(value: 1)] : [:]
         if #available(macOS 15, *) {
             options.mathMode = .fast
         } else {
@@ -121,10 +129,11 @@ final class ShaderLibrary {
         #if DEBUG
         // OUTBOUND_SLOW_GPU=n paints the ground n times over, to see how a GPU n times slower copes.
         if let slow = ProcessInfo.processInfo.environment["OUTBOUND_SLOW_GPU"].flatMap(Int.init), slow > 1 {
-            options.preprocessorMacros = ["OUTBOUND_SLOW_GPU": NSNumber(value: slow)]
-            Log.render.info("Painting the ground \(slow) times over")
+            macros["OUTBOUND_SLOW_GPU"] = NSNumber(value: slow)
+            if !lean { Log.render.info("Painting the ground \(slow) times over") }
         }
         #endif
+        if !macros.isEmpty { options.preprocessorMacros = macros }
         return try device.makeLibrary(source: source, options: options)
     }
 
@@ -134,7 +143,11 @@ final class ShaderLibrary {
                                    in library: MTLLibrary) throws -> MTLRenderPipelineDescriptor {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.label = label ?? fragment
-        descriptor.vertexFunction = library.makeFunction(name: vertex)
+        // Metal stops the app outright over a pipeline with a function missing, where a thrown error can be dealt with.
+        guard let vertexFunction = library.makeFunction(name: vertex) else {
+            throw CocoaError(.fileReadCorruptFile, userInfo: [NSLocalizedDescriptionKey: "The shaders have no \(vertex)."])
+        }
+        descriptor.vertexFunction = vertexFunction
         if let parts {
             let values = MTLFunctionConstantValues()
             for part in Part.allCases {
@@ -143,7 +156,10 @@ final class ShaderLibrary {
             }
             descriptor.fragmentFunction = try library.makeFunction(name: fragment, constantValues: values)
         } else {
-            descriptor.fragmentFunction = library.makeFunction(name: fragment)
+            guard let fragmentFunction = library.makeFunction(name: fragment) else {
+                throw CocoaError(.fileReadCorruptFile, userInfo: [NSLocalizedDescriptionKey: "The shaders have no \(fragment)."])
+            }
+            descriptor.fragmentFunction = fragmentFunction
         }
         for (i, format) in formats.enumerated() {
             descriptor.colorAttachments[i].pixelFormat = format
@@ -154,21 +170,19 @@ final class ShaderLibrary {
 
     private static func build(device: MTLDevice, library: MTLLibrary) throws -> Pipelines {
         func pipeline(_ fragment: String, vertex: String = "fullscreen", formats: [MTLPixelFormat],
-                      writes: Int? = nil, parts: Set<Part>? = nil) throws -> MTLRenderPipelineState {
+                      writes: Int? = nil) throws -> MTLRenderPipelineState {
             try device.makeRenderPipelineState(descriptor: descriptor(fragment, vertex: vertex, formats: formats,
-                                                                      writes: writes, parts: parts, in: library))
+                                                                      writes: writes, in: library))
         }
-        // A shader that comes in copies has to be told its parts even to have them all.
-        let whole = Set(Part.allCases)
         let frame = [viewFormat, lightFormat]
         return Pipelines(ground: try pipeline("ground", formats: [cacheFormat, nightFormat]),
                          clouds: try pipeline("clouds", formats: [cacheFormat]),
                          bank: try pipeline("bank", formats: [cacheFormat]),
                          gusts: try pipeline("gusts", formats: [gustFormat]),
                          paper: try pipeline("paper", formats: [paperFormat]),
-                         view: try pipeline("viewGround", formats: frame, parts: whole),
+                         view: try pipeline("viewGround", formats: frame),
                          animals: try pipeline("animalFragment", vertex: "animalVertex", formats: frame, writes: 1),
-                         sky: try pipeline("sky", formats: frame, writes: 1, parts: whole),
+                         sky: try pipeline("sky", formats: frame, writes: 1),
                          bird: try pipeline("birdSprite", formats: [viewFormat]))
     }
 
@@ -177,7 +191,8 @@ final class ShaderLibrary {
         let copy: LeanCopy
         let fragment: String
         var vertex = "fullscreen"
-        let parts: Set<Part>
+        /// The parts the copy has, or nil for the whole shader, from the library every other shader comes from.
+        let parts: Set<Part>?
         var writes: Int?
         let label: String
     }
@@ -190,50 +205,61 @@ final class ShaderLibrary {
          Recipe(copy: .skyAround, fragment: "sky", vertex: "tiles", parts: [], writes: 1, label: "sky round the bird"),
          Recipe(copy: .skyBandAround, fragment: "sky", vertex: "tiles", parts: [.band], writes: 1,
                 label: "sky with a band round the bird"),
-         Recipe(copy: .skyBird, fragment: "sky", vertex: "tiles", parts: Set(Part.allCases), writes: 1,
-                label: "sky over the bird")]
+         Recipe(copy: .skyBird, fragment: "sky", vertex: "tiles", parts: nil, writes: 1, label: "sky over the bird")]
     }
 
     /// Compiles a copy for the frame pass, whose targets have `formats`.
     nonisolated private static func compile(_ recipe: Recipe, formats: [MTLPixelFormat], device: MTLDevice,
-                                            library: MTLLibrary) throws -> MTLRenderPipelineState {
+                                            whole: MTLLibrary, lean: MTLLibrary) throws -> MTLRenderPipelineState {
         try device.makeRenderPipelineState(descriptor: descriptor(
             recipe.fragment, vertex: recipe.vertex, formats: formats, writes: recipe.writes, parts: recipe.parts,
-            label: recipe.label, in: library))
+            label: recipe.label, in: recipe.parts == nil ? whole : lean))
     }
 
-    /// Compiles the lean copies of the frame's shaders: now, or off the main thread one after another with nothing
-    /// waiting for them. They only make frames cheaper, so one that won't compile is left out and said so, and the
-    /// whole shader goes on drawing in its place: it never stops Outbound from opening.
-    private func compileLean(from library: MTLLibrary, now: Bool) {
+    /// Compiles every lean copy, handing each over as it is done; one that won't compile is said and left out.
+    nonisolated private static func compileCopies(_ recipes: [Recipe], formats: [MTLPixelFormat], source: String,
+                                                  device: MTLDevice, whole: MTLLibrary,
+                                                  each: (LeanCopy, MTLRenderPipelineState) -> Void) {
+        let lean: MTLLibrary
+        do {
+            lean = try library(device: device, source: source, lean: true)
+        } catch {
+            Log.render.error("The lean shaders didn't compile: \(String(describing: error), privacy: .public)")
+            return
+        }
+        for recipe in recipes {
+            do {
+                each(recipe.copy, try compile(recipe, formats: formats, device: device, whole: whole, lean: lean))
+            } catch {
+                Log.render.error("A lean shader didn't compile: \(recipe.label, privacy: .public): \(String(describing: error), privacy: .public)")
+            }
+        }
+    }
+
+    /// Compiles the lean copies of the frame's shaders, from a library of their own: now, or off the main thread one
+    /// after another with nothing waiting for them. They only make frames cheaper, so one that won't compile is left
+    /// out and said so, and the whole shader goes on drawing in its place: it never stops Outbound from opening.
+    private func compileLean(source: String, whole: MTLLibrary, now: Bool) {
         builds += 1
         let build = builds
         let recipes = Self.recipes, frame = [Self.viewFormat, Self.lightFormat]
         if now {
-            for recipe in recipes {
-                do {
-                    pipelines.lean[recipe.copy] = try Self.compile(recipe, formats: frame, device: device, library: library)
-                } catch {
-                    Log.render.error("A lean shader didn't compile: \(recipe.label, privacy: .public): \(String(describing: error), privacy: .public)")
-                }
+            Self.compileCopies(recipes, formats: frame, source: source, device: device, whole: whole) { copy, state in
+                pipelines.lean[copy] = state
             }
             return
         }
-        let metal = Compiler(device: device, library: library)
+        let metal = Compiler(device: device, library: whole)
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            for recipe in recipes {
-                do {
-                    let made = Compiled(state: try ShaderLibrary.compile(recipe, formats: frame, device: metal.device,
-                                                                         library: metal.library))
-                    DispatchQueue.main.async {
-                        MainActor.assumeIsolated {
-                            // Shaders reloaded meanwhile have copies of their own on the way.
-                            guard let self, self.builds == build else { return }
-                            self.pipelines.lean[recipe.copy] = made.state
-                        }
+            ShaderLibrary.compileCopies(recipes, formats: frame, source: source, device: metal.device,
+                                        whole: metal.library) { copy, state in
+                let made = Compiled(state: state)
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated {
+                        // Shaders reloaded meanwhile have copies of their own on the way.
+                        guard let self, self.builds == build else { return }
+                        self.pipelines.lean[copy] = made.state
                     }
-                } catch {
-                    Log.render.error("A lean shader didn't compile: \(recipe.label, privacy: .public): \(String(describing: error), privacy: .public)")
                 }
             }
         }
@@ -272,9 +298,10 @@ final class ShaderLibrary {
 
     private func reload() {
         do {
-            let library = try Self.library(device: device, source: try Self.source())
+            let source = try Self.source()
+            let library = try Self.library(device: device, source: source)
             pipelines = try Self.build(device: device, library: library)
-            compileLean(from: library, now: true)
+            compileLean(source: source, whole: library, now: true)
             Log.render.info("Shaders reloaded")
             onReload()
         } catch {

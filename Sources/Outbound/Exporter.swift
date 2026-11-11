@@ -77,7 +77,8 @@ enum Exporter {
         let scale = Double(options["scale"] ?? "2") ?? 2
         var time = Double(options["time"] ?? "20") ?? 20
 
-        let gpu = try GPU(leanNow: true)
+        // With --whole, every frame is drawn by the whole shaders, as the app draws until its lean copies have compiled.
+        let gpu = try GPU(lean: options["whole"] == nil ? .now : .never)
         let frame = CGRect(x: 0, y: 0, width: size[0], height: size[1])
         var light = World.Light.alwaysDay
         var clock = date
@@ -250,7 +251,7 @@ enum Exporter {
     private static func paint(_ place: Place, season: Int, frame: CGRect, scale: Double, bird: (CGPoint, Double)?,
                               birdSize: Double = 27, time: Double = 30, hour: Double? = nil,
                               clouds: Bool = true) throws -> CGImage {
-        let gpu = try GPU(leanNow: true)
+        let gpu = try GPU(lean: .now)
         let date = Calendar.current.date(from: DateComponents(year: 2026, month: place.seasons[season].months.min() ?? 1, day: 15))!
         let world = World(place: place, time: 0, date: date, light: .alwaysDay)
         world.pointer = { nil }

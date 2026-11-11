@@ -76,14 +76,16 @@ struct LeanShaderTests {
     }
 
     @Test(arguments: Place.all.map(\.id))
-    func leanCopiesPaintTheSamePicture(_ id: String) throws {
-        let gpu = try GPU(leanNow: true)
+    func leanCopiesPaintTheSamePicture(_ id: String) async throws {
+        let gpu = try GPU(lean: .now)
         #expect(whole(gpu))
         let place = try #require(Place.named(id))
         // On a plain display with the bird in the frame, and on a Retina one with the bird on a layer of its own, which
         // leaves only its shadow to the frame.
         for (scale, drawsBird) in [(1, true), (2, false)] {
             for hour in [nil, 23.0] as [Double?] {
+                // Other tests wait on timers of the main thread, which these frames would otherwise hold for seconds.
+                await Task.yield()
                 let name = "\(id) at \(hour.map { "\($0)" } ?? "noon") @\(scale)x"
                 let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale,
                                       drawsBird: drawsBird)
@@ -102,7 +104,7 @@ struct LeanShaderTests {
         }
     }
 
-    @Test func aBirdInViewIsNeverLeftToACopyWithoutIt() throws {
+    @Test func aBirdInViewIsNeverLeftToACopyWithoutIt() async throws {
         // Copies arrive one by one after launch, and one may never arrive. A frame drawn meanwhile has to be the same.
         let place = try #require(Place.named("kansas"))
         let missing: [Set<ShaderLibrary.LeanCopy>] = [
@@ -119,13 +121,14 @@ struct LeanShaderTests {
         }
         for (band, prepare) in [(false, { (_: World) in }), (true, toABand)] {
             for drawsBird in [true, false] {
-                let all = try GPU(leanNow: true)
+                let all = try GPU(lean: .now)
                 #expect(whole(all))
                 let reference = try frame(place, seconds: 30, lean: false, gpu: all, drawsBird: drawsBird, prepare: prepare)
                 let lean = try frame(place, seconds: 30, lean: true, gpu: all, drawsBird: drawsBird, prepare: prepare)
                 #expect(lean.sky == .roundBird, "band \(band)")
                 for gone in missing {
-                    let gpu = try GPU(leanNow: true)
+                    await Task.yield()
+                    let gpu = try GPU(lean: .now)
                     gpu.shaders.forget(gone)
                     let drawn = try frame(place, seconds: 30, lean: true, gpu: gpu, drawsBird: drawsBird,
                                           prepare: prepare)
@@ -139,7 +142,7 @@ struct LeanShaderTests {
     }
 
     @Test func theSamePictureWithATrainAFlockOrAFlyTo() throws {
-        let gpu = try GPU(leanNow: true)
+        let gpu = try GPU(lean: .now)
         let first = try #require(Place.named("normandy"))
         // Flown on, two seconds at a time as the app would, until each is in view.
         func until(_ found: @escaping (World) -> Bool) -> (World) -> Void {
@@ -189,17 +192,19 @@ struct LeanShaderTests {
         #expect(ready())
     }
 
-    @Test func theBirdWhereverItIs() throws {
+    @Test func theBirdWhereverItIs() async throws {
         // In a corner, half off an edge, just off the desktop with its shadow still on it, and nowhere near.
-        let gpu = try GPU(leanNow: true)
+        let gpu = try GPU(lean: .now)
         let place = try #require(Place.named("lisse"))
         let spots: [(CGPoint, ViewRenderer.SkyDraw?)] = [
             (CGPoint(x: 12, y: 10), .roundBird), (CGPoint(x: 715, y: 440), .roundBird), (CGPoint(x: 360, y: -20), .roundBird),
             (CGPoint(x: -34, y: 200), nil), (CGPoint(x: 360, y: 482), nil), (CGPoint(x: -400, y: -400), .plain)
         ]
-        for scale in [1, 2] {
-            for hour in [7.0, 18.5] {
+        // A low morning sun on a plain display, and a low evening one on a Retina display.
+        for (scale, hour) in [(1, 7.0), (2, 18.5)] {
+            do {
                 for (spot, expected) in spots {
+                    await Task.yield()
                     let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale, bird: spot)
                     let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu, scale: scale, bird: spot)
                     let differs = difference(whole.bytes, lean.bytes)

@@ -118,7 +118,8 @@ cold_compile() {
     [[ -f "$common" ]] || common="$(find "$copy/Outbound_Outbound.bundle" -name Common.metal | head -1)"
     grep -q '0\.299, 0\.587, 0\.114' "$common" || { echo "The line this changes has moved in Common.metal." >&2; exit 2; }
     sed -i '' -E "s/0\.299, 0\.587, 0\.114/0.299, 0.587, 0.114$(printf '%06d' $((salt % 1000000)))/" "$common"
-    local run=("$copy/Outbound" --render /dev/null --bench 0.2 --size 400x300 --scale 1)
+    # With the whole shaders only, which are all that opening the app waits for.
+    local run=("$copy/Outbound" --render /dev/null --bench 0.2 --size 400x300 --scale 1 --whole)
     # Seconds a run takes, or nothing if it fails: a build that falls over at once would otherwise look quick.
     local timed='$t = time; $failed = system(@ARGV); exit 1 if $failed; printf "\n%.2f\n", time - $t'
     local cold warm
@@ -226,8 +227,7 @@ check)
     (( now_graphics > kept_graphics + 4 )) && { echo "GPU memory grew."; failed=1; }
     echo
     compile
-    # Read from a headless run, which compiles the lean copies of the frame's shaders before it draws; the app doesn't
-    # wait for those. Two readings of one build can be a few tenths apart.
+    # Two readings of one build can be a few tenths apart.
     awk -v a="$kept_compile" -v b="$now_compile" 'BEGIN { exit !(b > a + 0.5) }' && { echo "Shaders take longer to compile."; failed=1; }
     exit "$failed"
     ;;

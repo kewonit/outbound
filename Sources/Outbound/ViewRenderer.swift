@@ -35,9 +35,8 @@ final class GPU {
     private var detailedErrors = false
     private static let costKey = "groundCost"
 
-    /// With `leanNow`, the lean copies of the frame's shaders are compiled before anything is drawn (see
-    /// `ShaderLibrary`).
-    init(leanNow: Bool = false) throws {
+    /// `lean` says when the lean copies of the frame's shaders are compiled (see `ShaderLibrary`).
+    init(lean: ShaderLibrary.LeanCopies = .later) throws {
         // The frame pass reads the framebuffer in the shader and keeps its light in tile memory, which only
         // Apple's own GPUs can do.
         guard let device = MTLCreateSystemDefaultDevice(), device.supportsFamily(.apple7),
@@ -59,7 +58,7 @@ final class GPU {
                 : nil
         } ?? .initial
         paintBudget = PaintBudget(costPerMillion: min(max(groundCost.millisecondsPerMillion, 1), 400))
-        shaders = try ShaderLibrary(device: device, leanNow: leanNow)
+        shaders = try ShaderLibrary(device: device, lean: lean)
 
         let descriptor = MTLSamplerDescriptor()
         descriptor.minFilter = .linear

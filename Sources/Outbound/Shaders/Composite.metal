@@ -4,26 +4,34 @@
 //   2. animalVertex/animalFragment: herds as small instanced sprites, so they only cost the pixels they cover.
 //   3. sky: cloud shadow, clouds, the bird, paper and the light of the hour, reading the frame back in place.
 
-// These shaders are compiled more than once, each copy holding only the parts some frames need. A part a frame never
-// reaches still slows every pixel just by being in the shader, as the more a shader holds the fewer pixels the GPU works
-// on at a time: with all of them in, a daytime frame with no train, flock or band of cloud in it took over a third longer.
-// A copy made without saying which parts to have has them all, and every copy paints the same picture.
-constant bool darkGiven [[function_constant(0)]];
-constant bool trainGiven [[function_constant(1)]];
-constant bool sweepGiven [[function_constant(2)]];
-constant bool birdGiven [[function_constant(3)]];
-constant bool flockGiven [[function_constant(4)]];
-constant bool bandGiven [[function_constant(5)]];
+// The ground and sky draws are compiled more than once, each copy holding only the parts some frames need. A part a
+// frame never reaches still slows every pixel just by being in the shader, as the more a shader holds the fewer pixels
+// the GPU works on at a time: with all of them in, a daytime frame with no train, flock or band of cloud in it took over
+// a third longer. Every copy paints the same picture.
+//
+// The copies are made with function constants, from a second library compiled with OUTBOUND_LEAN. The library every
+// other shader comes from must have none: with even one in it Metal compiles all its shaders another way, and the
+// ground's, so compiled, now and then painted a block of eight texels by four without a tree or its shadow, about once
+// in two hundred paintings of a screen.
+#ifdef OUTBOUND_LEAN
 // Lamps, headlights and lit windows, which only show after dark.
-constant bool withDark = is_function_constant_defined(darkGiven) ? darkGiven : true;
-constant bool withTrain = is_function_constant_defined(trainGiven) ? trainGiven : true;
+constant bool withDark [[function_constant(0)]];
+constant bool withTrain [[function_constant(1)]];
 // The new place blended in during a Fly To.
-constant bool withSweep = is_function_constant_defined(sweepGiven) ? sweepGiven : true;
+constant bool withSweep [[function_constant(2)]];
 // The gull and its shadow.
-constant bool withBird = is_function_constant_defined(birdGiven) ? birdGiven : true;
-constant bool withFlock = is_function_constant_defined(flockGiven) ? flockGiven : true;
+constant bool withBird [[function_constant(3)]];
+constant bool withFlock [[function_constant(4)]];
 // The band of cloud between two places.
-constant bool withBand = is_function_constant_defined(bandGiven) ? bandGiven : true;
+constant bool withBand [[function_constant(5)]];
+#else
+constant bool withDark = true;
+constant bool withTrain = true;
+constant bool withSweep = true;
+constant bool withBird = true;
+constant bool withFlock = true;
+constant bool withBand = true;
+#endif
 
 struct ViewOut {
     float4 color [[color(0)]];
