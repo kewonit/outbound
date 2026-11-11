@@ -200,18 +200,17 @@ struct LeanShaderTests {
             (CGPoint(x: 12, y: 10), .roundBird), (CGPoint(x: 715, y: 440), .roundBird), (CGPoint(x: 360, y: -20), .roundBird),
             (CGPoint(x: -34, y: 200), nil), (CGPoint(x: 360, y: 482), nil), (CGPoint(x: -400, y: -400), .plain)
         ]
-        // A low morning sun on a plain display, and a low evening one on a Retina display.
+        // A morning sun on a plain display, and an evening one on a Retina display.
         for (scale, hour) in [(1, 7.0), (2, 18.5)] {
-            do {
-                for (spot, expected) in spots {
-                    await Task.yield()
-                    let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale, bird: spot)
-                    let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu, scale: scale, bird: spot)
-                    let differs = difference(whole.bytes, lean.bytes)
-                    #expect(differs.worst <= 1, "bird at \(spot) at \(hour) @\(scale)x")
-                    #expect(differs.count <= whole.bytes.count / 1000, "bird at \(spot) at \(hour) @\(scale)x")
-                    if let expected { #expect(lean.sky == expected, "bird at \(spot) at \(hour) @\(scale)x") }
-                }
+            for (spot, expected) in spots {
+                await Task.yield()
+                let name = "bird at \(spot) at \(hour) @\(scale)x"
+                let whole = try frame(place, seconds: 30, hour: hour, lean: false, gpu: gpu, scale: scale, bird: spot)
+                let lean = try frame(place, seconds: 30, hour: hour, lean: true, gpu: gpu, scale: scale, bird: spot)
+                let differs = difference(whole.bytes, lean.bytes)
+                #expect(differs.worst <= 1, "\(name)")
+                #expect(differs.count <= whole.bytes.count / 1000, "\(name)")
+                if let expected { #expect(lean.sky == expected, "\(name)") }
             }
         }
     }

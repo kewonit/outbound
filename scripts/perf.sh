@@ -97,9 +97,9 @@ memory() {
     read -r kept_total kept_graphics <<< "$(footprint_of "$kept")"
     read -r now_total now_graphics <<< "$(footprint_of "$now")"
     # A flight that died before it could be read leaves nothing to compare, which must never pass for no growth.
-    local read
-    for read in "$kept_total" "$kept_graphics" "$now_total" "$now_graphics"; do
-        [[ "$read" =~ ^[1-9][0-9]*$ ]] || { echo "Couldn't read the footprint of a flight: did it start?" >&2; exit 1; }
+    local megabytes
+    for megabytes in "$kept_total" "$kept_graphics" "$now_total" "$now_graphics"; do
+        [[ "$megabytes" =~ ^[1-9][0-9]*$ ]] || { echo "Couldn't read the footprint of a flight: did it start?" >&2; exit 1; }
     done
     printf "%-18s %10s %10s\n" "megabytes" "$name" "now"
     printf "%-18s %10s %10s\n" "footprint" "$kept_total" "$now_total"
