@@ -11,12 +11,13 @@ cd "$(dirname "$0")/.."
 #   memory   the footprint of both builds part way through a flight, and how much of it is GPU memory
 #   compile  how long the shaders of both builds take to compile from cold
 #   soak     paints stills over and over, stopping at the first GPU error: scripts/perf.sh soak 300
+#   steady   paints one frame over and over and fails unless it comes out the same every time: scripts/perf.sh steady 1200
 #   check    bench, frames, memory and compile together; fails if this build costs more or paints differently
 #
 # <name> is "before" unless given. A usual round: `scripts/perf.sh keep` on the commit to compare against, then
-# `scripts/perf.sh check` after each change. ROUNDS sets how many times bench goes round (3), and PLACES which places
-# it flies over. Numbers move with
-# whatever else the Mac is doing, so the two builds always take turns, and only a difference seen every round counts.
+# `scripts/perf.sh check` after each change, and `scripts/perf.sh steady` after any change to the shaders. ROUNDS sets
+# how many times bench goes round (3), and PLACES which places it flies over. Numbers move with whatever else the Mac
+# is doing, so the two builds always take turns, and only a difference seen every round counts.
 
 command="${1:-}"
 name="${2:-before}"
@@ -198,6 +199,26 @@ soak() {
     echo "All $runs runs clean"
 }
 
+# The ground's shader is the largest by far, and how Metal compiles it turns on things that have nothing to do with
+# it: once, after a change elsewhere in its library, it painted a block of eight texels by four wrong in about one
+# painting of a screen in two hundred. A handful of pictures never shows that. So this paints one frame over and
+# over, four at a time, each in a process of its own as the first painting is where it showed, and counts the
+# different pictures that come out. There should be one.
+steady() {
+    local runs="${1:-1200}"
+    export steady_run="$now/Outbound"
+    local pictures
+    pictures="$(seq 1 "$runs" | xargs -P 4 -n 1 /bin/bash -c \
+        '"$steady_run" --render - --best --place normandy --seconds 0.5 --fps 2 --size 1512x982 --scale 2 2>/dev/null | md5 -q' _ \
+        | sort | uniq -c | sort -rn)"
+    echo "$pictures"
+    if [[ "$(grep -c . <<< "$pictures")" != 1 ]]; then
+        echo "The same frame came out more than one way."
+        exit 1
+    fi
+    echo "All $runs paintings came out the same"
+}
+
 case "$command" in
 keep)
     build
@@ -212,6 +233,7 @@ frames) needs_kept; build; frames ;;
 memory) needs_kept; build; memory ;;
 compile) needs_kept; build; compile ;;
 soak) build; soak "${2:-300}" ;;
+steady) build; steady "${2:-1200}" ;;
 check)
     needs_kept
     build
@@ -232,7 +254,7 @@ check)
     exit "$failed"
     ;;
 *)
-    sed -n '5,18p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '5,20p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

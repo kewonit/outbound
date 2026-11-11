@@ -138,9 +138,10 @@ final class ShaderLibrary {
     }
 
     /// What a pipeline is made from. With `parts`, the fragment shader is a copy that has only those.
-    nonisolated private static func descriptor(_ fragment: String, vertex: String = "fullscreen", formats: [MTLPixelFormat],
-                                   writes: Int? = nil, parts: Set<Part>? = nil, label: String? = nil,
-                                   in library: MTLLibrary) throws -> MTLRenderPipelineDescriptor {
+    nonisolated private static func descriptor(_ fragment: String, vertex: String = "fullscreen",
+                                               formats: [MTLPixelFormat], writes: Int? = nil,
+                                               parts: Set<Part>? = nil, label: String? = nil,
+                                               in library: MTLLibrary) throws -> MTLRenderPipelineDescriptor {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.label = label ?? fragment
         // Metal stops the app outright over a pipeline with a function missing, where a thrown error can be dealt with.
