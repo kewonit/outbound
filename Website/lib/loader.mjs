@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
-const SCRIPTS = ["app", "thanks", "feedback", "waitlist"];
+const SCRIPTS = ["app", "mac", "thanks", "feedback", "waitlist"];
 
 export function loader(publicDir) {
   const version = (name) => createHash("sha256").update(readFileSync(new URL(`${name}.js`, publicDir))).digest("hex").slice(0, 10);
@@ -55,6 +55,8 @@ export function loader(publicDir) {
   // The page's own scripts run in this order, as they would from tags here.
   start("app", false);
   if (page) start(page, false);
+  // The homepage's drawn Macs: their clocks.
+  if (document.querySelector(".mac-bar")) start("mac", false);
 })();
 `;
   // Shipped without its comments and indentation.

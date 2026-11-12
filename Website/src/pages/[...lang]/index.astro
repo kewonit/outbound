@@ -3,6 +3,10 @@ import Page from "../../layouts/Page.astro";
 import Topbar from "../../components/Topbar.astro";
 import LanguagePicker from "../../components/LanguagePicker.astro";
 import Latest from "../../components/Latest.astro";
+import MacBook from "../../components/MacBook.astro";
+import MenuBar from "../../components/MenuBar.astro";
+import Dock from "../../components/Dock.astro";
+import Display from "../../components/Display.astro";
 import { translator, href as localHref } from "../../i18n/index.js";
 import { everyLanguage } from "../../i18n/languages.js";
 import { structuredData } from "../../structured-data.js";
@@ -25,7 +29,6 @@ const DEMOS = [
 // them (see the Worker).
 const FAQ = Array.from({ length: 14 }, (_, i) => i + 1);
 const DIRECT = new Set([9, 10, 11]);
-const DOCK = [true, false, true, true, false, false, false, false, false, true, false, false];
 ---
 <Page lang={lang} path="/" listed title={t("meta.title")} description={t("meta.description")}
       shareTitle={t("meta.shareTitle")} shareDescription={t("meta.shareDescription")}
@@ -58,14 +61,7 @@ const DOCK = [true, false, true, true, false, false, false, false, false, true, 
       <figure class="desktop">
         <video src="/assets/flight.mp4?v=4" poster={POSTER} autoplay muted loop playsinline preload="metadata"
                width="1600" height="1000" aria-label={t("visual.video")}></video>
-        {/* A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
-            from one strip of icons. */}
-        <div class="dock" aria-hidden="true">
-          {DOCK.map((open, i) => <span class:list={["dock-item", { open }]} style={`--i: ${i}`}></span>)}
-          <span class="dock-divider"></span>
-          <span class="dock-item" style="--i: 12"></span>
-          <span class="dock-item" style="--i: 13"></span>
-        </div>
+        <Dock />
       </figure>
     </div>
   </section>
@@ -154,6 +150,32 @@ const DOCK = [true, false, true, true, false, false, false, false, false, true, 
           </div>
         ))}
       </div>
+    </div>
+  </section>
+
+  {/* One landscape over a display and the MacBook under it, laid out as macOS has them: the clip is one render of
+      both screens, its parts set apart by the gap between them (scripts/make-site-assets.sh). */}
+  <section class="section" id="displays">
+    <div class="wrap-narrow">
+      <h2 set:html={t("displays.title")}></h2>
+    </div>
+    <div class="wrap-wide">
+      <figure class="displays" aria-label={t("displays.label")} data-displays>
+        <video class="displays-clip" data-src="/assets/displays.mp4?v=2" data-poster="/assets/displays.jpg?v=2" muted loop playsinline
+               preload="none" width="1280" height="1278" aria-label={t("displays.video")}></video>
+        <div class="display">
+          <Display />
+          <div class="display-screen">
+            <p class="mac-caption" aria-hidden="true">Normandy, France</p>
+            <MenuBar lang={lang} dim />
+          </div>
+        </div>
+        <MacBook clear points={1512} class="displays-laptop">
+          <p class="mac-caption mac-caption-dock" aria-hidden="true">Normandy, France</p>
+          <Dock />
+          <MenuBar lang={lang} notch />
+        </MacBook>
+      </figure>
     </div>
   </section>
 

@@ -1,0 +1,77 @@
+---
+// A 14-inch MacBook Pro around whatever goes in the slot. It is drawn inline, so it costs no request, and only with
+// flat fills and gradients, so it paints once and never again. The screen has the real one's shape (3024 x 1964), a
+// touch narrower than 16:10, and the frame sits over it: the bezel's rounded corners and the notch cover the picture.
+// `points` is how many points the screen shows across, which sizes the menu bar and caption drawn on it; `clear`
+// leaves the screen see-through, for a picture laid behind the whole Mac.
+interface Props { points?: number; clear?: boolean; class?: string }
+const { points = 1200, clear = false, class: className } = Astro.props;
+// Gradient ids of its own, as a page can show more than one Mac: no two on a page show the same number of points.
+const n = points;
+---
+<figure class:list={["macbook", className]}>
+  <div class:list={["macbook-screen", { "macbook-screen-clear": clear }]} style={`--points: ${points}`}><slot /></div>
+  <svg class="macbook-body" viewBox="19.04 13.18 611.92 373.64" width="612" height="374" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id={`mb-rim-${n}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#dcdde0"/>
+        <stop offset=".05" stop-color="#abacaf"/>
+        <stop offset="1" stop-color="#86878a"/>
+      </linearGradient>
+      <linearGradient id={`mb-glass-${n}`} gradientUnits="userSpaceOnUse" x1="69" y1="16" x2="300" y2="330">
+        <stop offset="0" stop-color="#fff" stop-opacity=".08"/>
+        <stop offset=".6" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id={`mb-lens-${n}`} cx=".4" cy=".4" r=".7">
+        <stop offset="0" stop-color="#34405e"/>
+        <stop offset=".5" stop-color="#121729"/>
+        <stop offset="1" stop-color="#050507"/>
+      </radialGradient>
+      <linearGradient id={`mb-hinge-${n}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#050505"/>
+        <stop offset=".3" stop-color="#29292b"/>
+        <stop offset=".65" stop-color="#18181a"/>
+        <stop offset="1" stop-color="#0a0a0b"/>
+      </linearGradient>
+      <linearGradient id={`mb-base-${n}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f4f5f7"/>
+        <stop offset=".06" stop-color="#d3d4d7"/>
+        <stop offset=".2" stop-color="#bbbcbf"/>
+        <stop offset=".72" stop-color="#a3a4a7"/>
+        <stop offset="1" stop-color="#727376"/>
+      </linearGradient>
+      <linearGradient id={`mb-ends-${n}`} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#000" stop-opacity=".3"/>
+        <stop offset=".03" stop-color="#000" stop-opacity="0"/>
+        <stop offset=".97" stop-color="#000" stop-opacity="0"/>
+        <stop offset="1" stop-color="#000" stop-opacity=".3"/>
+      </linearGradient>
+      <linearGradient id={`mb-scoop-${n}`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#5c5d60"/>
+        <stop offset=".5" stop-color="#8a8b8e"/>
+        <stop offset="1" stop-color="#b6b7ba"/>
+      </linearGradient>
+    </defs>
+    {/* The lid: an aluminium rim, the black seal inside it, then the bezel, all open where the screen is. */}
+    <path fill-rule="evenodd" fill={`url(#mb-rim-${n})`} d="M79.56,13.18h491.32c7.23,0,13.1,5.87,13.1,13.1v336.61H66.46V26.28c0-7.23,5.87-13.1,13.1-13.1ZM575.74,345.17H74.52V27.31c0-3.31,2.68-5.99,5.99-5.99h489.24c3.31,0,5.99,2.68,5.99,5.99v317.86Z"/>
+    <path fill-rule="evenodd" fill="#1c1c1e" d="M79.96,14.24h490.45c6.83,0,12.37,5.54,12.37,12.37v336.28H67.59V26.6c0-6.83,5.54-12.37,12.37-12.37ZM575.74,345.17H74.52V27.31c0-3.31,2.68-5.99,5.99-5.99h489.24c3.31,0,5.99,2.68,5.99,5.99v317.86Z"/>
+    <path fill="#000" fill-rule="evenodd" d="M570.25,15.74H80.34c-6.12,0-11.08,4.96-11.08,11.08v336.07h512.08V26.82c0-6.12-4.96-11.08-11.08-11.08ZM575.74,345.17H74.52V27.31c0-3.31,2.68-5.99,5.99-5.99h489.24c3.31,0,5.99,2.68,5.99,5.99v317.86Z"/>
+    {/* The notch, the size of a 14-inch MacBook Pro's (an eighth of the screen across, as tall as its menu bar),
+        meeting the top of the screen in small curves, and the camera in it. */}
+    <path fill="#000" d="M292.63,21.02c.83,0,1.5.67,1.5,1.5v6.8c0,1.93,1.57,3.5,3.5,3.5h55c1.93,0,3.5-1.57,3.5-3.5v-6.8c0-.83.67-1.5,1.5-1.5Z"/>
+    <circle cx="325.13" cy="26.9" r="1.45" fill="#0d0e11"/>
+    <circle cx="325.13" cy="26.9" r=".95" fill={`url(#mb-lens-${n})`}/>
+    <circle cx="324.85" cy="26.62" r=".26" fill="#fff" fill-opacity=".4"/>
+    {/* The hinge under the screen. */}
+    <rect fill={`url(#mb-hinge-${n})`} x="69.09" y="350.51" width="512.11" height="12.48"/>
+    {/* One sheet of glass over the screen and bezel, catching a little light at the top left. */}
+    <path fill={`url(#mb-glass-${n})`} d="M570.25,15.74H80.34c-6.12,0-11.08,4.96-11.08,11.08v323.69h512.08V26.82c0-6.12-4.96-11.08-11.08-11.08Z"/>
+    {/* The base: a bright chamfer on its top edge, darker as it curves under, shaded at the rounded ends. */}
+    <path fill={`url(#mb-base-${n})`} d="M20.84,362.77h608.32c1,0,1.8.8,1.8,1.8v8.59c0,5.95-4.83,10.79-10.79,10.79H29.83c-5.95,0-10.79-4.83-10.79-10.79v-8.59c0-1,.8-1.8,1.8-1.8Z"/>
+    <path fill={`url(#mb-ends-${n})`} d="M20.84,362.77h608.32c1,0,1.8.8,1.8,1.8v8.59c0,5.95-4.83,10.79-10.79,10.79H29.83c-5.95,0-10.79-4.83-10.79-10.79v-8.59c0-1,.8-1.8,1.8-1.8Z"/>
+    <path fill={`url(#mb-scoop-${n})`} d="M278.11,362.6h94.05c0,3.63-2.95,6.58-6.58,6.58h-80.89c-3.63,0-6.58-2.95-6.58-6.58Z"/>
+    {/* Rubber feet. */}
+    <path fill="#47484b" d="M48.43,383.95h35.98l-1.77,1.44h-32.77ZM565.84,383.95h35.98l-1.77,1.44h-32.77Z"/>
+    <path fill="#161617" d="M49.87,385.39h33.06l-1.62,1.43h-30.08ZM567.29,385.39h33.06l-1.62,1.43h-30.08Z"/>
+  </svg>
+</figure>

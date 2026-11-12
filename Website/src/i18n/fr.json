@@ -183,5 +183,8 @@
   "waitlist.metaDescription": "Outbound, le fond d'écran animé et peint, arrive sur Windows et iPhone. Laisse ton e-mail pour recevoir un seul e-mail quand il sera prêt. Rien de plus.",
   "waitlist.metaTitle": "Windows et iPhone · Outbound",
   "waitlist.title": "Outbound pour Windows et iPhone.",
-  "waitlist.which": "Lequel ?"
+  "waitlist.which": "Lequel ?",
+  "displays.title": "Un seul paysage sur tous tes écrans.",
+  "displays.label": "Outbound sur un écran et un MacBook",
+  "displays.video": "Un écran au-dessus d'un MacBook : une rivière, des haies et des vergers de pommiers en fleurs en Normandy descendent d'un écran à l'autre, comme un seul paysage"
 }

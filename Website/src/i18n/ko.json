@@ -183,5 +183,8 @@
   "waitlist.metaDescription": "실시간으로 그려지는 라이브 배경화면 Outbound가 Windows와 iPhone에 찾아옵니다. 이메일을 남기시면 준비되었을 때 딱 한 통만 보내드립니다. 그 외에는 없습니다.",
   "waitlist.metaTitle": "Windows 및 iPhone · Outbound",
   "waitlist.title": "Windows와 iPhone용 Outbound.",
-  "waitlist.which": "어느 쪽인가요?"
+  "waitlist.which": "어느 쪽인가요?",
+  "displays.title": "모든 디스플레이에 하나의 풍경.",
+  "displays.label": "디스플레이와 MacBook 위의 Outbound",
+  "displays.video": "MacBook 위의 디스플레이: Normandy의 강과 산울타리, 꽃이 핀 사과 과수원이 위 화면에서 아래 화면으로 하나의 풍경처럼 이어져요"
 }
