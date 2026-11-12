@@ -168,8 +168,7 @@ enum Exporter {
                 let elapsed = Double(frame) / fps
                 world.advance(to: time + elapsed)
                 if let destination, elapsed >= flyAt {
-                    let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-                    world.journey.fly(to: destination, from: bottom, time: world.time)
+                    world.fly(to: destination)
                     flyAt = .infinity
                 }
                 if elapsed >= repaintAt {
@@ -230,8 +229,7 @@ enum Exporter {
                 clockTime = time + Double(frame) / fps
                 world.advance(to: clockTime)
                 if let (place, at) = flights.first, Double(frame) / fps >= at {
-                    let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-                    world.journey.fly(to: place, from: bottom, time: world.time)
+                    world.fly(to: place)
                     flights.removeFirst()
                 }
                 _ = try paintFrame()

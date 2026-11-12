@@ -45,8 +45,7 @@ struct DisplaysTests {
     private func flyOn(_ world: World, atOnce: Bool = false) -> Place {
         let here = world.journey.leg(at: world.camera.y).place
         let next = Place.all[((Place.all.firstIndex { $0.id == here.id } ?? 0) + 1) % Place.all.count]
-        let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
-        world.journey.fly(to: next, from: bottom, time: world.time, atOnce: atOnce)
+        world.fly(to: next, atOnce: atOnce)
         return next
     }
 
@@ -128,13 +127,73 @@ struct DisplaysTests {
     }
 
     /// So soon after a fresh launch that the first place starts above the bottom of a display below the main one, the
-    /// new place has nothing to turn out of: every display shows it at once.
+    /// Fly To takes every leg away, and still turns every display out of that first place.
     @Test func aFlyToJustAfterLaunchWithADisplayBelow() {
         let layout = Self.layouts[2]
         let world = world(layout.frames, seconds: 5)
+        let first = world.journey.leg(at: world.camera.y).place
         let next = flyOn(world)
-        world.advance(to: world.time + 0.1)
+        #expect(world.journey.legs.count == 1)
+        world.advance(to: world.time + 0.4)
+        for display in layout.frames {
+            let frame = frame(world, on: display, at: world.time)
+            #expect(frame.sweepFront != nil, "\(display)")
+            #expect(frame.legA.place.id == first.id, "\(display)")
+        }
+        world.advance(to: world.time + 1.3)
         for display in layout.frames { #expect(showsOnly(next, world, on: display, at: world.time), "\(display)") }
+    }
+
+    /// With a join between two places lying across the desktop, the Fly To takes the place beyond it away, yet a
+    /// display above the join still turns out of that place, the one it shows, and its corner names it meanwhile.
+    @Test func aDisplayAboveAJoinTurnsOutOfThePlaceItShows() throws {
+        let layout = Self.layouts[0]
+        let world = world(layout.frames, seconds: 120)
+        world.journey.legLength = 900
+        let (main, above) = (layout.frames[0], layout.frames[1])
+        // Flown on until a join lies under the middle of the display above, clear of the main one.
+        var time = world.time
+        func joinBetween() -> Bool {
+            world.journey.joins.contains { join in
+                join > view(world, main, at: time).top + 50 && join < world.camera.y + Double(above.midY) * World.metresPerPoint
+            }
+        }
+        while !joinBetween(), time < 4000 {
+            time += 1
+            world.advance(to: time)
+        }
+        #expect(joinBetween())
+        let mainTop = view(world, main, at: time).top, aboveTop = view(world, above, at: time).top
+        let middle = world.camera.y + Double(above.midY) * World.metresPerPoint
+        let shownAbove = world.journey.leg(at: aboveTop).place, shownBelow = world.journey.leg(at: mainTop).place
+        let shownInTheMiddle = world.journey.leg(at: middle).place
+        #expect(shownAbove.id != shownBelow.id)
+        let next = flyOn(world)
+        world.advance(to: time + 0.4)
+        #expect(frame(world, on: above, at: world.time).legA.place.id == shownAbove.id)
+        #expect(frame(world, on: main, at: world.time).legA.place.id == shownBelow.id)
+        #expect(world.journey.placeShown(at: middle, time: world.time).id == shownInTheMiddle.id)
+        world.advance(to: time + 1.7)
+        for display in layout.frames { #expect(showsOnly(next, world, on: display, at: world.time), "\(display)") }
+    }
+
+    /// A new main display, or a new size for it, moves the river, and the railway beside it, and has every display
+    /// paint its ground afresh; the same one again changes nothing.
+    @Test func theRiverMovesWithTheMainDisplay() throws {
+        let world = world([Self.main], seconds: 120)
+        let place = try #require(Place.all.first { $0.railway != nil })
+        // A leg of a place with a railway that has a line laid down, as not every one does.
+        let leg = try #require((1000..<1200).lazy
+            .map { Leg(index: $0, place: place, season: place.signatureSeason, start: 0, sweepStart: nil) }
+            .first { world.railLine(for: $0) != nil })
+        let line = try #require(world.railLine(for: leg))
+        let revision = world.revision
+        world.centreRiver(on: Self.main)
+        #expect(world.revision == revision)
+        world.centreRiver(on: CGRect(x: 0, y: 0, width: 1800, height: 1169))
+        #expect(world.revision > revision)
+        let moved = try #require(world.railLine(for: leg))
+        #expect(abs(moved.origin.x - line.origin.x - (1800 - 1512) * 0.62 * World.metresPerPoint) < 0.001)
     }
 
     // MARK: - Drawn
@@ -240,5 +299,42 @@ struct DisplaysTests {
 
     @Test func aFlyToJustAfterLaunchWithADisplayBelowIsDrawnOnBoth() throws {
         try flyAndCompare(Self.drawnBelow, seconds: 5, drawsDuring: [true, true])
+    }
+
+    /// A second Fly To halfway through the first: the frame after it shows the land the first was turning to, settled,
+    /// never the place from before the first, and every display ends on the second.
+    @Test func aFlyToDuringAnother() throws {
+        let gpu = try GPU()
+        let frames = Self.drawnAbove
+        let world = world(frames, seconds: 120), stayed = self.world(frames, seconds: 120)
+        let renderers = frames.map { renderer($0, gpu: gpu) }
+        var t = world.time
+        for i in frames.indices { _ = try draw(renderers[i], world, frames[i], at: t, gpu: gpu) }
+        flyOn(world)
+        let start = t
+        while t < start + Journey.sweepDuration * 0.5 {
+            t += 1.0 / 30
+            for each in [world, stayed] { each.advance(to: t) }
+            for i in frames.indices { _ = try draw(renderers[i], world, frames[i], at: t, gpu: gpu) }
+        }
+        flyOn(world)
+        t += 1.0 / 30
+        for each in [world, stayed] { each.advance(to: t) }
+        for i in frames.indices {
+            let drawn = try draw(renderers[i], world, frames[i], at: t, gpu: gpu)
+            let before = try draw(renderer(frames[i], gpu: gpu), stayed, frames[i], at: t, gpu: gpu)
+            #expect(differing(drawn, before) > 0.3, "display \(i): \(differing(drawn, before))")
+        }
+        let end = t + Journey.sweepDuration + 0.4
+        while t < end {
+            t += 1.0 / 30
+            world.advance(to: t)
+            for i in frames.indices { _ = try draw(renderers[i], world, frames[i], at: t, gpu: gpu) }
+        }
+        for i in frames.indices {
+            let kept = try draw(renderers[i], world, frames[i], at: t, gpu: gpu)
+            let afresh = try draw(renderer(frames[i], gpu: gpu), world, frames[i], at: t, gpu: gpu)
+            #expect(differing(kept, afresh) < 0.01, "display \(i): \(differing(kept, afresh))")
+        }
     }
 }

@@ -288,9 +288,8 @@ final class DisplayManager {
             world.centreRiver(on: main.frame)
         }
         // A new main display, or a new size for it, moves the river, which the displays already up have baked into
-        // their ground, and its railway with it.
-        let riverMoved = world.riverX != river && !wallpapers.isEmpty
-        if riverMoved { world.repaint() }
+        // their ground, and its railway with it: they paint it afresh rather than wave the change down.
+        let riverMoved = world.riverX != river
         var seen = Set<CGDirectDisplayID>()
         var added: [Wallpaper] = []
         for screen in NSScreen.screens where running {

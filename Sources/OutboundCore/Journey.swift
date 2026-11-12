@@ -32,6 +32,17 @@ public final class Journey {
     /// the ground it keeps is of the place before.
     public private(set) var flights = 0
 
+    /// A Fly To: the leg it began, the legs as they were just before, and how far above the camera, in metres, its
+    /// sweep reaches, when that was given.
+    public struct Flight: Sendable {
+        public let leg: Int
+        public let replaced: [Leg]
+        public let reach: Double?
+    }
+
+    /// The latest Fly To, kept only for this run: a journey picked up again never opens mid-sweep.
+    public private(set) var lastFlight: Flight?
+
     private var anchorTime: TimeInterval
     private var anchorY: Double
     /// When the sideways drift started; unlike the anchor, a change of pace leaves it alone.
@@ -130,7 +141,8 @@ public final class Journey {
     /// and sweeps over it, so until it is halfway across, the place on screen is still the one it is replacing.
     public func placeShown(at y: Double, time: TimeInterval) -> Place {
         let leg = leg(at: y)
-        if let start = leg.sweepStart, time - start < Self.sweepDuration * 0.5, let previous = self.leg(before: leg) {
+        if let start = leg.sweepStart, time - start < Self.sweepDuration * 0.5,
+           let previous = self.leg(replacedBy: leg, at: y) ?? self.leg(before: leg) {
             return previous.place
         }
         return leg.place
@@ -140,6 +152,13 @@ public final class Journey {
     public func leg(before leg: Leg) -> Leg? {
         guard let i = legs.firstIndex(where: { $0.index == leg.index }), i > 0 else { return nil }
         return legs[i - 1]
+    }
+
+    /// The leg painted at world y before `leg` was flown to, while it is the latest Fly To's. The land there turns out
+    /// of that one, which may be a place the Fly To took away from beyond a join, and no longer one of `legs`.
+    public func leg(replacedBy leg: Leg, at y: Double) -> Leg? {
+        guard let lastFlight, lastFlight.leg == leg.index else { return nil }
+        return lastFlight.replaced.last { $0.start <= y } ?? lastFlight.replaced.first
     }
 
     /// Appends legs so the land up to world y is decided, and forgets legs far behind. A new place begins no
@@ -158,12 +177,15 @@ public final class Journey {
 
     /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over
     /// `sweepDuration`, or with `atOnce` is there already, as it must be while the flight is held still and no time
-    /// passes for it to sweep in.
-    public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, date: Date = .now) {
+    /// passes for it to sweep in. The sweep's front reaches `reach` metres above the camera, past the top of the view.
+    public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, reach: Double? = nil,
+                    date: Date = .now) {
+        let replaced = legs
         legs.removeAll { $0.start >= y }
         flights += 1
         // A sweep long over, not one just ending, which rounding could leave a hair short of over.
         append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)
+        lastFlight = Flight(leg: nextIndex - 1, replaced: replaced, reach: reach)
     }
 
     /// Re-reads the season for every leg, after the date or the calendar setting changed.

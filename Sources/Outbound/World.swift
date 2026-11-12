@@ -348,9 +348,15 @@ final class World {
         SIMD2(Double(point.x), Double(point.y)) * Self.metresPerPoint + camera(at: t)
     }
 
-    /// Places the river a little right of centre on the given display, like the reference.
+    /// Places the river a little right of centre on the given display, like the reference. Moved, it takes the railway
+    /// beside it along, and the train timed to pass the middle of the main display is timed again, so the ground is
+    /// painted afresh with them.
     func centreRiver(on frame: CGRect) {
-        riverX = (Double(frame.midX) + Double(frame.width) * 0.12) * Self.metresPerPoint
+        let x = (Double(frame.midX) + Double(frame.width) * 0.12) * Self.metresPerPoint
+        guard x != riverX else { return }
+        riverX = x
+        trainCrossing = nil
+        repaint()
     }
 
     struct Frame {
@@ -363,8 +369,13 @@ final class World {
         var legB: Leg
     }
 
-    /// The Fly To leg last swept in and the top of the desktop, in points, as its sweep was first drawn.
-    private var sweptDesktop: (leg: Int, top: Double)?
+    /// Flies to `place`, as from the menu: the new place starts just under the lowest display and sweeps in up past
+    /// the top of the highest, over every display at once, or with `atOnce` is there already.
+    func fly(to place: Place, atOnce: Bool = false) {
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint - 50
+        journey.fly(to: place, from: bottom, time: time, atOnce: atOnce,
+                    reach: Double(desktop.maxY) * Self.metresPerPoint)
+    }
 
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
     func frame(bottom: Double, top: Double) -> Frame {
@@ -376,9 +387,12 @@ final class World {
         let topLeg = journey.leg(at: top)
         var legA = topLeg
         // A Fly To starts the new place under the lowest display and turns every display out of the place before,
-        // however far above that one sits.
+        // however far above that one sits: the place at the top of the view, which a join below it may have made
+        // another than the one under the lowest display.
         let sweeping = topLeg.sweepStart.map { t - $0 < Journey.sweepDuration } ?? false
-        if let previous = journey.leg(before: topLeg), sweeping || topLeg.start > bottom - 200 {
+        if sweeping, let replaced = journey.leg(replacedBy: topLeg, at: top) {
+            legA = replaced
+        } else if let previous = journey.leg(before: topLeg), sweeping || topLeg.start > bottom - 200 {
             legA = previous
         }
         let legB = topLeg
@@ -394,11 +408,11 @@ final class World {
                 if progress < 1 {
                     sweep = max(progress, 0)
                     // One front for the whole desktop, up past the top of the highest display, so displays turn
-                    // together and the land matches wherever two of them meet. The desktop is taken as it was when
-                    // the sweep was first drawn, so a display coming or going meanwhile can't make the front jump.
-                    if sweptDesktop?.leg != legB.index { sweptDesktop = (legB.index, Double(desktop.maxY)) }
-                    let desktopTop = sweptDesktop?.top ?? Double(desktop.maxY)
-                    span = camera(at: t).y + desktopTop * Self.metresPerPoint - legB.start
+                    // together and the land matches wherever two of them meet. It reaches as high as the desktop
+                    // did when the Fly To began, so a display coming or going meanwhile can't make it jump.
+                    let flight = journey.lastFlight.flatMap { $0.leg == legB.index ? $0 : nil }
+                    let reach = flight?.reach ?? Double(desktop.maxY) * Self.metresPerPoint
+                    span = camera(at: t).y + reach - legB.start
                     sweepFront = legB.start + sweep * (span + 400)
                 }
             }

@@ -319,8 +319,6 @@ final class ViewRenderer {
         case superseded
         case failed
     }
-    /// A second Fly To began during the first, whose half-turned land is settled by painting the ground afresh.
-    private var settlesSweep = false
     /// The band of cloud over a join, in a texture of its own, and which join and where it was last painted for.
     private var band: MTLTexture?
     private var bandJoin: Double?
@@ -441,6 +439,12 @@ final class ViewRenderer {
         groundFlights < world.journey.flights - (sweeping ? 1 : 0)
     }
 
+    /// A Fly To has begun while another was sweeping over this view. The ground is painted afresh before the new one
+    /// is blended in, settling the land the first had half turned; until then it is of the place before the first.
+    private func flewOnMidSweep(_ frame: World.Frame) -> Bool {
+        frame.sweepFront != nil && sweepLeg != nil && sweepLeg != frame.legB.index
+    }
+
     /// The first world texel column and row of the cache the view at `t` needs.
     private func needed(world: World, at t: TimeInterval) -> (x: Int, y: Int) {
         let texel = World.metresPerPoint / density
@@ -466,17 +470,22 @@ final class ViewRenderer {
     }
 
     /// Whether the frame at `t` has more ground to paint than it should take on itself: all of it, as when nothing is
-    /// cached yet, after a jump, after a Fly To this view drew none of, or as one ends without the new place's cache
-    /// whole, or over a quarter of it. Frames wait for `catchUp` then. Anything less a frame paints itself, in pieces
-    /// ahead of it if need be, so a slow GPU falling a little behind, while a catch-up ran say, never stops drawing.
+    /// cached yet, after a jump, after a Fly To this view drew none of or one begun during another, or as one ends
+    /// without the new place's cache whole, or over a quarter of it. Frames wait for `catchUp` then, and the screen
+    /// keeps the last one. Anything less a frame paints itself, in pieces ahead of it if need be, so a slow GPU falling
+    /// a little behind, while a catch-up ran say, never stops drawing.
     func needsCatchUp(world: World, at t: TimeInterval) -> Bool {
         guard chain == nil, let valid else { return true }
         let need = window(for: needed(world: world, at: t))
         let dx = abs(need.x - valid.x), dy = abs(need.y - valid.y)
         guard dx < cacheWidth, dy < cacheHeight else { return true }
-        if groundFlights != world.journey.flights,
-           missedFlight(world, sweeping: viewFrame(world: world, at: t).sweepFront != nil) { return true }
-        if lastSweepFront != nil, !incomingIsWhole, viewFrame(world: world, at: t).sweepFront == nil { return true }
+        // Only asked for around a Fly To.
+        if groundFlights != world.journey.flights || (lastSweepFront != nil && !incomingIsWhole) {
+            let frame = viewFrame(world: world, at: t)
+            if groundFlights != world.journey.flights,
+               missedFlight(world, sweeping: frame.sweepFront != nil) || flewOnMidSweep(frame) { return true }
+            if lastSweepFront != nil, !incomingIsWhole, frame.sweepFront == nil { return true }
+        }
         let texels = dy * cacheWidth + dx * (cacheHeight - dy)
         return texels > max(gpu.groundCost.texelsPerPiece, cacheWidth * cacheHeight / 4)
     }
@@ -582,6 +591,7 @@ final class ViewRenderer {
         // Work out which world texel rectangles need painting: what the cache's window gains as it moves on.
         let need = window(for: needed(world: world, at: t))
         var full = valid == nil || missedFlight(world, sweeping: worldFrame.sweepFront != nil)
+            || flewOnMidSweep(worldFrame)
         groundFlights = world.journey.flights
         // Anything else baked into the ground changing (the sun moving on, a new season) is repainted as a wave
         // from top to bottom, a budgeted number of rows a frame, so no single frame has to repaint the whole screen.
@@ -625,11 +635,6 @@ final class ViewRenderer {
                                        leg: worldFrame.legB.index, at: t)
         }
         valid = need
-        if settlesSweep {
-            // Painted afresh, in full, from the next frame on.
-            valid = nil
-            settlesSweep = false
-        }
         revision = world.revision
         lastSweepFront = worldFrame.sweepFront
         paintedTexels = (rects + incomingRects).reduce(0) { $0 + $1.w * $1.h }
@@ -1106,9 +1111,8 @@ final class ViewRenderer {
     private func sweepRects(front: Double, need: (x: Int, y: Int), revealed: [Rect], texel: Double, leg: Int,
                             at t: TimeInterval) -> [Rect] {
         if sweepLeg != leg {
-            // A Fly To during another: settle what the first had turned so far by repainting the ground, then begin
-            // the new place afresh.
-            if sweepLeg != nil { settlesSweep = true }
+            // A Fly To, or one during another, whose half-turned land this frame paints the ground afresh to settle
+            // (see `flewOnMidSweep`): the new place begins afresh.
             sweepLeg = leg
             incomingFilled = nil
             if incoming == nil || incoming?.color.width != cacheWidth || incoming?.color.height != cacheHeight,
