@@ -1,0 +1,12 @@
+---
+// The footer of the pages besides the homepage: what the page puts in it, then the language picker.
+import LanguagePicker from "./LanguagePicker.astro";
+
+const { lang, plain = true } = Astro.props as { lang?: string; plain?: boolean };
+---
+<footer class:list={["footer", { "footer-plain": plain }]}>
+  <div class="wrap-narrow">
+    <slot />
+    <LanguagePicker lang={lang} />
+  </div>
+</footer>

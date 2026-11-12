@@ -348,9 +348,15 @@ final class World {
         SIMD2(Double(point.x), Double(point.y)) * Self.metresPerPoint + camera(at: t)
     }
 
-    /// Places the river a little right of centre on the given display, like the reference.
+    /// Places the river a little right of centre on the given display, like the reference. Moved, it takes the railway
+    /// beside it along, and the train timed to pass the middle of the main display is timed again, so the ground is
+    /// painted afresh with them.
     func centreRiver(on frame: CGRect) {
-        riverX = (Double(frame.midX) + Double(frame.width) * 0.12) * Self.metresPerPoint
+        let x = (Double(frame.midX) + Double(frame.width) * 0.12) * Self.metresPerPoint
+        guard x != riverX else { return }
+        riverX = x
+        trainCrossing = nil
+        repaint()
     }
 
     struct Frame {
@@ -363,6 +369,14 @@ final class World {
         var legB: Leg
     }
 
+    /// Flies to `place`, as from the menu: the new place starts just under the lowest display and sweeps in up past
+    /// the top of the highest, over every display at once, or with `atOnce` is there already.
+    func fly(to place: Place, atOnce: Bool = false) {
+        let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint - 50
+        journey.fly(to: place, from: bottom, time: time, atOnce: atOnce,
+                    reach: Double(desktop.maxY) * Self.metresPerPoint)
+    }
+
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
     func frame(bottom: Double, top: Double) -> Frame {
         frame(bottom: bottom, top: top, at: time)
@@ -372,7 +386,13 @@ final class World {
         let reference = (camera(at: t).y / 2048).rounded(.down) * 2048
         let topLeg = journey.leg(at: top)
         var legA = topLeg
-        if let previous = journey.leg(before: topLeg), topLeg.start > bottom - 200 {
+        // A Fly To starts the new place under the lowest display and turns every display out of the place before,
+        // however far above that one sits: the place at the top of the view, which a join below it may have made
+        // another than the one under the lowest display.
+        let sweeping = topLeg.sweepStart.map { t - $0 < Journey.sweepDuration } ?? false
+        if sweeping, let replaced = journey.leg(replacedBy: topLeg, at: top) {
+            legA = replaced
+        } else if let previous = journey.leg(before: topLeg), sweeping || topLeg.start > bottom - 200 {
             legA = previous
         }
         let legB = topLeg
@@ -380,13 +400,20 @@ final class World {
         var boundary = -1e9
         var sweep = -1.0
         var sweepFront: Double?
+        var span = top - legB.start
         if legA.index != legB.index {
             boundary = legB.start - reference
             if let start = legB.sweepStart {
                 let progress = (t - start) / Journey.sweepDuration
                 if progress < 1 {
                     sweep = max(progress, 0)
-                    sweepFront = legB.start + sweep * (top - legB.start + 400)
+                    // One front for the whole desktop, up past the top of the highest display, so displays turn
+                    // together and the land matches wherever two of them meet. It reaches as high as the desktop
+                    // did when the Fly To began, so a display coming or going meanwhile can't make it jump.
+                    let flight = journey.lastFlight.flatMap { $0.leg == legB.index ? $0 : nil }
+                    let reach = flight?.reach ?? Double(desktop.maxY) * Self.metresPerPoint
+                    span = camera(at: t).y + reach - legB.start
+                    sweepFront = legB.start + sweep * (span + 400)
                 }
             }
         }
@@ -413,7 +440,7 @@ final class World {
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
-            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(top - legB.start)),
+            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(span)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,

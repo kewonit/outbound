@@ -1,0 +1,15 @@
+---
+// The footer's language picker. app.js remembers the choice in a cookie, which the Worker follows.
+import { translator } from "../i18n/index.js";
+import { ENGLISH, LANGUAGES } from "../i18n/languages.js";
+
+const { lang } = Astro.props as { lang?: string };
+const t = translator(lang);
+---
+<div class="lang-picker">
+  <label for="language" set:html={t("footer.language")}></label>
+  <select id="language" data-lang-picker>
+    <option value="en">{ENGLISH.name}</option>
+    {LANGUAGES.map(({ folder, name }) => <option value={folder} selected={folder === lang}>{name}</option>)}
+  </select>
+</div>

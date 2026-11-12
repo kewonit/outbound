@@ -1,0 +1,18 @@
+---
+// What the Worker's assets serve for an address that has no page. The loader counts it in Plausible as a 404.
+import Page from "../layouts/Page.astro";
+import Topbar from "../components/Topbar.astro";
+---
+<Page title="Not found · Outbound" description="This page does not exist." robots="noindex" appleTouch={false} dataPage="404">
+<Topbar />
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1>Not found.</h1>
+    <p class="lede">This page does not exist.</p>
+    <div class="cta-row page-cta">
+      <a class="btn btn-light" href="/">Go to Outbound</a>
+    </div>
+  </div>
+</main>
+</Page>

@@ -1,0 +1,72 @@
+---
+import Page from "../../layouts/Page.astro";
+import Topbar from "../../components/Topbar.astro";
+import Footer from "../../components/Footer.astro";
+import { translator, href as localHref } from "../../i18n/index.js";
+import { everyLanguage } from "../../i18n/languages.js";
+// Help for buyers. The Worker shows the data-appstore help, and leaves out the data-direct help, for visitors from
+// the Mac App Store copy.
+export const getStaticPaths = everyLanguage;
+
+const { lang } = Astro.params;
+const t = translator(lang);
+const href = (path: string) => localHref(lang, path);
+---
+<Page lang={lang} path="/support" listed title={t("support.metaTitle")} description={t("support.metaDescription")}>
+<Topbar lang={lang} />
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 set:html={t("support.title")}></h1>
+    <p class="lede" set:html={t("support.lede")}></p>
+    <div class="cta-row page-cta">
+      <a class="btn btn-light" href="mailto:outbound@edbn.me" set:html={t("support.email")}></a>
+    </div>
+
+    <h2 data-appstore hidden set:html={t("support.store")}></h2>
+    <ul data-appstore hidden>
+      <li set:html={t("support.store1")}></li>
+      <li set:html={t("support.store2")}></li>
+      <li set:html={t("support.store3")}></li>
+    </ul>
+
+    <h2 data-direct set:html={t("support.lost")}></h2>
+    <ul data-direct>
+      <li set:html={t("support.lost1")}></li>
+      <li set:html={t("support.lost2")}></li>
+    </ul>
+
+    <h2 data-direct set:html={t("support.mac")}></h2>
+    <ul data-direct>
+      <li set:html={t("support.mac1")}></li>
+      <li set:html={t("support.mac2")}></li>
+      <li set:html={t("support.mac3")}></li>
+    </ul>
+
+    <h2 set:html={t("support.still")}></h2>
+    <ul>
+      <li set:html={t("support.still1")}></li>
+      <li set:html={t("support.still2")}></li>
+      <li set:html={t("support.still3")}></li>
+    </ul>
+
+    <h2 set:html={t("support.remove")}></h2>
+    <ul>
+      <li set:html={t("support.remove1")}></li>
+      <li set:html={t("support.remove2")}></li>
+    </ul>
+
+    <h2 data-direct set:html={t("support.receipts")}></h2>
+    <ul data-direct>
+      <li set:html={t("support.receipts1")}></li>
+    </ul>
+
+    <h2 set:html={t("support.bug")}></h2>
+    <ul>
+      <li set:html={t("support.bug1")}></li>
+    </ul>
+  </div>
+</main>
+
+<Footer lang={lang} />
+</Page>

@@ -1,0 +1,43 @@
+---
+import Page from "../../layouts/Page.astro";
+import Topbar from "../../components/Topbar.astro";
+import Footer from "../../components/Footer.astro";
+import { translator, href as localHref } from "../../i18n/index.js";
+import { everyLanguage } from "../../i18n/languages.js";
+// feedback.js sends the form, and worker/index.js keeps what it sends. Not for search engines, so it has no other
+// languages listed.
+export const getStaticPaths = everyLanguage;
+
+const { lang } = Astro.params;
+const t = translator(lang);
+const href = (path: string) => localHref(lang, path);
+---
+<Page lang={lang} path="/feedback" robots="noindex" title={t("feedback.metaTitle")} bodyClass="fill" description={t("feedback.metaDescription")}>
+<Topbar lang={lang} />
+
+<main class="page">
+  <div class="wrap-narrow prose">
+    <h1 set:html={t("feedback.title")}></h1>
+    <p class="lede" set:html={t("feedback.lede")}></p>
+
+    {/* Posts, so nothing written here ends up in a page's address. feedback.js sends it and answers in place. */}
+    <form class="page-form" id="feedback" action="/api/feedback" method="post" novalidate>
+      <textarea class="field" name="message" required maxlength="2000" rows="6" placeholder={t("feedback.message")} aria-label={t("feedback.message")}
+               ></textarea>
+      <div class="form-row">
+        <input class="field" type="email" name="email" maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder={t("feedback.email")} aria-label={t("feedback.email")}>
+        <button class="btn btn-light" type="submit" set:html={t("feedback.button")}></button>
+      </div>
+      {/* Left empty by people, filled in by bots. */}
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="feedback-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="feedback-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<Footer lang={lang}>
+  <p class="form-fine" set:html={t("feedback.fine")}></p>
+</Footer>
+</Page>

@@ -698,10 +698,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func fly(to place: Place) {
-        let bottom = world.camera.y + Double(world.desktop.minY) * World.metresPerPoint - 50
         // Held still, no time passes for the new place to sweep in, so it is there at once, painted as a still.
         let held = world.isHeld
-        world.journey.fly(to: place, from: bottom, time: world.time, atOnce: held)
+        world.fly(to: place, atOnce: held)
         preferences.lastPlace = place.id
         if held { displays.repaintHeld() }
         // Once the new place has swept in.
