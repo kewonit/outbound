@@ -17,6 +17,98 @@
     "ar": { "New": "جديد", "Changed": "تغييرات", "Fixed": "إصلاحات" }
   },
   "notes": {
+    "1.8.1": {
+      "es": [
+        "«Volar a» solo cambiaba la pantalla más baja. Cualquier pantalla más arriba se quedaba con el lugar anterior.",
+        "Una pantalla con una app a pantalla completa durante «Volar a» se quedaba con el lugar anterior.",
+        "Si elegías otro lugar mientras «Volar a» seguía en curso, podía verse un lugar anterior por un momento.",
+        "Cuando la pantalla principal cambiaba de tamaño, las demás pantallas podían mostrar el río donde estaba antes."
+      ],
+      "fr": [
+        "« Survoler » ne changeait que l'écran le plus bas. Les écrans placés plus haut gardaient l'ancien lieu.",
+        "Un écran occupé par une app en plein écran pendant « Survoler » gardait l'ancien lieu.",
+        "Si tu choisissais un autre lieu pendant que « Survoler » était en cours, un lieu précédent pouvait s'afficher un instant.",
+        "Quand l'écran principal changeait de taille, les autres écrans pouvaient garder la rivière à son ancienne place."
+      ],
+      "de": [
+        "„Fliegen nach“ hat nur den untersten Bildschirm verändert. Jeder Bildschirm weiter oben blieb beim alten Ort.",
+        "Ein Bildschirm, auf dem während „Fliegen nach“ eine Vollbild-App lief, blieb beim alten Ort.",
+        "Wenn du einen weiteren Ort gewählt hast, während „Fliegen nach“ noch lief, war kurz ein älterer Ort zu sehen.",
+        "Wenn sich die Größe des Hauptbildschirms geändert hat, konnten die anderen Bildschirme den Fluss an seiner alten Stelle zeigen."
+      ],
+      "it": [
+        "«Sorvola» cambiava solo lo schermo più in basso. Gli schermi più in alto restavano sul luogo di prima.",
+        "Uno schermo con un'app a schermo intero durante «Sorvola» restava sul luogo di prima.",
+        "Se sceglievi un altro luogo mentre «Sorvola» era ancora in corso, per un attimo poteva comparire un luogo precedente.",
+        "Quando lo schermo principale cambiava dimensioni, gli altri schermi potevano mostrare il fiume nel punto di prima."
+      ],
+      "pt-br": [
+        "\"Voar para\" só mudava a tela mais baixa. Qualquer tela mais acima continuava no lugar antigo.",
+        "Uma tela com um app em tela cheia durante \"Voar para\" continuava no lugar antigo.",
+        "Escolher outro lugar enquanto \"Voar para\" ainda estava em andamento podia mostrar um lugar anterior por um instante.",
+        "Quando a tela principal mudava de tamanho, as outras telas podiam manter o rio no lugar antigo."
+      ],
+      "nl": [
+        "\"Vlieg naar\" veranderde alleen het onderste scherm. Elk scherm dat hoger stond, bleef bij de oude plek.",
+        "Een scherm met een app op volledig scherm tijdens \"Vlieg naar\" bleef bij de oude plek.",
+        "Als je een andere plek koos terwijl \"Vlieg naar\" nog bezig was, kon je even een eerdere plek zien.",
+        "Als het hoofdscherm van grootte veranderde, konden de andere schermen de rivier op zijn oude plek laten zien."
+      ],
+      "ru": [
+        "«Куда лететь» меняло только самый нижний дисплей. Все дисплеи выше оставались на старом месте.",
+        "Дисплей, на котором во время «Куда лететь» было открыто приложение во весь экран, оставался на старом месте.",
+        "Если выбрать другое место, пока «Куда лететь» ещё не закончилось, на мгновение могло показаться более раннее место.",
+        "Когда менялся размер основного дисплея, на остальных дисплеях река могла остаться на старом месте."
+      ],
+      "tr": [
+        "\"Şuraya Uç\" yalnızca en alttaki ekranı değiştiriyordu. Daha yukarıdaki her ekran eski yerde kalıyordu.",
+        "\"Şuraya Uç\" sırasında tam ekran bir uygulamanın açık olduğu ekran eski yerde kalıyordu.",
+        "\"Şuraya Uç\" sürerken başka bir yer seçince bir anlığına daha önceki bir yer görünebiliyordu.",
+        "Ana ekranın boyutu değişince diğer ekranlarda nehir eski yerinde kalabiliyordu."
+      ],
+      "pl": [
+        "„Leć do” zmieniało tylko najniższy ekran. Każdy ekran położony wyżej zostawał przy dawnym miejscu.",
+        "Ekran, na którym podczas „Leć do” była otwarta aplikacja na pełnym ekranie, zostawał przy dawnym miejscu.",
+        "Wybranie innego miejsca, zanim „Leć do” się skończyło, mogło na chwilę pokazać wcześniejsze miejsce.",
+        "Gdy główny ekran zmieniał rozmiar, pozostałe ekrany mogły pokazywać rzekę w dawnym miejscu."
+      ],
+      "ja": [
+        "「行き先」で変わるのは一番下のディスプレイだけでした。それより上のディスプレイは元の場所のままでした。",
+        "「行き先」の最中にフルスクリーンのアプリが開いていたディスプレイは、元の場所のままでした。",
+        "「行き先」の途中で別の場所を選ぶと、一瞬だけ前の場所が見えることがありました。",
+        "メインディスプレイのサイズが変わると、ほかのディスプレイで川が元の位置に残ることがありました。"
+      ],
+      "ko": [
+        "'날아갈 곳'이 가장 아래 디스플레이만 바꿨어요. 그보다 위에 있는 디스플레이는 이전 장소에 그대로 남았어요.",
+        "'날아갈 곳' 중에 전체 화면 앱이 떠 있던 디스플레이는 이전 장소에 그대로 남았어요.",
+        "'날아갈 곳'이 진행되는 중에 다른 장소를 고르면 잠깐 더 이전 장소가 보일 수 있었어요.",
+        "메인 디스플레이 크기가 바뀌면 다른 디스플레이에서 강이 원래 자리에 남을 수 있었어요."
+      ],
+      "zh-hans": [
+        "“飞往”只会改变最下面的显示器，位置更高的显示器还停在原来的地方。",
+        "“飞往”期间开着全屏应用的显示器，会停在原来的地方。",
+        "“飞往”还没结束时再选一个地方，可能会短暂显示更早的地方。",
+        "主显示器改变尺寸后，其他显示器上的河可能还留在原来的位置。"
+      ],
+      "zh-hant": [
+        "「飛往」只會改變最下面的顯示器，位置更高的顯示器還停在原來的地方。",
+        "「飛往」期間開著全螢幕 App 的顯示器，會停在原來的地方。",
+        "「飛往」還沒結束時再選一個地方，可能會短暫顯示更早的地方。",
+        "主顯示器改變尺寸後，其他顯示器上的河可能還留在原來的位置。"
+      ],
+      "hi": [
+        "\"उड़कर जाएँ\" सिर्फ़ सबसे नीचे वाले डिस्प्ले को बदलता था। उससे ऊपर वाला हर डिस्प्ले पुरानी जगह पर ही रह जाता था।",
+        "\"उड़कर जाएँ\" के दौरान जिस डिस्प्ले पर कोई ऐप फ़ुल स्क्रीन में खुला था, वह पुरानी जगह पर ही रह जाता था।",
+        "\"उड़कर जाएँ\" चलते समय कोई और जगह चुनने पर पल भर के लिए कोई पुरानी जगह दिख सकती थी।",
+        "मुख्य डिस्प्ले का आकार बदलने पर बाकी डिस्प्ले पर नदी अपनी पुरानी जगह पर दिख सकती थी।"
+      ],
+      "ar": [
+        "«الطيران إلى» كان يغيّر الشاشة السفلى فقط. أي شاشة أعلى منها كانت تبقى على المكان القديم.",
+        "الشاشة التي عليها تطبيق بملء الشاشة أثناء «الطيران إلى» كانت تبقى على المكان القديم.",
+        "اختيار مكان آخر بينما «الطيران إلى» ما زال جاريًا كان قد يُظهر مكانًا أقدم للحظة.",
+        "عند تغيّر حجم الشاشة الرئيسية، كانت الشاشات الأخرى قد تُبقي النهر في موضعه القديم."
+      ]
+    },
     "1.8": {
       "es": [
         "Ahora dos lugares se encuentran bajo una franja fina de nubes, en vez de que uno se convierta en el otro.",
