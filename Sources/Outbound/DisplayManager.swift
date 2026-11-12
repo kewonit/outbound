@@ -279,12 +279,17 @@ final class DisplayManager {
     }
 
     private func sync() {
-        // Before any new wallpaper paints: its first frame bakes the river into the ground it keeps.
-        world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
+        // Before any new wallpaper paints: its first frame bakes the river into the ground it keeps. With no display at
+        // all, as for a moment while the only one is unplugged, the desktop stays as it was rather than having no bounds.
+        let river = world.riverX
         if let main = NSScreen.screens.first {
+            world.desktop = NSScreen.screens.map(\.frame).reduce(CGRect.null) { $0.union($1) }
             world.home = main.frame
             world.centreRiver(on: main.frame)
         }
+        // A new main display, or a new size for it, moves the river, which the displays already up have baked into
+        // their ground, and its railway with it: they paint it afresh rather than wave the change down.
+        let riverMoved = world.riverX != river
         var seen = Set<CGDirectDisplayID>()
         var added: [Wallpaper] = []
         for screen in NSScreen.screens where running {
@@ -292,6 +297,7 @@ final class DisplayManager {
             seen.insert(id)
             if let wallpaper = wallpapers[id] {
                 wallpaper.move(to: screen)
+                if riverMoved { wallpaper.repaint() }
             } else {
                 let wallpaper = Wallpaper(screen: screen, displayID: id, world: world, gpu: gpu)
                 wallpaper.note = note
