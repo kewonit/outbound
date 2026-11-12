@@ -615,6 +615,135 @@ kbd {
   background: #1b2a17;
 }
 
+/* ---------- A MacBook Pro, drawn (MacBook.astro) ---------- */
+/* A picture of a Mac, so it never mirrors on a right-to-left page. */
+.macbook { position: relative; max-width: 920px; margin: 0 auto; direction: ltr; }
+.macbook-body { position: relative; display: block; width: 100%; height: auto; pointer-events: none; }
+/* The bezel's opening in the drawing's own units (MacBook.astro), half a unit bigger all round so no seam shows.
+   --pt is one of the screen's points (--points across), for what macOS draws on it. */
+.macbook-screen {
+  --pt: calc(100cqw / var(--points));
+  position: absolute;
+  left: calc(100% * 55.16 / 611.92);
+  top: calc(100% * 7.82 / 373.64);
+  width: calc(100% * 501.86 / 611.92);
+  height: calc(100% * 324.5 / 373.64);
+  overflow: hidden;
+  container-type: inline-size;
+  background: #1b2a17;
+}
+.macbook-screen-clear { background: none; }
+/* ---------- What macOS and Outbound draw on a Mac's screen ---------- */
+/* The place's name, as CaptionView draws it: 13 points, white, two shadows, 20 points in and 18 up from the
+   desktop's corner; level with the Dock where there is one, as in the hero clip. */
+.mac-caption {
+  position: absolute;
+  left: calc(var(--pt) * 20);
+  bottom: calc(var(--pt) * 18);
+  z-index: 2;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  font: 500 calc(var(--pt) * 13) / 1.2 var(--font);
+  letter-spacing: calc(var(--pt) * 0.15);
+  white-space: nowrap;
+  text-shadow: 0 calc(var(--pt) * 1) calc(var(--pt) * 7) rgba(0, 0, 0, 0.32),
+               0 calc(var(--pt) * 0.5) calc(var(--pt) * 1.2) rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.mac-caption-dock { bottom: calc(var(--pt) * 29); }
+
+/* The menu bar: see-through, as in macOS 26, and laid out as macOS lays its own out, in --b, its points. On a MacBook
+   it is as tall as the notch, and starts where the screen does, under the bezel's edge. */
+.mac-bar {
+  --b: var(--pt);
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(var(--b) * 24);
+  padding: 0 calc(var(--b) * 12) 0 calc(var(--b) * 14);
+  color: #fff;
+  font: 400 calc(var(--b) * 13) / 1 var(--font);
+  white-space: nowrap;
+  /* Drawn as macOS draws its own words, a touch fuller than the site's, with only the faint shadow macOS 26 gives the
+     menu bar where it has no background. */
+  -webkit-font-smoothing: auto;
+  text-shadow: 0 calc(var(--b) * 0.5) calc(var(--b) * 1.5) rgba(0, 0, 0, 0.28);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mac-bar-notch {
+  top: calc(100cqw * 0.32 / 501.86);
+  height: calc(100cqw * 11.5 / 501.86);
+  padding-inline: calc(var(--b) * 20) calc(var(--b) * 14);
+}
+/* A display that isn't the one in use dims its menu bar. */
+.mac-bar-dim { opacity: 0.6; }
+.mac-bar svg { display: block; fill: currentColor; filter: drop-shadow(0 calc(var(--b) * 0.5) calc(var(--b) * 0.75) rgba(0, 0, 0, 0.28)); }
+/* The Apple menu, then Finder's: 20 points between titles. Menus never run under the notch. */
+.mac-bar-left { display: flex; align-items: center; height: 100%; min-width: 0; overflow: hidden; }
+.mac-bar-notch .mac-bar-left { max-width: calc(100cqw * 219.93 / 501.86 - var(--b) * 32); }
+/* The Apple sits on the words' baseline, its leaf above their capitals, as macOS sets it. */
+.mac-apple { flex: none; width: calc(var(--b) * 13.5); height: calc(var(--b) * 13.5); margin: 0 calc(var(--b) * 10.75) 0 calc(var(--b) * 0.75);
+             transform: translateY(calc(var(--b) * -1.5)); }
+.mac-bar-left span { padding: 0 calc(var(--b) * 10); }
+.mac-bar-left .mac-app { font-weight: 700; }
+/* Status items 16 points apart, glyph to glyph (each icon's box is cut to its drawing), the clock last, 14 points in
+   from the edge. */
+.mac-bar-right { display: flex; align-items: center; height: 100%; transition: opacity 0.3s ease; }
+/* Held back until the clock has its time, so nothing shifts as it arrives. */
+.mac-bar-right:has(.mac-clock:empty) { opacity: 0; }
+.mac-extra { display: flex; align-items: center; height: 100%; padding: 0 calc(var(--b) * 8); }
+/* The gull's wings carry its weight up top, so it sits half a point low to look level with the rest. */
+.mac-gull svg { position: relative; width: calc(var(--b) * 18); height: calc(var(--b) * 7.07); transform: translateY(calc(var(--b) * 0.5)); }
+.mac-battery { width: calc(var(--b) * 24.5); height: calc(var(--b) * 12); }
+.mac-wifi { width: calc(var(--b) * 16); height: calc(var(--b) * 12); }
+.mac-bar .mac-faint { fill: none; stroke: currentColor; stroke-width: 1.1; opacity: 0.55; }
+.mac-bar path.mac-faint { fill: currentColor; stroke: none; }
+.mac-wifi { overflow: visible; }
+.mac-wifi path { fill: none; stroke: currentColor; stroke-width: 1.85; stroke-linecap: round; }
+.mac-clock { padding-left: calc(var(--b) * 8); font-variant-numeric: tabular-nums; }
+
+/* ---------- One landscape over a display and a MacBook ---------- */
+/* Laid out in the pixels of assets/displays.mp4 and the display drawn round its top part (Display.astro): 1330 across
+   and 1363.29 down, the display at the top, the MacBook standing in front of its stand. */
+/* As wide as fits the window's height, so both screens are in view at once. */
+.displays { position: relative; max-width: min(720px, (100svh - 7rem) * 1330 / 1363.29); margin: 2.75rem auto 0; aspect-ratio: 1330 / 1363.29; direction: ltr; }
+/* One clip for both screens, seen only through them: the display's 1280 x 720 at the top, and the MacBook's
+   screen, which starts 787 pixels down and 262 in. */
+.displays-clip {
+  position: absolute;
+  left: calc(100% * 25 / 1330);
+  top: calc(100% * 25 / 1363.29);
+  width: calc(100% * 1280 / 1330);
+  height: calc(100% * 1278 / 1363.29);
+  object-fit: fill;
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  -webkit-mask-size: 100% calc(100% * 720 / 1278), calc(100% * 758 / 1280) calc(100% * 490.5 / 1278);
+  mask-size: 100% calc(100% * 720 / 1278), calc(100% * 758 / 1280) calc(100% * 490.5 / 1278);
+  -webkit-mask-position: 0 0, 50% calc(100% * 786 / 787.5);
+  mask-position: 0 0, 50% calc(100% * 786 / 787.5);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.display { position: absolute; left: 0; top: 0; width: 100%; }
+.display-body { position: relative; display: block; width: 100%; height: auto; }
+.display-screen {
+  --points: 2560;
+  --pt: calc(100cqw / var(--points));
+  position: absolute;
+  left: calc(100% * 25 / 1330);
+  top: calc(100% * 25 / 900);
+  width: calc(100% * 1280 / 1330);
+  height: calc(100% * 720 / 900);
+  overflow: hidden;
+  container-type: inline-size;
+}
+.displays .displays-laptop { position: absolute; left: calc(100% * 203.32 / 1330); top: calc(100% * 799.72 / 1363.29); width: calc(100% * 922.97 / 1330); max-width: none; margin: 0; }
+
 /* ---------- Places: a gallery of painted stills with print-style captions ---------- */
 .places {
   display: grid;
@@ -694,7 +823,8 @@ kbd {
 }
 
 /* ---------- A Dock over the hero clip, so it reads as a Mac's desktop ---------- */
-/* A picture of a Mac, so it never mirrors on a right-to-left page. */
+/* A picture of a Mac, so it never mirrors on a right-to-left page. The Dock is sized against what it sits on: the hero
+   clip here, or a drawn Mac's screen. */
 .visual-bleed figure.desktop { position: relative; container-type: inline-size; direction: ltr; }
 .dock {
   position: absolute;

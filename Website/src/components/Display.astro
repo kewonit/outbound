@@ -1,0 +1,38 @@
+---
+// A plain external display on a stand, drawn like MacBook.astro: inline, flat fills and gradients only. Its units
+// are the pixels of assets/displays.mp4, whose top 1280 x 720 is this display's screen: the opening here is that
+// size, half a pixel smaller all round so the bezel always covers the clip's edge. The stand's neck ends behind the
+// top of the MacBook standing in front of it, above its see-through screen.
+---
+<svg class="display-body" viewBox="0 0 1330 900" width="1330" height="900" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="dp-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9dadd"/>
+      <stop offset=".03" stop-color="#a9aaad"/>
+      <stop offset="1" stop-color="#7f8083"/>
+    </linearGradient>
+    <linearGradient id="dp-neck" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6f7073"/>
+      <stop offset=".22" stop-color="#b9babd"/>
+      <stop offset=".5" stop-color="#d2d3d6"/>
+      <stop offset=".78" stop-color="#b3b4b7"/>
+      <stop offset="1" stop-color="#696a6d"/>
+    </linearGradient>
+    <linearGradient id="dp-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="dp-glass" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="520" y2="770">
+      <stop offset="0" stop-color="#fff" stop-opacity=".07"/>
+      <stop offset=".6" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  {/* The stand's neck, shaded round, in the display's shadow at the top. */}
+  <rect fill="url(#dp-neck)" x="618" y="760" width="94" height="48"/>
+  <rect fill="url(#dp-shade)" x="618" y="770" width="94" height="22"/>
+  {/* The display: an aluminium rim, then the black bezel, open where the screen is. */}
+  <path fill="url(#dp-rim)" fill-rule="evenodd" d="M16 0h1298a16 16 0 0 1 16 16v738a16 16 0 0 1-16 16H16A16 16 0 0 1 0 754V16A16 16 0 0 1 16 0ZM25.5 25.5v719h1279v-719Z"/>
+  <path fill="#050505" fill-rule="evenodd" d="M16 2.5h1298a13.5 13.5 0 0 1 13.5 13.5v738a13.5 13.5 0 0 1-13.5 13.5H16A13.5 13.5 0 0 1 2.5 754V16A13.5 13.5 0 0 1 16 2.5ZM25.5 25.5v719h1279v-719Z"/>
+  <circle cx="665" cy="13" r="2.6" fill="#15171c"/>
+  <path fill="url(#dp-glass)" d="M16 2.5h1298a13.5 13.5 0 0 1 13.5 13.5v738a13.5 13.5 0 0 1-13.5 13.5H16A13.5 13.5 0 0 1 2.5 754V16A13.5 13.5 0 0 1 16 2.5Z"/>
+</svg>

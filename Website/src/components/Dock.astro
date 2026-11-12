@@ -1,0 +1,11 @@
+---
+// A Dock along the bottom of a Mac's screen, so it reads as a desktop: the standard apps, Downloads and the Trash,
+// drawn from one strip of icons (assets/dock.webp). A dot under the apps that are open.
+const OPEN = [true, false, true, true, false, false, false, false, false, true, false, false];
+---
+<div class="dock" aria-hidden="true">
+  {OPEN.map((open, i) => <span class:list={["dock-item", { open }]} style={`--i: ${i}`}></span>)}
+  <span class="dock-divider"></span>
+  <span class="dock-item" style="--i: 12"></span>
+  <span class="dock-item" style="--i: 13"></span>
+</div>

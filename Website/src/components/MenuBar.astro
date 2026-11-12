@@ -1,0 +1,41 @@
+---
+// The menu bar along the top of a Mac drawn on the page, see-through as in macOS 26: the Apple menu and Finder's menus
+// on the left, and on the right Outbound's seagull, the battery, Wi-Fi and the clock (/mac.js sets the time). Sizes are
+// in the display's points, through --pt, which the screen sets.
+import { language } from "../i18n/languages.js";
+
+interface Props { lang?: string; notch?: boolean; dim?: boolean }
+const { lang, notch = false, dim = false } = Astro.props;
+
+// Finder's menus as macOS names them. Arabic and Hindi pages keep the English ones: an Arabic Mac would mirror the
+// whole bar, and the app's own screenshots in both come from a Mac running in English.
+const FINDER: Record<string, string[]> = {
+  en: ["Finder", "File", "Edit", "View", "Go", "Window", "Help"],
+  de: ["Finder", "Ablage", "Bearbeiten", "Darstellung", "Gehe zu", "Fenster", "Hilfe"],
+  es: ["Finder", "Archivo", "Edición", "Visualización", "Ir", "Ventana", "Ayuda"],
+  fr: ["Finder", "Fichier", "Édition", "Présentation", "Aller", "Fenêtre", "Aide"],
+  it: ["Finder", "File", "Modifica", "Vista", "Vai", "Finestra", "Aiuto"],
+  ja: ["Finder", "ファイル", "編集", "表示", "移動", "ウインドウ", "ヘルプ"],
+  ko: ["Finder", "파일", "편집", "보기", "이동", "윈도우", "도움말"],
+  nl: ["Finder", "Archief", "Wijzig", "Weergave", "Ga", "Venster", "Help"],
+  pl: ["Finder", "Plik", "Edycja", "Widok", "Idź", "Okno", "Pomoc"],
+  "pt-BR": ["Finder", "Arquivo", "Editar", "Visualizar", "Ir", "Janela", "Ajuda"],
+  ru: ["Finder", "Файл", "Правка", "Вид", "Переход", "Окно", "Справка"],
+  tr: ["Finder", "Dosya", "Düzen", "Görüntü", "Git", "Pencere", "Yardım"],
+  "zh-Hans": ["访达", "文件", "编辑", "显示", "前往", "窗口", "帮助"],
+  "zh-Hant": ["Finder", "檔案", "編輯", "顯示方式", "前往", "視窗", "輔助說明"],
+};
+const finder = FINDER[language(lang).tag] ?? FINDER.en;
+---
+<div class:list={["mac-bar", { "mac-bar-notch": notch, "mac-bar-dim": dim }]} aria-hidden="true">
+  <div class="mac-bar-left">
+    <svg class="mac-apple" viewBox="0 0 24 24"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+    {finder.map((name, i) => <span class:list={{ "mac-app": i === 0 }}>{name}</span>)}
+  </div>
+  <div class="mac-bar-right">
+    <span class="mac-extra mac-gull"><svg viewBox="11 25.613 41 12.887" preserveAspectRatio="none"><path d="M11 30C18 23.5 24.5 24 31.5 33 38.5 24 45 23.5 52 30 44.5 28 38.5 31 31.5 38.5 24.5 31 18.5 28 11 30Z"/></svg></span>
+    <span class="mac-extra"><svg class="mac-battery" viewBox="0 0 24.5 12"><rect class="mac-faint" x=".6" y=".6" width="21" height="10.8" rx="3.3"/><rect x="2.2" y="2.2" width="13.4" height="7.6" rx="1.8"/><path class="mac-faint" d="M23.1 4.1v3.8c.8-.3 1.3-1 1.3-1.9s-.5-1.6-1.3-1.9z"/></svg></span>
+    <span class="mac-extra"><svg class="mac-wifi" viewBox="0 0 16 12"><circle cx="8" cy="10.3" r="1.55"/><path d="M3.83 7.23a5.9 5.9 0 0 1 8.34 0M1.21 4.61a9.6 9.6 0 0 1 13.58 0"/></svg></span>
+    <time class="mac-clock"></time>
+  </div>
+</div>

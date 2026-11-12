@@ -183,5 +183,8 @@
   "waitlist.metaDescription": "即時繪製的動態桌布 Outbound 即將推出 Windows 與 iPhone 版。留下電子郵件，準備好時只會收到一封信。僅此而已。",
   "waitlist.metaTitle": "Windows 與 iPhone · Outbound",
   "waitlist.title": "Windows 與 iPhone 版 Outbound。",
-  "waitlist.which": "哪一個？"
+  "waitlist.which": "哪一個？",
+  "displays.title": "一整片風景，橫跨你所有的顯示器。",
+  "displays.label": "顯示器和 MacBook 上的 Outbound",
+  "displays.video": "MacBook 上方的一台顯示器：Normandy 的一條河、一道道樹籬和開花的蘋果園從一個螢幕延伸到下面另一個，連成一整片風景"
 }

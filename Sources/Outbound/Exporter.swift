@@ -17,7 +17,7 @@ import UniformTypeIdentifiers
 /// many points for a Dock along the bottom, so the caption sits above it as it does on a Mac. --cursor flies a
 /// pointer across the frame for the bird to chase, and --fly-to lisse --fly-at 3 picks Lisse from the menu
 /// after three seconds; --fly-to lapland,niigata --fly-at 2,5 flies on to each in turn. --pace sets metres per
-/// second over the ground.
+/// second over the ground. --no-border leaves out the painted border, which the app has off until it is asked for.
 ///
 /// Without --hour the light is always fair daytime; with it the sun stands where it would at that hour.
 @MainActor
@@ -147,6 +147,7 @@ enum Exporter {
         // that aren't Retina.
         renderer.configure(frame: frame, scale: scale, density: options["density"].flatMap(Double.init))
         renderer.groundFilter = ["bilinear": 0, "box": 1, "bspline": 2, "bspline-y": 3][options["ground-filter"] ?? ""] ?? 0
+        if options["no-border"] != nil { renderer.paperEdge = false }
 
         let width = Int(size[0] * scale), height = Int(size[1] * scale)
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: ShaderLibrary.viewFormat,

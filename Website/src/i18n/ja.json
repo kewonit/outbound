@@ -183,5 +183,8 @@
   "waitlist.metaDescription": "その場で描かれる動く壁紙 Outbound が、Windows と iPhone にやってきます。メールアドレスを残せば、完成時に1通だけお知らせします。それ以外は送りません。",
   "waitlist.metaTitle": "Windows と iPhone · Outbound",
   "waitlist.title": "Outbound の Windows 版と iPhone 版。",
-  "waitlist.which": "どちらですか？"
+  "waitlist.which": "どちらですか？",
+  "displays.title": "すべてのディスプレイに、ひとつの風景。",
+  "displays.label": "ディスプレイとMacBookに映るOutbound",
+  "displays.video": "MacBookの上にディスプレイ。Normandyの川と生け垣、花盛りのりんご園が、上の画面から下の画面へ、ひとつの風景としてつながっています"
 }

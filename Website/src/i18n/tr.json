@@ -183,5 +183,8 @@
   "waitlist.metaDescription": "Boyanan canlı duvar kâğıdı Outbound, Windows ve iPhone'a geliyor. Hazır olduğunda tek bir e-posta almak için adresini bırak. Fazlası yok.",
   "waitlist.metaTitle": "Windows ve iPhone · Outbound",
   "waitlist.title": "Windows ve iPhone için Outbound.",
-  "waitlist.which": "Hangisi?"
+  "waitlist.which": "Hangisi?",
+  "displays.title": "Tüm ekranlarında tek bir manzara.",
+  "displays.label": "Bir ekranda ve bir MacBook'ta Outbound",
+  "displays.video": "Bir MacBook'un üstünde bir ekran: Normandy'de bir nehir, çit sıraları ve çiçek açmış elma bahçeleri, tek bir manzara gibi bir ekrandan aşağıdakine uzanıyor"
 }

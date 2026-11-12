@@ -37,6 +37,17 @@ done
 scale=1.33334 video "$assets/flight.mp4" 1200 750 16 --place kansas --best --time 184 --caption --dock 11 --cursor
 mv "$assets/flight.jpg" "$assets/poster.jpg"
 
+# One landscape over two displays, as macOS lays them out: a 1600 x 900 point display with a MacBook of 945 x 614
+# centred under it, the same size of point on both, so Normandy's river, hedgerows and orchards run from one down onto
+# the other. Drawn as one picture, then cut in two and set apart by the gap the page leaves between the screens: 67
+# pixels down, past the display's bezel, the air under it and the top of the MacBook (Display.astro and .displays in
+# the site's CSS).
+"$outbound" --render - --size 1600x1514 --scale 0.8 --seconds 16 --fps 30 --place normandy --best --time 45 --cursor --no-border \
+    | ffmpeg -y -loglevel error -f rawvideo -pix_fmt bgra -r 30 -s 1280x1211 -i - -filter_complex \
+        "[0:v]split[a][b];[a]crop=1280:720:0:0[display];[b]crop=756:491:262:720[macbook];color=c=black:s=1280x1278:r=30[back];[back][display]overlay=0:0:shortest=1[top];[top][macbook]overlay=262:787" \
+        -c:v libx264 -pix_fmt yuv420p -crf 28 -preset slow -movflags +faststart "$assets/displays.mp4"
+ffmpeg -y -loglevel error -i "$assets/displays.mp4" -frames:v 1 -q:v 5 "$assets/displays.jpg"
+
 # Short demos of what happens now and then.
 video "$assets/demos/follow.mp4" 640 400 12 --place normandy --best --time 30 --caption --cursor
 video "$assets/demos/night.mp4" 640 400 12 --place niigata --best --hour 21.5 --time 1490 --caption
