@@ -784,7 +784,10 @@ kbd {
 .thanks .steps .cta-row { margin-top: 0.9rem; }
 /* A real screenshot of the menu, in the page's language, at the size it was taken. */
 .thanks .menu-shot { display: block; width: 100%; max-width: 399px; height: auto; margin-top: 1rem; border: 1px solid var(--line); border-radius: 12px; }
-.thanks .license { margin-top: 2.75rem; }
+/* The key, inside step 2 under Activate, with a small heading of its own. */
+.thanks .license { margin-top: 1.4rem; }
+.thanks .license h2 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--ink); }
+.thanks .license .muted { margin: 0.75rem 0 0; }
 .key-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 0.9rem; }
 .key-row code {
   flex: 1 1 18rem;
@@ -798,7 +801,8 @@ kbd {
   overflow-wrap: anywhere;
   user-select: all;
 }
-.thanks #status { margin-top: 2rem; }
+.thanks #status { margin: 0.9rem 0 0; }
+.thanks .steps + p { margin-top: 2.5rem; }
 /* A buyer's key in place of Buy: the key, cut short to fit, and Copy. */
 .key-button { max-width: 100%; gap: 0.65rem; }
 .key-button code {
