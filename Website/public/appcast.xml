@@ -7,6 +7,15 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.8.1</title>
+      <pubDate>Thu, 12 Nov 2026 18:46:51 +0000</pubDate>
+      <description><![CDATA[<p>Fly To now changes every display, not just the lowest one. Also fixed: a display under a full-screen app kept the old place, picking another place during Fly To could show an older one for a moment, and other displays could keep the river in its old spot when the main display changed size.</p>]]></description>
+      <sparkle:version>11</sparkle:version>
+      <sparkle:shortVersionString>1.8.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.8.1/Outbound-v1.8.1.dmg" type="application/octet-stream" sparkle:edSignature="qphXe4EuQhLQ5RNIE+Wt5zw/Xvw+h9SRJdRx98Dj6UFmoNtDpFsdr4J+uXn3is/jcX9fRitDWRFktUk4K2EFCg==" length="5812482"/>
+    </item>
+    <item>
       <title>Outbound v1.8</title>
       <pubDate>Wed, 11 Nov 2026 23:11:18 +0000</pubDate>
       <description><![CDATA[<p>Two places now meet under a thin band of cloud. Rivers, lakes and paddies are painted as water, with new boats, bridges, and a path to the road for every home. Slow, Gentle and Brisk are each about a third slower, and the shortest stay over a place is twenty minutes. There are about two thirds fewer houses, and each frame takes about 15% less GPU time. Show Place Name in the menu hides the name in the corner.</p>]]></description>
