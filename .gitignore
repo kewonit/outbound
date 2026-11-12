@@ -14,3 +14,7 @@ Tests/*
 
 # Wrangler's local secrets for npx wrangler dev.
 .dev.vars*
+
+# The website, built by npm run build.
+Website/dist/
+Website/.astro/

@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 # corner of the desktop, and --cursor moves a pointer for the bird to follow.
 swift build --product Outbound
 outbound="$(swift build --show-bin-path)/Outbound"
-assets=Website/assets
+assets=Website/public/assets
 mkdir -p "$assets/places" "$assets/demos" "$assets/day"
 
 # video <file> <width> <height> <seconds> <renderer options...>, in points at Retina scale, as on a MacBook,

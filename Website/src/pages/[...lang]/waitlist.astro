@@ -1,0 +1,51 @@
+---
+import Page from "../../layouts/Page.astro";
+import Topbar from "../../components/Topbar.astro";
+import Footer from "../../components/Footer.astro";
+import { translator, href as localHref } from "../../i18n/index.js";
+import { everyLanguage } from "../../i18n/languages.js";
+// One email when Outbound comes to Windows or iPhone. waitlist.js sends the form, and worker/index.js keeps the list.
+export const getStaticPaths = everyLanguage;
+
+const { lang } = Astro.params;
+const t = translator(lang);
+const href = (path: string) => localHref(lang, path);
+---
+<Page lang={lang} path="/waitlist" listed title={t("waitlist.metaTitle")} bodyClass="fill" description={t("waitlist.metaDescription")}>
+<Topbar lang={lang} />
+
+<main class="page">
+  <div class="wrap-narrow prose waitlist">
+    <h1 set:html={t("waitlist.title")}></h1>
+    <p class="lede" set:html={t("waitlist.lede")}></p>
+
+    {/* Posts, so an address never ends up in a page's address. waitlist.js sends it and answers in place. */}
+    <form class="page-form" id="waitlist" action="/api/waitlist" method="post" novalidate>
+      <fieldset class="platforms">
+        <legend class="sr-only" set:html={t("waitlist.which")}></legend>
+        <label class="platform">
+          <input type="radio" name="platform" value="ios" checked>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.5h2"/></svg>iPhone</span>
+        </label>
+        <label class="platform">
+          <input type="radio" name="platform" value="windows">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg>Windows</span>
+        </label>
+      </fieldset>
+      <div class="form-row">
+        <input class="field" type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off"
+               placeholder={t("waitlist.email")} aria-label={t("waitlist.email")}>
+        <button class="btn btn-light" type="submit" set:html={t("waitlist.button")}></button>
+      </div>
+      {/* Left empty by people, filled in by bots. */}
+      <div class="trap" aria-hidden="true"><label>Leave this empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+      <p class="form-status" id="waitlist-status" role="alert"></p>
+    </form>
+    <p class="form-done" id="waitlist-done" role="status" tabindex="-1" hidden></p>
+  </div>
+</main>
+
+<Footer lang={lang}>
+  <p class="form-fine" set:html={t("waitlist.fine")}></p>
+</Footer>
+</Page>

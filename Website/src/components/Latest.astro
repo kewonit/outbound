@@ -1,0 +1,22 @@
+---
+// The newest version on the changelog, in full under the homepage footer's buttons, with its date in the page's
+// language. A language that doesn't have its notes in ../i18n/latest.json yet shows them in English.
+import ReleaseNotes from "./ReleaseNotes.astro";
+import { translator } from "../i18n/index.js";
+import { language } from "../i18n/languages.js";
+import { newest, newestIn, formatDate } from "../changelog/index.js";
+
+const { lang } = Astro.props as { lang?: string };
+const t = translator(lang);
+const notes = newestIn(lang);
+if (!notes) console.warn(`The ${lang} homepage shows v${newest.version}'s notes in English: add them to src/i18n/latest.json, line for line.`);
+---
+<section class="latest" aria-labelledby="latest-title">
+  <div class="latest-head">
+    <h3 id="latest-title"><span class="latest-version">v{newest.version}</span><time class="latest-date" datetime={newest.date}>{formatDate(newest.date, lang ? language(lang).tag : "en-GB")}</time></h3>
+    <a class="latest-all" href="/changelog"><span set:html={t("footer.changelog")}></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a>
+  </div>
+  <div class="latest-notes" lang={notes ? undefined : "en"} dir={notes ? undefined : "ltr"}>
+    <ReleaseNotes blocks={notes ?? newest.blocks} heading="h4" />
+  </div>
+</section>

@@ -1,0 +1,925 @@
+/* Outbound homepage. No dependencies. */
+
+:root {
+  --bg: #000000;
+  --panel: #0e0e0e;
+  --panel-2: #141414;
+  --ink: #f5f5f5;
+  --ink-soft: #c9c9c9;
+  --ink-mute: #8f8f8f;
+  --ink-faint: #808080;
+  --line: #242424;
+  --btn-dark: #262626;
+  --btn-dark-hover: #333333;
+  --accent-bright: #3d86ff;
+  --accent-soft: #7db4ff;
+  --select: #0a84ff;
+  --radius: 16px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: break-word;
+}
+/* Faint dot texture at the page edges. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(#2b2b2b 1px, transparent 1.4px),
+    radial-gradient(#2b2b2b 1px, transparent 1.4px);
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+  background-repeat: repeat-y;
+  opacity: 0.5;
+  mask-image: linear-gradient(90deg, #000 0, transparent 140px, transparent calc(100% - 140px), #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0, transparent 140px, transparent calc(100% - 140px), #000 100%);
+}
+
+.wrap { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+.wrap-narrow { max-width: 42rem; margin: 0 auto; padding: 0 1rem; }
+.wrap-wide { max-width: 80rem; margin: 0 auto; padding: 0 0.75rem; }
+
+h1, h2, h3 { line-height: 1.12; margin: 0; text-wrap: pretty; }
+h1 { font-size: 1.875rem; font-weight: 500; letter-spacing: -0.5px; max-width: 32rem; }
+h2 { font-size: 1.5rem; font-weight: 500; }
+h3 { font-size: 1.25rem; font-weight: 500; }
+
+a { color: inherit; }
+img { max-width: 100%; height: auto; display: block; -webkit-user-drag: none; user-select: none; }
+figure { margin: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+::selection { background: var(--accent-bright); color: #0a0a0a; }
+
+/* ---------- Mark (logo) ---------- */
+.mark {
+  display: inline-block;
+  background: url("/assets/mark.svg?v=2") center / contain no-repeat;
+  flex: none;
+}
+.mark-xs { width: 18px; height: 18px; }
+.mark-sm { width: 24px; height: 24px; }
+.mark-md { width: 32px; height: 32px; }
+.mark-lg { width: 44px; height: 44px; }
+.mark-logo { display: inline-flex; line-height: 0; border-radius: 50%; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.btn-light { color: #0a0a0a; background: #f5f5f5; }
+.btn-light:hover { background: #ffffff; }
+.btn-dark { color: var(--ink); background: var(--btn-dark); }
+.btn-dark:hover { background: var(--btn-dark-hover); }
+.btn-sm { height: 2rem; padding: 0 0.75rem; font-size: 0.875rem; }
+/* The part of a button that says who it is for, quieter than what it does. */
+.btn-quiet { margin-inline-end: 0.3em; color: var(--ink-mute); }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+.topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+
+/* ---------- Hero ---------- */
+.hero { padding: 4rem 0; }
+.hero p:first-child { margin: 0 0 2rem; line-height: 0; }
+.hero h1 { margin-bottom: 1rem; }
+.lede { margin: 0; font-size: 1.5rem; font-weight: 500; letter-spacing: -0.2px; line-height: 1.35; color: var(--ink-mute); }
+.cta-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 2rem; }
+
+/* ---------- Hero visual: cropped screenshot, trimmed below, hairline under it ---------- */
+.visual-bleed { border-bottom: 1px solid var(--line); }
+.visual-bleed figure { max-width: 960px; margin: 0 auto; }
+.visual-bleed img { width: 100%; border-radius: var(--radius) var(--radius) 0 0; }
+.visual-bleed .img-fallback { height: 430px; }
+.img-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--ink-mute);
+  background: linear-gradient(135deg, #161616, #0a0a0a);
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 20px;
+  margin-inline-start: 1px;
+  border-radius: 1px;
+  background: var(--select);
+}
+
+/* ---------- App frame ---------- */
+.app-frame {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.app-frame.inset { margin-top: 2.75rem; }
+
+/* ---------- Sections ---------- */
+.section { padding: 2rem 0; }
+.section-sub { margin: 0.25rem 0 0; font-size: 1.5rem; font-weight: 500; line-height: 1.35; color: var(--ink-mute); }
+
+/* ---------- Feature grid ---------- */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem 2rem;
+  margin-top: 2.5rem;
+}
+.feature p { margin: 0.7rem 0 0; color: var(--ink-mute); font-size: 1.02rem; }
+
+/* ---------- Demo card ---------- */
+.demo-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: 2.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.demo-copy { padding: 2rem; }
+.demo-copy p { color: var(--ink-mute); margin: 0.8rem 0 0; }
+.demo-copy p:first-child { margin: 0 0 1rem; }
+.demo-panel {
+  background: var(--panel-2);
+  border-top: 1px solid var(--line);
+  padding: 1.5rem 1.5rem 1.25rem;
+  min-width: 0;
+}
+.demo-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.demo-title svg { color: var(--ink-mute); flex: none; }
+.demo-rows { list-style: none; margin: 0; padding: 0; }
+.demo-rows li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #1d1d1d;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+.demo-rows li:last-child { border-bottom: 0; }
+.demo-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.demo-app { font-weight: 600; flex: none; }
+.demo-app em { font-style: normal; color: var(--accent-soft); }
+.demo-dest {
+  color: var(--ink-mute);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip {
+  flex: none;
+  padding: 0.12rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.chip.go { background: rgba(61, 134, 255, 0.18); color: var(--accent-soft); }
+.chip.local { background: rgba(143, 143, 143, 0.15); color: #b5b5b5; }
+
+/* Shortcuts, as small keys in the Mac system font so ⌘ and ↩ match macOS. */
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0 0.35em;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  background: #161616;
+  color: var(--ink-soft);
+  font: 500 0.85em/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple Symbols",
+    "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+/* The menu bar icon and the Return key, drawn so they match macOS on every platform. */
+.menu-icon { width: 1em; height: 1em; vertical-align: -0.15em; }
+.key-return { width: 0.95em; height: 0.95em; vertical-align: -0.12em; }
+
+/* ---------- Mini grid ---------- */
+.mini-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
+  max-width: 26rem;
+}
+.mini p { margin: 0.7rem 0 0; color: var(--ink-mute); }
+
+/* ---------- Download (two cards) ---------- */
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.tier-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  color: var(--ink-mute);
+}
+.tier.featured .tier-name { color: var(--accent-soft); }
+.tier-price { margin: 0; font-size: 1.875rem; font-weight: 500; }
+/* One piece, so where it doesn't fit beside a long price it moves below it whole, its leading space kept. */
+.tier-price .per { display: inline-block; white-space: pre-wrap; font-size: 0.9375rem; font-weight: 500; color: var(--ink-mute); }
+.tier-desc { margin: 0; font-size: 1.125rem; color: var(--ink-soft); }
+.tier ul {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: var(--ink-mute);
+}
+.tier li { display: flex; align-items: center; gap: 0.25rem; }
+.tier li svg { flex: none; }
+.tier .btn { align-self: flex-start; margin-top: auto; }
+
+.price-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+.tier.featured { background: var(--panel-2); }
+/* Buy, and under it where the price is in the visitor's own money, the same purchase in dollars. */
+.tier-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-top: auto;
+}
+.tier-actions .btn { margin-top: 0; }
+.tier-dollars {
+  font-size: 0.875rem;
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-decoration-color: var(--ink-faint);
+  text-underline-offset: 0.2em;
+  transition: color 0.15s ease;
+}
+.tier-dollars:hover { color: var(--ink); }
+/* Who sells it, in small print under the buttons. */
+.tier-seller { margin: 1rem 0 0; font-size: 0.8125rem; color: var(--ink-faint); text-wrap: balance; }
+.tier-side .tier-desc { margin-bottom: 1.5rem; }
+/* What it runs on, just under the price and outside its card. */
+.tier-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: -0.75rem 0 0;
+  padding: 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--ink-mute);
+}
+.tier-needs span { display: inline-flex; align-items: center; gap: 0.45rem; }
+/* For everyone not on a Mac: a tiny card on the line below, on to the waitlist. */
+.tier-elsewhere {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-inline-start: -0.25rem;
+  padding-block: 0.3rem;
+  padding-inline: 0.65rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.tier-elsewhere:hover { background: var(--panel-2); border-color: #333333; color: var(--ink); }
+.tier-needs .tier-elsewhere-arrow { width: 14px; height: 14px; color: var(--ink-faint); }
+.tier-elsewhere:hover .tier-elsewhere-arrow { color: var(--ink-mute); }
+[dir="rtl"] .tier-elsewhere-arrow { transform: scaleX(-1); }
+.tier-needs svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.btn-star { gap: 0.4rem; }
+.btn-star svg { flex: none; color: var(--ink-mute); transition: color 0.15s ease; }
+.btn-star path { fill: transparent; transition: fill 0.15s ease; }
+.btn-star:hover svg { color: #ffd60a; }
+.btn-star:hover path { fill: currentColor; }
+
+/* ---------- FAQ ---------- */
+.faq { margin-top: 2.5rem; }
+/* No-JS default: answers visible. JS adds .js to <html> to enable collapse. */
+.faq-a { padding: 0 0 1.5rem; color: var(--ink-mute); }
+.faq-a p { margin: 0; max-width: 44rem; }
+.faq-a code { font-size: 0.9em; color: var(--ink-soft); }
+.js .faq-a { display: none; }
+.js .faq-item.open .faq-a { display: block; }
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-item:first-child { border-top: 1px solid var(--line); }
+.faq-q {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.35rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 550;
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-align: start;
+}
+.faq-q::after {
+  content: "⌄";
+  flex: none;
+  color: var(--ink-mute);
+  font-size: 1.1rem;
+  line-height: 1;
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+.js .faq-item.open .faq-q::after { transform: translateY(2px) rotate(180deg); }
+
+/* ---------- Sub pages (privacy, license) ---------- */
+.page { padding: 3rem 0 1rem; }
+.prose h1 { margin-bottom: 1rem; }
+.prose .lede { font-size: 1.25rem; }
+.prose h2 { margin: 2.5rem 0 0; font-size: 1.25rem; }
+.prose ul {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--ink-mute);
+}
+.prose li { padding-inline-start: 1.25rem; position: relative; }
+.prose li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.8em;
+  width: 0.7rem;
+  height: 1px;
+  background: var(--ink-faint);
+}
+.prose code { font-size: 0.9em; color: var(--ink-soft); }
+.page-cta { margin-top: 2.5rem; }
+/* Privacy and Terms: long pages, so a date, a list of their sections, and smaller headings within a section. */
+.legal .updated { margin: 1rem 0 0; font-size: 0.875rem; color: var(--ink-faint); }
+.legal .contents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.35rem 1.5rem;
+  margin: 2rem 0 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 0.9375rem;
+}
+.legal .contents a { color: var(--ink-mute); text-decoration: none; }
+.legal .contents a:hover { color: var(--ink); }
+.legal h2 { scroll-margin-top: 5rem; }
+.legal h3 { margin: 1.5rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+.legal li strong { color: var(--ink-soft); font-weight: 500; }
+/* The changelog: each version and its date, then what's new, changed and fixed. On wide screens the version sits in
+   a column of its own and stays in view while its notes scroll past. */
+.release { margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--line); scroll-margin-top: 4.5rem; }
+.release-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.85rem; }
+.release-head h2 { margin: 0; font-size: 1.5rem; letter-spacing: -0.3px; }
+.release-head h2 a { text-decoration: none; }
+.release-head time { font-size: 0.875rem; color: var(--ink-faint); }
+.release-body p { margin: 0; color: var(--ink-mute); }
+.release h3 { margin: 1.75rem 0 0; font-size: 0.875rem; font-weight: 600; color: var(--ink-soft); }
+.release h3 + ul { margin-top: 0.6rem; }
+.release-body > :first-child { margin-top: 1rem; }
+@media (min-width: 720px) {
+  .changelog { max-width: 52rem; }
+  .release { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 0 2rem; }
+  .release-head { position: sticky; top: 5rem; align-self: start; flex-direction: column; }
+  .release-body > :first-child { margin-top: 0.3rem; }
+}
+
+/* ---------- Footer: a last call to action, then the map of the site ---------- */
+.footer { padding: 4rem 0 3rem; }
+.foot-cta { padding-bottom: 4.5rem; }
+.foot-cta p:first-child { margin: 0 0 2rem; line-height: 0; }
+.foot-cta .caret { width: 3px; height: 0.95em; margin-inline-start: 3px; vertical-align: -0.12em; }
+/* The newest version, in full, under the buttons. The build fills it in from the top of the changelog. */
+.latest {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.latest-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1.5rem; }
+.latest-head h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem; font-size: 1.125rem; }
+.latest-date { font-size: 0.875rem; font-weight: 400; color: var(--ink-faint); }
+.latest-all { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--ink-mute); font-size: 0.875rem; text-decoration: none; }
+.latest-all:hover { color: var(--ink); }
+.latest-all svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+[dir="rtl"] .latest-all svg { transform: scaleX(-1); }
+.latest-notes h4 { margin: 1.25rem 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--ink-soft); }
+.latest-notes ul { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
+.latest-notes li, .latest-notes p { position: relative; margin: 0; color: var(--ink-mute); font-size: 0.9375rem; }
+.latest-notes p { margin-top: 1rem; }
+.latest-notes li { padding-inline-start: 1.25rem; }
+.latest-notes li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.8em;
+  width: 0.7rem;
+  height: 1px;
+  background: var(--ink-faint);
+}
+.foot-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--line);
+}
+.foot-cols h3 { margin: 0 0 0.85rem; font-size: 0.875rem; font-weight: 600; }
+.foot-cols a {
+  display: block;
+  width: fit-content;
+  padding: 0.2rem 0;
+  color: var(--ink-mute);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+.foot-cols a:hover { color: var(--ink); }
+.foot-base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  margin-top: 3.5rem;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+.foot-base a { color: var(--ink-mute); text-decoration: none; }
+/* The language picker, at the foot of every page. */
+.lang-picker { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem; color: var(--ink-faint); font-size: 0.85rem; }
+.lang-picker select {
+  font: inherit;
+  color: var(--ink-mute);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+}
+.lang-picker select:hover { color: var(--ink); }
+.footer-plain { padding-top: 0; }
+.foot-base a:hover { color: var(--ink); }
+
+/* ---------- Responsive ---------- */
+@media (min-width: 640px) {
+  .hero p:first-child { margin-bottom: 2.5rem; }
+  .cta-row { margin-top: 2.5rem; }
+  .section { padding: 3rem 0; }
+  .feature-grid { grid-template-columns: 1fr 1fr; row-gap: 4rem; margin-top: 4rem; }
+  .demo-card { grid-template-columns: 1fr 1.2fr; margin-top: 4rem; }
+  .demo-panel { border-top: 0; border-inline-start: 1px solid var(--line); }
+  .mini-grid { grid-template-columns: repeat(3, 1fr); max-width: none; margin-top: 4rem; }
+  /* The price, with the download as a narrower card beside it in one box, and what it runs on below the box. */
+  .price-grid {
+    grid-template-columns: 1.6fr 1fr;
+    gap: 0;
+    margin-top: 4rem;
+  }
+  .tier.featured {
+    grid-area: 1 / 1; border-inline-end: 0; border-radius: 0; border-start-start-radius: 12px; border-end-start-radius: 12px;
+  }
+  .tier-side {
+    grid-area: 1 / 2; background: transparent; border-radius: 0; border-start-end-radius: 12px; border-end-end-radius: 12px;
+  }
+  .tier-needs { grid-area: 2 / 1 / auto / -1; margin-top: 1rem; }
+  .tier-needs { align-items: center; }
+  /* Without the download, the box closes around Outbound. */
+  .price-grid:has(> .tier-side[hidden]) { grid-template-columns: 1fr; }
+  .price-grid:has(> .tier-side[hidden]) .tier.featured { border-inline-end: 1px solid var(--line); border-radius: 12px; }
+  .wrap-wide { padding: 0 1rem; }
+}
+
+@media (min-width: 1024px) {
+  .wrap-wide { padding: 0 1.5rem; }
+}
+
+@media (min-width: 1280px) {
+  h1 { font-size: 2.25rem; letter-spacing: -0.7px; }
+  .lede { font-size: 1.875rem; letter-spacing: -0.4px; }
+}
+
+@media (max-width: 640px) {
+  body::before { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn, .faq-q::after, .btn-star svg, .btn-star path { transition: none; }
+}
+
+/* ---------- The flight: a video of the wallpaper itself ---------- */
+.visual-bleed video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: #1b2a17;
+}
+
+/* ---------- Places: a gallery of painted stills with print-style captions ---------- */
+.places {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2.75rem;
+}
+.places figure { margin: 0; }
+.places img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 120 / 78;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.places figcaption { margin-top: 0.65rem; font-size: 0.95rem; line-height: 1.35; }
+.places figcaption strong { display: block; font-weight: 600; color: var(--ink); }
+.places figcaption span { color: var(--ink-mute); }
+@media (max-width: 640px) {
+  .places { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Buttons waiting for launch ---------- */
+.btn.is-soon { opacity: 0.6; cursor: default; pointer-events: none; }
+
+/* ---------- Demos: short clips drawn by the app ---------- */
+.demos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem 1.25rem;
+  margin-top: 2.75rem;
+}
+.demo { margin: 0; }
+.demo-wide { grid-column: 1 / -1; }
+.demo video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #1b2a17;
+}
+.demo figcaption { margin-top: 0.65rem; font-size: 0.95rem; line-height: 1.35; }
+.demo figcaption strong { display: block; font-weight: 600; color: var(--ink); }
+.demo figcaption span { color: var(--ink-mute); }
+
+/* ---------- One village through a day ---------- */
+.day {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2.75rem;
+}
+.day figure { margin: 0; }
+.day img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.day figcaption { margin-top: 0.5rem; font-size: 0.9rem; color: var(--ink-mute); }
+@media (max-width: 640px) {
+  .demos { grid-template-columns: minmax(0, 1fr); }
+  .day { gap: 0.75rem; }
+}
+/* On wide screens the four moments sit in one row, reaching out past the text column on both sides. */
+@media (min-width: 1024px) {
+  .day {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: min(68rem, 100vw - 3rem);
+    margin-inline: calc((100% - min(68rem, 100vw - 3rem)) / 2);
+  }
+}
+
+/* ---------- A Dock over the hero clip, so it reads as a Mac's desktop ---------- */
+/* A picture of a Mac, so it never mirrors on a right-to-left page. */
+.visual-bleed figure.desktop { position: relative; container-type: inline-size; direction: ltr; }
+.dock {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  bottom: 0.45cqw;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  padding: 3px 4px;
+  padding: 0.3cqw 0.35cqw;
+  border-radius: 22px;
+  border-radius: 2.1cqw;
+  /* Clear glass, as in macOS 26: a little light, a little blur, and a bright rim where the light catches it. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08) 55%, rgba(255, 255, 255, 0.14));
+  -webkit-backdrop-filter: blur(8px) saturate(1.6) brightness(1.06);
+  backdrop-filter: blur(8px) saturate(1.6) brightness(1.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+.dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.25) 28%,
+                              rgba(255, 255, 255, 0.12) 62%, rgba(255, 255, 255, 0.6));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Each icon is one tile of assets/dock.webp, with the padding the system gives it. */
+.dock-item {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  width: 4.6cqw;
+  height: 4.6cqw;
+  background: url("/assets/dock.webp?v=1") no-repeat;
+  background-size: 1400% 100%;
+  background-position: calc(var(--i) * 100% / 13) 0;
+}
+.dock-item.open::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  bottom: -0.2cqw;
+  width: 3px;
+  height: 3px;
+  width: 0.32cqw;
+  height: 0.32cqw;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+.dock-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 8px 3px;
+  margin: 0.75cqw 0.3cqw;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- Thank-you page after checkout ---------- */
+.muted { color: var(--ink-mute); }
+.btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+.thanks .steps { list-style: none; counter-reset: step; margin: 2rem 0 0; padding: 0; display: grid; gap: 1.75rem; }
+.thanks .steps li { counter-increment: step; padding-inline-start: 2.4rem; position: relative; line-height: 1.5; color: var(--ink-mute); }
+.thanks .steps li strong { color: var(--ink); font-weight: 600; }
+.thanks .steps li::before {
+  content: counter(step);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.05rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+}
+.thanks .steps .cta-row { margin-top: 0.9rem; }
+/* A real screenshot of the menu, in the page's language, at the size it was taken. */
+.thanks .menu-shot { display: block; width: 100%; max-width: 399px; height: auto; margin-top: 1rem; border: 1px solid var(--line); border-radius: 12px; }
+.thanks .license { margin-top: 2.75rem; }
+.key-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 0.9rem; }
+.key-row code {
+  flex: 1 1 18rem;
+  min-width: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.thanks #status { margin-top: 2rem; }
+/* A buyer's key in place of Buy: the key, cut short to fit, and Copy. */
+.key-button { max-width: 100%; gap: 0.65rem; }
+.key-button code {
+  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #3d3d3d;
+}
+.key-button code + span { padding-inline-start: 0.65rem; border-inline-start: 1px solid rgba(0, 0, 0, 0.15); }
+.hero .your-key { margin: 0.9rem 0 0; font-size: 0.92rem; }
+/* Under the buttons, the first thing people ask about a live wallpaper: what it costs the Mac. */
+.hero-light { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1.25rem 0 0; font-size: 1rem; color: var(--ink-soft); }
+/* Level with the first line where a translation runs to two. */
+.hero-light svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: calc((1.6em - 18px) / 2);
+  fill: none;
+  stroke: var(--accent-soft);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.text-button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.thanks #status:empty { display: none; }
+
+
+/* ---------- Forms: the waitlist and feedback ---------- */
+.page-form { margin-top: 2.5rem; max-width: 30rem; }
+/* Windows or iPhone, as one small segmented control. */
+.platforms {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.25rem;
+  min-inline-size: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--panel);
+}
+.platform { position: relative; display: flex; }
+.platform input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.platform span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2rem;
+  padding: 0 0.85rem;
+  border-radius: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-mute);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.platform svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.platform:hover span { color: var(--ink); }
+.platform input:checked + span { background: var(--btn-dark); color: var(--ink); }
+.platform input:focus-visible + span { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.form-row { display: flex; gap: 0.5rem; }
+.field {
+  height: 2.5rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease;
+}
+.form-row .field { flex: 1; min-width: 0; }
+textarea.field {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 9rem;
+  margin: 0 0 0.5rem;
+  padding: 0.7rem 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.field::placeholder { color: var(--ink-faint); }
+.field:hover { border-color: #333333; }
+.field:focus { outline: none; border-color: #4a4a4a; }
+.field:focus-visible { outline: 2px solid var(--accent-bright); outline-offset: 2px; }
+.page-form .btn:disabled { opacity: 0.6; cursor: default; }
+.form-status { margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--ink-soft); }
+.form-status:empty { display: none; }
+/* A short page keeps its footer, with the fine print, at the bottom of the window. */
+.fill { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.fill main { flex: 1; }
+.form-fine { margin: 0; font-size: 0.875rem; color: var(--ink-mute); }
+.form-done { margin: 2.5rem 0 0; font-size: 1.125rem; color: var(--ink); }
+.form-done:focus { outline: none; }
+/* The bots' field, out of sight and out of reach, and clipped rather than moved off the page, which would let a
+   right-to-left page scroll sideways to it. */
+.trap, .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Leaner landing page ---------- */
+.demo figcaption, .places figcaption { margin-top: 0.55rem; }
+
+[hidden] { display: none !important; }

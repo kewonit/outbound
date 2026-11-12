@@ -1,0 +1,15 @@
+{
+  "name": "outbound-site",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "dev": "cd Website && astro dev",
+    "build": "cd Website && astro build",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "astro": "7.4.11",
+    "wrangler": "4.161.0"
+  }
+}

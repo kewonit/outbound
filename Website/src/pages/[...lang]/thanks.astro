@@ -1,0 +1,56 @@
+---
+import Page from "../../layouts/Page.astro";
+import Topbar from "../../components/Topbar.astro";
+import Footer from "../../components/Footer.astro";
+import { translator, href as localHref } from "../../i18n/index.js";
+import { everyLanguage } from "../../i18n/languages.js";
+// Where Polar sends a buyer after paying. thanks.js finds their key from the checkout, which the loader takes off the
+// address at once.
+export const getStaticPaths = everyLanguage;
+
+const { lang } = Astro.params;
+const t = translator(lang);
+const href = (path: string) => localHref(lang, path);
+---
+<Page lang={lang} title={t("thanks.metaTitle")} robots="noindex" referrer="no-referrer" share={false} appleTouch={false}>
+<Topbar lang={lang} github={false} buy={false} />
+
+<main class="page">
+  <div class="wrap-narrow prose thanks">
+    <h1 set:html={t("thanks.title")}></h1>
+    <p class="lede" set:html={t("thanks.lede")}></p>
+
+    <ol class="steps">
+      <li data-needs="download">
+        <strong set:html={t("thanks.step1")}></strong>
+        <div class="cta-row"><a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" set:html={t("download.button")}></a></div>
+      </li>
+      <li>
+        <strong data-i18n="thanks.step2" set:html={t("thanks.step2")}></strong> <span data-i18n="thanks.step2Detail" set:html={t("thanks.step2Detail")}></span>
+        <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" set:html={t("thanks.activate")}></a></div>
+      </li>
+      <li>
+        <strong set:html={t("thanks.step3")}></strong> <span set:html={t("thanks.step3Detail")}></span>
+        <img class="menu-shot" src={t("thanks.menuImage")} width="399" height="489" alt={t("thanks.menuAlt")} loading="lazy" decoding="async">
+      </li>
+    </ol>
+
+    <div class="license" id="license" hidden>
+      <h2 set:html={t("thanks.key")}></h2>
+      <div class="key-row">
+        <code id="key"></code>
+        <button class="btn btn-dark btn-sm" id="copy" type="button" set:html={t("js.copy")}></button>
+      </div>
+      <p class="muted"><span set:html={t("thanks.orPaste")}></span> <span id="email"></span></p>
+    </div>
+
+    <p class="muted" id="status" role="status" set:html={t("js.finding")}></p>
+    <p class="muted" set:html={t("thanks.lost")}></p>
+    <p class="muted" set:html={t("thanks.help")}></p>
+  </div>
+</main>
+
+<Footer lang={lang} plain={false}>
+  <p class="foot-base"><span set:html={t("footer.needs")}></span><span><a href={href("/")}>outbound.edbn.me</a></span></p>
+</Footer>
+</Page>

@@ -1,0 +1,11 @@
+---
+// One version's notes, as src/changelog/index.js reads them: headed lists, or a line of text.
+const { blocks, heading = "h3" } = Astro.props as { blocks: { heading?: string; items?: string[]; text?: string }[]; heading?: "h3" | "h4" };
+const Heading = heading;
+---
+{blocks.map((block) => block.items ? (
+  <>
+    {block.heading && <Heading>{block.heading}</Heading>}
+    <ul>{block.items.map((item) => <li>{item}</li>)}</ul>
+  </>
+) : <p>{block.text}</p>)}
