@@ -1,0 +1,27 @@
+---
+// In English only. Each version is a file in src/changelog; scripts/release.sh adds the new one.
+import Page from "../layouts/Page.astro";
+import Topbar from "../components/Topbar.astro";
+import ReleaseNotes from "../components/ReleaseNotes.astro";
+import { releases, formatDate } from "../changelog/index.js";
+---
+<Page path="/changelog" title="Changelog · Outbound" description="What changed in each version of Outbound.">
+<Topbar buy={false} />
+
+<main class="page">
+  <div class="wrap-narrow prose changelog">
+    <h1>Changelog.</h1>
+    {releases.map(({ version, date, blocks }) => (
+      <article class="release" id={`v${version}`}>
+        <header class="release-head">
+          <h2><a href={`#v${version}`}>{version}</a></h2>
+          <time datetime={date}>{formatDate(date, "en-GB")}</time>
+        </header>
+        <div class="release-body">
+          <ReleaseNotes blocks={blocks} />
+        </div>
+      </article>
+    ))}
+  </div>
+</main>
+</Page>

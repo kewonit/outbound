@@ -72,7 +72,7 @@ figure { margin: 0; }
 /* ---------- Mark (logo) ---------- */
 .mark {
   display: inline-block;
-  background: url("assets/mark.svg?v=2") center / contain no-repeat;
+  background: url("/assets/mark.svg?v=2") center / contain no-repeat;
   flex: none;
 }
 .mark-xs { width: 18px; height: 18px; }
@@ -734,7 +734,7 @@ kbd {
   height: 46px;
   width: 4.6cqw;
   height: 4.6cqw;
-  background: url("assets/dock.webp?v=1") no-repeat;
+  background: url("/assets/dock.webp?v=1") no-repeat;
   background-size: 1400% 100%;
   background-position: calc(var(--i) * 100% / 13) 0;
 }

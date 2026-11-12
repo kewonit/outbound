@@ -1,5 +1,5 @@
-// The site's small API. Everything outside /api/ is a static file from Website/, served before this
-// script ever runs.
+// The site's small API. Everything outside /api/ is a static file from Website/dist, which Astro builds from
+// Website/src (npm run build), served before this script ever runs.
 //
 //   GET  /, /support, /thanks          The page in the visitor's language: their pick in the footer if they made
 //                                      one, else the first of their browser's languages the site speaks.

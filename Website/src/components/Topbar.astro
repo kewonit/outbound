@@ -1,0 +1,25 @@
+---
+import { translator, href } from "../i18n/index.js";
+
+interface Props {
+  lang?: string;
+  /** On the homepage, the logo and Buy scroll within the page. */
+  home?: boolean;
+  github?: boolean;
+  buy?: boolean;
+}
+
+const { lang, home = false, github = true, buy = true } = Astro.props;
+const t = translator(lang);
+---
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="mark-logo" href={home ? "#top" : href(lang, "/")} aria-label={t("nav.home")}><span class="mark mark-md" aria-hidden="true"></span></a>
+    {(github || buy) && (
+      <div class="topbar-actions">
+        {github && <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>}
+        {buy && <a class="btn btn-light btn-sm" href={home ? "#buy" : href(lang, "/#buy")} data-url="buy" data-soon={t("buy.soon")} set:html={t("buy.button")}></a>}
+      </div>
+    )}
+  </div>
+</header>

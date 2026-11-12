@@ -1,6 +1,7 @@
 {
-  // The website: static files from Website/, and a small API under /api/ in worker/index.js that hands
-  // a buyer's license key to the app. Deploys from main through Workers Builds, or with npx wrangler deploy.
+  // The website: the pages Astro builds into Website/dist (npm run build, which wrangler runs first), and a small API
+  // under /api/ in worker/index.js that hands a buyer's license key to the app. Deploys from main through Workers
+  // Builds, or with npx wrangler deploy. npm run preview builds and serves it all locally.
   //
   // Secrets, set once and kept across deploys with npx wrangler secret put NAME: POLAR_ACCESS_TOKEN, and for the
   // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and WAITLIST_TOKEN (worker/supabase.sql). Locally they go in
@@ -8,8 +9,9 @@
   "name": "outbound",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
+  "build": { "command": "npm run build" },
   "assets": {
-    "directory": "./Website",
+    "directory": "./Website/dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": [

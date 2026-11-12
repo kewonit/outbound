@@ -1,0 +1,202 @@
+---
+import Page from "../../layouts/Page.astro";
+import Topbar from "../../components/Topbar.astro";
+import LanguagePicker from "../../components/LanguagePicker.astro";
+import Latest from "../../components/Latest.astro";
+import { translator, href as localHref } from "../../i18n/index.js";
+import { everyLanguage } from "../../i18n/languages.js";
+import { structuredData } from "../../structured-data.js";
+import { POSTER, DAY, PLACES } from "../../pictures.js";
+
+export const getStaticPaths = everyLanguage;
+
+const { lang } = Astro.params;
+const t = translator(lang);
+const href = (path: string) => localHref(lang, path);
+
+const DEMOS = [
+  { key: "fly", src: "/assets/demos/fly.mp4?v=6", poster: "/assets/demos/fly.jpg?v=5", wide: true },
+  { key: "night", src: "/assets/demos/night.mp4?v=3", poster: "/assets/demos/night.jpg?v=3" },
+  { key: "train", src: "/assets/demos/train.mp4?v=3", poster: "/assets/demos/train.jpg?v=3" },
+  { key: "flock", src: "/assets/demos/flock.mp4?v=3", poster: "/assets/demos/flock.jpg?v=3" },
+  { key: "follow", src: "/assets/demos/follow.mp4?v=4", poster: "/assets/demos/follow.jpg?v=4" },
+];
+// The questions, in order. data-direct ones are about the copy sold here, so the App Store copy's visitors don't see
+// them (see the Worker).
+const FAQ = Array.from({ length: 14 }, (_, i) => i + 1);
+const DIRECT = new Set([9, 10, 11]);
+const DOCK = [true, false, true, true, false, false, false, false, false, true, false, false];
+---
+<Page lang={lang} path="/" listed title={t("meta.title")} description={t("meta.description")}
+      shareTitle={t("meta.shareTitle")} shareDescription={t("meta.shareDescription")}
+      robots="index, follow, max-image-preview:large, max-video-preview:-1" ogLocale preload={POSTER}>
+<script is:inline type="application/ld+json" slot="head" set:html={structuredData(lang, t, FAQ)}></script>
+
+<Topbar lang={lang} home />
+
+<main id="top">
+
+  <section class="hero">
+    <div class="wrap-narrow">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h1 set:html={t("hero.title")}></h1>
+      <p class="lede" set:html={t("hero.lede")}></p>
+      <div class="cta-row" data-direct>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon={t("buy.soon")} set:html={t("buy.button")}></a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" set:html={t("download.already")}></a>
+      </div>
+      <p class="hero-light"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span set:html={t("hero.light")}></span></p>
+      {/* Shown to buyers for a year after checkout, from this browser's storage only, while app.js puts their key
+          where Buy was. */}
+      <p class="your-key muted" id="your-key" hidden><span set:html={t("key.saved")}></span></p>
+    </div>
+  </section>
+
+  {/* The wallpaper itself, rendered by the app. */}
+  <section class="visual-bleed" aria-label={t("visual.label")}>
+    <div class="wrap-wide">
+      <figure class="desktop">
+        <video src="/assets/flight.mp4?v=4" poster={POSTER} autoplay muted loop playsinline preload="metadata"
+               width="1600" height="1000" aria-label={t("visual.video")}></video>
+        {/* A Dock over the clip, so it reads as a Mac's desktop: the standard apps, Downloads and the Trash, drawn
+            from one strip of icons. */}
+        <div class="dock" aria-hidden="true">
+          {DOCK.map((open, i) => <span class:list={["dock-item", { open }]} style={`--i: ${i}`}></span>)}
+          <span class="dock-divider"></span>
+          <span class="dock-item" style="--i: 12"></span>
+          <span class="dock-item" style="--i: 13"></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  {/* Short clips, each drawn by the app's own renderer. app.js loads them as they come into view. */}
+  <section class="section" id="demos">
+    <div class="wrap-narrow">
+      <h2 set:html={t("demos.title")}></h2>
+      <div class="demos">
+        {DEMOS.map(({ key, src, poster, wide }) => (
+          <figure class:list={["demo", { "demo-wide": wide }]}>
+            <video data-src={src} poster={poster} muted loop playsinline preload="none"
+                   width="1280" height="800" aria-label={t(`demos.${key}Video`)}></video>
+            <figcaption><strong set:html={t(`demos.${key}`)}></strong></figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* One village through a day. */}
+  <section class="section" id="light">
+    <div class="wrap-narrow">
+      <h2 set:html={t("light.title")}></h2>
+      <div class="day">
+        {DAY.map(({ src, key }) => (
+          <figure><img src={src} alt={t(`light.${key}Alt`)} width="1200" height="800" loading="lazy" decoding="async"><figcaption set:html={t(`light.${key}`)}></figcaption></figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="places">
+    <div class="wrap-narrow">
+      <h2 set:html={t("places.title")}></h2>
+      <div class="places">
+        {PLACES.map(({ src, key, name }) => (
+          <figure><img src={src} alt={t(`places.${key}Alt`)} width="1200" height="780" loading="lazy" decoding="async"><figcaption><strong>{name}</strong></figcaption></figure>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* data-direct: only for the copy sold here, so left out for visitors from the Mac App Store copy (see the Worker).
+      The Worker also writes $4.99 in the visitor's own money where it has a price for their country. */}
+  <section class="section" id="buy" data-direct>
+    <div class="wrap-narrow">
+      <h2 set:html={t("buy.title")}></h2>
+      <div class="price-grid">
+        <article class="tier featured">
+          <h3 class="tier-name"><span class="mark mark-xs" aria-hidden="true"></span>Outbound</h3>
+          <p class="tier-price">$4.99<span class="per" set:html={t("buy.per")}></span></p>
+          <p class="tier-desc" set:html={t("buy.desc")}></p>
+          <div class="tier-actions">
+            <a class="btn btn-light" href="#buy" data-url="buy" data-soon={t("buy.soon")} set:html={t("buy.button")}></a>
+            {/* Shown by the Worker where the price above is in the visitor's own money. */}
+            <a class="tier-dollars" href="/buy?currency=usd" rel="nofollow" data-dollars hidden set:html={t("buy.dollars")}></a>
+          </div>
+          <p class="tier-seller" set:html={t("buy.seller")}></p>
+        </article>
+        <p class="tier-needs">
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5"/></svg><span set:html={t("needs.macos")}></span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M6.5 1.5V4M9.5 1.5V4M6.5 12v2.5M9.5 12v2.5M1.5 6.5H4M1.5 9.5H4M12 6.5h2.5M12 9.5h2.5"/></svg><span set:html={t("needs.silicon")}></span></span>
+          <span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11a6 6 0 0 1 12 0"/><path d="M8 11 5 8"/></svg><span set:html={t("needs.light")}></span></span>
+          <a class="tier-elsewhere" href={href("/waitlist")}><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="13" rx="2"/><path d="M7 12.5h2"/></svg><span set:html={t("needs.elsewhere")}></span><svg class="tier-elsewhere-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></a>
+        </p>
+        <article class="tier tier-side" data-needs="download">
+          <h3 class="tier-name" set:html={t("buy.already")}></h3>
+          <p class="tier-price" set:html={t("buy.download")}></p>
+          <p class="tier-desc" set:html={t("buy.paste")}></p>
+          <a class="btn btn-dark btn-sm" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" set:html={t("download.already")}></a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {/* The question's key goes to Plausible when it's opened (app.js). */}
+  <section class="section" id="faq">
+    <div class="wrap-narrow">
+      <h2 set:html={t("faq.title")}></h2>
+      <div class="faq">
+        {FAQ.map((n) => (
+          <div class="faq-item" data-direct={DIRECT.has(n) ? "" : undefined}>
+            <button class="faq-q" aria-expanded="false" data-i18n={`faq.q${n}`} set:html={t(`faq.q${n}`)}></button>
+            <div class="faq-a"><p set:html={t(`faq.a${n}`)}></p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap-narrow">
+    <div class="foot-cta">
+      <p><span class="mark mark-lg" aria-hidden="true"></span></p>
+      <h2><span set:html={t("footer.tagline")}></span><span class="caret" aria-hidden="true"></span></h2>
+      <div class="cta-row" data-direct>
+        <a class="btn btn-light" href="#buy" data-url="buy" data-soon={t("buy.soon")} set:html={t("buy.button")}></a>
+        <a class="btn btn-dark" href="https://github.com/kewonit/outbound/releases" data-url="download" data-soon="" set:html={t("download.already")}></a>
+      </div>
+      <Latest lang={lang} />
+    </div>
+    <nav class="foot-cols" aria-label={t("footer.label")}>
+      <div>
+        <h3 set:html={t("footer.product")}></h3>
+        <a href="#demos" set:html={t("footer.see")}></a>
+        <a href="#places" set:html={t("footer.places")}></a>
+        <a href="#buy" set:html={t("footer.buy")}></a>
+        <a href="#faq" set:html={t("faq.title")}></a>
+        <a href={href("/waitlist")} set:html={t("footer.elsewhere")}></a>
+        <a href={href("/feedback")} set:html={t("footer.feedback")}></a>
+        <a href={href("/support")} set:html={t("footer.support")}></a>
+      </div>
+      <div>
+        <h3 set:html={t("footer.source")}></h3>
+        <a href="https://github.com/kewonit/outbound" data-url="github">GitHub</a>
+        <a href="/changelog" set:html={t("footer.changelog")}></a>
+        <a href="https://github.com/kewonit/outbound/releases" set:html={t("footer.releases")}></a>
+        <a href="https://github.com/kewonit/outbound/issues" set:html={t("footer.issues")}></a>
+      </div>
+      <div>
+        <h3 set:html={t("footer.legal")}></h3>
+        <a href="/privacy" set:html={t("footer.privacy")}></a>
+        <a href="/license" set:html={t("footer.license")}></a>
+        <a href="/terms" set:html={t("footer.terms")}></a>
+      </div>
+    </nav>
+    <p class="foot-base"><span set:html={t("footer.needs")}></span><span set:html={t("footer.built")}></span></p>
+    <LanguagePicker lang={lang} />
+  </div>
+</footer>
+</Page>
