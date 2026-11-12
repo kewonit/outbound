@@ -1,0 +1,84 @@
+---
+// Every page: its head, then the page, then the words its scripts write (translated pages only) and the loader.
+// Site URLs (download, buy, github) live once, at the top of public/app.js.
+import "../styles/site.css";
+import { language, LANGUAGES, pageURL } from "../i18n/languages.js";
+import { translator, scriptWords } from "../i18n/index.js";
+
+interface Props {
+  lang?: string;
+  /** The page's address in English, for its canonical link: "/support". None for pages not to be linked to. */
+  path?: string;
+  /** Listed in every language, with hreflang links to the others. */
+  listed?: boolean;
+  title: string;
+  description?: string;
+  shareTitle?: string;
+  shareDescription?: string;
+  /** The link preview's tags. */
+  share?: boolean;
+  robots?: string;
+  referrer?: string;
+  ogLocale?: boolean;
+  appleTouch?: boolean;
+  preload?: string;
+  dataPage?: string;
+  /** "fill" pins the footer to the bottom of the window on a short page. */
+  bodyClass?: string;
+}
+
+const {
+  lang, path, listed = false, title, description, shareTitle = title, shareDescription = description, share = true,
+  robots, referrer, ogLocale = false, appleTouch = true, preload, dataPage, bodyClass,
+} = Astro.props;
+const { tag, rtl, locale } = language(lang);
+const t = translator(lang);
+const url = path && pageURL(lang, path);
+const words = scriptWords(lang);
+---
+<!DOCTYPE html>
+<html lang={tag} dir={rtl ? "rtl" : undefined} data-page={dataPage}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{robots && !path && <meta name="robots" content={robots}>}
+{referrer && <meta name="referrer" content={referrer}>}
+<title>{title}</title>
+{description && <meta name="description" content={description}>}
+{url && <link rel="canonical" href={url}>}
+{listed && path && [
+  <link rel="alternate" hreflang="en" href={pageURL(undefined, path)}>,
+  ...LANGUAGES.map((l) => <link rel="alternate" hreflang={l.tag} href={pageURL(l.folder, path)}>),
+  <link rel="alternate" hreflang="x-default" href={pageURL(undefined, path)}>,
+]}
+{robots && path && <meta name="robots" content={robots}>}
+<meta name="theme-color" content="#000000">
+{share && <>
+<meta property="og:type" content="website">
+{url && <meta property="og:url" content={url}>}
+{ogLocale && <meta property="og:locale" content={locale}>}
+<meta property="og:title" content={shareTitle}>
+<meta property="og:description" content={shareDescription}>
+<meta property="og:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content={t("meta.imageAlt")}>
+<meta property="og:site_name" content="Outbound">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content={shareTitle}>
+<meta name="twitter:description" content={shareDescription}>
+<meta name="twitter:image" content="https://outbound.edbn.me/assets/og.jpg">
+<meta name="twitter:image:alt" content={t("meta.imageAlt")}>
+</>}
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=3">
+{appleTouch && <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">}
+{preload && <link rel="preload" as="image" href={preload} fetchpriority="high">}
+<slot name="head" />
+</head>
+<body class={bodyClass}>
+<slot />
+{words && <script is:inline type="application/json" id="outbound-words" set:html={words}></script>}
+<script is:inline set:html={__LOADER__}></script>
+</body>
+</html>

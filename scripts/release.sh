@@ -17,7 +17,7 @@ version="${1:?$usage}"
 notes="${2:?$usage}"
 identity="Developer ID Application: Kartik Kulloli (55W3P96VL4)"
 plist=Configuration/Info.plist
-appcast=Website/appcast.xml
+appcast=Website/public/appcast.xml
 
 [[ -z "$(git status --porcelain)" ]] || { echo "Commit or stash your changes first." >&2; exit 1; }
 [[ "$(git branch --show-current)" == main ]] || { echo "Release from main." >&2; exit 1; }
@@ -57,30 +57,21 @@ item="    <item>
 ITEM="$item" awk '{ print } /<language>/ && !done { print ENVIRON["ITEM"]; done = 1 }' "$appcast" > "$appcast.new"
 mv "$appcast.new" "$appcast"
 
-# And at the top of the changelog. An entry written ahead of the release takes today's date. Without one, the notes go
-# in as its line, to fill out by hand later.
-changelog=Website/changelog.html
-if grep -q "id=\"v$version\"" "$changelog"; then
-    sed -i '' "/<article class=\"release\" id=\"v$version\">/,/<\/header>/s|<time datetime=\"[^\"]*\">[^<]*</time>|<time datetime=\"$(date +%F)\">$(LC_ALL=C date "+%-d %B %Y")</time>|" "$changelog"
+# And on the changelog, which the homepage's footer shows in every language that has its lines in
+# Website/src/i18n/latest.json. An entry written ahead of the release takes today's date. Without one, the notes go in
+# as its line, to fill out by hand later.
+entry="Website/src/changelog/$version.md"
+if [[ -f "$entry" ]]; then
+    sed -i '' "s/^date: .*/date: $(date +%F)/" "$entry"
 else
-    said=$(printf '%s' "$notes" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
-    entry="    <article class=\"release\" id=\"v$version\">
-      <header class=\"release-head\">
-        <h2><a href=\"#v$version\">$version</a></h2>
-        <time datetime=\"$(date +%F)\">$(LC_ALL=C date "+%-d %B %Y")</time>
-      </header>
-      <div class=\"release-body\">
-        <p>$said</p>
-      </div>
-    </article>
-"
-    ENTRY="$entry" awk '{ print } /<!-- releases:/ && !done { print ENVIRON["ENTRY"]; done = 1 }' "$changelog" > "$changelog.new"
-    mv "$changelog.new" "$changelog"
+    printf -- '---\ndate: %s\n---\n\n%s\n' "$(date +%F)" "$notes" > "$entry"
 fi
-sed -i '' "s|\(<loc>https://outbound.edbn.me/changelog</loc><lastmod>\)[^<]*|\1$(date +%F)|" Website/sitemap.xml
-# The homepage's footer shows the newest version, in every language.
-node scripts/build-site-languages.mjs >/dev/null ||
-    echo "The footer still shows the last version: run node scripts/build-site-languages.mjs and push." >&2
+git add "$entry"
+
+# The site serves the appcast, so it has to build before the update can go out.
+[[ -d node_modules ]] || npm ci --silent
+npm run build >/dev/null ||
+    { echo "The site doesn't build, so v$version isn't offered yet: fix it, then commit and push." >&2; exit 1; }
 git commit --quiet -am "Offer Outbound v$version as an update"
 git push --quiet origin main
 echo "Outbound v$version is out. Copies will pick it up within a day."
