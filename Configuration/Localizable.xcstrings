@@ -96,323 +96,6 @@
         }
       }
     },
-    "%lld minutes": {
-      "comment": "Time at Each Place choice, for 6, 12 or 30 minutes.",
-      "localizations": {
-        "ar": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld دقائق"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld دقيقة"
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "دقيقة واحدة"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld دقيقة"
-                }
-              },
-              "two": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "دقيقتان"
-                }
-              },
-              "zero": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld دقيقة"
-                }
-              }
-            }
-          }
-        },
-        "de": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Minute"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld Minuten"
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minute"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minutes"
-                }
-              }
-            }
-          }
-        },
-        "es": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuto"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minutos"
-                }
-              }
-            }
-          }
-        },
-        "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minute"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minutes"
-                }
-              }
-            }
-          }
-        },
-        "hi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld मिनट"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld मिनट"
-                }
-              }
-            }
-          }
-        },
-        "it": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuto"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuti"
-                }
-              }
-            }
-          }
-        },
-        "ja": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld分"
-                }
-              }
-            }
-          }
-        },
-        "ko": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld분"
-                }
-              }
-            }
-          }
-        },
-        "nl": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuut"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuten"
-                }
-              }
-            }
-          }
-        },
-        "pl": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuty"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minut"
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuta"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuty"
-                }
-              }
-            }
-          }
-        },
-        "pt-BR": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minuto"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld minutos"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld минуты"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld минут"
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld минута"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld минуты"
-                }
-              }
-            }
-          }
-        },
-        "tr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dakika"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld dakika"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld 分钟"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hant": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld 分鐘"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "A painted world behind your desktop, and a bird that follows your cursor.": {
       "localizations": {
         "ar": {
@@ -696,6 +379,291 @@
         }
       }
     },
+    "After 20 Minutes": {
+      "comment": "Next Place choice.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد 20 دقيقة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach 20 Minuten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A los 20 minutos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 20 minutes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20 मिनट बाद"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo 20 minuti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20分後"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20분 후"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na 20 minuten"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po 20 minutach"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após 20 Minutos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через 20 минут"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20 Dakika Sonra"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20 分钟后"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "20 分鐘後"
+          }
+        }
+      }
+    },
+    "After 30 Minutes": {
+      "comment": "Next Place choice.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد 30 دقيقة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach 30 Minuten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A los 30 minutos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après 30 minutes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 मिनट बाद"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo 30 minuti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30分後"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30분 후"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na 30 minuten"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po 30 minutach"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após 30 Minutos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через 30 минут"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 Dakika Sonra"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 分钟后"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 分鐘後"
+          }
+        }
+      }
+    },
+    "After an Hour": {
+      "comment": "Next Place choice.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بعد ساعة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach einer Stunde"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A la hora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après une heure"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 घंटे बाद"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo un'ora"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1時間後"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1시간 후"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na een uur"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Po godzinie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após uma Hora"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через час"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir Saat Sonra"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 小时后"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 小時後"
+          }
+        }
+      }
+    },
     "Already bought it? Paste your key.": {
       "localizations": {
         "ar": {
@@ -790,7 +758,8 @@
         }
       }
     },
-    "Always daytime": {
+    "Always Daytime": {
+      "comment": "Light choice: always fair daytime.",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -855,7 +824,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sempre de dia"
+            "value": "Sempre de Dia"
           }
         },
         "ru": {
@@ -867,7 +836,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hep gündüz"
+            "value": "Hep Gündüz"
           }
         },
         "zh-Hans": {
@@ -884,192 +853,192 @@
         }
       }
     },
-    "An hour": {
-      "comment": "Time at Each Place choice.",
+    "As It Is Today": {
+      "comment": "Season choice: each place in the season it is in today.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "ساعة"
+            "value": "كما هو اليوم"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eine Stunde"
+            "value": "Wie es heute ist"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Una hora"
+            "value": "Como está hoy"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Une heure"
+            "value": "Tel qu'aujourd'hui"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "1 घंटा"
+            "value": "जैसा आज है"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un'ora"
+            "value": "Com'è oggi"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "1時間"
+            "value": "今日の姿"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "1시간"
+            "value": "오늘의 모습"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Een uur"
+            "value": "Zoals het nu is"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Godzina"
+            "value": "Tak jak dziś"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uma hora"
+            "value": "Como Está Hoje"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Час"
+            "value": "Как сейчас"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bir saat"
+            "value": "Bugünkü Hâliyle"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "1 小时"
+            "value": "此刻的模样"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "1 小時"
+            "value": "此刻的模樣"
           }
         }
       }
     },
-    "Brisk": {
-      "comment": "Pace choice.",
+    "At Its Best": {
+      "comment": "Season choice: each place in the season it is best known for.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "نشيط"
+            "value": "في أجمل حالاته"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zügig"
+            "value": "Zur schönsten Zeit"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vivo"
+            "value": "En su mejor momento"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vive"
+            "value": "Sous son meilleur jour"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "तेज़"
+            "value": "सबसे सुंदर रूप में"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vivace"
+            "value": "Al suo meglio"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "軽快"
+            "value": "見頃"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "경쾌하게"
+            "value": "가장 아름다운 때"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vlot"
+            "value": "Op zijn mooist"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Żwawo"
+            "value": "W najpiękniejszej porze"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ágil"
+            "value": "No Seu Auge"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Бодро"
+            "value": "В лучшую пору"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Canlı"
+            "value": "En Güzel Hâliyle"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "轻快"
+            "value": "最美时节"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "輕快"
+            "value": "最美時節"
           }
         }
       }
@@ -2114,101 +2083,6 @@
         }
       }
     },
-    "Do not change": {
-      "comment": "Time at Each Place choice: stay over the current place and never move on.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "بلا تغيير"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht wechseln"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No cambiar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ne pas changer"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "यहीं रुके रहें"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Non cambiare"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "移動しない"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이동하지 않음"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Niet wisselen"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nie zmieniaj"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não mudar"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не менять"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Burada kal"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一直停留"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一直停留"
-          }
-        }
-      }
-    },
     "Done": {
       "localizations": {
         "ar": {
@@ -2299,100 +2173,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
-          }
-        }
-      }
-    },
-    "Each place at its best": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "كل مكان في أجمل حالاته"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jeder Ort zur schönsten Zeit"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cada lugar en su mejor momento"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chaque lieu sous son meilleur jour"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हर जगह अपने सबसे सुंदर रूप में"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ogni luogo al suo meglio"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "各地の見頃"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "장소마다 가장 아름다운 때"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elke plek op zijn mooist"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Każde miejsce w najpiękniejszej porze"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cada lugar no seu auge"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Каждое место в лучшую пору"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Her yer en güzel hâliyle"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每处最美的时节"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每處最美的時節"
           }
         }
       }
@@ -2583,6 +2363,101 @@
           "stringUnit": {
             "state": "translated",
             "value": "擴充地點"
+          }
+        }
+      }
+    },
+    "Fast": {
+      "comment": "Speed choice.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سريعة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnell"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rápida"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapide"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तेज़"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veloce"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "はやい"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "빠르게"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snel"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Szybko"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rápida"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Быстро"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hızlı"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速"
           }
         }
       }
@@ -2964,42 +2839,138 @@
         }
       }
     },
-    "Follows your clock": {
+    "Fly To, light, season and speed are in the menu bar, under the seagull.": {
+      "comment": "Settings footer.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "حسب ساعتك"
+            "value": "«الطيران إلى» والإضاءة والفصل والسرعة في شريط القوائم، تحت النورس."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Folgt deiner Uhr"
+            "value": "„Fliegen nach“, Licht, Jahreszeit und Tempo findest du in der Menüleiste unter der Möwe."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sigue tu reloj"
+            "value": "Volar a, la luz, la estación y la velocidad están en la barra de menús, bajo la gaviota."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suit ton horloge"
+            "value": "Survoler, la lumière, la saison et la vitesse sont dans la barre des menus, sous la mouette."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपकी घड़ी के हिसाब से"
+            "value": "“उड़कर जाएँ”, रोशनी, मौसम और रफ़्तार मेनू बार में, सीगल वाले आइकन के नीचे हैं।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Segue il tuo orologio"
+            "value": "Sorvola, luce, stagione e velocità sono nella barra dei menu, sotto il gabbiano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「行き先」、光、季節、速さは、メニューバーのカモメから選べます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "‘날아갈 곳’, 빛, 계절, 속도는 메뉴 막대의 갈매기 아이콘에서 고를 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vlieg naar, licht, seizoen en snelheid vind je in de menubalk, onder de meeuw."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leć do, światło, pora roku i prędkość są na pasku menu, pod mewą."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voar para, luz, estação e velocidade ficam na barra de menus, no menu da gaivota."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«Куда лететь», освещение, время года и скорость находятся в строке меню, под чайкой."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şuraya Uç, ışık, mevsim ve hız menü çubuğunda, martının altında."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“飞往”、光线、季节和速度，都在菜单栏的海鸥图标里。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「飛往」、光線、季節和速度，都在選單列的海鷗圖像裡。"
+          }
+        }
+      }
+    },
+    "Follow My Clock": {
+      "comment": "Light choice: the light of the time on this Mac's clock.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حسب ساعتي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meiner Uhr folgen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir mi reloj"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivre mon horloge"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरी घड़ी के हिसाब से"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segui il mio orologio"
           }
         },
         "ja": {
@@ -3017,138 +2988,43 @@
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Volgt je klok"
+            "value": "Mijn klok volgen"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Według Twojego zegara"
+            "value": "Według mojego zegara"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Segue o seu relógio"
+            "value": "Seguir Meu Relógio"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "По вашим часам"
+            "value": "По моим часам"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Senin saatine göre"
+            "value": "Saatime Göre"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "跟随你的时钟"
+            "value": "跟随我的时钟"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "跟著你的時鐘"
-          }
-        }
-      }
-    },
-    "Gentle": {
-      "comment": "Pace choice.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "هادئ"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sanft"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suave"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Douce"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सहज"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tranquillo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "おだやか"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "부드럽게"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rustig"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spokojnie"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suave"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спокойно"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rahat"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "舒缓"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "舒緩"
+            "value": "跟著我的時鐘"
           }
         }
       }
@@ -3338,6 +3214,101 @@
           "stringUnit": {
             "state": "translated",
             "value": "離開時保持靜止"
+          }
+        }
+      }
+    },
+    "Hold still while windows cover the desktop": {
+      "comment": "Settings toggle.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التوقف عندما تغطي النوافذ سطح المكتب"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stillhalten, wenn Fenster den Schreibtisch verdecken"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedarse quieto cuando las ventanas cubren el escritorio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S'immobiliser quand des fenêtres couvrent le bureau"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विंडो डेस्कटॉप ढक दें तो रुक जाए"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resta fermo quando le finestre coprono la scrivania"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウでデスクトップが隠れたら止める"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우가 데스크탑을 가리면 멈추기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stilstaan als vensters het bureaublad bedekken"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zatrzymuj się, gdy okna zasłaniają biurko"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ficar parado quando janelas cobrem a mesa"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Замирать, когда окна закрывают рабочий стол"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pencereler masaüstünü kapatınca dur"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口遮住桌面时保持静止"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視窗遮住桌面時保持靜止"
           }
         }
       }
@@ -4099,97 +4070,382 @@
         }
       }
     },
-    "Light, seasons, pace and the rest of the choices are in the menu bar, under the gull.": {
-      "comment": "The gull is the app's menu bar icon.",
+    "Local Time There": {
+      "comment": "Light choice: the light of the time of day at the place itself.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "الإضاءة والفصول والسرعة وبقية الخيارات في شريط القوائم، تحت النورس."
+            "value": "التوقيت المحلي هناك"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Licht, Jahreszeiten, Tempo und alle anderen Optionen findest du in der Menüleiste unter der Möwe."
+            "value": "Ortszeit dort"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La luz, las estaciones, el ritmo y el resto de opciones están en la barra de menús, bajo la gaviota."
+            "value": "Hora local de allí"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La lumière, les saisons, l'allure et tous les autres choix sont dans la barre des menus, sous la mouette."
+            "value": "Heure locale là-bas"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "रोशनी, मौसम, रफ़्तार और बाक़ी सभी विकल्प मेनू बार में, सीगल वाले आइकन के नीचे हैं।"
+            "value": "वहाँ का स्थानीय समय"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Luce, stagioni, ritmo e tutte le altre opzioni sono nella barra dei menu, sotto il gabbiano."
+            "value": "Ora locale del luogo"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "光、季節、速さなどの設定は、メニューバーのカモメから選べます。"
+            "value": "その土地の時刻"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "빛, 계절, 속도 등 나머지 설정은 메뉴 막대의 갈매기 아이콘에서 고를 수 있습니다."
+            "value": "그곳의 현지 시간"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Licht, seizoenen, tempo en de andere keuzes vind je in de menubalk, onder de meeuw."
+            "value": "Plaatselijke tijd daar"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Światło, pory roku, tempo i pozostałe opcje znajdziesz na pasku menu, pod mewą."
+            "value": "Czas miejscowy"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Luz, estações, ritmo e as demais opções ficam na barra de menus, no menu da gaivota."
+            "value": "Horário Local de Lá"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Освещение, времена года, темп и остальные настройки находятся в строке меню, под чайкой."
+            "value": "Местное время"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Işık, mevsimler, hız ve diğer tüm seçenekler menü çubuğunda, martının altında."
+            "value": "Oradaki Yerel Saat"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "光线、季节、速度等其他选项，都在菜单栏的海鸥图标里。"
+            "value": "当地时间"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "光線、季節、速度等其他選項，都在選單列的海鷗圖像裡。"
+            "value": "當地時間"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "comment": "Speed choice.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متوسطة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mittel"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moyenne"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मध्यम"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ふつう"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보통"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gemiddeld"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Średnio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Média"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Средне"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "适中"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適中"
+          }
+        }
+      }
+    },
+    "Never": {
+      "comment": "Next Place choice: stay over this place.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أبدًا"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jamais"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कभी नहीं"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mai"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移動しない"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이동하지 않음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nooit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nigdy"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Никогда"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiçbir Zaman"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一直停留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一直停留"
+          }
+        }
+      }
+    },
+    "Next Place": {
+      "comment": "Menu bar submenu: when the flight goes on to the next place.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المكان التالي"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Ort"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente lugar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lieu suivant"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगली जगह"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luogo successivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の場所"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 장소"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgende plek"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Następne miejsce"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo Lugar"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующее место"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonraki Yer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一个地点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一個地點"
           }
         }
       }
@@ -4385,8 +4641,8 @@
     "OUTBOUND-…": {
       "shouldTranslate": false
     },
-    "On Battery": {
-      "comment": "Menu bar submenu: what Outbound does when the Mac runs on battery.",
+    "On battery": {
+      "comment": "Settings picker: what the painting does while the Mac runs on battery.",
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4451,7 +4707,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Na Bateria"
+            "value": "Na bateria"
           }
         },
         "ru": {
@@ -5522,101 +5778,6 @@
         }
       }
     },
-    "Pace": {
-      "comment": "Menu bar submenu: how fast the view flies over the land.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "السرعة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ritmo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Allure"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रफ़्तार"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ritmo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "速さ"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "속도"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ritmo"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Темп"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hız"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "速度"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "速度"
-          }
-        }
-      }
-    },
     "Painted Border": {
       "comment": "Menu bar toggle: the pale painted edge round the wallpaper.",
       "localizations": {
@@ -5901,96 +6062,97 @@
         }
       }
     },
-    "Pause When Hidden": {
+    "Place Name": {
+      "comment": "Menu bar item with a check: the place's name in the corner of the desktop.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "إيقاف مؤقت عند الإخفاء"
+            "value": "اسم المكان"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausieren, wenn verdeckt"
+            "value": "Ortsname"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausar al ocultarse"
+            "value": "Nombre del lugar"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pause si masqué"
+            "value": "Nom du lieu"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "छिपने पर पॉज़ करें"
+            "value": "जगह का नाम"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausa quando nascosto"
+            "value": "Nome del luogo"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "隠れているときは一時停止"
+            "value": "場所の名前"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "가려지면 일시 정지"
+            "value": "장소 이름"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pauzeer indien verborgen"
+            "value": "Naam van de plek"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wstrzymaj, gdy zasłonięte"
+            "value": "Nazwa miejsca"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausar Quando Oculto"
+            "value": "Nome do Lugar"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пауза, когда скрыто"
+            "value": "Название места"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gizliyken Duraklat"
+            "value": "Yer Adı"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "隐藏时暂停"
+            "value": "地点名称"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "隱藏時暫停"
+            "value": "地點名稱"
           }
         }
       }
@@ -6465,31 +6627,126 @@
         }
       }
     },
-    "Seasons": {
-      "comment": "Menu bar submenu: which season each place is painted in.",
+    "Saving power": {
+      "comment": "Settings section heading.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "الفصول"
+            "value": "توفير الطاقة"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jahreszeiten"
+            "value": "Strom sparen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estaciones"
+            "value": "Ahorro de energía"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saisons"
+            "value": "Économie d'énergie"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बिजली की बचत"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risparmio energetico"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "省電力"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전력 절약"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Energie besparen"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oszczędzanie energii"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Economia de energia"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экономия энергии"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Güç tasarrufu"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "节能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "節能"
+          }
+        }
+      }
+    },
+    "Season": {
+      "comment": "Menu bar submenu: which season each place is painted in.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفصل"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jahreszeit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saison"
           }
         },
         "hi": {
@@ -6501,7 +6758,7 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stagioni"
+            "value": "Stagione"
           }
         },
         "ja": {
@@ -6519,31 +6776,31 @@
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seizoenen"
+            "value": "Seizoen"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pory roku"
+            "value": "Pora roku"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estações"
+            "value": "Estação"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Времена года"
+            "value": "Время года"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mevsimler"
+            "value": "Mevsim"
           }
         },
         "zh-Hans": {
@@ -6654,6 +6911,101 @@
         }
       }
     },
+    "Send Feedback…": {
+      "comment": "Menu bar item: opens the feedback page in the browser.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال ملاحظات…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback senden …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar comentarios…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer un avis…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ीडबैक भेजें…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia feedback…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィードバックを送信…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "피드백 보내기…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stuur feedback…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyślij opinię…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar Feedback…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить отзыв…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri Bildirim Gönder…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送反馈…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送意見回饋⋯"
+          }
+        }
+      }
+    },
     "Settings…": {
       "localizations": {
         "ar": {
@@ -6744,101 +7096,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "設定⋯"
-          }
-        }
-      }
-    },
-    "Show Place Name": {
-      "comment": "Menu bar toggle: the place's name in small type in the corner of the desktop.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "إظهار اسم المكان"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ortsnamen anzeigen"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar nombre del lugar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Afficher le nom du lieu"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जगह का नाम दिखाएँ"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra nome del luogo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "場所の名前を表示"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "장소 이름 표시"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toon naam van de plek"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pokazuj nazwę miejsca"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar Nome do Lugar"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показывать название места"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yer Adını Göster"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示地点名称"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "顯示地點名稱"
           }
         }
       }
@@ -6943,7 +7200,7 @@
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "بطيء"
+            "value": "بطيئة"
           }
         },
         "de": {
@@ -6955,7 +7212,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lento"
+            "value": "Lenta"
           }
         },
         "fr": {
@@ -6973,7 +7230,7 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lento"
+            "value": "Lenta"
           }
         },
         "ja": {
@@ -7003,7 +7260,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lento"
+            "value": "Lenta"
           }
         },
         "ru": {
@@ -7028,6 +7285,101 @@
           "stringUnit": {
             "state": "translated",
             "value": "緩慢"
+          }
+        }
+      }
+    },
+    "Speed": {
+      "comment": "Menu bar submenu: how fast the painting flies over the land.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السرعة"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vitesse"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रफ़्तार"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocità"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速さ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "속도"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snelheid"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prędkość"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidade"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скорость"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hız"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "速度"
           }
         }
       }
@@ -7785,100 +8137,6 @@
         }
       }
     },
-    "The place's own time": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "توقيت المكان نفسه"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Uhrzeit vor Ort"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La hora del lugar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L'heure du lieu"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "उस जगह का अपना समय"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "L'ora del luogo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "その土地の時刻"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "그곳의 현지 시간"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tijd ter plekke"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Czas miejscowy"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O horário do lugar"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Местное время"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oranın yerel saati"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当地时间"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "當地時間"
-          }
-        }
-      }
-    },
     "The store had a problem (%lld). Please try again in a moment.": {
       "comment": "%lld is an HTTP status code.",
       "localizations": {
@@ -8064,101 +8322,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "這組授權碼已在 3 台 Mac 上使用。請在其中一台 Mac 的 Outbound 設定或客戶中心裡停用一台，然後再試一次。"
-          }
-        }
-      }
-    },
-    "Time at Each Place": {
-      "comment": "Menu bar submenu: how long the flight stays over each place before moving on.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "المدة فوق كل مكان"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeit pro Ort"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tiempo en cada lugar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Durée par lieu"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हर जगह कितनी देर"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo su ogni luogo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "各地の滞在時間"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "장소별 머무는 시간"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tijd per plek"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Czas w każdym miejscu"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo em Cada Lugar"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Время над каждым местом"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Her Yerde Kalış Süresi"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每处停留时长"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "每處停留時間"
           }
         }
       }
@@ -9197,96 +9360,97 @@
         }
       }
     },
-    "What is growing there today": {
+    "When every display is covered, as by full-screen apps.": {
+      "comment": "Under the setting to hold still while windows cover the desktop.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "ما ينمو هناك اليوم"
+            "value": "عندما تكون كل شاشة مغطاة، كما تفعل التطبيقات بملء الشاشة."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Was dort heute wächst"
+            "value": "Wenn jeder Bildschirm verdeckt ist, etwa durch Apps im Vollbild."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lo que crece allí hoy"
+            "value": "Cuando todas las pantallas están cubiertas, por ejemplo por apps a pantalla completa."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce qui y pousse aujourd'hui"
+            "value": "Quand chaque écran est couvert, par des apps en plein écran par exemple."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आज वहाँ जो उग रहा है"
+            "value": "जब हर डिस्प्ले ढका हो, जैसे फ़ुल-स्क्रीन ऐप से।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quello che cresce lì oggi"
+            "value": "Quando ogni schermo è coperto, ad esempio da app a tutto schermo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "その土地の今日の姿"
+            "value": "すべてのディスプレイが、フルスクリーンのアプリなどで隠れているとき。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "오늘 그곳의 모습"
+            "value": "모든 디스플레이가 전체 화면 앱 등으로 가려졌을 때."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wat daar nu groeit"
+            "value": "Als elk scherm bedekt is, bijvoorbeeld door apps op volledig scherm."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "To, co tam teraz rośnie"
+            "value": "Gdy każdy ekran jest zasłonięty, na przykład przez aplikacje na pełnym ekranie."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O que cresce lá hoje"
+            "value": "Quando todas as telas estão cobertas, como por apps em tela cheia."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Что там растёт сейчас"
+            "value": "Когда закрыт каждый дисплей, например приложениями на весь экран."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bugün orada ne yetişiyorsa"
+            "value": "Her ekran kapalıyken, örneğin tam ekran uygulamalarla."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "当地此刻的模样"
+            "value": "当每块显示器都被遮住时，比如全屏 App。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "當地此刻的模樣"
+            "value": "當每個顯示器都被遮住時，例如全螢幕 App。"
           }
         }
       }
@@ -9573,9 +9737,6 @@
           }
         }
       }
-    },
-    "·": {
-      "shouldTranslate": false
     }
   },
   "version": "1.0"

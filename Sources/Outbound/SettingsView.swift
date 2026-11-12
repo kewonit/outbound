@@ -14,16 +14,25 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section {
+            // When it holds still to save power: choices made once, so here rather than in the menu.
+            Section("Saving power") {
                 Toggle(isOn: $preferences.restsWhenAway) {
                     Described("Hold still while I'm away", "Rests after five minutes with nobody at the Mac.")
                 }
+                Toggle(isOn: $preferences.pausesWhenHidden) {
+                    Described("Hold still while windows cover the desktop", "When every display is covered, as by full-screen apps.")
+                }
+                Picker("On battery", selection: $preferences.batteryMode) {
+                    ForEach(PowerState.BatteryMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
+            Section {
                 Toggle(isOn: $preferences.matchingStill) {
                     Described("Show the painting on the lock screen", "A still of the current view, kept as the desktop picture.")
                 }
                 Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
             } footer: {
-                Text("Light, seasons, pace and the rest of the choices are in the menu bar, under the gull.")
+                Text("Fly To, light, season and speed are in the menu bar, under the seagull.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -483,34 +483,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
     }
 
+    // The menu, most used first: where it is and where to go, then how the painting looks and moves, then what lies
+    // over it, then the app. Settings that are set once, for battery and covered desktops, are in Settings.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         guard license.unlocks else {
-            let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
-            unlock.target = self
-            menu.addItem(unlock)
+            menu.addItem(item(String(localized: "Unlock Outbound…"), #selector(openActivation), symbol: "key"))
             menu.addItem(feedbackItem())
             menu.addItem(.separator())
             if let dev = devBuildItem() { menu.addItem(dev) }
-            menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+            menu.addItem(quitItem())
             return
         }
+        // Where it is, and why it holds still when the Mac, not anyone's choice, makes it.
         let leg = world.journey.leg(at: world.camera.y)
-        let here = NSMenuItem(title: leg.place.name, action: nil, keyEquivalent: "")
-        here.attributedTitle = NSAttributedString(string: leg.place.name,
-                                                  attributes: [.font: NSFont.menuFont(ofSize: 0).bold])
-        here.isEnabled = false
-        menu.addItem(here)
-        let season = NSMenuItem(title: leg.season.line, action: nil, keyEquivalent: "")
-        season.isEnabled = false
-        menu.addItem(season)
+        menu.addItem(heading(leg.place.name))
         if let line = holdLine {
             let held = NSMenuItem(title: line, action: nil, keyEquivalent: "")
             held.isEnabled = false
+            mark(held, gpu.revoked ? "exclamationmark.triangle" : "pause.circle")
             menu.addItem(held)
         }
-        menu.addItem(.separator())
 
+        // The places A to Z, to be found by name.
         let places = NSMenu()
         func destination(_ place: Place) -> NSMenuItem {
             let item = NSMenuItem(title: place.name, action: #selector(fly(_:)), keyEquivalent: "")
@@ -519,70 +514,79 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = place.id == leg.place.id ? .on : .off
             return item
         }
-        Place.all.forEach { places.addItem(destination($0)) }
+        let byName = { (a: Place, b: Place) in a.name.localizedStandardCompare(b.name) == .orderedAscending }
+        Place.all.sorted(by: byName).forEach { places.addItem(destination($0)) }
         if !Place.extended.isEmpty {
             places.addItem(.separator())
             let heading = NSMenuItem(title: String(localized: "Extended Places"), action: nil, keyEquivalent: "")
             heading.isEnabled = false
             places.addItem(heading)
-            Place.extended.forEach { places.addItem(destination($0)) }
+            Place.extended.sorted(by: byName).forEach { places.addItem(destination($0)) }
         }
-        menu.addItem(submenu(String(localized: "Fly To"), places))
-        let pause = NSMenuItem(title: displays.isPaused ? String(localized: "Resume") : String(localized: "Pause"), action: #selector(togglePause),
-                               keyEquivalent: "")
-        pause.target = self
-        menu.addItem(pause)
+        menu.addItem(submenu(String(localized: "Fly To"), places, symbol: "airplane"))
+        menu.addItem(item(displays.isPaused ? String(localized: "Resume") : String(localized: "Pause"), #selector(togglePause),
+                          symbol: displays.isPaused ? "play" : "pause"))
         menu.addItem(.separator())
 
-        // How the painting looks.
+        // How the painting looks and moves, each with the choice a new install starts on first.
         let preferences = preferences
-        menu.addItem(choices(String(localized: "Light"), World.Light.allCases.map { ($0.title, $0) }, current: preferences.light) {
-            preferences.light = $0
-        })
-        menu.addItem(choices(String(localized: "Seasons"), [(String(localized: "What is growing there today"), true),
-                                                        (String(localized: "Each place at its best"), false)],
-                             current: preferences.followsCalendar) { preferences.followsCalendar = $0 })
-        let border = NSMenuItem(title: String(localized: "Painted Border"), action: #selector(toggleBorder), keyEquivalent: "")
-        border.target = self
-        border.state = preferences.paperEdge ? .on : .off
-        menu.addItem(border)
-        let name = NSMenuItem(title: String(localized: "Show Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
-        name.target = self
+        menu.addItem(choices(String(localized: "Light"), [World.Light.alwaysDay, .yourTime, .placeTime].map { ($0.title, $0) },
+                             current: preferences.light, symbol: "sun.max") { preferences.light = $0 })
+        menu.addItem(choices(String(localized: "Season"), [(String(localized: "At Its Best"), false),
+                                                       (String(localized: "As It Is Today"), true)],
+                             current: preferences.followsCalendar, symbol: "leaf") { preferences.followsCalendar = $0 })
+        menu.addItem(choices(String(localized: "Speed"), Preferences.Pace.allCases.map { ($0.title, $0) },
+                             current: preferences.pace, symbol: "speedometer") { preferences.pace = $0 })
+        menu.addItem(choices(String(localized: "Next Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
+                             current: preferences.stay, symbol: "clock") { preferences.stay = $0 })
+        menu.addItem(.separator())
+
+        // What lies over the painting.
+        let name = item(String(localized: "Place Name"), #selector(toggleShowsPlaceName), symbol: "mappin.and.ellipse")
         name.state = preferences.showsPlaceName ? .on : .off
         menu.addItem(name)
+        let border = item(String(localized: "Painted Border"), #selector(toggleBorder), symbol: "paintbrush")
+        border.state = preferences.paperEdge ? .on : .off
+        menu.addItem(border)
         menu.addItem(.separator())
 
-        // How it flies.
-        menu.addItem(choices(String(localized: "Pace"), Preferences.Pace.allCases.map { ($0.title, $0) }, current: preferences.pace) {
-            preferences.pace = $0
-        })
-        menu.addItem(choices(String(localized: "Time at Each Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
-                             current: preferences.stay) { preferences.stay = $0 })
-        menu.addItem(.separator())
-
-        // How it saves energy.
-        menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
-                             current: preferences.batteryMode) { preferences.batteryMode = $0 })
-        let hidden = NSMenuItem(title: String(localized: "Pause When Hidden"), action: #selector(togglePausesWhenHidden),
-                                keyEquivalent: "")
-        hidden.target = self
-        hidden.state = preferences.pausesWhenHidden ? .on : .off
-        menu.addItem(hidden)
-        menu.addItem(.separator())
-
-        let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
-        menu.addItem(.separator())
-        // Seldom wanted, so apart from Settings, as an app menu has About and updates apart from it.
-        let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
-        check.target = self
+        menu.addItem(item(String(localized: "Settings…"), #selector(openSettings), key: ",", symbol: "gearshape"))
+        let check = item(String(localized: "Check for Updates…"), #selector(checkForUpdates), symbol: "arrow.triangle.2.circlepath")
         check.isEnabled = updates.canCheck
         menu.addItem(check)
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
         if let dev = devBuildItem() { menu.addItem(dev) }
-        menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(quitItem())
+    }
+
+    /// An item that does something here.
+    private func item(_ title: String, _ action: Selector, key: String = "", symbol: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = self
+        mark(item, symbol)
+        return item
+    }
+
+    /// A symbol before an item's title, from macOS 26, where AppKit puts one of its own on some items (a gear on
+    /// Settings…) and the titles only line up when every item has one. Earlier menus have none, and line up as they are.
+    private func mark(_ item: NSMenuItem, _ symbol: String) {
+        if #available(macOS 26, *) { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+    }
+
+    /// The place's name over the menu, as macOS heads a section, and in bold where it has no headings (macOS 13).
+    private func heading(_ title: String) -> NSMenuItem {
+        if #available(macOS 14, *) { return NSMenuItem.sectionHeader(title: title) }
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.attributedTitle = NSAttributedString(string: title, attributes: [.font: NSFont.menuFont(ofSize: 0).bold])
+        item.isEnabled = false
+        return item
+    }
+
+    private func quitItem() -> NSMenuItem {
+        let item = NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        mark(item, "power")
+        return item
     }
 
     /// Why the painting holds still, when the Mac makes it rather than anyone choosing to: the GPU stopped taking its
@@ -597,14 +601,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
-    /// an outward arrow, set as a key equivalent with no modifiers so it sits on the right with ⌘, and ⌘Q. Nobody can
-    /// type it.
+    /// Just above Quit, whether or not Outbound is unlocked. It opens the feedback page in the browser.
     private func feedbackItem() -> NSMenuItem {
-        let item = NSMenuItem(title: String(localized: "Feedback"), action: #selector(openFeedback), keyEquivalent: "↗")
-        item.keyEquivalentModifierMask = []
-        item.target = self
-        return item
+        item(String(localized: "Send Feedback…"), #selector(openFeedback), symbol: "envelope")
     }
 
     /// Which build this is, in one made with `scripts/build-app.sh dev`: its version, build number and commit, so test
@@ -613,6 +612,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let line = Self.devBuildLine(Bundle.main.infoDictionary) else { return nil }
         let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
         item.isEnabled = false
+        mark(item, "hammer")
         return item
     }
 
@@ -622,14 +622,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return line
     }
 
-    private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
+    private func submenu(_ title: String, _ submenu: NSMenu, symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = submenu
+        if let symbol { mark(item, symbol) }
         return item
     }
 
     /// A submenu of choices, with a check on the current one.
-    private func choices<Value: Equatable>(_ title: String, _ options: [(String, Value)], current: Value,
+    private func choices<Value: Equatable>(_ title: String, _ options: [(String, Value)], current: Value, symbol: String,
                                            choose: @escaping @MainActor (Value) -> Void) -> NSMenuItem {
         let menu = NSMenu()
         for (name, value) in options {
@@ -639,7 +640,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.representedObject = Choice { choose(value) }
             menu.addItem(item)
         }
-        return submenu(title, menu)
+        return submenu(title, menu, symbol: symbol)
     }
 
     @objc private func pick(_ sender: NSMenuItem) {
@@ -669,10 +670,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleShowsPlaceName() {
         preferences.showsPlaceName.toggle()
-    }
-
-    @objc private func togglePausesWhenHidden() {
-        preferences.pausesWhenHidden.toggle()
     }
 
     @objc private func checkForUpdates() {
