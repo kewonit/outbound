@@ -28,6 +28,9 @@ public final class Journey {
     public var followsCalendar: Bool
     /// Stays over the place in view rather than moving on to the next one. A Fly To still goes somewhere new.
     public var staysPut = false
+    /// How many times Fly To has gone somewhere new, so a display that drew nothing while one swept in can tell that
+    /// the ground it keeps is of the place before.
+    public private(set) var flights = 0
 
     private var anchorTime: TimeInterval
     private var anchorY: Double
@@ -158,6 +161,7 @@ public final class Journey {
     /// passes for it to sweep in.
     public func fly(to place: Place, from y: Double, time: TimeInterval, atOnce: Bool = false, date: Date = .now) {
         legs.removeAll { $0.start >= y }
+        flights += 1
         // A sweep long over, not one just ending, which rounding could leave a hair short of over.
         append(place, start: y, sweep: atOnce ? time - Self.sweepDuration * 2 : time, date: date)
     }

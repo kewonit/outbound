@@ -363,6 +363,9 @@ final class World {
         var legB: Leg
     }
 
+    /// The Fly To leg last swept in and the top of the desktop, in points, as its sweep was first drawn.
+    private var sweptDesktop: (leg: Int, top: Double)?
+
     /// Everything the shaders share for a view that shows world y from `bottom` to `top`.
     func frame(bottom: Double, top: Double) -> Frame {
         frame(bottom: bottom, top: top, at: time)
@@ -372,7 +375,10 @@ final class World {
         let reference = (camera(at: t).y / 2048).rounded(.down) * 2048
         let topLeg = journey.leg(at: top)
         var legA = topLeg
-        if let previous = journey.leg(before: topLeg), topLeg.start > bottom - 200 {
+        // A Fly To starts the new place under the lowest display and turns every display out of the place before,
+        // however far above that one sits.
+        let sweeping = topLeg.sweepStart.map { t - $0 < Journey.sweepDuration } ?? false
+        if let previous = journey.leg(before: topLeg), sweeping || topLeg.start > bottom - 200 {
             legA = previous
         }
         let legB = topLeg
@@ -380,13 +386,20 @@ final class World {
         var boundary = -1e9
         var sweep = -1.0
         var sweepFront: Double?
+        var span = top - legB.start
         if legA.index != legB.index {
             boundary = legB.start - reference
             if let start = legB.sweepStart {
                 let progress = (t - start) / Journey.sweepDuration
                 if progress < 1 {
                     sweep = max(progress, 0)
-                    sweepFront = legB.start + sweep * (top - legB.start + 400)
+                    // One front for the whole desktop, up past the top of the highest display, so displays turn
+                    // together and the land matches wherever two of them meet. The desktop is taken as it was when
+                    // the sweep was first drawn, so a display coming or going meanwhile can't make the front jump.
+                    if sweptDesktop?.leg != legB.index { sweptDesktop = (legB.index, Double(desktop.maxY)) }
+                    let desktopTop = sweptDesktop?.top ?? Double(desktop.maxY)
+                    span = camera(at: t).y + desktopTop * Self.metresPerPoint - legB.start
+                    sweepFront = legB.start + sweep * (span + 400)
                 }
             }
         }
@@ -413,7 +426,7 @@ final class World {
             road: SIMD4(Float(riverX), Float(Self.roadOffset), phase(Self.roadWave, 0.8), crossPhase),
             sun: SIMD4(toSun.x, toSun.y, Float(sun.shadowLength), Float(sun.elevation)),
             light: SIMD4(Float(light.x), Float(light.y), Float(light.z), Float(light.w)),
-            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(top - legB.start)),
+            morph: SIMD4(Float(boundary), 0, Float(sweep), Float(span)),
             time: SIMD4(Float(t.truncatingRemainder(dividingBy: 3600)),
                         Float(t.truncatingRemainder(dividingBy: 7200)), cars.phase, Float(sun.night)),
             clock: SIMD4(Float(clock.hour), Float(clock.sunset), boats.phase,
