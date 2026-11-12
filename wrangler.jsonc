@@ -21,10 +21,15 @@
   },
   "vars": {
     "POLAR_API": "https://api.polar.sh",
-    "POLAR_PRODUCT_ID": "e7c27b2b-6c8d-4514-82dc-9f6ad3394928",
-    "POLAR_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54",
-    // Polar's own checkout link for Outbound, where the site's Buy goes when a checkout can't be made.
-    "POLAR_CHECKOUT_LINK": "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA"
+    // What the site sells: Outbound for 1 Mac, and its license key benefit (1 activation).
+    "POLAR_PRODUCT_ID": "NEW-1-MAC-PRODUCT-ID",
+    "POLAR_BENEFIT_ID": "NEW-1-MAC-BENEFIT-ID",
+    // What the app's Buy sells: Outbound for up to 3 Macs, as its buy window says up to 1.8.1, and every key bought
+    // before 13 November 2026.
+    "POLAR_APP_PRODUCT_ID": "e7c27b2b-6c8d-4514-82dc-9f6ad3394928",
+    "POLAR_APP_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54",
+    // Polar's own checkout link for Outbound for 1 Mac, where the site's Buy goes when a checkout can't be made.
+    "POLAR_CHECKOUT_LINK": "NEW-1-MAC-CHECKOUT-LINK"
   },
   "ratelimits": [
     { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },

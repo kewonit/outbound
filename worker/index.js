@@ -192,7 +192,7 @@ function preferredLanguage(request) {
 async function buy(request, env, url) {
   try {
     if (await allowed(env.CHECKOUTS, request.headers.get("CF-Connecting-IP") ?? "unknown")) {
-      const session = await newCheckout(request, env, url.searchParams.get("currency") === "usd", {
+      const session = await newCheckout(request, env, env.POLAR_PRODUCT_ID, url.searchParams.get("currency") === "usd", {
         return_url: `${url.origin}/`,
         metadata: { source: "site" },
       });
@@ -204,17 +204,18 @@ async function buy(request, env, url) {
   return redirect(env.POLAR_CHECKOUT_LINK);
 }
 
-// The app's Buy.
+// The app's Buy. It sells what the app's own buy window offers: up to 3 Macs, in 1.8.1 and every version before it. Once
+// a release offers 1 Mac, POLAR_APP_PRODUCT_ID and POLAR_APP_BENEFIT_ID can name the site's product too.
 async function checkout(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   if (!(await allowed(env.CHECKOUTS, ip))) return reply({ error: "Too many checkouts. Wait a minute." }, 429);
-  const session = await newCheckout(request, env, false, { metadata: { source: "app" } });
+  const session = await newCheckout(request, env, env.POLAR_APP_PRODUCT_ID, false, { metadata: { source: "app" } });
   return reply({ id: session.id, url: session.url, expires_at: session.expires_at });
 }
 
-// A Polar checkout for Outbound in the visitor's money, or in dollars, as well when Polar won't take that money. It
-// comes back to the thank-you page. The visitor's address fills in their country.
-async function newCheckout(request, env, dollars, fields) {
+// A Polar checkout for a product of Outbound's in the visitor's money, or in dollars, as well when Polar won't take that
+// money. It comes back to the thank-you page. The visitor's address fills in their country.
+async function newCheckout(request, env, product, dollars, fields) {
   const origin = new URL(request.url).origin;
   const local = dollars ? null : PRICES[request.cf?.country]?.currency;
   const currencies = local ? [local, "usd"] : ["usd"];
@@ -223,7 +224,7 @@ async function newCheckout(request, env, dollars, fields) {
       const session = await polar(env, "/v1/checkouts/", {
         method: "POST",
         body: JSON.stringify({
-          products: [env.POLAR_PRODUCT_ID],
+          products: [product],
           currency,
           customer_ip_address: request.headers.get("CF-Connecting-IP") ?? undefined,
           success_url: `${origin}/thanks?checkout_id={CHECKOUT_ID}`,
@@ -245,9 +246,14 @@ async function license(request, env) {
   if (!UUID.test(id)) return reply({ error: "That isn't a checkout." }, 400);
   if (!(await allowed(env.LOOKUPS, id))) return reply({ status: "pending" }, 429);
 
-  // A checkout for Outbound, paid within the last month.
+  // A checkout for Outbound, paid within the last month: the site's product (1 Mac) or the app's (up to 3), each with
+  // the license key benefit it grants.
   const checkout = await polar(env, `/v1/checkouts/${id}`);
-  if (!checkout || checkout.product_id !== env.POLAR_PRODUCT_ID) return reply({ status: "unknown" }, 404);
+  const benefit = checkout && {
+    [env.POLAR_PRODUCT_ID]: env.POLAR_BENEFIT_ID,
+    [env.POLAR_APP_PRODUCT_ID]: env.POLAR_APP_BENEFIT_ID,
+  }[checkout.product_id];
+  if (!benefit) return reply({ status: "unknown" }, 404);
   if (checkout.status !== "succeeded") return reply({ status: checkout.status });
   if (Date.now() - Date.parse(checkout.created_at) > CLAIM_WINDOW) return reply({ status: "expired" });
 
@@ -258,7 +264,7 @@ async function license(request, env) {
   if (!order) return reply({ status: "pending" });
   if (order.status === "refunded") return reply({ status: "refunded" });
   const grants = await polar(env,
-    `/v1/benefits/${env.POLAR_BENEFIT_ID}/grants?customer_id=${order.customer_id}&is_granted=true&limit=100`);
+    `/v1/benefits/${benefit}/grants?customer_id=${order.customer_id}&is_granted=true&limit=100`);
   const grant = grants?.items?.find((g) => g.order_id === order.id && !g.is_revoked);
   const keyID = grant?.properties?.license_key_id;
   if (!keyID) return reply({ status: "pending" });
