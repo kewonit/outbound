@@ -28,6 +28,16 @@ const href = (path: string) => localHref(lang, path);
       <li>
         <strong data-i18n="thanks.step2" set:html={t("thanks.step2")}></strong> <span data-i18n="thanks.step2Detail" set:html={t("thanks.step2Detail")}></span>
         <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" set:html={t("thanks.activate")}></a></div>
+        {/* The key, under Activate and before the menu bar, once thanks.js has it. */}
+        <div class="license" id="license" hidden>
+          <h2 set:html={t("thanks.key")}></h2>
+          <div class="key-row">
+            <code id="key"></code>
+            <button class="btn btn-dark btn-sm" id="copy" type="button" set:html={t("js.copy")}></button>
+          </div>
+          <p class="muted"><span set:html={t("thanks.orPaste")}></span> <span id="email"></span></p>
+        </div>
+        <p class="muted" id="status" role="status" set:html={t("js.finding")}></p>
       </li>
       <li>
         <strong set:html={t("thanks.step3")}></strong> <span set:html={t("thanks.step3Detail")}></span>
@@ -35,16 +45,6 @@ const href = (path: string) => localHref(lang, path);
       </li>
     </ol>
 
-    <div class="license" id="license" hidden>
-      <h2 set:html={t("thanks.key")}></h2>
-      <div class="key-row">
-        <code id="key"></code>
-        <button class="btn btn-dark btn-sm" id="copy" type="button" set:html={t("js.copy")}></button>
-      </div>
-      <p class="muted"><span set:html={t("thanks.orPaste")}></span> <span id="email"></span></p>
-    </div>
-
-    <p class="muted" id="status" role="status" set:html={t("js.finding")}></p>
     <p class="muted" set:html={t("thanks.lost")}></p>
     <p class="muted" set:html={t("thanks.help")}></p>
   </div>
