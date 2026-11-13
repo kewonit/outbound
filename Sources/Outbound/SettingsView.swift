@@ -3,14 +3,107 @@ import OutboundCore
 import ServiceManagement
 import SwiftUI
 
+/// The sections of Settings, down its sidebar as System Settings has them, each with its symbol on a colored square.
+enum SettingsPane: String, CaseIterable, Identifiable {
+    case general, power, license, about
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .general: String(localized: "General")
+        case .power: String(localized: "Saving Power")
+        case .license: String(localized: "License")
+        case .about: String(localized: "About")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .general: "gearshape.fill"
+        case .power: "bolt.fill"
+        case .license: "key.fill"
+        case .about: "info"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .general, .about: .gray
+        case .power: .green
+        case .license: .blue
+        }
+    }
+}
+
+/// Outbound's Settings, laid out as macOS's own: a sidebar with Outbound and its license on top, and the chosen
+/// section's grouped settings beside it. It opens on the section open last.
 struct SettingsView: View {
     @ObservedObject var preferences: Preferences
     @ObservedObject var license: LicenseController
-    /// What the menu's Check for Updates and Feedback do, so the buttons here do just the same.
+    /// What the menu's Check for Updates and Send Feedback do, so the buttons here do just the same.
     let canCheckForUpdates: Bool
     let checkForUpdates: () -> Void
     let sendFeedback: () -> Void
+    @AppStorage("settingsPane") private var pane: SettingsPane = .general
+
+    var body: some View {
+        // The sidebar always shows: System Settings has no way to hide it.
+        NavigationSplitView(columnVisibility: .constant(.all)) {
+            List(selection: Binding<SettingsPane?>(get: { pane }, set: { if let chosen = $0 { pane = chosen } })) {
+                // Outbound and its license, as the account sits over System Settings, and opens the License section.
+                Button { pane = .license } label: { LicenseCard(license: license) }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 6)
+                ForEach(SettingsPane.allCases) { pane in
+                    Label { Text(pane.title) } icon: { Badge(symbol: pane.symbol, color: pane.color) }
+                        .tag(pane)
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 320)
+        } detail: {
+            switch pane {
+            case .general: GeneralPane(preferences: preferences)
+            case .power: PowerPane(preferences: preferences)
+            case .license: LicensePane(license: license)
+            case .about: AboutPane(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
+                                   sendFeedback: sendFeedback)
+            }
+        }
+        .frame(width: 740, height: 460)
+    }
+}
+
+private struct GeneralPane: View {
+    @ObservedObject var preferences: Preferences
     @State private var opensAtLogin = LoginItem.isOn
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $preferences.matchingStill) {
+                    Described("Show the painting on the lock screen", "A still of the current view, kept as the desktop picture.")
+                }
+                Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
+            } footer: {
+                Text("Fly To, light, season and speed are in the menu bar, under the seagull.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func setOpensAtLogin(_ on: Bool) {
+        LoginItem.set(on)
+        opensAtLogin = LoginItem.isOn
+    }
+}
+
+/// When it holds still to save power: choices made once, so here rather than in the menu.
+private struct PowerPane: View {
+    @ObservedObject var preferences: Preferences
 
     var body: some View {
         Form {
@@ -18,16 +111,27 @@ struct SettingsView: View {
                 Toggle(isOn: $preferences.restsWhenAway) {
                     Described("Hold still while I'm away", "Rests after five minutes with nobody at the Mac.")
                 }
-                Toggle(isOn: $preferences.matchingStill) {
-                    Described("Show the painting on the lock screen", "A still of the current view, kept as the desktop picture.")
+                Toggle(isOn: $preferences.pausesWhenHidden) {
+                    Described("Hold still while windows cover the desktop", "When every display is covered, as by full-screen apps.")
                 }
-                Toggle("Open at login", isOn: Binding(get: { opensAtLogin }, set: { setOpensAtLogin($0) }))
-            } footer: {
-                Text("Light, seasons, pace and the rest of the choices are in the menu bar, under the gull.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // A section of its own: as a third row under the two above, it set the whole pane 6 points lower than every
+            // other one.
+            Section {
+                Picker("On battery", selection: $preferences.batteryMode) {
+                    ForEach(PowerState.BatteryMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct LicensePane: View {
+    @ObservedObject var license: LicenseController
+
+    var body: some View {
+        Form {
             Section {
                 if !LicenseController.isGated {
                     LabeledContent("License", value: String(localized: "Development build"))
@@ -48,25 +152,14 @@ struct SettingsView: View {
                 if let message = license.message {
                     Text(message).font(.caption).foregroundStyle(.red)
                 }
-            } footer: {
-                AboutFooter(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
-                            sendFeedback: sendFeedback)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
-        .fixedSize()
-    }
-
-    private func setOpensAtLogin(_ on: Bool) {
-        LoginItem.set(on)
-        opensAtLogin = LoginItem.isOn
     }
 }
 
-/// Under the settings: which Outbound this is, what it does by itself, and buttons for the site, help, feedback and
-/// updates, centred, as an About window has them.
-struct AboutFooter: View {
+/// Which version this is and what it does by itself, then the site, help, feedback and updates.
+private struct AboutPane: View {
     let canCheckForUpdates: Bool
     let checkForUpdates: () -> Void
     let sendFeedback: () -> Void
@@ -75,37 +168,69 @@ struct AboutFooter: View {
     private static let support = URL(string: "https://outbound.edbn.me/support")!
 
     var body: some View {
-        VStack(spacing: 6) {
-            Image(nsImage: .outboundGull)
-                .renderingMode(.template)
-                .resizable()
-                .frame(width: 24, height: 24)
+        Form {
+            Section {
+                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
+            } footer: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("It pauses by itself while you're away.")
+                    Text("Quit it and your own desktop picture comes back.")
+                }
+                .font(.caption)
                 .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            Text("Outbound \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
-                .font(.callout.weight(.medium))
-                .foregroundStyle(.secondary)
-            VStack(spacing: 2) {
-                Text("It pauses by itself while you're away.")
-                Text("Quit it and your own desktop picture comes back.")
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            // The same width each where the words allow, so the row sits even.
-            HStack(spacing: 8) {
-                Button { NSWorkspace.shared.open(Self.website) } label: { Text("Website").frame(minWidth: 72) }
-                Button { NSWorkspace.shared.open(Self.support) } label: { Text("Support").frame(minWidth: 72) }
-                Button(action: sendFeedback) { Text("Feedback").frame(minWidth: 72) }
+            Section {
+                LabeledContent("Website") { Link(destination: Self.website) { Text(verbatim: "outbound.edbn.me") } }
+                LabeledContent("Support") { Link(destination: Self.support) { Text(verbatim: "outbound.edbn.me/support") } }
+                LabeledContent("Feedback") { Button("Send Feedback…", action: sendFeedback) }
+                LabeledContent("Updates") {
+                    Button("Check for Updates…", action: checkForUpdates).disabled(!canCheckForUpdates)
+                }
             }
-            .padding(.top, 8)
-            Button("Check for Updates…", action: checkForUpdates)
-                .disabled(!canCheckForUpdates)
-                .padding(.top, 2)
         }
-        .buttonStyle(.bordered)
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
-        .padding(.top, 12)
+        .formStyle(.grouped)
+    }
+}
+
+/// Outbound's icon, name and license, at the top of the sidebar.
+private struct LicenseCard: View {
+    @ObservedObject var license: LicenseController
+
+    private var state: String {
+        if !LicenseController.isGated { return String(localized: "Development build") }
+        if license.record == nil { return String(localized: "Not active on this Mac") }
+        return String(localized: "Active on \(license.macName)")
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 36, height: 36)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: "Outbound").font(.headline)
+                Text(state).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 4)
+    }
+}
+
+/// A section's symbol on a colored rounded square, as System Settings draws them.
+private struct Badge: View {
+    let symbol: String
+    let color: Color
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.gradient))
     }
 }
 

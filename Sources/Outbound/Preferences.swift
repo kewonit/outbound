@@ -11,8 +11,8 @@ final class Preferences: ObservableObject {
         var title: String {
             switch self {
             case .slow: String(localized: "Slow")
-            case .gentle: String(localized: "Gentle")
-            case .brisk: String(localized: "Brisk")
+            case .gentle: String(localized: "Medium")
+            case .brisk: String(localized: "Fast")
             }
         }
         /// Metres per second over the ground.
@@ -26,14 +26,16 @@ final class Preferences: ObservableObject {
     }
 
     /// Minutes over each place, or none to stay over the one in view. Six and twelve, offered once, are not any more.
+    /// The menu offers them as when to go on to the next place.
     enum Stay: Int, CaseIterable, Identifiable {
         case short = 20, long = 30, hour = 60, forever = 0
         var id: Self { self }
         var title: String {
             switch self {
-            case .hour: String(localized: "An hour")
-            case .forever: String(localized: "Do not change")
-            default: String(localized: "\(rawValue) minutes")
+            case .short: String(localized: "After 20 Minutes")
+            case .long: String(localized: "After 30 Minutes")
+            case .hour: String(localized: "After an Hour")
+            case .forever: String(localized: "Never")
             }
         }
     }
@@ -93,9 +95,9 @@ final class Preferences: ObservableObject {
 extension World.Light {
     var title: String {
         switch self {
-        case .yourTime: String(localized: "Follows your clock")
-        case .placeTime: String(localized: "The place's own time")
-        case .alwaysDay: String(localized: "Always daytime")
+        case .yourTime: String(localized: "Follow My Clock")
+        case .placeTime: String(localized: "Local Time There")
+        case .alwaysDay: String(localized: "Always Daytime")
         }
     }
 }
