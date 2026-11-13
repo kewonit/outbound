@@ -1,97 +1,97 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "$4.99 + tax, once. Up to 3 Macs.": {
+    "$4.99 + tax, once. For 1 Mac.": {
       "comment": "Under the Buy button. Keep $4.99 as is.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + الضريبة، مرة واحدة. حتى 3 أجهزة Mac."
+            "value": "$4.99 + الضريبة، مرة واحدة. لجهاز Mac واحد."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + Steuern, einmalig. Für bis zu 3 Macs."
+            "value": "$4.99 + Steuern, einmalig. Für 1 Mac."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + impuestos, pago único. Hasta 3 Mac."
+            "value": "$4.99 + impuestos, pago único. Para 1 Mac."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + taxes, paiement unique. Jusqu'à 3 Mac."
+            "value": "$4.99 + taxes, paiement unique. Pour 1 Mac."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + टैक्स, सिर्फ़ एक बार। 3 Mac तक।"
+            "value": "$4.99 + टैक्स, सिर्फ़ एक बार। 1 Mac के लिए।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + tasse, una tantum. Fino a 3 Mac."
+            "value": "$4.99 + tasse, una tantum. Per 1 Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99（税別）の買い切り。Mac 3台まで使えます。"
+            "value": "$4.99（税別）の買い切り。Mac 1台用です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99(세금 별도), 한 번만 결제. Mac 최대 3대."
+            "value": "$4.99(세금 별도), 한 번만 결제. Mac 1대용."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + btw, eenmalig. Voor maximaal 3 Macs."
+            "value": "$4.99 + btw, eenmalig. Voor 1 Mac."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + podatek, jednorazowo. Do 3 komputerów Mac."
+            "value": "$4.99 + podatek, jednorazowo. Na 1 komputer Mac."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + impostos, pagamento único. Até 3 Macs."
+            "value": "$4.99 + impostos, pagamento único. Para 1 Mac."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + налог, один раз. До 3 Mac."
+            "value": "$4.99 + налог, один раз. Для 1 Mac."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + vergi, tek seferlik. 3 Mac'e kadar."
+            "value": "$4.99 + vergi, tek seferlik. 1 Mac için."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + 税费，一次买断。最多可用于 3 台 Mac。"
+            "value": "$4.99 + 税费，一次买断。适用于 1 台 Mac。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "$4.99 + 稅，一次買斷。最多 3 台 Mac。"
+            "value": "$4.99 + 稅，一次買斷。適用於 1 台 Mac。"
           }
         }
       }
@@ -8232,96 +8232,97 @@
         }
       }
     },
-    "This key is already in use on three Macs. Free one up in Outbound's settings on that Mac, or in your customer portal, then try again.": {
+    "This key is already in use on as many Macs as it allows. Free one up in Outbound's Settings on another Mac, or in your customer portal, then try again.": {
+      "comment": "When a key is active on all the Macs it allows: 1 for keys bought from 13 November 2026, 3 for earlier ones.",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "هذا المفتاح مستخدم بالفعل على ثلاثة أجهزة Mac. حرّر أحدها من إعدادات Outbound على ذلك الجهاز أو من بوابة العملاء، ثم حاول مرة أخرى."
+            "value": "هذا المفتاح مستخدم بالفعل على كل الأجهزة التي يسمح بها. حرّر أحدها من إعدادات Outbound على جهاز Mac آخر أو من بوابة العملاء، ثم حاول مرة أخرى."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Schlüssel wird bereits auf drei Macs verwendet. Gib einen davon in den Outbound-Einstellungen auf dem betreffenden Mac oder in deinem Kundenportal frei und versuche es dann erneut."
+            "value": "Dieser Schlüssel wird bereits auf so vielen Macs verwendet, wie er erlaubt. Gib einen davon in den Outbound-Einstellungen auf einem anderen Mac oder in deinem Kundenportal frei und versuche es dann erneut."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta clave ya está en uso en tres Mac. Libera uno desde los ajustes de Outbound en ese Mac o desde tu portal de cliente, y vuelve a intentarlo."
+            "value": "Esta clave ya está en uso en todos los Mac que permite. Libera uno desde los ajustes de Outbound en otro Mac o desde tu portal de cliente, y vuelve a intentarlo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette clé est déjà utilisée sur trois Mac. Libères-en un dans les réglages d'Outbound sur ce Mac-là, ou dans ton espace client, puis réessaie."
+            "value": "Cette clé est déjà utilisée sur autant de Mac qu'elle le permet. Libères-en un dans les réglages d'Outbound sur un autre Mac, ou dans ton espace client, puis réessaie."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "यह कुंजी पहले से 3 Mac पर इस्तेमाल हो रही है। उनमें से किसी Mac पर Outbound की सेटिंग्ज़ में या अपने कस्टमर पोर्टल में एक Mac को निष्क्रिय करें, फिर से कोशिश करें।"
+            "value": "यह कुंजी पहले से उतने Mac पर इस्तेमाल हो रही है जितने की इसमें अनुमति है। किसी दूसरे Mac पर Outbound की सेटिंग्ज़ में या अपने कस्टमर पोर्टल में एक Mac को निष्क्रिय करें, फिर से कोशिश करें।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questa chiave è già in uso su tre Mac. Liberane uno dalle impostazioni di Outbound su quel Mac o dal tuo portale clienti, poi riprova."
+            "value": "Questa chiave è già in uso su tutti i Mac che consente. Liberane uno dalle impostazioni di Outbound su un altro Mac o dal tuo portale clienti, poi riprova."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このキーはすでに3台のMacで使われています。そのうち1台のOutboundの設定か、カスタマーポータルで解除してから、もう一度お試しください。"
+            "value": "このキーは、使える台数のMacですでに使われています。別のMacのOutboundの設定か、カスタマーポータルで1台を解除してから、もう一度お試しください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 키는 이미 Mac 3대에서 사용 중입니다. 해당 Mac의 Outbound 설정이나 고객 포털에서 한 대를 해제한 후 다시 시도하세요."
+            "value": "이 키는 이미 허용된 대수의 Mac에서 사용 중입니다. 다른 Mac의 Outbound 설정이나 고객 포털에서 한 대를 해제한 후 다시 시도하세요."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deze sleutel is al in gebruik op drie Macs. Maak er een vrij in de instellingen van Outbound op die Mac, of in je klantportaal, en probeer het dan opnieuw."
+            "value": "Deze sleutel is al in gebruik op zoveel Macs als hij toestaat. Maak er een vrij in de instellingen van Outbound op een andere Mac, of in je klantportaal, en probeer het dan opnieuw."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ten klucz jest już używany na trzech Macach. Zwolnij jeden w ustawieniach Outbound na tamtym Macu lub w portalu klienta, a potem spróbuj ponownie."
+            "value": "Ten klucz jest już używany na tylu Macach, na ilu może. Zwolnij jeden w ustawieniach Outbound na innym Macu lub w portalu klienta, a potem spróbuj ponownie."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta chave já está em uso em três Macs. Libere um nos ajustes do Outbound naquele Mac ou no seu portal do cliente e tente de novo."
+            "value": "Esta chave já está em uso em todos os Macs que ela permite. Libere um nos ajustes do Outbound em outro Mac ou no seu portal do cliente e tente de novo."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Этот ключ уже используется на трёх Mac. Освободите один в настройках Outbound на том Mac или в кабинете покупателя, а затем попробуйте снова."
+            "value": "Этот ключ уже используется на стольких Mac, сколько он позволяет. Освободите один в настройках Outbound на другом Mac или в кабинете покупателя, а затем попробуйте снова."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu anahtar zaten üç Mac'te kullanılıyor. O Mac'teki Outbound ayarlarından ya da müşteri portalından birini boşalt, sonra yeniden dene."
+            "value": "Bu anahtar zaten izin verdiği sayıda Mac'te kullanılıyor. Başka bir Mac'teki Outbound ayarlarından ya da müşteri portalından birini boşalt, sonra yeniden dene."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此激活码已在 3 台 Mac 上使用。请在其中一台 Mac 的 Outbound 设置或客户中心里取消激活一台，然后重试。"
+            "value": "此激活码已在它允许的全部 Mac 上使用。请在另一台 Mac 的 Outbound 设置或客户中心里取消激活一台，然后重试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這組授權碼已在 3 台 Mac 上使用。請在其中一台 Mac 的 Outbound 設定或客戶中心裡停用一台，然後再試一次。"
+            "value": "這組授權碼已在它允許的所有 Mac 上使用。請在另一台 Mac 的 Outbound 設定或客戶中心裡停用一台，然後再試一次。"
           }
         }
       }

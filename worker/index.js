@@ -204,12 +204,14 @@ async function buy(request, env, url) {
   return redirect(env.POLAR_CHECKOUT_LINK);
 }
 
-// The app's Buy. It sells what the app's own buy window offers: up to 3 Macs, in 1.8.1 and every version before it. Once
-// a release offers 1 Mac, POLAR_APP_PRODUCT_ID and POLAR_APP_BENEFIT_ID can name the site's product too.
+// The app's Buy. It sells what that app's own buy window offers: 1 Mac from the release that asks with { macs: "1" },
+// and up to 3 Macs to 1.8.1 and every version before it, which ask with nothing.
 async function checkout(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   if (!(await allowed(env.CHECKOUTS, ip))) return reply({ error: "Too many checkouts. Wait a minute." }, 429);
-  const session = await newCheckout(request, env, env.POLAR_APP_PRODUCT_ID, false, { metadata: { source: "app" } });
+  const body = await request.json().catch(() => ({}));
+  const product = body?.macs === "1" ? env.POLAR_PRODUCT_ID : env.POLAR_APP_PRODUCT_ID;
+  const session = await newCheckout(request, env, product, false, { metadata: { source: "app" } });
   return reply({ id: session.id, url: session.url, expires_at: session.expires_at });
 }
 
