@@ -730,10 +730,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
                                     checkForUpdates: { [weak self] in self?.checkForUpdates() },
                                     sendFeedback: { [weak self] in self?.openFeedback() })
+            // As System Settings is made: no title bar to see, and the sidebar runs up behind the window's buttons. The
+            // title stays for the Window menu and Mission Control. It can be closed and minimised, not zoomed.
             let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = String(localized: "Outbound Settings")
-            window.styleMask = [.titled, .closable]
-            window.showsOnlyCloseButton()
+            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.standardWindowButton(.zoomButton)?.isEnabled = false
             window.opensWhereTheUserIs()
             window.isReleasedWhenClosed = false
             window.center()
