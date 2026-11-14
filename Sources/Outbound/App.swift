@@ -105,8 +105,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if displays.isLocked { lockChanged(true) }
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
-        // The view at rest and the painting of it are the same picture, so it can't matter which is left on the screen.
-        displays.onSessionSettled = { [weak self] in self?.refreshPainting(force: true) }
         sessionEnd.onChange = { [weak self] ending in
             self?.stills.keepsReplaced = ending
             self?.displays.setSessionEnding(ending)
@@ -211,7 +209,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// spreading over the ground, and only on displays in view: a full-screen app's desktop goes away with it, and a
     /// painting there would never be put back. With the painting off, puts back the user's own picture if that was
     /// asked for while the Mac was locked.
+    ///
+    /// Nothing changes once the Mac asks to shut down, restart or log out, until the answer is no. A new desktop picture
+    /// then has macOS write it out again for the login window, and the Mac waits on that for about ten seconds before
+    /// it powers off, with the screen held still all the while.
     private func refreshPainting(force: Bool) {
+        guard !sessionEnd.ending else {
+            owesPainting = owesPainting || force
+            return
+        }
         guard paintsDesktop else {
             if stills.owesRestore, CACurrentMediaTime() - unlockedAt > 3 { restorePictures() }
             return

@@ -166,9 +166,6 @@ final class DisplayManager {
     /// Called as a wallpaper comes up over the desktop picture.
     var onReveal: () -> Void = {}
 
-    /// Called once the flight has come to rest as the Mac asks whether to shut down, restart or log out.
-    var onSessionSettled: () -> Void = {}
-
     var isPaused: Bool {
         get { globalHolds.contains(.user) }
         set { set(.user, newValue) }
@@ -192,10 +189,9 @@ final class DisplayManager {
             }
             return
         }
-        // Already at rest, as when windows cover the desktop: it stays just so, and the painting is of that.
+        // Already at rest, as when windows cover the desktop: it stays just so.
         if world.isHeld {
             set(.sessionEnding, true)
-            onSessionSettled()
             return
         }
         world.settle()
@@ -203,7 +199,6 @@ final class DisplayManager {
             MainActor.assumeIsolated {
                 self?.sessionSettling = nil
                 self?.set(.sessionEnding, true)
-                self?.onSessionSettled()
             }
         }
         sessionSettling = settled
