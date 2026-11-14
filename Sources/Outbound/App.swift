@@ -106,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         sessionEnd.onChange = { [weak self] ending in
-            self?.stills.keepsReplaced = ending
+            self?.stills.sessionEnding = ending
             self?.displays.setSessionEnding(ending)
         }
         sessionEnd.start()
