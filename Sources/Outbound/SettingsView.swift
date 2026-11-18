@@ -5,12 +5,14 @@ import SwiftUI
 
 /// The sections of Settings, down its sidebar as System Settings has them, each with its symbol on a colored square.
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, power, license, about
+    case general, flight, places, power, license, about
     var id: Self { self }
 
     var title: String {
         switch self {
         case .general: String(localized: "General")
+        case .flight: String(localized: "Flight")
+        case .places: String(localized: "Places")
         case .power: String(localized: "Saving Power")
         case .license: String(localized: "License")
         case .about: String(localized: "About")
@@ -20,6 +22,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .general: "gearshape.fill"
+        case .flight: "bird.fill"
+        case .places: "map.fill"
         case .power: "bolt.fill"
         case .license: "key.fill"
         case .about: "info"
@@ -29,6 +33,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .general, .about: .gray
+        case .flight: .cyan
+        case .places: .orange
         case .power: .green
         case .license: .blue
         }
@@ -64,6 +70,8 @@ struct SettingsView: View {
         } detail: {
             switch pane {
             case .general: GeneralPane(preferences: preferences)
+            case .flight: FlightPane(preferences: preferences)
+            case .places: PlacesPane(preferences: preferences)
             case .power: PowerPane(preferences: preferences)
             case .license: LicensePane(license: license)
             case .about: AboutPane(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
@@ -101,6 +109,65 @@ private struct GeneralPane: View {
     }
 }
 
+/// How the flight goes and what the gull does.
+private struct FlightPane: View {
+    @ObservedObject var preferences: Preferences
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $preferences.fliesStraight) {
+                    Described("Fly straight", "The land comes straight down the screen, without drifting from side to side.")
+                }
+            }
+            Section {
+                Toggle("Show the seagull", isOn: $preferences.showsBird)
+                Toggle(isOn: $preferences.followsPointer) {
+                    Described("Seagull follows the pointer", "For a few seconds after the pointer moves over the desktop.")
+                }
+                .disabled(!preferences.showsBird)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// Which places the flight moves on to, in the order it flies them, and whether it goes in that order.
+private struct PlacesPane: View {
+    @ObservedObject var preferences: Preferences
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Order", selection: $preferences.shufflesPlaces) {
+                    Text("In Order").tag(false)
+                    Text("Shuffled").tag(true)
+                }
+            }
+            Section {
+                ForEach(Place.all, id: \.id) { place in
+                    Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
+                        // The round always keeps one place.
+                        .disabled(isOnlyOneLeft(place))
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func visits(_ place: Place) -> Binding<Bool> {
+        Binding(get: { !preferences.skippedPlaces.contains(place.id) },
+                set: { on in
+                    if on { preferences.skippedPlaces.remove(place.id) } else { preferences.skippedPlaces.insert(place.id) }
+                })
+    }
+
+    private func isOnlyOneLeft(_ place: Place) -> Bool {
+        !preferences.skippedPlaces.contains(place.id)
+            && Place.all.allSatisfy { $0.id == place.id || preferences.skippedPlaces.contains($0.id) }
+    }
+}
+
 /// When it holds still to save power: choices made once, so here rather than in the menu.
 private struct PowerPane: View {
     @ObservedObject var preferences: Preferences
@@ -108,8 +175,10 @@ private struct PowerPane: View {
     var body: some View {
         Form {
             Section {
-                Toggle(isOn: $preferences.restsWhenAway) {
-                    Described("Hold still while I'm away", "Rests after five minutes with nobody at the Mac.")
+                Picker(selection: $preferences.away) {
+                    ForEach(Preferences.Away.allCases) { Text($0.title).tag($0) }
+                } label: {
+                    Described("Hold still while I'm away", "When nobody has used the Mac for a while.")
                 }
                 Toggle(isOn: $preferences.pausesWhenHidden) {
                     Described("Hold still while windows cover the desktop", "When every display is covered, as by full-screen apps.")

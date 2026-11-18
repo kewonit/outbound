@@ -35,6 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var licenseTimer: Timer?
     private var settingsWindow: NSWindow?
     private var stillsWereOn = false
+    /// Whether the preferences have been applied once, at launch, when changes take effect at once rather than easing.
+    private var preferencesApplied = false
     private var paintingTimer: Timer?
     /// What the painting on the desktop last showed: its place, its light, the world's moment, and when it was made.
     private var painted = (leg: -1, revision: -1, time: 0.0, at: -TimeInterval.infinity)
@@ -431,22 +433,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         journey.staysPut = preferences.stay == .forever
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
+        // At launch it is straight from the first frame; later the sway slows to a stop, or picks up again.
+        journey.fliesStraight(preferences.fliesStraight, at: world.time, atOnce: !preferencesApplied)
+        if journey.skipped != preferences.skippedPlaces || journey.shuffles != preferences.shufflesPlaces {
+            journey.skipped = preferences.skippedPlaces
+            journey.shuffles = preferences.shufflesPlaces
+            world.placesChanged()
+        }
+        world.followsPointer = preferences.followsPointer
+        // The gull fades, unless the flight is held and no time passes for it to.
+        let birdChanged = world.showsBird != preferences.showsBird
+        world.showBird(preferences.showsBird, atOnce: world.isHeld || !preferencesApplied)
         displays.power.batteryMode = preferences.batteryMode
-        displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
+        displays.rest.after = measuring ? nil : preferences.away.seconds
         displays.pausesWhenHidden = preferences.pausesWhenHidden
         displays.showsPlaceName = preferences.showsPlaceName
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
         if world.isHeld {
-            // The light and the seasons are baked into the ground; the border is only drawn over it.
-            if looks { displays.repaintHeld() } else if edgeChanged { displays.redrawHeld() }
+            // The light and the seasons are baked into the ground; the border and the gull are only drawn over it.
+            if looks { displays.repaintHeld() } else if edgeChanged || birdChanged { displays.redrawHeld() }
         }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
-            if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
+            if edgeChanged || preferences.matchingStill != stillsWereOn || birdChanged && world.isHeld {
+                refreshPainting(force: true)
+            } else if birdChanged {
+                // Once the gull has faded in or out, or the painting would show it as it was for minutes.
+                DispatchQueue.main.asyncAfter(deadline: .now() + World.birdFade + 0.2) { [weak self] in
+                    MainActor.assumeIsolated { self?.refreshPainting(force: true) }
+                }
+            }
         }
         stillsWereOn = preferences.matchingStill
+        preferencesApplied = true
     }
 
     // MARK: - Menu

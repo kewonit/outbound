@@ -113,6 +113,8 @@ struct MenuChoiceTests {
         #expect(Preferences.Pace.allCases.map(\.title) == ["Slow", "Medium", "Fast"])
         #expect(Preferences.Stay.allCases.map(\.title) == ["After 20 Minutes", "After 30 Minutes", "After an Hour", "Never"])
         #expect([World.Light.alwaysDay, .yourTime, .placeTime].map(\.title) == ["Always Daytime", "Follow My Clock", "Local Time There"])
+        #expect(Preferences.Away.allCases.map(\.title)
+                == ["After 2 Minutes", "After 5 Minutes", "After 15 Minutes", "After 30 Minutes", "Never"])
     }
 
     @Test func theSavedValuesAreAsBefore() throws {

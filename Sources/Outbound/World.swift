@@ -43,6 +43,12 @@ final class World {
     private(set) var sun = Sun.fair
     /// The bird follows the cursor for a while after it last moved.
     private(set) var chasing = false
+    /// Whether the bird chases the cursor at all. Off, it keeps to its own loop, and the cursor isn't looked at.
+    var followsPointer = true
+    /// Whether the gull is shown. It fades in or out over `birdFade` from when that changed.
+    private(set) var showsBird = true
+    private var birdFading: (since: TimeInterval, from: Double, to: Double)?
+    static let birdFade = 1.0
     var light = Light.yourTime {
         didSet { if light != oldValue { updateSun(force: true) } }
     }
@@ -222,14 +228,13 @@ final class World {
         // The band over the whole desktop, whichever displays are drawing.
         let bottom = camera.y + Double(desktop.minY) * Self.metresPerPoint
         if let join = journey.joins.first(where: { Self.bandShows(over: $0, from: bottom, to: top) }) { lastBand = join }
-        journey.extend(through: top + 1500,
-                       behind: bottom - 1500 - Self.reach,
-                       // Clear of the view, and of any band left in it, as only one shows at a time.
-                       notBefore: max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint
-                                      + Self.bankReach) + Self.bankReach + 20)
+        journey.extend(through: top + 1500, behind: bottom - 1500 - Self.reach, notBefore: unseen)
 
         // The bird only chases a cursor moving over the visible desktop, not one busy in another app.
-        if let point = pointer() {
+        if !followsPointer || !showsBird {
+            lastPointer = nil
+            pointerMoved = -.infinity
+        } else if let point = pointer() {
             if let last = lastPointer, abs(point.x - last.x) + abs(point.y - last.y) > 0.5 {
                 if t - desktopChecked > 0.25 {
                     overDesktop = isDesktop(point)
@@ -244,6 +249,35 @@ final class World {
         bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t), hurrying: target != nil)
         birdTrail.record(bird.pose, at: t)
         if t - sunUpdated > 20 { updateSun(force: false) }
+    }
+
+    /// World y where land nobody has seen yet may begin: clear of the view, and of any band left in it, as only one
+    /// shows at a time. A new place starts no lower, and the ground cache never reaches it.
+    private var unseen: Double {
+        let top = camera.y + Double(desktop.maxY) * Self.metresPerPoint
+        return max(top, (lastBand ?? -.infinity) + Double(desktop.height) * Self.metresPerPoint + Self.bankReach)
+            + Self.bankReach + 20
+    }
+
+    /// The round of places changed: the places ahead that nobody has seen yet are chosen again as the flight goes on.
+    func placesChanged() {
+        journey.forgetLegs(beyond: unseen)
+    }
+
+    /// Shows or hides the gull, fading it over `birdFade`, or at once, as while held, when no time passes to fade in.
+    func showBird(_ on: Bool, atOnce: Bool = false) {
+        guard on != showsBird else { return }
+        let target = on ? 1.0 : 0.0
+        birdFading = (time, atOnce ? target : birdOpacity(at: time), target)
+        showsBird = on
+        if !on { chasing = false }
+    }
+
+    /// How much of the gull shows at `t`, 0 to 1.
+    func birdOpacity(at t: TimeInterval) -> Double {
+        guard let fading = birdFading else { return 1 }
+        let p = min(max((t - fading.since) / Self.birdFade, 0), 1)
+        return fading.from + (fading.to - fading.from) * p * p * (3 - 2 * p)
     }
 
     /// The hour of the day where the scene is, and when the sun sets there, for switching lights on.
