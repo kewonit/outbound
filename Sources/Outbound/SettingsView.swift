@@ -226,7 +226,7 @@ private struct FlightPane: View {
 }
 
 /// Which places the flight moves on to, in the order it flies them, and whether it goes in that order. Places move by
-/// dragging, from their menu, or with VoiceOver's actions.
+/// dragging their row, from its menu, or with VoiceOver's actions.
 private struct PlacesPane: View {
     @ObservedObject var preferences: Preferences
     /// The place a dragged one would land on.
@@ -260,10 +260,7 @@ private struct PlacesPane: View {
     private func row(_ place: Place) -> some View {
         let index = places.firstIndex { $0.id == place.id } ?? 0
         let last = places.count - 1
-        return HStack(spacing: 10) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
+        return HStack {
             Text(verbatim: place.name)
             Spacer()
             Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
@@ -273,10 +270,11 @@ private struct PlacesPane: View {
                 .disabled(isOnlyOneLeft(place))
         }
         .contentShape(Rectangle())
-        // Dragged onto another place, it takes that one's position, and those between move over by one.
+        // The whole row drags, as rows do in macOS's own lists, with no handle drawn. Dropped onto another place, it
+        // takes that one's position, and those between move over by one.
         .draggable(place.id) {
-            Label { Text(verbatim: place.name) } icon: { Image(systemName: "line.3.horizontal") }
-                .padding(.horizontal, 10)
+            Text(verbatim: place.name)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
