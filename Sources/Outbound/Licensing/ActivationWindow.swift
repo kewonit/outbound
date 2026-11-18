@@ -162,6 +162,9 @@ private struct ActivationView: View {
                 .font(.callout)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
+            if license.offersPortal {
+                Button("Open Customer Portal") { NSWorkspace.shared.open(Store.portalURL) }
+            }
         }
     }
 

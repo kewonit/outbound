@@ -13,7 +13,26 @@ final class LicenseController: ObservableObject {
     @Published private(set) var record: LicenseRecord?
     @Published private(set) var status: LicenseStatus
     @Published private(set) var busy = false
-    @Published private(set) var message: String?
+    @Published private(set) var message: String? {
+        // A new message, or none, is not about the failure before it.
+        didSet { failure = nil }
+    }
+    /// The store's refusal the message tells of, when it is one.
+    @Published private(set) var failure: Polar.Failure?
+
+    /// The key is on as many Macs as it allows, which only freeing one in the customer portal, or in Settings on the
+    /// other Mac, can fix: worth a button that goes there.
+    var offersPortal: Bool { Self.offersPortal(for: failure) }
+
+    nonisolated static func offersPortal(for failure: Error?) -> Bool {
+        if case .tooManyMacs = failure as? Polar.Failure { return true }
+        return false
+    }
+
+    private func fail(_ error: Error) {
+        message = error.localizedDescription
+        failure = error as? Polar.Failure
+    }
     /// A purchase started from the app is being watched for.
     @Published private(set) var waitingForPurchase = false
     var onChange: (Bool) -> Void = { _ in }
@@ -54,7 +73,7 @@ final class LicenseController: ObservableObject {
         do {
             try await activateKey(key)
         } catch {
-            message = error.localizedDescription
+            fail(error)
         }
     }
 
@@ -188,7 +207,7 @@ final class LicenseController: ObservableObject {
                 // Paid and the key is ready; only the store was out of reach. Keep trying.
                 return .waiting
             } catch {
-                message = error.localizedDescription
+                fail(error)
                 return .failed
             }
             if pending?.checkout == checkout { stopWatching() }
@@ -229,7 +248,7 @@ final class LicenseController: ObservableObject {
             try await Polar().deactivate(record)
             forget()
         } catch {
-            message = error.localizedDescription
+            fail(error)
         }
     }
 

@@ -85,6 +85,15 @@ struct ShopTests {
         #expect(message.contains("this Mac") && message.contains("customer portal"))
     }
 
+    /// Only a key on all its Macs offers the customer portal, where one can be freed; other refusals don't.
+    @Test func onlyAKeyOnAllItsMacsOffersThePortal() async throws {
+        let full = await activating(answer: (403, #"{"detail":"License key activation limit already reached"}"#))
+        #expect(LicenseController.offersPortal(for: full))
+        let refunded = await activating(answer: (403, #"{"detail":"License key is no longer active."}"#))
+        #expect(!LicenseController.offersPortal(for: refunded))
+        #expect(!LicenseController.offersPortal(for: nil))
+    }
+
     @Test func aKeyNoLongerActiveIsNotTakenForOneOnTooManyMacs() async throws {
         for detail in ["License key is no longer active. This license key can not be activated.", "License key has expired."] {
             let error = await activating(answer: (403, "{\"detail\":\"\(detail)\"}"))

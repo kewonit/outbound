@@ -383,6 +383,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             switch result {
             case .alreadyActive: await Notice.show(String(localized: "Outbound is already unlocked."), detail: "")
             case .activated: await Notice.show(String(localized: "Outbound now uses your new key."), detail: "")
+            case .failed where license.offersPortal:
+                // On as many Macs as it allows: the portal frees one.
+                let choice = await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "",
+                                               buttons: [String(localized: "Open Customer Portal"), String(localized: "OK")])
+                if choice == 0 { NSWorkspace.shared.open(Store.portalURL) }
             case .failed: await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "")
             case .waiting:
                 await Notice.show(String(localized: "Still processing your purchase."), detail: String(localized: "Try again in a minute."))
