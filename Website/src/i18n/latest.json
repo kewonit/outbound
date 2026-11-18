@@ -17,6 +17,173 @@
     "ar": { "New": "جديد", "Changed": "تغييرات", "Fixed": "إصلاحات" }
   },
   "notes": {
+    "1.9": {
+      "es": [
+        "Ajustes se abre en su propia ventana, como Ajustes del Sistema, con las nuevas secciones Vuelo y Lugares.",
+        "Volar en línea recta, en Ajustes. El paisaje baja recto por la pantalla, sin desviarse de un lado a otro.",
+        "Oculta la gaviota o haz que no siga al cursor.",
+        "Elige qué lugares aparecen, mézclalos o ponlos en tu propio orden.",
+        "Elige cuánto espera antes de quedarse quieto cuando no estás, o que no lo haga nunca.",
+        "El menú de la gaviota es más corto y claro. La velocidad ahora es Lenta, Media y Rápida.",
+        "Los ajustes de energía pasaron del menú a Ajustes, en Ahorro de energía.",
+        "Las nuevas claves de licencia funcionan en un Mac a la vez. Las que ya tienes siguen funcionando en tres.",
+        "Ajustes, la ventana de compra y el menú tienen el aspecto actual de macOS."
+      ],
+      "fr": [
+        "Les Réglages s'ouvrent dans leur propre fenêtre, comme les Réglages Système, avec les nouvelles sections Vol et Lieux.",
+        "Voler tout droit, dans les Réglages. Le paysage descend tout droit sur l'écran, sans dériver d'un côté à l'autre.",
+        "Masque la mouette, ou empêche-la de suivre le curseur.",
+        "Choisis les lieux survolés, mélange-les ou mets-les dans ton propre ordre.",
+        "Choisis combien de temps il attend avant de s'immobiliser en ton absence, ou jamais.",
+        "Le menu de la mouette est plus court et plus clair. La vitesse est désormais Lente, Moyenne ou Rapide.",
+        "Les réglages d'énergie sont passés du menu aux Réglages, sous Économie d'énergie.",
+        "Les nouvelles clés de licence fonctionnent sur un Mac à la fois. Celles que tu as déjà fonctionnent toujours sur trois.",
+        "Les Réglages, la fenêtre d'achat et le menu ont l'apparence actuelle de macOS."
+      ],
+      "de": [
+        "Die Einstellungen öffnen sich in einem eigenen Fenster wie die Systemeinstellungen, mit den neuen Bereichen „Flug“ und „Orte“.",
+        "„Geradeaus fliegen“ in den Einstellungen. Die Landschaft zieht gerade über den Bildschirm, ohne seitlich zu schwanken.",
+        "Blende die Möwe aus oder lass sie nicht mehr dem Mauszeiger folgen.",
+        "Wähle, welche Orte vorkommen, misch sie oder bring sie in deine eigene Reihenfolge.",
+        "Wähle, wie lange es wartet, bevor es stillhält, wenn du weg bist, oder ob nie.",
+        "Das Möwen-Menü ist kürzer und klarer. Das Tempo heißt jetzt Langsam, Mittel und Schnell.",
+        "Die Stromspar-Einstellungen sind vom Menü in die Einstellungen gewandert, unter „Strom sparen“.",
+        "Neue Lizenzschlüssel gelten für einen Mac zur selben Zeit. Schlüssel, die du schon hast, gelten weiter für drei.",
+        "Einstellungen, Kauffenster und Menü haben das aktuelle Aussehen von macOS."
+      ],
+      "it": [
+        "Le Impostazioni si aprono in una finestra tutta loro, come Impostazioni di Sistema, con le nuove sezioni Volo e Luoghi.",
+        "Vola dritto, nelle Impostazioni. Il paesaggio scende dritto sullo schermo, senza spostarsi da un lato all'altro.",
+        "Nascondi il gabbiano, o fai in modo che non segua il cursore.",
+        "Scegli quali luoghi compaiono, mescolali o mettili nel tuo ordine.",
+        "Scegli quanto aspetta prima di restare fermo quando non ci sei, oppure mai.",
+        "Il menu del gabbiano è più corto e più chiaro. La velocità ora è Lenta, Media e Veloce.",
+        "Le impostazioni per il risparmio energetico sono passate dal menu alle Impostazioni, in Risparmio energetico.",
+        "Le nuove chiavi di licenza funzionano su un Mac alla volta. Quelle che hai già funzionano ancora su tre.",
+        "Impostazioni, finestra di acquisto e menu hanno l'aspetto attuale di macOS."
+      ],
+      "pt-br": [
+        "Os Ajustes abrem em uma janela própria, como os Ajustes do Sistema, com as novas seções Voo e Lugares.",
+        "Voar em linha reta, nos Ajustes. A paisagem desce reta pela tela, sem balançar de um lado para o outro.",
+        "Oculte a gaivota ou faça com que ela não siga o cursor.",
+        "Escolha quais lugares aparecem, embaralhe-os ou coloque-os na sua própria ordem.",
+        "Escolha quanto tempo ele espera antes de ficar parado enquanto você está fora, ou nunca.",
+        "O menu da gaivota está mais curto e claro. A velocidade agora é Lenta, Média e Rápida.",
+        "Os ajustes de energia saíram do menu e foram para os Ajustes, em Economia de Energia.",
+        "Novas chaves de licença funcionam em um Mac por vez. As que você já tem continuam funcionando em três.",
+        "Os Ajustes, a janela de compra e o menu têm a aparência atual do macOS."
+      ],
+      "nl": [
+        "Instellingen opent in een eigen venster, zoals Systeeminstellingen, met de nieuwe onderdelen Vlucht en Plekken.",
+        "Rechtdoor vliegen, in Instellingen. Het land komt recht over het scherm, zonder heen en weer te drijven.",
+        "Verberg de meeuw, of laat hem de cursor niet meer volgen.",
+        "Kies welke plekken langskomen, laat ze door elkaar komen of zet ze in je eigen volgorde.",
+        "Kies hoe lang het wacht voordat het stilstaat als je weg bent, of nooit.",
+        "Het meeuwmenu is korter en duidelijker. De snelheid is nu Langzaam, Gemiddeld en Snel.",
+        "De energie-instellingen zijn van het menu naar Instellingen verhuisd, onder Energie besparen.",
+        "Nieuwe licentiesleutels werken op één Mac tegelijk. Sleutels die je al hebt, werken nog steeds op drie.",
+        "Instellingen, het koopvenster en het menu hebben de huidige look van macOS."
+      ],
+      "ru": [
+        "Настройки открываются в своём окне, как Системные настройки, с новыми разделами «Полёт» и «Места».",
+        "«Лететь прямо» в настройках. Земля плывёт по экрану прямо, не смещаясь из стороны в сторону.",
+        "Скройте чайку или сделайте так, чтобы она не летела за курсором.",
+        "Выберите, какие места будут появляться, перемешайте их или расставьте в своём порядке.",
+        "Выберите, сколько ждать, прежде чем замереть, пока вас нет, или не замирать вовсе.",
+        "Меню чайки стало короче и понятнее. Скорость теперь: Медленно, Средне и Быстро.",
+        "Настройки энергосбережения переехали из меню в настройки, в раздел «Экономия энергии».",
+        "Новые лицензионные ключи работают на одном Mac одновременно. Ключи, которые у вас уже есть, по-прежнему работают на трёх.",
+        "Настройки, окно покупки и меню выглядят в стиле современной macOS."
+      ],
+      "tr": [
+        "Ayarlar, Sistem Ayarları gibi kendi penceresinde açılıyor; yeni Uçuş ve Yerler bölümleriyle.",
+        "Ayarlar'da Düz uç. Arazi ekranda dümdüz aşağı akar, sağa sola kaymaz.",
+        "Martıyı gizle ya da imleci izlemesini kapat.",
+        "Hangi yerlerin geleceğini seç, onları karıştır ya da kendi sırana koy.",
+        "Sen yokken durmadan önce ne kadar bekleyeceğini seç ya da hiç durmasın.",
+        "Martı menüsü daha kısa ve daha anlaşılır. Hız artık Yavaş, Orta ve Hızlı.",
+        "Güç ayarları menüden Ayarlar'a, Güç Tasarrufu bölümüne taşındı.",
+        "Yeni lisans anahtarları aynı anda tek bir Mac'te çalışır. Zaten sahip olduğun anahtarlar üç Mac'te çalışmaya devam eder.",
+        "Ayarlar, satın alma penceresi ve menü macOS'in güncel görünümünü kullanıyor."
+      ],
+      "pl": [
+        "Ustawienia otwierają się we własnym oknie, jak Ustawienia systemowe, z nowymi sekcjami Lot i Miejsca.",
+        "„Leć prosto” w Ustawieniach. Krajobraz przesuwa się prosto w dół ekranu, bez kołysania na boki.",
+        "Ukryj mewę albo wyłącz podążanie za kursorem.",
+        "Wybierz, które miejsca się pojawiają, przetasuj je albo ustaw we własnej kolejności.",
+        "Wybierz, jak długo czeka, zanim się zatrzyma, gdy cię nie ma, albo żeby nie zatrzymywał się wcale.",
+        "Menu mewy jest krótsze i jaśniejsze. Prędkość to teraz Wolno, Średnio i Szybko.",
+        "Ustawienia energii przeniesiono z menu do Ustawień, do sekcji Oszczędzanie energii.",
+        "Nowe klucze licencyjne działają na jednym Macu naraz. Klucze, które już masz, nadal działają na trzech.",
+        "Ustawienia, okno zakupu i menu mają obecny wygląd macOS."
+      ],
+      "ja": [
+        "設定が「システム設定」のような専用のウインドウで開き、新しく「飛行」と「場所」が加わりました。",
+        "設定に「まっすぐ飛ぶ」を追加。景色が左右に揺れず、まっすぐ画面を流れます。",
+        "カモメを隠したり、カーソルを追わないようにしたりできます。",
+        "どの場所が出てくるかを選んだり、シャッフルしたり、好きな順番に並べ替えたりできます。",
+        "離席中に止まるまでの時間を選べます。止めないこともできます。",
+        "カモメのメニューが短く、わかりやすくなりました。速さは「ゆっくり」「ふつう」「はやい」になりました。",
+        "省電力の設定はメニューから設定の「省電力」に移りました。",
+        "新しいライセンスキーは、同時に1台のMacで使えます。お持ちのキーは引き続き3台まで使えます。",
+        "設定、購入ウインドウ、メニューが今のmacOSの見た目になりました。"
+      ],
+      "ko": [
+        "설정이 시스템 설정처럼 별도 창으로 열리고, 새로 ‘비행’과 ‘장소’ 항목이 생겼어요.",
+        "설정에 ‘똑바로 날기’가 생겼어요. 풍경이 좌우로 흔들리지 않고 화면을 똑바로 내려와요.",
+        "갈매기를 숨기거나, 커서를 따라가지 않게 할 수 있어요.",
+        "어떤 장소가 나올지 고르고, 무작위로 섞거나 원하는 순서로 정할 수 있어요.",
+        "자리를 비웠을 때 멈추기까지 기다리는 시간을 고르거나, 멈추지 않게 할 수 있어요.",
+        "갈매기 메뉴가 더 짧고 명확해졌어요. 속도는 이제 느리게, 보통, 빠르게예요.",
+        "전력 관련 설정이 메뉴에서 설정의 ‘전력 절약’으로 옮겨졌어요.",
+        "새 라이선스 키는 한 번에 Mac 한 대에서 쓸 수 있어요. 이미 가진 키는 계속 세 대에서 쓸 수 있어요.",
+        "설정, 구입 창, 메뉴가 최신 macOS 모습으로 바뀌었어요."
+      ],
+      "zh-hans": [
+        "“设置”现在在独立窗口中打开，样子像“系统设置”，并新增“飞行”和“地点”两部分。",
+        "“设置”中新增“直线飞行”。大地笔直地从屏幕上方移下来，不再左右漂移。",
+        "可以隐藏海鸥，或让它不再跟随光标。",
+        "可以选择出现哪些地点、随机打乱，或按你自己的顺序排列。",
+        "可以选择你离开后多久保持静止，也可以选择从不。",
+        "海鸥菜单更短、更清楚了。速度现在是“缓慢”“适中”和“快速”。",
+        "节能相关设置从菜单移到了“设置”的“节能”中。",
+        "新的激活码同一时间只能在一台 Mac 上使用。你已有的激活码仍可在三台上使用。",
+        "“设置”、购买窗口和菜单都采用了当前 macOS 的外观。"
+      ],
+      "zh-hant": [
+        "「設定」現在以獨立視窗開啟，樣子像「系統設定」，並新增「飛行」與「地點」兩個部分。",
+        "「設定」中新增「直線飛行」。大地筆直地從螢幕上方移下來，不再左右漂移。",
+        "可以隱藏海鷗，或讓它不再跟著游標。",
+        "可以選擇出現哪些地點、隨機打亂，或依你自己的順序排列。",
+        "可以選擇你離開後多久保持靜止，也可以選擇永不。",
+        "海鷗選單更短、更清楚了。速度現在是「緩慢」「適中」和「快速」。",
+        "節能相關設定從選單移到了「設定」的「節能」中。",
+        "新的授權碼同一時間只能在一台 Mac 上使用。你已有的授權碼仍可在三台上使用。",
+        "「設定」、購買視窗和選單都採用了目前 macOS 的外觀。"
+      ],
+      "hi": [
+        "सेटिंग्ज़ अब सिस्टम सेटिंग्ज़ की तरह अपनी अलग विंडो में खुलती हैं, नए “उड़ान” और “जगहें” सेक्शन के साथ।",
+        "सेटिंग्ज़ में “सीधी उड़ान”। ज़मीन स्क्रीन पर सीधी नीचे आती है, दाएँ-बाएँ नहीं डोलती।",
+        "सीगल को छिपाएँ, या उसे कर्सर के पीछे उड़ने से रोकें।",
+        "चुनें कि कौन-सी जगहें आएँ, उन्हें शफ़ल करें या अपने क्रम में रखें।",
+        "चुनें कि आपके दूर रहने पर रुकने से पहले यह कितनी देर इंतज़ार करे, या कभी न रुके।",
+        "सीगल मेनू छोटा और साफ़ हो गया है। रफ़्तार अब धीमी, मध्यम और तेज़ है।",
+        "बिजली से जुड़ी सेटिंग्ज़ मेनू से हटकर सेटिंग्ज़ में “बिजली की बचत” के अंदर आ गई हैं।",
+        "नई लाइसेंस कुंजियाँ एक समय में एक Mac पर चलती हैं। आपके पास पहले से जो कुंजियाँ हैं, वे अब भी तीन Mac पर चलती हैं।",
+        "सेटिंग्ज़, ख़रीदने की विंडो और मेनू अब macOS के मौजूदा रूप में हैं।"
+      ],
+      "ar": [
+        "تُفتح «الإعدادات» الآن في نافذة خاصة بها مثل «إعدادات النظام»، مع قسمين جديدين: «الطيران» و«الأماكن».",
+        "«الطيران في خط مستقيم» في الإعدادات. تنساب الأرض على الشاشة من أعلى إلى أسفل مباشرةً دون أن تميل يمينًا ويسارًا.",
+        "أخفِ النورس، أو امنعه من تتبّع المؤشر.",
+        "اختر الأماكن التي تظهر، أو اخلطها، أو رتّبها كما تريد.",
+        "اختر كم ينتظر قبل أن يتوقف أثناء غيابك، أو ألا يتوقف أبدًا.",
+        "صارت قائمة النورس أقصر وأوضح. السرعة الآن: بطيئة ومتوسطة وسريعة.",
+        "انتقلت إعدادات الطاقة من القائمة إلى «الإعدادات» ضمن «توفير الطاقة».",
+        "مفاتيح الترخيص الجديدة تعمل على جهاز Mac واحد في كل مرة. المفاتيح التي لديك تظل تعمل على ثلاثة.",
+        "صارت «الإعدادات» ونافذة الشراء والقائمة بمظهر macOS الحالي."
+      ]
+    },
     "1.8.1": {
       "es": [
         "«Volar a» solo cambiaba la pantalla más baja. Cualquier pantalla más arriba se quedaba con el lugar anterior.",
