@@ -225,12 +225,11 @@ private struct FlightPane: View {
     }
 }
 
-/// Which places the flight moves on to, in the order it flies them, and whether it goes in that order. Places move by
-/// dragging their row, from its menu, or with VoiceOver's actions.
+/// Which places the flight moves on to, in the order it flies them, and whether it goes in that order. The order is
+/// changed in a sheet of its own, as macOS orders network services.
 private struct PlacesPane: View {
     @ObservedObject var preferences: Preferences
-    /// The place a dragged one would land on.
-    @State private var dropTarget: String?
+    @State private var changingOrder = false
 
     private var places: [Place] {
         preferences.placeOrder.compactMap { id in Place.all.first { $0.id == id } }
@@ -245,71 +244,24 @@ private struct PlacesPane: View {
                 }
             }
             Section {
-                ForEach(places, id: \.id) { place in row(place) }
+                ForEach(places, id: \.id) { place in
+                    Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
+                        // The round always keeps one place.
+                        .disabled(isOnlyOneLeft(place))
+                }
             } footer: {
                 HStack {
                     Spacer()
-                    Button("Restore Default Order") { preferences.placeOrder = Preferences.usualOrder }
-                        .disabled(preferences.placeOrder == Preferences.usualOrder)
+                    Button("Change Order…") { changingOrder = true }
                 }
             }
         }
         .formStyle(.grouped)
-    }
-
-    private func row(_ place: Place) -> some View {
-        let index = places.firstIndex { $0.id == place.id } ?? 0
-        let last = places.count - 1
-        return HStack {
-            Text(verbatim: place.name)
-            Spacer()
-            Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
-                .labelsHidden()
-                .toggleStyle(.switch)
-                // The round always keeps one place. Only its switch is held: the place can still be moved.
-                .disabled(isOnlyOneLeft(place))
+        .sheet(isPresented: $changingOrder) {
+            PlaceOrderSheet(order: preferences.placeOrder, skipped: preferences.skippedPlaces) { order in
+                if order != preferences.placeOrder { preferences.placeOrder = order }
+            }
         }
-        .contentShape(Rectangle())
-        // The whole row drags, as rows do in macOS's own lists, with no handle drawn. Dropped onto another place, it
-        // takes that one's position, and those between move over by one.
-        .draggable(place.id) {
-            Text(verbatim: place.name)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .dropDestination(for: String.self) { ids, _ in
-            // Only a place from this list: text dragged in from elsewhere is turned away.
-            guard let id = ids.first, preferences.placeOrder.contains(id) else { return false }
-            move(id, to: index)
-            return true
-        } isTargeted: { over in
-            if over { dropTarget = place.id } else if dropTarget == place.id { dropTarget = nil }
-        }
-        .background(dropTarget == place.id ? Color.accentColor.opacity(0.18) : .clear,
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .contextMenu {
-            Button("Move Up") { move(place.id, to: index - 1) }.disabled(index == 0)
-            Button("Move Down") { move(place.id, to: index + 1) }.disabled(index == last)
-            Divider()
-            Button("Move to Top") { move(place.id, to: 0) }.disabled(index == 0)
-            Button("Move to Bottom") { move(place.id, to: last) }.disabled(index == last)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityAction(named: Text("Move Up")) { move(place.id, to: index - 1) }
-        .accessibilityAction(named: Text("Move Down")) { move(place.id, to: index + 1) }
-    }
-
-    /// Moves a place to `target` in the order, kept within it.
-    private func move(_ id: String, to target: Int) {
-        dropTarget = nil
-        var order = preferences.placeOrder
-        guard let from = order.firstIndex(of: id) else { return }
-        let to = min(max(target, 0), order.count - 1)
-        guard to != from else { return }
-        order.remove(at: from)
-        order.insert(id, at: to)
-        withAnimation(.easeInOut(duration: 0.25)) { preferences.placeOrder = order }
     }
 
     private func visits(_ place: Place) -> Binding<Bool> {
@@ -322,6 +274,78 @@ private struct PlacesPane: View {
     private func isOnlyOneLeft(_ place: Place) -> Bool {
         !preferences.skippedPlaces.contains(place.id)
             && Place.all.allSatisfy { $0.id == place.id || preferences.skippedPlaces.contains($0.id) }
+    }
+}
+
+/// The places numbered in the order they come, to drag or move one step at a time with the arrows. Nothing changes
+/// until Done; Cancel leaves the order as it was. Places left out keep their position, dimmed.
+private struct PlaceOrderSheet: View {
+    @State private var order: [String]
+    let skipped: Set<String>
+    let done: ([String]) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    init(order: [String], skipped: Set<String>, done: @escaping ([String]) -> Void) {
+        _order = State(initialValue: order)
+        self.skipped = skipped
+        self.done = done
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Drag places into the order you want.")
+            List {
+                ForEach(Array(order.enumerated()), id: \.element) { index, id in
+                    row(index: index, id: id)
+                }
+                .onMove { from, to in order.move(fromOffsets: from, toOffset: to) }
+            }
+            .listStyle(.bordered(alternatesRowBackgrounds: true))
+            .frame(height: 8 * 28 + 6)
+            HStack {
+                Button("Restore Default Order") { withAnimation { order = Preferences.usualOrder } }
+                    .disabled(order == Preferences.usualOrder)
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Done") {
+                    done(order)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+    }
+
+    private func row(index: Int, id: String) -> some View {
+        HStack(spacing: 10) {
+            Text(index + 1, format: .number)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 16, alignment: .trailing)
+            Text(verbatim: Place.named(id)?.name ?? id)
+                .foregroundStyle(skipped.contains(id) ? .secondary : .primary)
+            Spacer()
+            Button { move(id, by: -1) } label: { Image(systemName: "chevron.up") }
+                .disabled(index == 0)
+                .help(Text("Move Up"))
+                .accessibilityLabel(Text("Move Up"))
+            Button { move(id, by: 1) } label: { Image(systemName: "chevron.down") }
+                .disabled(index == order.count - 1)
+                .help(Text("Move Down"))
+                .accessibilityLabel(Text("Move Down"))
+        }
+        .buttonStyle(.borderless)
+        .padding(.vertical, 2)
+    }
+
+    private func move(_ id: String, by step: Int) {
+        guard let from = order.firstIndex(of: id) else { return }
+        let to = from + step
+        guard order.indices.contains(to) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) { order.swapAt(from, to) }
     }
 }
 
