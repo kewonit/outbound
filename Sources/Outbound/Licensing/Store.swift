@@ -8,7 +8,7 @@ enum Store {
     static let organizationID = "687b5988-7a78-4642-968c-19a2d2ab3da7"
     /// Polar's checkout for Outbound for 1 Mac. The app normally asks the site for a checkout of its own, so it can
     /// watch for the purchase; this link is the fallback when the site can't be reached.
-    static let checkoutURL = URL(string: "https://buy.polar.sh/NEW-1-MAC-CHECKOUT-LINK")!
+    static let checkoutURL = URL(string: "https://buy.polar.sh/polar_cl_6pzC7vjcRHCZEWxV1M5mQ6zrmGvVYPv3dJpzc2Qv9a9")!
     /// Where buyers find their key again and free up a Mac, signing in with a code sent to their email.
     static let portalURL = URL(string: "https://polar.sh/edbnme/portal")!
     static let price = "$4.99"
