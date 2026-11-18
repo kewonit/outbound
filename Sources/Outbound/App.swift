@@ -226,7 +226,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let shown = displays.wallpapersInView
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
-        guard !world.isSweeping, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
+        // Not of a gull half faded in or out: once it is all there or gone.
+        guard !world.isSweeping, !world.birdIsFading, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
             owesPainting = force
             return
         }
@@ -434,8 +435,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         journey.staysPut = preferences.stay == .forever
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         // At launch it is straight from the first frame; later the sway slows to a stop, or picks up again.
+        let driftChanged = journey.fliesStraight != preferences.fliesStraight
         journey.fliesStraight(preferences.fliesStraight, at: world.time, atOnce: !preferencesApplied)
-        let order = preferences.placeOrder.compactMap { id in Place.all.first { $0.id == id } }
+        let order = preferences.placeOrder.compactMap(Place.named)
         if journey.skipped != preferences.skippedPlaces || journey.shuffles != preferences.shufflesPlaces
             || journey.order.map(\.id) != order.map(\.id) {
             journey.skipped = preferences.skippedPlaces
@@ -461,7 +463,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
-            if edgeChanged || preferences.matchingStill != stillsWereOn || birdChanged && world.isHeld {
+            // A painting from before the drift changed can't be gone back to as the Mac locks (see World.canRewind).
+            if edgeChanged || preferences.matchingStill != stillsWereOn || birdChanged && world.isHeld
+                || driftChanged && preferencesApplied {
                 refreshPainting(force: true)
             } else if birdChanged {
                 // Once the gull has faded in or out, or the painting would show it as it was for minutes.
@@ -555,7 +559,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // How the painting looks and moves, each with the choice a new install starts on first.
         let preferences = preferences
-        menu.addItem(choices(String(localized: "Light"), [World.Light.alwaysDay, .yourTime, .placeTime].map { ($0.title, $0) },
+        menu.addItem(choices(String(localized: "Light"), World.Light.allCases.map { ($0.title, $0) },
                              current: preferences.light, symbol: "sun.max") { preferences.light = $0 })
         menu.addItem(choices(String(localized: "Season"), [(String(localized: "At Its Best"), false),
                                                        (String(localized: "As It Is Today"), true)],

@@ -81,6 +81,8 @@ struct ShopTests {
         let message = try #require((error as? LocalizedError)?.errorDescription)
         #expect(!message.contains("three") && !message.contains("3"))
         #expect(message.contains("as many Macs as it allows"))
+        // It may be this very Mac, set up before, and the portal is the way out that always works.
+        #expect(message.contains("this Mac") && message.contains("customer portal"))
     }
 
     @Test func aKeyNoLongerActiveIsNotTakenForOneOnTooManyMacs() async throws {
@@ -112,7 +114,7 @@ struct MenuChoiceTests {
     @Test func theNamesAreTheMenus() {
         #expect(Preferences.Pace.allCases.map(\.title) == ["Slow", "Medium", "Fast"])
         #expect(Preferences.Stay.allCases.map(\.title) == ["After 20 Minutes", "After 30 Minutes", "After an Hour", "Never"])
-        #expect([World.Light.alwaysDay, .yourTime, .placeTime].map(\.title) == ["Always Daytime", "Follow My Clock", "Local Time There"])
+        #expect(World.Light.allCases.map(\.title) == ["Always Daytime", "Follow My Clock", "Local Time There"])
         #expect(Preferences.Away.allCases.map(\.title)
                 == ["After 2 Minutes", "After 5 Minutes", "After 15 Minutes", "After 30 Minutes", "Never"])
     }

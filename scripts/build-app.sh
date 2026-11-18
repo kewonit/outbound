@@ -73,8 +73,20 @@ install_name_tool -add_rpath @executable_path/../Frameworks "$binary"
 # SwiftPM's link records the deployment target as the SDK too, and macOS draws an app built with the macOS 13 SDK as
 # it was then: Settings got a flat grey sidebar with a black line down it. Record the SDK it was really built with.
 minos="$(otool -l "$binary" | awk '/LC_BUILD_VERSION/ { found = 1 } found && $1 == "minos" { print $2; exit }')"
-vtool -set-build-version macos "$minos" "$(xcrun --sdk macosx --show-sdk-version)" -replace -output "$binary.sdk" "$binary" 2>/dev/null
+sdk="$(xcrun --sdk macosx --show-sdk-version)"
+# vtool always warns that the signature will be invalid (it is signed below); anything else it says is shown.
+if ! out="$(vtool -set-build-version macos "$minos" "$sdk" -replace -output "$binary.sdk" "$binary" 2>&1)"; then
+    echo "$out" >&2
+    echo "Could not record SDK $sdk in the binary" >&2
+    exit 1
+fi
+echo "$out" | grep -v "code signature will be invalid" >&2 || true
 mv "$binary.sdk" "$binary"
+recorded="$(otool -l "$binary" | awk '/LC_BUILD_VERSION/ { found = 1 } found && $1 == "sdk" { print $2; exit }')"
+if [[ "$recorded" != "$sdk" ]]; then
+    echo "The binary records SDK $recorded, not $sdk" >&2
+    exit 1
+fi
 
 # Sign from the inside out, as notarization requires.
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then

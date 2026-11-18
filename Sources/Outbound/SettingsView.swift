@@ -232,7 +232,7 @@ private struct PlacesPane: View {
     @State private var changingOrder = false
 
     private var places: [Place] {
-        preferences.placeOrder.compactMap { id in Place.all.first { $0.id == id } }
+        preferences.placeOrder.compactMap(Place.named)
     }
 
     var body: some View {
@@ -385,7 +385,9 @@ private struct LicensePane: View {
             Section {
                 if !LicenseController.isGated {
                     LabeledContent("License", value: String(localized: "Development build"))
-                } else if license.record == nil {
+                } else if license.record == nil || !license.unlocks {
+                    // A key refunded, or not checked for too long, is kept but no longer unlocks it; the line in red
+                    // below says which.
                     LabeledContent("License", value: String(localized: "Not active on this Mac"))
                 } else {
                     LabeledContent("License") {
@@ -395,6 +397,8 @@ private struct LicensePane: View {
                                 .disabled(license.busy)
                         }
                     }
+                }
+                if LicenseController.isGated, license.record != nil {
                     LabeledContent("Your key and Macs") {
                         Link("Customer Portal", destination: Store.portalURL)
                     }
@@ -449,7 +453,7 @@ private struct LicenseCard: View {
 
     private var state: String {
         if !LicenseController.isGated { return String(localized: "Development build") }
-        if license.record == nil { return String(localized: "Not active on this Mac") }
+        if license.record == nil || !license.unlocks { return String(localized: "Not active on this Mac") }
         return String(localized: "Active on \(license.macName)")
     }
 

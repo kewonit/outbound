@@ -54,6 +54,9 @@ public final class Journey {
 
     /// Whether the land comes straight down the screen, the sideways drift stopped, or stopping, where it was.
     public var fliesStraight: Bool { drift?.to == 0 }
+    /// When the drift last started or stopped. Only the latest change is kept, so the camera's place sideways before
+    /// it is known only as far back as that one.
+    public var driftChanged: TimeInterval? { drift?.since }
 
     /// A Fly To: the leg it began, the legs as they were just before, and how far above the camera, in metres, its
     /// sweep reaches, when that was given.
@@ -163,8 +166,7 @@ public final class Journey {
     /// The drift's pace at `time`, 1 as usual and 0 stopped.
     private func driftPace(at time: TimeInterval) -> Double {
         guard let drift else { return 1 }
-        let p = min(max((time - drift.since) / Self.driftEase, 0), 1)
-        return drift.from + (drift.to - drift.from) * p * p * (3 - 2 * p)
+        return drift.from + (drift.to - drift.from) * Easing.smoothstep((time - drift.since) / Self.driftEase)
     }
 
     /// Stops the sideways drift, or starts it again, easing into it from `time`, or with `atOnce` there already.
@@ -218,9 +220,9 @@ public final class Journey {
     /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
     /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
     public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
-        while !staysPut, let last = legs.last, last.start + legLength < y {
+        while !staysPut, let last = legs.last, last.start + legLength < y, let next = nextPlace() {
             let start = max(last.start + legLength, notBefore)
-            append(nextPlace(), start: start, sweep: nil, date: date)
+            append(next, start: start, sweep: nil, date: date)
         }
         while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
@@ -238,10 +240,12 @@ public final class Journey {
     /// The place to move on to after the last leg: the next one in the round, or with `shuffles` any but the one
     /// before, and the one before that where the round has room, so it never goes straight back. A round with
     /// everything left out is taken as all of them; after a place that isn't in it at all, it starts from the top.
-    func nextPlace() -> Place {
+    /// Nil over the only place in the round: it stays there, rather than crossing into another stretch of it.
+    func nextPlace() -> Place? {
         let all = order.nonEmpty ?? Place.all
         let round = all.filter { !skipped.contains($0.id) }.nonEmpty ?? all
         let last = legs.last?.place
+        if round.count == 1, round[0].id == last?.id { return nil }
         if shuffles {
             let recent = legs.suffix(2).map(\.place.id)
             var choices = round.filter { $0.id != last?.id }

@@ -456,7 +456,7 @@ enum Exporter {
         let cycle = 9.0
         let phase = t.truncatingRemainder(dividingBy: cycle) / cycle
         let moving = min(phase / 0.7, 1)
-        let eased = moving * moving * (3 - 2 * moving)
+        let eased = Easing.smoothstep(moving)
         let loop = (t / cycle).rounded(.down) + eased
         let x = 0.5 + 0.3 * sin(loop * 2.1 + 0.4)
         let y = 0.5 + 0.24 * sin(loop * 3.3 + 1.2)

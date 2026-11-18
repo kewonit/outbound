@@ -1062,7 +1062,7 @@ fragment SkyOut sky(VertexOut in [[stage_in]],
             float2 offset = pixel - (birdPx - scene.sun.xy * params.wings.y * 0.35 / mpp);
             if (dot(offset, offset) < scale * scale * 1.6) {
                 float2 q = rotate(offset, -params.bird.z) / scale;
-                c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.6 * bank, scene);
+                c = shade(c, fill(birdShape(q, params.wings.x, params.bird.w), 0.05) * 0.6 * bank * birdVisible, scene);
             }
         }
         cloudAlpha += bank * (1.0 - cloudAlpha);

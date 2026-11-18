@@ -27,12 +27,13 @@ final class World {
     /// About 33 km/h: unhurried country driving, still over a minute across the screen at Slow, and slower than trains.
     static let carSpeed = 9.2
 
+    /// In the order the menu offers them, a new install's first.
     enum Light: String, CaseIterable {
+        case alwaysDay
         /// The sun as it stands at the place at your clock's time of day.
         case yourTime
         /// The sun as it stands at the place right now.
         case placeTime
-        case alwaysDay
     }
 
     let journey: Journey
@@ -138,6 +139,8 @@ final class World {
     }
 
     func hold(_ on: Bool, at now: TimeInterval = CACurrentMediaTime()) {
+        // No time passes while held for the gull to finish fading, so a painting made now would keep it half there.
+        if on, birdIsFading, let fading = birdFading { birdFading = (time, fading.to, fading.to) }
         if on, heldSince == nil {
             if settling != nil {
                 // Whatever the clock says, the flight carries on from where it slowed to, or from a frame already drawn
@@ -199,6 +202,8 @@ final class World {
         return heldSince != nil && moment.time <= time && moment.revision == revision
             && abs(journey.cameraY(at: moment.time) - moment.cameraY) < 0.01
             && !journey.legs.contains { ($0.sweepStart ?? -.infinity) > moment.time - Journey.sweepDuration }
+            // Before the latest change to the drift or the gull, only that change is remembered, not any before it.
+            && moment.time >= journey.driftChanged ?? -.infinity && moment.time >= birdFading?.since ?? -.infinity
             && camera.y - moment.cameraY < Self.reach && journey.leg(at: bottom).start <= bottom
     }
 
@@ -244,7 +249,8 @@ final class World {
             }
             lastPointer = point
         }
-        chasing = t - pointerMoved < 10
+        // Not before it has faded in: its own layer would show all of it at once.
+        chasing = t - pointerMoved < 10 && birdOpacity(at: t) >= 1
         let target = chasing ? lastPointer.map { SIMD2(Double($0.x), Double($0.y)) } : nil
         bird.step(dt: dt, towards: target ?? Bird.wander(in: home, time: t), hurrying: target != nil)
         birdTrail.record(bird.pose, at: t)
@@ -276,8 +282,13 @@ final class World {
     /// How much of the gull shows at `t`, 0 to 1.
     func birdOpacity(at t: TimeInterval) -> Double {
         guard let fading = birdFading else { return 1 }
-        let p = min(max((t - fading.since) / Self.birdFade, 0), 1)
-        return fading.from + (fading.to - fading.from) * p * p * (3 - 2 * p)
+        return fading.from + (fading.to - fading.from) * Easing.smoothstep((t - fading.since) / Self.birdFade)
+    }
+
+    /// The gull is fading in or out.
+    var birdIsFading: Bool {
+        guard let fading = birdFading, fading.from != fading.to else { return false }
+        return time - fading.since < Self.birdFade
     }
 
     /// The hour of the day where the scene is, and when the sun sets there, for switching lights on.

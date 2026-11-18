@@ -169,7 +169,7 @@ extension Flock {
 
     /// How much of a circling flock can be seen at `elapsed`: as they come down into view and climb back out.
     public static func circlingVisibility(_ elapsed: TimeInterval) -> Double {
-        func ease(_ x: Double) -> Double { let t = max(0, min(1, x)); return t * t * (3 - 2 * t) }
+        func ease(_ x: Double) -> Double { Easing.smoothstep(x) }
         return ease(elapsed / 25) * ease((circlingLength - elapsed) / 30)
     }
 

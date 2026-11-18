@@ -72,7 +72,9 @@ struct Polar {
             switch self {
             case .unknownKey: String(localized: "That key wasn't recognised. Check it against the one on your thank-you page or in your customer portal.")
             case .noLongerActive: String(localized: "That key is no longer active, perhaps because the purchase was refunded.")
-            case .tooManyMacs: String(localized: "This key is already in use on as many Macs as it allows. Free one up in Outbound's Settings on another Mac, or in your customer portal, then try again.")
+            // A Mac that lost its record (a failed save, a reset keychain, a new account) takes another activation of
+            // the same key, and Polar can't tell it is the same Mac: only the portal frees the one it had.
+            case .tooManyMacs: String(localized: "This key is already in use on as many Macs as it allows, maybe on this Mac before. Free one up in your customer portal, or in Outbound's Settings on another Mac, then try again.")
             case .malformed: String(localized: "That doesn't look like an Outbound license key.")
             case .busy: String(localized: "Too many tries in a row. Wait a moment, then try again.")
             case .offline: String(localized: "Outbound couldn't reach the store. Check your connection and try again.")

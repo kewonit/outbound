@@ -145,11 +145,16 @@ struct PlaceRoundTests {
         for (a, b) in zip(places, places.dropFirst()) { #expect(a != b && ticked.contains(a)) }
     }
 
+    /// With one place left it flies on to it and stays, rather than crossing a band into another stretch of it.
     @Test(arguments: [false, true])
-    func onePlaceComesAgain(shuffled: Bool) {
-        let places = round(skipping: Set(Place.all.map(\.id)).subtracting(["pampa"]), shuffled: shuffled)
-        #expect(places.count > 10)
-        #expect(places.dropFirst().allSatisfy { $0 == "pampa" })
+    func onePlaceIsStayedOver(shuffled: Bool) {
+        let only = Set(Place.all.map(\.id)).subtracting(["pampa"])
+        #expect(round(skipping: only, shuffled: shuffled) == [Place.first.id, "pampa"])
+        let journey = Journey(start: Place.named("pampa")!, time: 0, speed: 1, legLength: 100)
+        journey.skipped = only
+        journey.shuffles = shuffled
+        journey.extend(through: 3000, behind: -1000)
+        #expect(journey.legs.map(\.place.id) == ["pampa"])
     }
 
     @Test func everythingLeftOutIsEverything() {
@@ -172,7 +177,7 @@ struct PlaceRoundTests {
             repeat {
                 t += 0.1
                 world.advance(to: t)
-            } while journey.legs.last!.index == last
+            } while journey.legs.last!.index == last && t < 5000
         }
         // The first is decided as it opens, just above the view; the next as the flight comes to need it.
         flyUntilAPlaceIsDecided()
@@ -182,7 +187,8 @@ struct PlaceRoundTests {
         #expect(ahead.start > top + 1000)
         let inView = journey.legs.filter { $0.start <= top }.map(\.index)
 
-        journey.skipped = Set(Place.all.map(\.id)).subtracting(["lisse"])
+        let ticked: Set = ["lisse", "pampa"]
+        journey.skipped = Set(Place.all.map(\.id)).subtracting(ticked)
         world.placesChanged()
         // The place ahead is chosen again; nothing in view was taken away.
         #expect(!journey.legs.contains { $0.index == ahead.index })
@@ -191,7 +197,7 @@ struct PlaceRoundTests {
         for _ in 0..<3 { flyUntilAPlaceIsDecided() }
         let chosen = journey.legs.filter { !kept.contains($0.index) }
         #expect(!chosen.isEmpty)
-        #expect(chosen.allSatisfy { $0.place.id == "lisse" })
+        #expect(chosen.allSatisfy { ticked.contains($0.place.id) })
     }
 }
 
@@ -434,5 +440,87 @@ struct PlaceOrderTests {
             let i = order.firstIndex { $0.id == a }!
             #expect(b == order[(i + 1) % order.count].id)
         }
+    }
+}
+
+/// What the review of the new settings turned up: a gull shown at once by its own layer, a painting of it half faded,
+/// rewinds past what is remembered, and the shared easing curve.
+@MainActor
+@Suite
+struct SettingsReviewTests {
+    private func world(pointer: @escaping () -> CGPoint?) -> World {
+        let world = World(place: .first, time: 0, light: .alwaysDay)
+        world.pointer = pointer
+        world.isDesktop = { _ in true }
+        return world
+    }
+
+    private func circling() -> () -> CGPoint? {
+        var angle = 0.0
+        return {
+            angle += 0.2
+            return CGPoint(x: 700 + 200 * cos(angle), y: 500 + 200 * sin(angle))
+        }
+    }
+
+    /// Its own layer draws all of it, so it only takes to chasing once it has faded all the way in.
+    @Test func itChasesOnlyOnceFadedIn() {
+        let world = world(pointer: circling())
+        world.showBird(false, atOnce: true)
+        for t in stride(from: 0.0, to: 2, by: 1.0 / 30) { world.advance(to: t) }
+        world.showBird(true)
+        let shown = world.time
+        for t in stride(from: 2.0, to: 2 + World.birdFade, by: 1.0 / 30) {
+            world.advance(to: t)
+            if world.birdOpacity(at: world.time) < 1 { #expect(!world.chasing) }
+        }
+        for t in stride(from: 2 + World.birdFade, to: 5, by: 1.0 / 30) { world.advance(to: t) }
+        #expect(world.chasing)
+        #expect(world.time > shown + World.birdFade)
+    }
+
+    /// Held mid-fade, no time passes to finish it: the gull is all there or gone at once, so a painting made while
+    /// held never shows it half faded.
+    @Test func aHoldFinishesTheFade() {
+        let world = world(pointer: { nil })
+        for t in stride(from: 0.0, to: 1, by: 1.0 / 30) { world.advance(to: t) }
+        world.showBird(false)
+        world.advance(to: 1.3)
+        #expect(world.birdIsFading)
+        world.hold(true, at: 1.3)
+        #expect(!world.birdIsFading)
+        #expect(world.birdOpacity(at: world.time) == 0)
+    }
+
+    /// Only the latest change to the drift and the gull is remembered, so the world never goes back to before one.
+    @Test func noRewindPastAChange() {
+        let world = world(pointer: { nil })
+        for t in stride(from: 0.0, to: 30, by: 1.0 / 30) { world.advance(to: t) }
+        let before = world.moment()
+        for t in stride(from: 30.0, to: 40, by: 1.0 / 30) { world.advance(to: t) }
+        world.hold(true, at: 40)
+        #expect(world.canRewind(to: before))
+        world.journey.fliesStraight(true, at: world.time)
+        #expect(!world.canRewind(to: before))
+        world.hold(false, at: 41)
+        for t in stride(from: 41.0, to: 45, by: 1.0 / 30) { world.advance(to: t) }
+        let after = world.moment()
+        for t in stride(from: 45.0, to: 50, by: 1.0 / 30) { world.advance(to: t) }
+        world.hold(true, at: 50)
+        #expect(world.canRewind(to: after))
+        world.showBird(false, atOnce: true)
+        #expect(!world.canRewind(to: after))
+    }
+
+    /// rampLag is the integral of smoothstep, which is what keeps the drift from jumping as it slows or sets off.
+    @Test func rampLagIsTheIntegralOfSmoothstep() {
+        let length = 8.0
+        var gained = 0.0
+        let step = 0.001
+        for t in stride(from: 0.0, to: 12, by: step) {
+            #expect(abs((t - Easing.rampLag(elapsed: t, length: length)) - gained) < 1e-3)
+            gained += Easing.smoothstep((t + step / 2) / length) * step
+        }
+        #expect(Easing.smoothstep(-1) == 0 && Easing.smoothstep(0.5) == 0.5 && Easing.smoothstep(2) == 1)
     }
 }
