@@ -70,6 +70,11 @@ otool -l "$binary" | awk '/LC_RPATH/ { getline; getline; print $2 }' | while rea
     if [[ "$path" == /* ]]; then install_name_tool -delete_rpath "$path" "$binary"; fi
 done
 install_name_tool -add_rpath @executable_path/../Frameworks "$binary"
+# SwiftPM's link records the deployment target as the SDK too, and macOS draws an app built with the macOS 13 SDK as
+# it was then: Settings got a flat grey sidebar with a black line down it. Record the SDK it was really built with.
+minos="$(otool -l "$binary" | awk '/LC_BUILD_VERSION/ { found = 1 } found && $1 == "minos" { print $2; exit }')"
+vtool -set-build-version macos "$minos" "$(xcrun --sdk macosx --show-sdk-version)" -replace -output "$binary.sdk" "$binary" 2>/dev/null
+mv "$binary.sdk" "$binary"
 
 # Sign from the inside out, as notarization requires.
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then

@@ -120,6 +120,9 @@ final class ShaderLibrary {
     /// their parts a copy has; that library is for those copies alone (see Composite.metal).
     nonisolated private static func library(device: MTLDevice, source: String, lean: Bool = false) throws -> MTLLibrary {
         let options = MTLCompileOptions()
+        // Left unset, the language is the newest the app's SDK knows, so building with a newer one would change how the
+        // painting compiles. Every Mac Outbound runs on has Metal 3.
+        options.languageVersion = .version3_0
         var macros: [String: NSObject] = lean ? ["OUTBOUND_LEAN": NSNumber(value: 1)] : [:]
         if #available(macOS 15, *) {
             options.mathMode = .fast
