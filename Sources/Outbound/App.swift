@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var gpu: GPU!
     private var updates: Updates!
     private var licenseTimer: Timer?
-    private var settingsWindow: NSWindow?
+    private var settings: SettingsWindowController?
     private var stillsWereOn = false
     /// Whether the preferences have been applied once, at launch, when changes take effect at once rather than easing.
     private var preferencesApplied = false
@@ -435,9 +435,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
         // At launch it is straight from the first frame; later the sway slows to a stop, or picks up again.
         journey.fliesStraight(preferences.fliesStraight, at: world.time, atOnce: !preferencesApplied)
-        if journey.skipped != preferences.skippedPlaces || journey.shuffles != preferences.shufflesPlaces {
+        let order = preferences.placeOrder.compactMap { id in Place.all.first { $0.id == id } }
+        if journey.skipped != preferences.skippedPlaces || journey.shuffles != preferences.shufflesPlaces
+            || journey.order.map(\.id) != order.map(\.id) {
             journey.skipped = preferences.skippedPlaces
             journey.shuffles = preferences.shufflesPlaces
+            journey.order = order
+            // The places ahead that nobody has seen yet follow the new round.
             world.placesChanged()
         }
         world.followsPointer = preferences.followsPointer
@@ -747,25 +751,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openSettings() {
-        if settingsWindow == nil {
-            let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
-                                    checkForUpdates: { [weak self] in self?.checkForUpdates() },
-                                    sendFeedback: { [weak self] in self?.openFeedback() })
-            // As System Settings is made: no title bar to see, and the sidebar runs up behind the window's buttons. The
-            // title stays for the Window menu and Mission Control. It can be closed and minimised, not zoomed.
-            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-            window.title = String(localized: "Outbound Settings")
-            window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.standardWindowButton(.zoomButton)?.isEnabled = false
-            window.opensWhereTheUserIs()
-            window.isReleasedWhenClosed = false
-            window.center()
-            settingsWindow = window
+        if settings == nil {
+            settings = SettingsWindowController(preferences: preferences, license: license,
+                                                canCheckForUpdates: updates.canCheck,
+                                                checkForUpdates: { [weak self] in self?.checkForUpdates() },
+                                                sendFeedback: { [weak self] in self?.openFeedback() })
+            settings?.window?.opensWhereTheUserIs()
+            settings?.window?.center()
         }
         // Once the menu it was chosen from has closed.
-        DispatchQueue.main.async { [weak self] in self?.settingsWindow?.bringForward() }
+        DispatchQueue.main.async { [weak self] in self?.settings?.window?.bringForward() }
     }
 }
 

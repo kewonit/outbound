@@ -95,6 +95,29 @@ final class Preferences: ObservableObject {
     @Published var skippedPlaces: Set<String> { didSet { defaults.set(skippedPlaces.sorted(), forKey: "skippedPlaces") } }
     /// Moves on to a place picked at random rather than the next one.
     @Published var shufflesPlaces: Bool { didSet { defaults.set(shufflesPlaces, forKey: "shufflesPlaces") } }
+    /// The order the flight goes through the places in, by id, every place once. The usual order isn't saved, so it
+    /// stays Outbound's own, with any places added later where they belong in it.
+    @Published var placeOrder: [String] {
+        didSet {
+            // Set again here, it isn't observed again.
+            let ordered = Self.ordered(placeOrder)
+            if ordered != placeOrder { placeOrder = ordered }
+            if placeOrder == Self.usualOrder { defaults.removeObject(forKey: "placeOrder") } else {
+                defaults.set(placeOrder, forKey: "placeOrder")
+            }
+        }
+    }
+
+    static var usualOrder: [String] { Place.all.map(\.id) }
+
+    /// Every place once, in the order given: places no longer painted are let go, and any not in it, as one added in an
+    /// update since it was saved, come at the end, in Outbound's own order.
+    static func ordered(_ ids: [String]) -> [String] {
+        let known = Set(usualOrder)
+        var seen = Set<String>()
+        let kept = ids.filter { known.contains($0) && seen.insert($0).inserted }
+        return kept + usualOrder.filter { !seen.contains($0) }
+    }
     /// The place to start from next launch.
     @Published var lastPlace: String { didSet { defaults.set(lastPlace, forKey: "lastPlace") } }
 
@@ -125,6 +148,7 @@ final class Preferences: ObservableObject {
         followsPointer = defaults.object(forKey: "followsPointer") as? Bool ?? true
         skippedPlaces = Set(defaults.stringArray(forKey: "skippedPlaces") ?? [])
         shufflesPlaces = defaults.object(forKey: "shufflesPlaces") as? Bool ?? false
+        placeOrder = Self.ordered(defaults.stringArray(forKey: "placeOrder") ?? [])
         lastPlace = defaults.string(forKey: "lastPlace") ?? Place.first.id
         // What the old names hold says nothing about what anyone chose.
         defaults.removeObject(forKey: "pausesWhenHidden")

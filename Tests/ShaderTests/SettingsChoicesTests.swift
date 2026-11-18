@@ -330,3 +330,109 @@ struct NewChoicesPreferencesTests {
         }
     }
 }
+
+/// The order places come in: any order of every place, kept sound whatever was saved, and followed from wherever the
+/// flight is.
+@MainActor
+@Suite
+struct PlaceOrderTests {
+    private func withDefaults(_ body: (UserDefaults) throws -> Void) throws {
+        let name = "PlaceOrderTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        try body(defaults)
+    }
+
+    @Test func whatIsSavedIsKeptSound() {
+        let usual = Preferences.usualOrder
+        #expect(Preferences.ordered([]) == usual)
+        // Places gone in an update are let go, a place twice is kept once, and a place added since comes at the end.
+        let saved = ["kansas", "atlantis", "lisse", "kansas"] + usual.filter { !["kansas", "lisse", "pampa"].contains($0) }
+        let ordered = Preferences.ordered(saved)
+        #expect(ordered.count == usual.count && Set(ordered) == Set(usual))
+        #expect(Array(ordered.prefix(2)) == ["kansas", "lisse"])
+        #expect(ordered.last == "pampa")
+    }
+
+    @Test func onlyAChosenOrderIsSaved() throws {
+        try withDefaults { defaults in
+            let preferences = Preferences(defaults: defaults)
+            #expect(preferences.placeOrder == Preferences.usualOrder)
+            #expect(defaults.object(forKey: "placeOrder") == nil)
+            preferences.placeOrder.move(fromOffsets: [7], toOffset: 0)
+            #expect(defaults.stringArray(forKey: "placeOrder")?.first == "kansas")
+            #expect(Preferences(defaults: defaults).placeOrder == preferences.placeOrder)
+            // Back in the usual order, nothing is kept, so places added later fall into their own place in it.
+            preferences.placeOrder = Preferences.usualOrder
+            #expect(defaults.object(forKey: "placeOrder") == nil)
+            // Anything set is made sound before it is kept.
+            preferences.placeOrder = ["lapland", "lapland", "nowhere"]
+            #expect(preferences.placeOrder.first == "lapland" && preferences.placeOrder.count == Place.all.count)
+            #expect(defaults.stringArray(forKey: "placeOrder") == preferences.placeOrder)
+        }
+        try withDefaults { defaults in
+            defaults.set("not a list", forKey: "placeOrder")
+            #expect(Preferences(defaults: defaults).placeOrder == Preferences.usualOrder)
+        }
+    }
+
+    private func flown(order: [String], skipping skipped: Set<String> = [], from start: Place = .first) -> [String] {
+        let journey = Journey(start: start, time: 0, speed: 1, legLength: 100)
+        journey.order = order.compactMap(Place.named)
+        journey.skipped = skipped
+        journey.extend(through: 100 * 30, behind: -1000)
+        return journey.legs.map(\.place.id)
+    }
+
+    @Test func inOrderItFollowsTheChosenOrder() {
+        let order = Preferences.usualOrder.reversed().map { $0 }
+        let places = flown(order: order)
+        for (a, b) in zip(places, places.dropFirst()) {
+            #expect(b == order[(order.firstIndex(of: a)! + 1) % order.count])
+        }
+        // Left-out places are passed over in the chosen order too.
+        let skipping = flown(order: order, skipping: ["lapland", "lisse"])
+        #expect(!skipping.dropFirst().contains { ["lapland", "lisse"].contains($0) })
+        #expect(Array(skipping.prefix(3)) == ["kansas", "pampa", "normandy"])
+    }
+
+    /// From a place that isn't in the round at all, as one flown to that isn't in it, it starts from the top.
+    @Test func fromOutsideTheRoundItStartsAtTheTop() {
+        let order = ["lisse", "punjab", "niigata"]
+        let places = flown(order: order)
+        #expect(Array(places.prefix(4)) == ["kansas", "lisse", "punjab", "niigata"])
+    }
+
+    @Test func aNewOrderOnlyChangesWhatIsAhead() {
+        let world = World(place: .first, time: 0, light: .alwaysDay)
+        world.pointer = { nil }
+        let journey = world.journey
+        journey.setSpeed(20, at: 0)
+        journey.legLength = 1200
+        var t = 0.0
+        func flyUntilAPlaceIsDecided() {
+            let last = journey.legs.last!.index
+            repeat {
+                t += 0.1
+                world.advance(to: t)
+            } while journey.legs.last!.index == last
+        }
+        flyUntilAPlaceIsDecided()
+        flyUntilAPlaceIsDecided()
+        let top = world.camera.y + 982 * World.metresPerPoint
+        let inView = journey.legs.filter { $0.start <= top }
+        let ahead = journey.legs.last!
+        let order = Preferences.usualOrder.reversed().compactMap(Place.named)
+        journey.order = order
+        world.placesChanged()
+        #expect(!journey.legs.contains { $0.index == ahead.index })
+        #expect(journey.legs.map(\.index).starts(with: inView.map(\.index)))
+        for _ in 0..<3 { flyUntilAPlaceIsDecided() }
+        let places = journey.legs.filter { $0.start > top }.map(\.place.id)
+        let all = (inView.map(\.place.id) + places)
+        for (a, b) in zip(all.dropFirst(inView.count - 1), all.dropFirst(inView.count)) {
+            let i = order.firstIndex { $0.id == a }!
+            #expect(b == order[(i + 1) % order.count].id)
+        }
+    }
+}

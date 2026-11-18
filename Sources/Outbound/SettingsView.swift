@@ -39,46 +39,139 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .license: .blue
         }
     }
+
+    /// The sidebar's groups, with a gap between them as System Settings has: what it does, then the app itself.
+    static let groups: [[SettingsPane]] = [[.general, .flight, .places, .power], [.license, .about]]
 }
 
-/// Outbound's Settings, laid out as macOS's own: a sidebar with Outbound and its license on top, and the chosen
-/// section's grouped settings beside it. It opens on the section open last.
-struct SettingsView: View {
+/// Which section of Settings is open, shared by the sidebar and the section beside it, and kept for next time.
+@MainActor
+final class SettingsSelection: ObservableObject {
+    @Published var pane: SettingsPane {
+        didSet {
+            defaults.set(pane.rawValue, forKey: "settingsPane")
+            onChange(pane)
+        }
+    }
+    var onChange: (SettingsPane) -> Void = { _ in }
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        pane = defaults.string(forKey: "settingsPane").flatMap(SettingsPane.init(rawValue:)) ?? .general
+    }
+}
+
+/// Outbound's Settings window, made as System Settings is: AppKit's own sidebar, which runs up behind the window's
+/// buttons, the open section beside it, and its name in the toolbar over that. It reopens on the section open last,
+/// can be closed and minimised, not zoomed, and the sidebar can't be hidden.
+@MainActor
+final class SettingsWindowController: NSWindowController, NSToolbarDelegate {
+    private let selection = SettingsSelection()
+
+    init(preferences: Preferences, license: LicenseController, canCheckForUpdates: Bool,
+         checkForUpdates: @escaping () -> Void, sendFeedback: @escaping () -> Void) {
+        let split = NSSplitViewController()
+        split.splitView = SeamlessSplitView()
+        split.splitView.isVertical = true
+        let sidebar = NSSplitViewItem(sidebarWithViewController: NSHostingController(
+            rootView: SettingsSidebar(selection: selection, license: license)))
+        sidebar.canCollapse = false
+        sidebar.minimumThickness = 215
+        sidebar.maximumThickness = 215
+        let detail = NSSplitViewItem(viewController: NSHostingController(
+            rootView: SettingsDetail(selection: selection, preferences: preferences, license: license,
+                                     canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
+                                     sendFeedback: sendFeedback)))
+        detail.minimumThickness = Self.size.width - sidebar.minimumThickness
+        split.addSplitViewItem(sidebar)
+        split.addSplitViewItem(detail)
+
+        let window = NSWindow(contentViewController: split)
+        window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.toolbarStyle = .unified
+        window.standardWindowButton(.zoomButton)?.isEnabled = false
+        window.isReleasedWhenClosed = false
+        super.init(window: window)
+
+        let toolbar = NSToolbar(identifier: "Settings")
+        toolbar.delegate = self
+        toolbar.displayMode = .iconOnly
+        toolbar.allowsUserCustomization = false
+        window.toolbar = toolbar
+        window.setContentSize(Self.size)
+        // The window is named after the section open, for the toolbar, the Window menu and Mission Control.
+        window.title = selection.pane.title
+        selection.onChange = { [weak window] in window?.title = $0.title }
+    }
+
+    static let size = NSSize(width: 740, height: 560)
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    // The title sits over the section rather than over the sidebar, as it does in System Settings.
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.sidebarTrackingSeparator] }
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] { [.sidebarTrackingSeparator] }
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier identifier: NSToolbarItem.Identifier,
+                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? { nil }
+}
+
+/// The sidebar meets the section with no line drawn between them, as in System Settings.
+private final class SeamlessSplitView: NSSplitView {
+    override var dividerThickness: CGFloat { 0 }
+}
+
+/// Outbound and its license on top, as the account sits over System Settings, then the sections in two groups.
+struct SettingsSidebar: View {
+    @ObservedObject var selection: SettingsSelection
+    @ObservedObject var license: LicenseController
+
+    var body: some View {
+        List(selection: Binding<SettingsPane?>(get: { selection.pane }, set: { if let chosen = $0 { selection.pane = chosen } })) {
+            // Opens the License section.
+            Section {
+                Button { selection.pane = .license } label: { LicenseCard(license: license) }
+                    .buttonStyle(.plain)
+            }
+            ForEach(SettingsPane.groups, id: \.self) { group in
+                Section {
+                    ForEach(group) { pane in
+                        Label { Text(pane.title) } icon: { Badge(symbol: pane.symbol, color: pane.color) }
+                            .padding(.vertical, 2)
+                            .tag(pane)
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        // The sidebar's own material shows through, as in System Settings, rather than the list's grey.
+        .scrollContentBackground(.hidden)
+    }
+}
+
+/// The open section's settings, grouped as System Settings has them.
+struct SettingsDetail: View {
+    @ObservedObject var selection: SettingsSelection
     @ObservedObject var preferences: Preferences
     @ObservedObject var license: LicenseController
     /// What the menu's Check for Updates and Send Feedback do, so the buttons here do just the same.
     let canCheckForUpdates: Bool
     let checkForUpdates: () -> Void
     let sendFeedback: () -> Void
-    @AppStorage("settingsPane") private var pane: SettingsPane = .general
 
     var body: some View {
-        // The sidebar always shows: System Settings has no way to hide it.
-        NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(selection: Binding<SettingsPane?>(get: { pane }, set: { if let chosen = $0 { pane = chosen } })) {
-                // Outbound and its license, as the account sits over System Settings, and opens the License section.
-                Button { pane = .license } label: { LicenseCard(license: license) }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 6)
-                ForEach(SettingsPane.allCases) { pane in
-                    Label { Text(pane.title) } icon: { Badge(symbol: pane.symbol, color: pane.color) }
-                        .tag(pane)
-                }
-            }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 320)
-        } detail: {
-            switch pane {
-            case .general: GeneralPane(preferences: preferences)
-            case .flight: FlightPane(preferences: preferences)
-            case .places: PlacesPane(preferences: preferences)
-            case .power: PowerPane(preferences: preferences)
-            case .license: LicensePane(license: license)
-            case .about: AboutPane(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
-                                   sendFeedback: sendFeedback)
-            }
+        switch selection.pane {
+        case .general: GeneralPane(preferences: preferences)
+        case .flight: FlightPane(preferences: preferences)
+        case .places: PlacesPane(preferences: preferences)
+        case .power: PowerPane(preferences: preferences)
+        case .license: LicensePane(license: license)
+        case .about: AboutPane(canCheckForUpdates: canCheckForUpdates, checkForUpdates: checkForUpdates,
+                               sendFeedback: sendFeedback)
         }
-        .frame(width: 740, height: 460)
     }
 }
 
@@ -132,9 +225,16 @@ private struct FlightPane: View {
     }
 }
 
-/// Which places the flight moves on to, in the order it flies them, and whether it goes in that order.
+/// Which places the flight moves on to, in the order it flies them, and whether it goes in that order. Places move by
+/// dragging, from their menu, or with VoiceOver's actions.
 private struct PlacesPane: View {
     @ObservedObject var preferences: Preferences
+    /// The place a dragged one would land on.
+    @State private var dropTarget: String?
+
+    private var places: [Place] {
+        preferences.placeOrder.compactMap { id in Place.all.first { $0.id == id } }
+    }
 
     var body: some View {
         Form {
@@ -145,14 +245,73 @@ private struct PlacesPane: View {
                 }
             }
             Section {
-                ForEach(Place.all, id: \.id) { place in
-                    Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
-                        // The round always keeps one place.
-                        .disabled(isOnlyOneLeft(place))
+                ForEach(places, id: \.id) { place in row(place) }
+            } footer: {
+                HStack {
+                    Spacer()
+                    Button("Restore Default Order") { preferences.placeOrder = Preferences.usualOrder }
+                        .disabled(preferences.placeOrder == Preferences.usualOrder)
                 }
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func row(_ place: Place) -> some View {
+        let index = places.firstIndex { $0.id == place.id } ?? 0
+        let last = places.count - 1
+        return HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
+            Text(verbatim: place.name)
+            Spacer()
+            Toggle(isOn: visits(place)) { Text(verbatim: place.name) }
+                .labelsHidden()
+                .toggleStyle(.switch)
+                // The round always keeps one place. Only its switch is held: the place can still be moved.
+                .disabled(isOnlyOneLeft(place))
+        }
+        .contentShape(Rectangle())
+        // Dragged onto another place, it takes that one's position, and those between move over by one.
+        .draggable(place.id) {
+            Label { Text(verbatim: place.name) } icon: { Image(systemName: "line.3.horizontal") }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .dropDestination(for: String.self) { ids, _ in
+            // Only a place from this list: text dragged in from elsewhere is turned away.
+            guard let id = ids.first, preferences.placeOrder.contains(id) else { return false }
+            move(id, to: index)
+            return true
+        } isTargeted: { over in
+            if over { dropTarget = place.id } else if dropTarget == place.id { dropTarget = nil }
+        }
+        .background(dropTarget == place.id ? Color.accentColor.opacity(0.18) : .clear,
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .contextMenu {
+            Button("Move Up") { move(place.id, to: index - 1) }.disabled(index == 0)
+            Button("Move Down") { move(place.id, to: index + 1) }.disabled(index == last)
+            Divider()
+            Button("Move to Top") { move(place.id, to: 0) }.disabled(index == 0)
+            Button("Move to Bottom") { move(place.id, to: last) }.disabled(index == last)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityAction(named: Text("Move Up")) { move(place.id, to: index - 1) }
+        .accessibilityAction(named: Text("Move Down")) { move(place.id, to: index + 1) }
+    }
+
+    /// Moves a place to `target` in the order, kept within it.
+    private func move(_ id: String, to target: Int) {
+        dropTarget = nil
+        var order = preferences.placeOrder
+        guard let from = order.firstIndex(of: id) else { return }
+        let to = min(max(target, 0), order.count - 1)
+        guard to != from else { return }
+        order.remove(at: from)
+        order.insert(id, at: to)
+        withAnimation(.easeInOut(duration: 0.25)) { preferences.placeOrder = order }
     }
 
     private func visits(_ place: Place) -> Binding<Bool> {
@@ -276,7 +435,7 @@ private struct LicenseCard: View {
         HStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
-                .frame(width: 36, height: 36)
+                .frame(width: 38, height: 38)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: "Outbound").font(.headline)

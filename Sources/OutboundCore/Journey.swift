@@ -31,7 +31,9 @@ public final class Journey {
     /// How many times Fly To has gone somewhere new, so a display that drew nothing while one swept in can tell that
     /// the ground it keeps is of the place before.
     public private(set) var flights = 0
-    /// Places left out of the round the flight moves on through, by id. Fly To still goes to any of them.
+    /// The places the flight moves on through, in turn, left out or not. Fly To still goes to any place.
+    public var order: [Place] = Place.all
+    /// Places left out of the round, by id.
     public var skipped: Set<String> = []
     /// Moves on to a place picked at random from the round rather than the next one in it.
     public var shuffles = false
@@ -235,9 +237,10 @@ public final class Journey {
 
     /// The place to move on to after the last leg: the next one in the round, or with `shuffles` any but the one
     /// before, and the one before that where the round has room, so it never goes straight back. A round with
-    /// everything left out is taken as all of them.
+    /// everything left out is taken as all of them; after a place that isn't in it at all, it starts from the top.
     func nextPlace() -> Place {
-        let round = Place.all.filter { !skipped.contains($0.id) }.nonEmpty ?? Place.all
+        let all = order.nonEmpty ?? Place.all
+        let round = all.filter { !skipped.contains($0.id) }.nonEmpty ?? all
         let last = legs.last?.place
         if shuffles {
             let recent = legs.suffix(2).map(\.place.id)
@@ -246,9 +249,9 @@ public final class Journey {
             if choices.isEmpty { return last ?? round[0] }
             return choices[Int(Self.scramble(UInt64(nextIndex)) % UInt64(choices.count))]
         }
-        let i = last.flatMap { last in Place.all.firstIndex { $0.id == last.id } } ?? 0
-        return (1...Place.all.count).lazy.map { Place.all[(i + $0) % Place.all.count] }
-            .first { !self.skipped.contains($0.id) } ?? Place.all[(i + 1) % Place.all.count]
+        guard let i = last.flatMap({ last in all.firstIndex { $0.id == last.id } }) else { return round[0] }
+        return (1...all.count).lazy.map { all[(i + $0) % all.count] }
+            .first { !self.skipped.contains($0.id) } ?? all[(i + 1) % all.count]
     }
 
     /// SplitMix64's finaliser: a leg's number, scrambled, so a shuffled round is the same each time it is worked out.
