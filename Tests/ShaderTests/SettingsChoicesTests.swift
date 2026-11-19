@@ -138,6 +138,16 @@ struct PlaceRoundTests {
         #expect(places == round(skipping: skipped, shuffled: true, count: 200))
     }
 
+    /// Three places shuffled don't fall into one fixed turn: ruling out the one before as well would leave one choice.
+    @Test func threePlacesShuffledVary() {
+        let ticked: Set = ["punjab", "lisse", "lapland"]
+        let places = Array(round(skipping: Set(Place.all.map(\.id)).subtracting(ticked), shuffled: true, count: 200).dropFirst())
+        for (a, b) in zip(places, places.dropFirst()) { #expect(a != b && ticked.contains(b)) }
+        let steps = Set(zip(places, places.dropFirst()).map { "\($0)>\($1)" })
+        // Each place goes on to both of the others at some point, so neither order around the three is fixed.
+        #expect(steps.count == 6)
+    }
+
     @Test(arguments: [false, true])
     func twoPlacesTakeTurns(shuffled: Bool) {
         let ticked = ["normandy", "lisse"]

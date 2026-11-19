@@ -238,7 +238,8 @@ public final class Journey {
     }
 
     /// The place to move on to after the last leg: the next one in the round, or with `shuffles` any but the one
-    /// before, and the one before that where the round has room, so it never goes straight back. A round with
+    /// before, and the one before that where at least two others are left, so it doesn't go straight back. With three
+    /// in the round it may: ruling both out would leave one choice, and the same turn every time. A round with
     /// everything left out is taken as all of them; after a place that isn't in it at all, it starts from the top.
     /// Nil over the only place in the round: it stays there, rather than crossing into another stretch of it.
     func nextPlace() -> Place? {
@@ -249,7 +250,7 @@ public final class Journey {
         if shuffles {
             let recent = legs.suffix(2).map(\.place.id)
             var choices = round.filter { $0.id != last?.id }
-            if choices.count > 1, recent.count == 2 { choices.removeAll { $0.id == recent[0] } }
+            if choices.count > 2, recent.count == 2 { choices.removeAll { $0.id == recent[0] } }
             if choices.isEmpty { return last ?? round[0] }
             return choices[Int(Self.scramble(UInt64(nextIndex)) % UInt64(choices.count))]
         }

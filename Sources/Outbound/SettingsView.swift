@@ -383,16 +383,11 @@ private struct LicensePane: View {
     var body: some View {
         Form {
             Section {
-                if !LicenseController.isGated {
-                    LabeledContent("License", value: String(localized: "Development build"))
-                } else if license.record == nil || !license.unlocks {
-                    // A key refunded, or not checked for too long, is kept but no longer unlocks it; the line in red
-                    // below says which.
-                    LabeledContent("License", value: String(localized: "Not active on this Mac"))
-                } else {
-                    LabeledContent("License") {
-                        HStack {
-                            Text("Active on \(license.macName)").foregroundStyle(.secondary)
+                LabeledContent("License") {
+                    HStack {
+                        Text(license.statusLine).foregroundStyle(.secondary)
+                        // Whenever a key is kept, even one that no longer unlocks it, so this Mac can be freed from here.
+                        if LicenseController.isGated, license.record != nil {
                             Button("Deactivate") { Task { await license.deactivate() } }
                                 .disabled(license.busy)
                         }
@@ -451,12 +446,6 @@ private struct AboutPane: View {
 private struct LicenseCard: View {
     @ObservedObject var license: LicenseController
 
-    private var state: String {
-        if !LicenseController.isGated { return String(localized: "Development build") }
-        if license.record == nil || !license.unlocks { return String(localized: "Not active on this Mac") }
-        return String(localized: "Active on \(license.macName)")
-    }
-
     var body: some View {
         HStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage)
@@ -465,7 +454,7 @@ private struct LicenseCard: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: "Outbound").font(.headline)
-                Text(state).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                Text(license.statusLine).font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
             Spacer(minLength: 0)
         }

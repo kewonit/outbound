@@ -217,12 +217,13 @@ final class Bench {
         shipped.label = "v1.0 shaders"
     }
 
-    /// Built as the app builds its library: the files joined in order, with fast math.
+    /// Built as the app builds its library: the files joined in order, in Metal 3, with fast math.
     private static func library(from folder: URL, probes: String, device: MTLDevice) throws -> MTLLibrary {
         let source = try ShaderLibrary.files
             .map { try String(contentsOf: folder.appending(path: $0), encoding: .utf8) }
             .joined(separator: "\n")
         let options = MTLCompileOptions()
+        options.languageVersion = .version3_0
         if #available(macOS 15, *) {
             options.mathMode = .fast
         } else {

@@ -64,6 +64,14 @@ final class LicenseController: ObservableObject {
         Host.current().localizedName ?? "Mac"
     }
 
+    /// How the license stands on this Mac, in a few words, for Settings. A key refunded, or not checked for too long,
+    /// is kept but no longer unlocks it: the message says which.
+    var statusLine: String {
+        if !Self.isGated { return String(localized: "Development build") }
+        if record == nil || !unlocks { return String(localized: "Not active on this Mac") }
+        return String(localized: "Active on \(macName)")
+    }
+
     func activate(_ typed: String) async {
         let key = LicenseStatus.clean(typed)
         guard !key.isEmpty, !busy else { return }
@@ -80,7 +88,7 @@ final class LicenseController: ObservableObject {
     private func activateKey(_ key: String) async throws {
         let previous = record
         // The same key pasted again, say after a long time offline: confirm this Mac's activation rather than
-        // taking another of the key's three.
+        // taking another of the key's activations.
         if let previous, previous.key == key, let confirmed = try? await Polar().validate(previous) {
             store(confirmed)
             return
@@ -246,6 +254,9 @@ final class LicenseController: ObservableObject {
         defer { busy = false }
         do {
             try await Polar().deactivate(record)
+            forget()
+        } catch Polar.Failure.noLongerActive, Polar.Failure.unknownKey {
+            // The store holds nothing of this key to free any more: let it go here too.
             forget()
         } catch {
             fail(error)

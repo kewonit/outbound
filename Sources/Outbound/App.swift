@@ -448,8 +448,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             journey.skipped = preferences.skippedPlaces
             journey.shuffles = preferences.shufflesPlaces
             journey.order = order
-            // The places ahead that nobody has seen yet follow the new round.
-            world.placesChanged()
+            // The places ahead that nobody has seen yet follow the new round. Not at launch: the run that made the
+            // painting chose them under these same choices, and the desktop's size isn't known yet, so a place in the
+            // painting could be taken for one beyond it.
+            if preferencesApplied { world.placesChanged() }
         }
         world.followsPointer = preferences.followsPointer
         // The gull fades, unless the flight is held and no time passes for it to.
@@ -474,13 +476,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 refreshPainting(force: true)
             } else if birdChanged {
                 // Once the gull has faded in or out, or the painting would show it as it was for minutes.
-                DispatchQueue.main.asyncAfter(deadline: .now() + World.birdFade + 0.2) { [weak self] in
-                    MainActor.assumeIsolated { self?.refreshPainting(force: true) }
-                }
+                refreshPaintingAfterFade()
             }
         }
         stillsWereOn = preferences.matchingStill
         preferencesApplied = true
+    }
+
+    /// Makes a new painting once the gull has finished fading, which runs on the flight's time, so it can take a little
+    /// longer than the fade just after the flight sets off. A hold finishes a fade at once.
+    private func refreshPaintingAfterFade(tries: Int = 20) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if self.world.birdIsFading, tries > 0 { return self.refreshPaintingAfterFade(tries: tries - 1) }
+                self.refreshPainting(force: true)
+            }
+        }
     }
 
     // MARK: - Menu
@@ -552,9 +564,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Place.all.sorted(by: byName).forEach { places.addItem(destination($0)) }
         if !Place.extended.isEmpty {
             places.addItem(.separator())
-            let heading = NSMenuItem(title: String(localized: "Extended Places"), action: nil, keyEquivalent: "")
-            heading.isEnabled = false
-            places.addItem(heading)
+            places.addItem(heading(String(localized: "Extended Places")))
             Place.extended.sorted(by: byName).forEach { places.addItem(destination($0)) }
         }
         menu.addItem(submenu(String(localized: "Fly To"), places, symbol: "airplane"))

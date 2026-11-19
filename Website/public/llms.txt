@@ -4,7 +4,7 @@
 
 - Your Mac paints it live with Metal as it flies, so it never loops.
 - The places: Punjab (India), Niigata (Japan), the Serengeti (Tanzania), Normandy (France), Lisse (Netherlands), La Pampa (Argentina), Lapland (Finland) and Kansas (United States).
-- It pauses when the screen sleeps or Low Power Mode is on, or while the desktop is hidden if Pause When Hidden is on. On battery it can hold a still painting instead.
+- It pauses when the screen sleeps or Low Power Mode is on, and while windows cover the desktop, unless that is turned off in Settings, under Saving Power. On battery it can hold a still painting instead.
 - One landscape runs across every display. Your own wallpaper comes back when you quit.
 - Updates are free and install themselves. The app has no account and no analytics.
 
