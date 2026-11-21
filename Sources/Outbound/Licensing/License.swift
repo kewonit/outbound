@@ -256,8 +256,19 @@ final class LicenseController: ObservableObject {
             try await Polar().deactivate(record)
             forget()
         } catch Polar.Failure.noLongerActive, Polar.Failure.unknownKey {
-            // The store holds nothing of this key to free any more: let it go here too.
-            forget()
+            // The store says it holds nothing of this key to free any more. Were that answer mistaken, the store would
+            // go on counting this Mac with nothing kept here to free it, so the key goes only once a check agrees.
+            do {
+                let confirmed = try await Polar().validate(record)
+                guard self.record == record else { return }
+                store(confirmed)
+                fail(Polar.Failure.server(404))
+            } catch Polar.Failure.noLongerActive, Polar.Failure.unknownKey {
+                guard self.record == record else { return }
+                forget()
+            } catch {
+                fail(error)
+            }
         } catch {
             fail(error)
         }
