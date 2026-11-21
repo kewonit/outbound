@@ -7,7 +7,8 @@
 //                                      With ?from=appstore, as the Mac App Store copy opens them, without any way
 //                                      to buy or download it here (forAppStore).
 //   GET  /buy[?currency=usd]           On to a new Polar checkout for Outbound, in that money, or in dollars.
-//   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
+//   GET  /download                     On to the newest disk image, /download/Outbound-v1.0.dmg and so on.
+//   GET  /download/Outbound-v1.0.dmg   That version's disk image, or its .zip, from the site's own storage.
 //   POST /api/checkout                 A new Polar checkout for Outbound, in the buyer's money: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
 //                                      { status: "ready", key, email, paid } or { status: "pending" | "open" | ... }.
@@ -42,6 +43,8 @@ const MESSAGE_LIMIT = 2000;
 const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
 // The app's line about how the painting runs on that Mac: chip, macOS, holds, GPU errors and cost.
 const DIAG = /^[A-Za-z0-9 =:,._-]{1,160}$/;
+// What a release puts up for download: its disk image and its zip, by version.
+const RELEASE_FILE = /^Outbound-v(\d{1,3}(?:\.\d{1,3}){1,2})\.(dmg|zip)$/;
 // Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
 // the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
 // of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $4.99. Turkish pages
@@ -77,9 +80,10 @@ const PRICES = {
 const PRICE_OR_DOLLARS = /(<a\b[^>]*\sdata-dollars\b[^>]*>)([\s\S]*?<\/a>)|\$4\.99(?![\d.,])/g;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === "/download") return download(request, env);
+    if (url.pathname === "/download") return newest(request, env);
+    if (url.pathname.startsWith("/download/")) return download(request, env, ctx, url);
     if (url.pathname === "/buy") return buy(request, env, url);
     if (TRANSLATED.has(url.pathname)) return forAppStore(url, await page(request, env, url));
     if (!url.pathname.startsWith("/api/")) return forAppStore(url, await priced(request, env));
@@ -98,15 +102,44 @@ export default {
   },
 };
 
-// The newest disk image, read from the site's own update feed, which scripts/release.sh writes once the release
+// The newest disk image is the first in the site's own update feed, which scripts/release.sh writes once the release
 // is up. No call to GitHub's API, whose limits shared addresses run into. Before any release, the releases page.
-async function download(request, env) {
+async function newest(request, env) {
   const feed = await env.ASSETS.fetch(new Request(new URL("/appcast.xml", request.url)));
-  const match = (await feed.text()).match(/<enclosure url="(https:\/\/github\.com\/kewonit\/outbound\/[^"]+\.dmg)"/);
-  return new Response(null, {
-    status: 302,
-    headers: { Location: match ? match[1] : "https://github.com/kewonit/outbound/releases/latest", "Cache-Control": "no-store" },
+  const match = (await feed.text()).match(/<enclosure url="[^"]*\/(Outbound-v[\d.]+\.dmg)"/);
+  return redirect(match ? `/download/${match[1]}` : "https://github.com/kewonit/outbound/releases/latest");
+}
+
+// A release's disk image or zip, from the site's own storage on Cloudflare (DOWNLOADS, in R2), which
+// scripts/release.sh fills. GitHub sent them slowly, at times about 20 KB a second, to the app's updates as well.
+// Once sent, a file is kept in the cache where it was asked for, which also answers a download resumed part way.
+// A file that isn't in storage comes from its GitHub release.
+async function download(request, env, ctx, url) {
+  const name = url.pathname.slice("/download/".length);
+  const release = name.match(RELEASE_FILE);
+  if (!release) return env.ASSETS.fetch(request);
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response(null, { status: 405, headers: { Allow: "GET, HEAD" } });
+  }
+  const key = new Request(`${url.origin}${url.pathname}`, request);
+  if (request.method === "GET") {
+    const kept = await caches.default.match(key);
+    if (kept) return kept;
+  }
+  const file = request.method === "GET" ? await env.DOWNLOADS.get(name) : await env.DOWNLOADS.head(name);
+  if (!file) return redirect(`https://github.com/kewonit/outbound/releases/download/v${release[1]}/${name}`);
+  const headers = new Headers({
+    "Content-Type": release[2] === "dmg" ? "application/x-apple-diskimage" : "application/zip",
+    "Content-Disposition": `attachment; filename="${name}"`,
+    "Content-Length": String(file.size),
+    // A version's files never change once out: scripts/release.sh won't make the same version twice.
+    "Cache-Control": "public, max-age=31536000, immutable",
+    ETag: file.httpEtag,
   });
+  if (!file.body) return new Response(null, { headers });
+  const response = new Response(file.body, { headers });
+  ctx.waitUntil(caches.default.put(key, response.clone()));
+  return response;
 }
 
 // An English page, or a redirect to the same page in the visitor's language. Search engines, which send no

@@ -6,7 +6,12 @@
   // Secrets, set once and kept across deploys with npx wrangler secret put NAME: POLAR_ACCESS_TOKEN, and for the
   // waitlist and feedback SUPABASE_URL, SUPABASE_KEY and WAITLIST_TOKEN (worker/supabase.sql). Locally they go in
   // .dev.vars.
+  //
+  // Each release's disk image and zip go in the R2 bucket outbound-downloads (scripts/release.sh puts them there), which
+  // the Worker serves at /download/Outbound-v1.0.dmg and so on. It is private: nothing reaches it but the Worker.
   "name": "outbound",
+  // The edbn.me account, which holds the site and its bucket.
+  "account_id": "1f859c2c2ed610755277b10e37f7005e",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "build": { "command": "npm run build" },
@@ -15,8 +20,8 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": [
-      "/api/*", "/buy", "/download", "/", "/support", "/thanks", "/waitlist", "/feedback", "/*/", "/*/support", "/*/thanks",
-      "/*/waitlist", "/*/feedback", "/license", "/privacy", "/terms"
+      "/api/*", "/buy", "/download", "/download/*", "/", "/support", "/thanks", "/waitlist", "/feedback", "/*/",
+      "/*/support", "/*/thanks", "/*/waitlist", "/*/feedback", "/license", "/privacy", "/terms"
     ]
   },
   "vars": {
@@ -32,6 +37,7 @@
     // Polar's own checkout link for Outbound for 1 Mac, where the site's Buy goes when a checkout can't be made.
     "POLAR_CHECKOUT_LINK": "https://buy.polar.sh/polar_cl_6pzC7vjcRHCZEWxV1M5mQ6zrmGvVYPv3dJpzc2Qv9a9"
   },
+  "r2_buckets": [{ "binding": "DOWNLOADS", "bucket_name": "outbound-downloads" }],
   "ratelimits": [
     { "name": "CHECKOUTS", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
     { "name": "LOOKUPS", "namespace_id": "1102", "simple": { "limit": 60, "period": 60 } },
