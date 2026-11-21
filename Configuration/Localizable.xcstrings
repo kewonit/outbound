@@ -10138,7 +10138,7 @@
       }
     },
     "This key is already in use on as many Macs as it allows, maybe on this Mac before. Free one up in your customer portal, or in Outbound's Settings on another Mac, then try again.": {
-      "comment": "When a key is active on all the Macs it allows: 1 for keys bought from 13 November 2026, 3 for earlier ones. Also when this Mac had it before and lost its record, which only the portal can free.",
+      "comment": "When a key is active on all the Macs it allows: 1 for keys bought from 21 November 2026, 3 for earlier ones. Also when this Mac had it before and lost its record, which only the portal can free.",
       "localizations": {
         "ar": {
           "stringUnit": {

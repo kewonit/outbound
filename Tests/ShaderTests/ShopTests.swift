@@ -77,7 +77,7 @@ struct ShopTests {
             Issue.record("Expected tooManyMacs, got \(String(describing: error))")
             return
         }
-        // Keys allow 1 Mac or, bought before 13 November 2026, 3: the message names neither.
+        // Keys allow 1 Mac or, bought before 21 November 2026, 3: the message names neither.
         let message = try #require((error as? LocalizedError)?.errorDescription)
         #expect(!message.contains("three") && !message.contains("3"))
         #expect(message.contains("as many Macs as it allows"))

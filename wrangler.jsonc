@@ -26,7 +26,7 @@
     "POLAR_PRODUCT_ID": "48c826ac-6e11-4d85-9ff4-4e622d34e5b1",
     "POLAR_BENEFIT_ID": "141bb4f5-5ebd-4b8e-8505-f213fb98c76a",
     // What the Buy in app versions up to 1.8.1 sells: Outbound for up to 3 Macs, as their buy window says. Every key
-    // bought before 13 November 2026 is one of these.
+    // bought before 21 November 2026 is one of these.
     "POLAR_APP_PRODUCT_ID": "e7c27b2b-6c8d-4514-82dc-9f6ad3394928",
     "POLAR_APP_BENEFIT_ID": "b08abf7f-b1d6-4b01-aec0-37aabfbbae54",
     // Polar's own checkout link for Outbound for 1 Mac, where the site's Buy goes when a checkout can't be made.
