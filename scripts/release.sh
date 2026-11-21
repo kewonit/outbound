@@ -17,6 +17,7 @@ cd "$(dirname "$0")/.."
 usage='Usage: scripts/release.sh <version> "<what is new>"'
 version="${1:?$usage}"
 notes="${2:?$usage}"
+[[ "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]] || { echo "A version looks like 1.9 or 1.9.1." >&2; exit 1; }
 identity="Developer ID Application: Kartik Kulloli (55W3P96VL4)"
 plist=Configuration/Info.plist
 appcast=Website/public/appcast.xml
@@ -31,6 +32,9 @@ sign_update=.build/artifacts/sparkle/Sparkle/bin/sign_update
 bucket=outbound-downloads
 npx wrangler r2 bucket info "$bucket" >/dev/null 2>&1 ||
     { echo "Can't reach the $bucket bucket on Cloudflare: log in with npx wrangler login." >&2; exit 1; }
+# Caches near downloaders keep a file for a day, so a version's files go up once and are never replaced.
+! npx wrangler r2 object get "$bucket/Outbound-v$version.dmg" --remote --pipe >/dev/null 2>&1 ||
+    { echo "The $bucket bucket already has v$version." >&2; exit 1; }
 
 # The new version, and a build number one past the last, which is what Sparkle compares.
 build=$(( $(plutil -extract CFBundleVersion raw "$plist") + 1 ))

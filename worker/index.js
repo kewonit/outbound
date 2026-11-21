@@ -43,8 +43,9 @@ const MESSAGE_LIMIT = 2000;
 const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
 // The app's line about how the painting runs on that Mac: chip, macOS, holds, GPU errors and cost.
 const DIAG = /^[A-Za-z0-9 =:,._-]{1,160}$/;
-// What a release puts up for download: its disk image and its zip, by version.
-const RELEASE_FILE = /^Outbound-v(\d{1,3}(?:\.\d{1,3}){1,2})\.(dmg|zip)$/;
+// What a release puts up for download: its disk image and its zip, by version. scripts/release.sh makes versions like
+// 1.9 and 1.9.1; a name of any other version still finds its GitHub release.
+const RELEASE_FILE = /^Outbound-v(\d[\w.-]{0,30})\.(dmg|zip)$/;
 // Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
 // the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
 // of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $4.99. Turkish pages
@@ -106,14 +107,15 @@ export default {
 // is up. No call to GitHub's API, whose limits shared addresses run into. Before any release, the releases page.
 async function newest(request, env) {
   const feed = await env.ASSETS.fetch(new Request(new URL("/appcast.xml", request.url)));
-  const match = (await feed.text()).match(/<enclosure url="[^"]*\/(Outbound-v[\d.]+\.dmg)"/);
+  const match = (await feed.text()).match(/<enclosure url="[^"]*\/(Outbound-v[\w.-]+\.dmg)"/);
   return redirect(match ? `/download/${match[1]}` : "https://github.com/kewonit/outbound/releases/latest");
 }
 
 // A release's disk image or zip, from the site's own storage on Cloudflare (DOWNLOADS, in R2), which
 // scripts/release.sh fills. GitHub sent them slowly, at times about 20 KB a second, to the app's updates as well.
-// Once sent, a file is kept in the cache where it was asked for, which also answers a download resumed part way.
-// A file that isn't in storage comes from its GitHub release.
+// Once sent whole, a file is kept for a day in the cache where it was asked for. A download resumed part way gets the
+// rest, from the cache or from storage. A file that isn't in storage, or storage that fails, sends the download on to
+// the file's GitHub release.
 async function download(request, env, ctx, url) {
   const name = url.pathname.slice("/download/".length);
   const release = name.match(RELEASE_FILE);
@@ -121,25 +123,54 @@ async function download(request, env, ctx, url) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(null, { status: 405, headers: { Allow: "GET, HEAD" } });
   }
+  const github = `https://github.com/kewonit/outbound/releases/download/v${release[1]}/${name}`;
   const key = new Request(`${url.origin}${url.pathname}`, request);
-  if (request.method === "GET") {
-    const kept = await caches.default.match(key);
-    if (kept) return kept;
+  const part = request.method === "GET" && request.headers.has("Range");
+  let file;
+  try {
+    if (request.method === "GET") {
+      const kept = await caches.default.match(key);
+      if (kept) return kept;
+    }
+    file = request.method === "HEAD"
+      ? await env.DOWNLOADS.head(name)
+      : await env.DOWNLOADS.get(name, part ? { range: request.headers } : {});
+  } catch (error) {
+    console.error(`/download/${name}: ${error.message}`);
+    return redirect(github);
   }
-  const file = request.method === "GET" ? await env.DOWNLOADS.get(name) : await env.DOWNLOADS.head(name);
-  if (!file) return redirect(`https://github.com/kewonit/outbound/releases/download/v${release[1]}/${name}`);
+  if (!file) return redirect(github);
   const headers = new Headers({
     "Content-Type": release[2] === "dmg" ? "application/x-apple-diskimage" : "application/zip",
     "Content-Disposition": `attachment; filename="${name}"`,
     "Content-Length": String(file.size),
-    // A version's files never change once out: scripts/release.sh won't make the same version twice.
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Accept-Ranges": "bytes",
+    // Only a day, in case a file ever has to be replaced, though scripts/release.sh never puts a version up twice.
+    "Cache-Control": "public, max-age=86400",
     ETag: file.httpEtag,
+    // As every page has (Website/public/_headers, which reaches only the files the site serves itself).
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
   });
   if (!file.body) return new Response(null, { headers });
+  // Storage sends the whole file for a range it can't make sense of, or one past the end.
+  const [first, last] = file.range ? span(file.range, file.size) : [0, file.size - 1];
+  if (first > 0 || last < file.size - 1) {
+    headers.set("Content-Range", `bytes ${first}-${last}/${file.size}`);
+    headers.set("Content-Length", String(last - first + 1));
+    return new Response(file.body, { status: 206, headers });
+  }
   const response = new Response(file.body, { headers });
-  ctx.waitUntil(caches.default.put(key, response.clone()));
+  ctx.waitUntil(caches.default.put(key, response.clone()).catch(() => {}));
   return response;
+}
+
+// The first and last byte an R2 range covers, in a file of that size.
+function span(range, size) {
+  if (range.suffix !== undefined) return [Math.max(size - range.suffix, 0), size - 1];
+  const first = range.offset ?? 0;
+  const last = range.length === undefined ? size - 1 : first + range.length - 1;
+  return [first, Math.min(last, size - 1)];
 }
 
 // An English page, or a redirect to the same page in the visitor's language. Search engines, which send no
