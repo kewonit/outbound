@@ -1,7 +1,6 @@
 import AppKit
 import Combine
 import OutboundCore
-import ServiceManagement
 import SwiftUI
 
 @main
@@ -335,10 +334,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
         // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
-        // screens are asleep, as an update installs, and as the session ends when Outbound opens again at login,
-        // for the login window; the next launch carries on from it.
-        let opensAgain = relaunching || sessionEnding && SMAppService.mainApp.status == .enabled
-        if !opensAgain, !displays.isAsleep { restorePictures() }
+        // screens are asleep, as an update installs, and as the session ends, for the login window: a new desktop
+        // picture then has macOS write it out again, and the Mac waits on that for about ten seconds before it powers
+        // off. The next launch carries on from the painting, or puts the user's own picture back with it turned off.
+        let keepsPainting = relaunching || sessionEnding || displays.isAsleep
+        if !keepsPainting { restorePictures() }
     }
 
     /// The GPU takes no more of Outbound's work, after too much of it ran too long, so nothing it draws shows any more
