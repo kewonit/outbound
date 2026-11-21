@@ -108,8 +108,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
         sessionEnd.onChange = { [weak self] ending in
-            self?.stills.sessionEnding = ending
-            self?.displays.setSessionEnding(ending)
+            guard let self else { return }
+            // A painting dropped on its way while the session was ending is made again once it carries on.
+            if stills.setSessionEnding(ending) { painted.leg = -1 }
+            displays.setSessionEnding(ending)
         }
         sessionEnd.start()
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.

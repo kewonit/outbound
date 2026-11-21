@@ -33,7 +33,9 @@ final class StillWriter {
     /// The Mac is shutting down, restarting or logging out: the desktop picture stays as it is, so a painting still on
     /// its way is dropped. A new picture then has macOS write it out again for the login window, and the Mac waits on
     /// that before it powers off.
-    var sessionEnding = false
+    private var sessionEnding = false
+    /// A painting was dropped on its way while the session was ending, so the desktop still shows an older one.
+    private var droppedWhileEnding = false
     /// The last painting's stamp, so two in one millisecond never share a name.
     private var lastStamp = 0
     /// Counts moves between desktops, so a painting made for one never lands on another.
@@ -149,6 +151,7 @@ final class StillWriter {
         // whose picture this painting would cover without knowing it, or the Mac is shutting down.
         guard turn == self.turn, !sessionEnding, let screen = screen(id),
               NSWorkspace.shared.desktopImageURL(for: screen) == covered else {
+            if turn == self.turn, sessionEnding { droppedWhileEnding = true }
             try? FileManager.default.removeItem(at: url)
             return
         }
@@ -210,6 +213,15 @@ final class StillWriter {
             originals[name] = nil
             savedOriginals = originals
         }
+    }
+
+    /// The session starts to end, or carries on after all. Returns whether a painting was dropped on its way while it
+    /// was ending, so it can be made again.
+    @discardableResult
+    func setSessionEnding(_ ending: Bool) -> Bool {
+        sessionEnding = ending
+        defer { droppedWhileEnding = false }
+        return !ending && droppedWhileEnding
     }
 
     /// The user has moved to other desktops: a painting on its way for the ones they left never lands. Returns
