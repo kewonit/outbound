@@ -7,6 +7,15 @@
     <description>New versions of Outbound.</description>
     <language>en</language>
     <item>
+      <title>Outbound v1.9</title>
+      <pubDate>Sat, 21 Nov 2026 10:17:02 +0000</pubDate>
+      <description><![CDATA[<p>Settings opens in its own window, like System Settings, with new Flight and Places sections: fly straight, hide the seagull or stop it following the pointer, and choose, shuffle or reorder the places. The seagull menu is shorter and clearer, Speed is now Slow, Medium and Fast, and the power settings are in Settings under Saving Power. New license keys work on one Mac at a time, and keys you already have still work on three. Shutting down, restarting or logging out no longer leaves the landscape stuck on screen for about ten seconds.</p>]]></description>
+      <sparkle:version>12</sparkle:version>
+      <sparkle:shortVersionString>1.9</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.9/Outbound-v1.9.dmg" type="application/octet-stream" sparkle:edSignature="pDskzjSmlr8Ku/fjhmQpShHXktWeUF2tLeyBa5U7/fD9isuFcDgDR0r7T1XELxImLdA/WqrIpMwHJ+mf4F37CQ==" length="5916654"/>
+    </item>
+    <item>
       <title>Outbound v1.8.1</title>
       <pubDate>Thu, 12 Nov 2026 18:46:51 +0000</pubDate>
       <description><![CDATA[<p>Fly To now changes every display, not just the lowest one. Also fixed: a display under a full-screen app kept the old place, picking another place during Fly To could show an older one for a moment, and other displays could keep the river in its old spot when the main display changed size.</p>]]></description>
