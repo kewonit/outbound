@@ -39,6 +39,9 @@ final class ActivationWindow {
         window.title = String(localized: "Unlock Outbound")
         window.showsOnlyCloseButton()
         window.titlebarAppearsTransparent = true
+        // Named for Mission Control and VoiceOver, not over the painting: since Outbound is built for the current
+        // SDK, macOS draws a title on a transparent bar.
+        window.titleVisibility = .hidden
         window.opensWhereTheUserIs()
         window.isReleasedWhenClosed = false
         window.center()
@@ -131,7 +134,7 @@ private struct ActivationView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .disabled(license.busy)
-                Text("$4.99 + tax, once. Up to 3 Macs.")
+                Text("$4.99 + tax, once. For 1 Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -159,6 +162,9 @@ private struct ActivationView: View {
                 .font(.callout)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
+            if license.offersPortal {
+                Button("Open Customer Portal") { NSWorkspace.shared.open(Store.portalURL) }
+            }
         }
     }
 

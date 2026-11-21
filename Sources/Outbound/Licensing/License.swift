@@ -13,7 +13,26 @@ final class LicenseController: ObservableObject {
     @Published private(set) var record: LicenseRecord?
     @Published private(set) var status: LicenseStatus
     @Published private(set) var busy = false
-    @Published private(set) var message: String?
+    @Published private(set) var message: String? {
+        // A new message, or none, is not about the failure before it.
+        didSet { failure = nil }
+    }
+    /// The store's refusal the message tells of, when it is one.
+    @Published private(set) var failure: Polar.Failure?
+
+    /// The key is on as many Macs as it allows, which only freeing one in the customer portal, or in Settings on the
+    /// other Mac, can fix: worth a button that goes there.
+    var offersPortal: Bool { Self.offersPortal(for: failure) }
+
+    nonisolated static func offersPortal(for failure: Error?) -> Bool {
+        if case .tooManyMacs = failure as? Polar.Failure { return true }
+        return false
+    }
+
+    private func fail(_ error: Error) {
+        message = error.localizedDescription
+        failure = error as? Polar.Failure
+    }
     /// A purchase started from the app is being watched for.
     @Published private(set) var waitingForPurchase = false
     var onChange: (Bool) -> Void = { _ in }
@@ -45,6 +64,14 @@ final class LicenseController: ObservableObject {
         Host.current().localizedName ?? "Mac"
     }
 
+    /// How the license stands on this Mac, in a few words, for Settings. A key refunded, or not checked for too long,
+    /// is kept but no longer unlocks it: the message says which.
+    var statusLine: String {
+        if !Self.isGated { return String(localized: "Development build") }
+        if record == nil || !unlocks { return String(localized: "Not active on this Mac") }
+        return String(localized: "Active on \(macName)")
+    }
+
     func activate(_ typed: String) async {
         let key = LicenseStatus.clean(typed)
         guard !key.isEmpty, !busy else { return }
@@ -54,14 +81,14 @@ final class LicenseController: ObservableObject {
         do {
             try await activateKey(key)
         } catch {
-            message = error.localizedDescription
+            fail(error)
         }
     }
 
     private func activateKey(_ key: String) async throws {
         let previous = record
         // The same key pasted again, say after a long time offline: confirm this Mac's activation rather than
-        // taking another of the key's three.
+        // taking another of the key's activations.
         if let previous, previous.key == key, let confirmed = try? await Polar().validate(previous) {
             store(confirmed)
             return
@@ -188,7 +215,7 @@ final class LicenseController: ObservableObject {
                 // Paid and the key is ready; only the store was out of reach. Keep trying.
                 return .waiting
             } catch {
-                message = error.localizedDescription
+                fail(error)
                 return .failed
             }
             if pending?.checkout == checkout { stopWatching() }
@@ -228,8 +255,22 @@ final class LicenseController: ObservableObject {
         do {
             try await Polar().deactivate(record)
             forget()
+        } catch Polar.Failure.noLongerActive, Polar.Failure.unknownKey {
+            // The store says it holds nothing of this key to free any more. Were that answer mistaken, the store would
+            // go on counting this Mac with nothing kept here to free it, so the key goes only once a check agrees.
+            do {
+                let confirmed = try await Polar().validate(record)
+                guard self.record == record else { return }
+                store(confirmed)
+                fail(Polar.Failure.server(404))
+            } catch Polar.Failure.noLongerActive, Polar.Failure.unknownKey {
+                guard self.record == record else { return }
+                forget()
+            } catch {
+                fail(error)
+            }
         } catch {
-            message = error.localizedDescription
+            fail(error)
         }
     }
 

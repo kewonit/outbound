@@ -737,6 +737,8 @@ final class ViewRenderer {
         let birdPoint = bird.position - SIMD2(Double(frame.minX), Double(frame.minY))
         let birdVisible = birdPoint.x > -90 && birdPoint.y > -90
             && birdPoint.x < Double(frame.width) + 90 && birdPoint.y < Double(frame.height) + 90
+        // The shader shows that much of the gull and its shadow, and none at 0, where the sky skips it altogether.
+        let birdOpacity = birdVisible ? world.birdOpacity(at: t) : 0
         var finish = self.finish
         finish.z = drawsBird ? 1 : 0
         finish.w = groundFilter
@@ -748,7 +750,7 @@ final class ViewRenderer {
                          Float(cacheWidth), Float(cacheHeight)),
             bird: SIMD4(Float(birdPoint.x * scale), Float(birdPoint.y * scale), Float(bird.heading - .pi / 2),
                         Float(bird.bank)),
-            wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), birdVisible ? 1 : 0),
+            wings: SIMD4(Float(bird.wings), 14, Float(birdSize * scale), Float(birdOpacity)),
             finish: finish,
             clouds: SIMD4(Float(offset.x), Float(offset.y), Float(cloudPixel), 0),
             flock: .zero, flockShape: .zero, flockLook: .zero,

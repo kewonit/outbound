@@ -31,6 +31,32 @@ public final class Journey {
     /// How many times Fly To has gone somewhere new, so a display that drew nothing while one swept in can tell that
     /// the ground it keeps is of the place before.
     public private(set) var flights = 0
+    /// The places the flight moves on through, in turn, left out or not. Fly To still goes to any place.
+    public var order: [Place] = Place.all
+    /// Places left out of the round, by id.
+    public var skipped: Set<String> = []
+    /// Moves on to a place picked at random from the round rather than the next one in it.
+    public var shuffles = false
+
+    /// How long the sideways drift takes to slow to a stop, or to gather pace again.
+    public static let driftEase: TimeInterval = 8
+
+    /// The latest change to the drift's pace: from `since`, when its clock read `at`, it eased from `from` to `to`, 1
+    /// being its usual pace and 0 at a stop.
+    public struct Drift: Codable, Equatable, Sendable {
+        var since: TimeInterval
+        var at: Double
+        var from: Double
+        var to: Double
+    }
+
+    private var drift: Drift?
+
+    /// Whether the land comes straight down the screen, the sideways drift stopped, or stopping, where it was.
+    public var fliesStraight: Bool { drift?.to == 0 }
+    /// When the drift last started or stopped. Only the latest change is kept, so the camera's place sideways before
+    /// it is known only as far back as that one.
+    public var driftChanged: TimeInterval? { drift?.since }
 
     /// A Fly To: the leg it began, the legs as they were just before, and how far above the camera, in metres, its
     /// sweep reaches, when that was given.
@@ -80,13 +106,15 @@ public final class Journey {
         var anchorTime: TimeInterval
         var anchorY: Double
         var driftStart: TimeInterval
+        /// Nil from versions before the flight could go straight, which always drifted.
+        var drift: Drift?
     }
 
     public var snapshot: Snapshot {
         Snapshot(legs: legs.map { Snapshot.Stretch(index: $0.index, place: $0.place.id, start: $0.start,
                                                    sweepStart: $0.sweepStart) },
                  nextIndex: nextIndex, speed: speed, legLength: legLength, anchorTime: anchorTime, anchorY: anchorY,
-                 driftStart: driftStart)
+                 driftStart: driftStart, drift: drift)
     }
 
     /// Picks the journey up where `snapshot` left it, over the same land and at the same pace, with the seasons as they
@@ -103,6 +131,7 @@ public final class Journey {
         anchorTime = snapshot.anchorTime
         anchorY = snapshot.anchorY
         driftStart = snapshot.driftStart
+        drift = snapshot.drift.flatMap { [$0.since, $0.at, $0.from, $0.to].allSatisfy(\.isFinite) ? $0 : nil }
         legs = zip(snapshot.legs, places).map { saved, place in
             Leg(index: saved.index, place: place,
                 season: followsCalendar ? place.season(on: date) : place.signatureSeason,
@@ -115,10 +144,36 @@ public final class Journey {
         anchorY + speed * (time - anchorTime)
     }
 
-    /// A slow sideways drift so the flight never feels like a conveyor belt.
+    /// A slow sideways drift so the flight never feels like a conveyor belt, unless it flies straight.
     public func cameraX(at time: TimeInterval) -> Double {
-        let t = time - driftStart
+        let t = driftTime(at: time)
         return 70 * sin(t * 2 * .pi / 430) + 24 * sin(t * 2 * .pi / 163 + 1.3)
+    }
+
+    /// The drift's own clock, which runs with the flight's until it goes straight, then slows to a stop over
+    /// `driftEase`, so the land stops swaying where it is rather than sliding back to the middle. Gathering pace again
+    /// is the same played the other way. It depends on the time alone, so every display, and a rewind, agree on it.
+    private func driftTime(at time: TimeInterval) -> Double {
+        guard let drift else { return time - driftStart }
+        let elapsed = time - drift.since
+        // Before the change, as a display a frame behind or a rewind asks, it ran at the pace it had then.
+        guard elapsed > 0 else { return drift.at + drift.from * elapsed }
+        // The pace eases from one to the other along a smoothstep; what it has gained by then is all but the lag.
+        let gained = elapsed - Easing.rampLag(elapsed: elapsed, length: Self.driftEase)
+        return drift.at + drift.from * elapsed + (drift.to - drift.from) * gained
+    }
+
+    /// The drift's pace at `time`, 1 as usual and 0 stopped.
+    private func driftPace(at time: TimeInterval) -> Double {
+        guard let drift else { return 1 }
+        return drift.from + (drift.to - drift.from) * Easing.smoothstep((time - drift.since) / Self.driftEase)
+    }
+
+    /// Stops the sideways drift, or starts it again, easing into it from `time`, or with `atOnce` there already.
+    public func fliesStraight(_ on: Bool, at time: TimeInterval, atOnce: Bool = false) {
+        guard on != fliesStraight else { return }
+        let to: Double = on ? 0 : 1
+        drift = Drift(since: time, at: driftTime(at: time), from: atOnce ? to : driftPace(at: time), to: to)
     }
 
     public func setSpeed(_ newSpeed: Double, at time: TimeInterval) {
@@ -165,14 +220,51 @@ public final class Journey {
     /// earlier than `notBefore`: a leg that ran long, while the journey stayed put or the stay was shortened, then
     /// ends beyond the view, and the next place still drifts in from the top rather than appearing under it.
     public func extend(through y: Double, behind: Double, notBefore: Double = -.infinity, date: Date = .now) {
-        while !staysPut, let last = legs.last, last.start + legLength < y {
-            let i = Place.all.firstIndex { $0.id == last.place.id } ?? 0
+        while !staysPut, let last = legs.last, last.start + legLength < y, let next = nextPlace() {
             let start = max(last.start + legLength, notBefore)
-            append(Place.all[(i + 1) % Place.all.count], start: start, sweep: nil, date: date)
+            append(next, start: start, sweep: nil, date: date)
         }
         while legs.count > 2, legs[1].start < behind {
             legs.removeFirst()
         }
+    }
+
+    /// Forgets the legs that begin beyond world y, which nobody has seen yet, so the next `extend` chooses them again,
+    /// as after the round changed. The first leg always stays.
+    public func forgetLegs(beyond y: Double) {
+        while legs.count > 1, let last = legs.last, last.start > y, last.sweepStart == nil {
+            legs.removeLast()
+        }
+    }
+
+    /// The place to move on to after the last leg: the next one in the round, or with `shuffles` any but the one
+    /// before, and the one before that where at least two others are left, so it doesn't go straight back. With three
+    /// in the round it may: ruling both out would leave one choice, and the same turn every time. A round with
+    /// everything left out is taken as all of them; after a place that isn't in it at all, it starts from the top.
+    /// Nil over the only place in the round: it stays there, rather than crossing into another stretch of it.
+    func nextPlace() -> Place? {
+        let all = order.nonEmpty ?? Place.all
+        let round = all.filter { !skipped.contains($0.id) }.nonEmpty ?? all
+        let last = legs.last?.place
+        if round.count == 1, round[0].id == last?.id { return nil }
+        if shuffles {
+            let recent = legs.suffix(2).map(\.place.id)
+            var choices = round.filter { $0.id != last?.id }
+            if choices.count > 2, recent.count == 2 { choices.removeAll { $0.id == recent[0] } }
+            if choices.isEmpty { return last ?? round[0] }
+            return choices[Int(Self.scramble(UInt64(nextIndex)) % UInt64(choices.count))]
+        }
+        guard let i = last.flatMap({ last in all.firstIndex { $0.id == last.id } }) else { return round[0] }
+        return (1...all.count).lazy.map { all[(i + $0) % all.count] }
+            .first { !self.skipped.contains($0.id) } ?? all[(i + 1) % all.count]
+    }
+
+    /// SplitMix64's finaliser: a leg's number, scrambled, so a shuffled round is the same each time it is worked out.
+    private static func scramble(_ value: UInt64) -> UInt64 {
+        var z = value &+ 0x9E37_79B9_7F4A_7C15
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
     }
 
     /// Changes the land under the camera to another place, repainting what is on screen. It sweeps in over
@@ -209,4 +301,8 @@ public final class Journey {
     private func season(for place: Place, date: Date) -> Season {
         followsCalendar ? place.season(on: date) : place.signatureSeason
     }
+}
+
+private extension Array {
+    var nonEmpty: Self? { isEmpty ? nil : self }
 }

@@ -341,8 +341,22 @@ final class Wallpaper: NSObject {
 
     private func drawHeld() {
         guard !gpu.revoked else { return }
+        // Hidden while it was chasing the cursor on its own layer: that layer goes, and the landscape leaves it out.
+        if !renderer.drawsBird, !world.showsBird { dropBirdLayer() }
         draw(at: world.time, showing: CACurrentMediaTime(), presentAt: nil)
         if !renderer.drawsBird { drawBird(at: world.time) }
+    }
+
+    /// Takes the bird off its own layer at once, cancelling any hand-over on its way.
+    private func dropBirdLayer() {
+        renderer.drawsBird = true
+        birdHandOvers += 1
+        birdLink?.invalidate()
+        birdLink = nil
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        birdView.isHidden = true
+        CATransaction.commit()
     }
 
     var halfRateClouds: Bool {

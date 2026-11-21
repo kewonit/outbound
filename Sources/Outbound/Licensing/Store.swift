@@ -6,9 +6,9 @@ import Security
 /// site's API holds the only one.
 enum Store {
     static let organizationID = "687b5988-7a78-4642-968c-19a2d2ab3da7"
-    /// Polar's checkout for Outbound. The app normally asks the site for a checkout of its own, so it can watch
-    /// for the purchase; this link is the fallback when the site can't be reached.
-    static let checkoutURL = URL(string: "https://buy.polar.sh/polar_cl_2WXlRKhLcEPJSQ0KnyuM3gQNFurhMbUrD99Gl4EQHLA")!
+    /// Polar's checkout for Outbound for 1 Mac. The app normally asks the site for a checkout of its own, so it can
+    /// watch for the purchase; this link is the fallback when the site can't be reached.
+    static let checkoutURL = URL(string: "https://buy.polar.sh/polar_cl_6pzC7vjcRHCZEWxV1M5mQ6zrmGvVYPv3dJpzc2Qv9a9")!
     /// Where buyers find their key again and free up a Mac, signing in with a code sent to their email.
     static let portalURL = URL(string: "https://polar.sh/edbnme/portal")!
     static let price = "$4.99"
@@ -72,7 +72,9 @@ struct Polar {
             switch self {
             case .unknownKey: String(localized: "That key wasn't recognised. Check it against the one on your thank-you page or in your customer portal.")
             case .noLongerActive: String(localized: "That key is no longer active, perhaps because the purchase was refunded.")
-            case .tooManyMacs: String(localized: "This key is already in use on three Macs. Free one up in Outbound's settings on that Mac, or in your customer portal, then try again.")
+            // A Mac that lost its record (a failed save, a reset keychain, a new account) takes another activation of
+            // the same key, and Polar can't tell it is the same Mac: only the portal frees the one it had.
+            case .tooManyMacs: String(localized: "This key is already in use on as many Macs as it allows, maybe on this Mac before. Free one up in your customer portal, or in Outbound's Settings on another Mac, then try again.")
             case .malformed: String(localized: "That doesn't look like an Outbound license key.")
             case .busy: String(localized: "Too many tries in a row. Wait a moment, then try again.")
             case .offline: String(localized: "Outbound couldn't reach the store. Check your connection and try again.")
@@ -177,8 +179,10 @@ struct Shop {
 
     var session = URLSession.shared
 
+    /// A checkout for what the buy window offers: 1 Mac. Versions up to 1.8.1 ask with nothing, and the site sells
+    /// them the 3 Macs their window offered.
     func startCheckout() async throws -> Checkout {
-        let (data, response) = try await session.data(for: request("checkout", body: [:]))
+        let (data, response) = try await session.data(for: request("checkout", body: ["macs": "1"]))
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw Polar.Failure.offline }
         return try Store.decoder().decode(Checkout.self, from: data)
     }

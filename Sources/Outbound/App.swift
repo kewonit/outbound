@@ -1,7 +1,6 @@
 import AppKit
 import Combine
 import OutboundCore
-import ServiceManagement
 import SwiftUI
 
 @main
@@ -33,8 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var gpu: GPU!
     private var updates: Updates!
     private var licenseTimer: Timer?
-    private var settingsWindow: NSWindow?
+    private var settings: SettingsWindowController?
     private var stillsWereOn = false
+    /// Whether the preferences have been applied once, at launch, when changes take effect at once rather than easing.
+    private var preferencesApplied = false
     private var paintingTimer: Timer?
     /// What the painting on the desktop last showed: its place, its light, the world's moment, and when it was made.
     private var painted = (leg: -1, revision: -1, time: 0.0, at: -TimeInterval.infinity)
@@ -105,11 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if displays.isLocked { lockChanged(true) }
         if !paintsDesktop { restorePictures() }
         displays.onLockChange = { [weak self] locked in self?.lockChanged(locked) }
-        // The view at rest and the painting of it are the same picture, so it can't matter which is left on the screen.
-        displays.onSessionSettled = { [weak self] in self?.refreshPainting(force: true) }
         sessionEnd.onChange = { [weak self] ending in
-            self?.stills.keepsReplaced = ending
-            self?.displays.setSessionEnding(ending)
+            guard let self else { return }
+            // A painting dropped on its way while the session was ending is made again once it carries on.
+            if stills.setSessionEnding(ending) { painted.leg = -1 }
+            displays.setSessionEnding(ending)
         }
         sessionEnd.start()
         // macOS keeps a picture for each desktop, so check each one as it comes into view, once it has settled.
@@ -211,7 +212,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// spreading over the ground, and only on displays in view: a full-screen app's desktop goes away with it, and a
     /// painting there would never be put back. With the painting off, puts back the user's own picture if that was
     /// asked for while the Mac was locked.
+    ///
+    /// Nothing changes once the Mac asks to shut down, restart or log out, until the answer is no. A new desktop picture
+    /// then has macOS write it out again for the login window, and the Mac waits on that for about ten seconds before
+    /// it powers off, with the screen held still all the while.
     private func refreshPainting(force: Bool) {
+        guard !sessionEnd.ending else {
+            owesPainting = owesPainting || force
+            return
+        }
         guard paintsDesktop else {
             if stills.owesRestore, CACurrentMediaTime() - unlockedAt > 3 { restorePictures() }
             return
@@ -224,7 +233,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let shown = displays.wallpapersInView
         // Looked at every time, so the Mac locking knows which paintings are on screen.
         let showsOneMoment = stills.showsOneMoment(shown)
-        guard !world.isSweeping, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
+        // Not of a gull half faded in or out: once it is all there or gone.
+        guard !world.isSweeping, !world.birdIsFading, !shown.isEmpty, CACurrentMediaTime() - unlockedAt > 3 else {
             owesPainting = force
             return
         }
@@ -324,10 +334,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard displays != nil else { return }
         preferences.lastPlace = world.journey.leg(at: world.camera.y).place.id
         // Leave the desktop as the user had it before Outbound. The painting stays while the Mac is locked or its
-        // screens are asleep, as an update installs, and as the session ends when Outbound opens again at login,
-        // for the login window; the next launch carries on from it.
-        let opensAgain = relaunching || sessionEnding && SMAppService.mainApp.status == .enabled
-        if !opensAgain, !displays.isAsleep { restorePictures() }
+        // screens are asleep, as an update installs, and as the session ends, for the login window: a new desktop
+        // picture then has macOS write it out again, and the Mac waits on that for about ten seconds before it powers
+        // off. The next launch carries on from the painting, or puts the user's own picture back with it turned off.
+        let keepsPainting = relaunching || sessionEnding || displays.isAsleep
+        if !keepsPainting { restorePictures() }
     }
 
     /// The GPU takes no more of Outbound's work, after too much of it ran too long, so nothing it draws shows any more
@@ -380,6 +391,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             switch result {
             case .alreadyActive: await Notice.show(String(localized: "Outbound is already unlocked."), detail: "")
             case .activated: await Notice.show(String(localized: "Outbound now uses your new key."), detail: "")
+            case .failed where license.offersPortal:
+                // On as many Macs as it allows: the portal frees one.
+                let choice = await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "",
+                                               buttons: [String(localized: "Open Customer Portal"), String(localized: "OK")])
+                if choice == 0 { NSWorkspace.shared.open(Store.portalURL) }
             case .failed: await Notice.show(String(localized: "That purchase didn't unlock Outbound."), detail: license.message ?? "")
             case .waiting:
                 await Notice.show(String(localized: "Still processing your purchase."), detail: String(localized: "Try again in a minute."))
@@ -431,22 +447,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         journey.staysPut = preferences.stay == .forever
         if preferences.stay != .forever { journey.legLength = Double(preferences.stay.rawValue) * 60 * preferences.pace.speed }
+        // At launch it is straight from the first frame; later the sway slows to a stop, or picks up again.
+        let driftChanged = journey.fliesStraight != preferences.fliesStraight
+        journey.fliesStraight(preferences.fliesStraight, at: world.time, atOnce: !preferencesApplied)
+        let order = preferences.placeOrder.compactMap(Place.named)
+        if journey.skipped != preferences.skippedPlaces || journey.shuffles != preferences.shufflesPlaces
+            || journey.order.map(\.id) != order.map(\.id) {
+            journey.skipped = preferences.skippedPlaces
+            journey.shuffles = preferences.shufflesPlaces
+            journey.order = order
+            // The places ahead that nobody has seen yet follow the new round. Not at launch: the run that made the
+            // painting chose them under these same choices, and the desktop's size isn't known yet, so a place in the
+            // painting could be taken for one beyond it.
+            if preferencesApplied { world.placesChanged() }
+        }
+        world.followsPointer = preferences.followsPointer
+        // The gull fades, unless the flight is held and no time passes for it to.
+        let birdChanged = world.showsBird != preferences.showsBird
+        world.showBird(preferences.showsBird, atOnce: world.isHeld || !preferencesApplied)
         displays.power.batteryMode = preferences.batteryMode
-        displays.rest.after = preferences.restsWhenAway && !measuring ? 300 : nil
+        displays.rest.after = measuring ? nil : preferences.away.seconds
         displays.pausesWhenHidden = preferences.pausesWhenHidden
         displays.showsPlaceName = preferences.showsPlaceName
         let edgeChanged = displays.paperEdge != preferences.paperEdge
         displays.paperEdge = preferences.paperEdge
         activation?.paperEdge = preferences.paperEdge
         if world.isHeld {
-            // The light and the seasons are baked into the ground; the border is only drawn over it.
-            if looks { displays.repaintHeld() } else if edgeChanged { displays.redrawHeld() }
+            // The light and the seasons are baked into the ground; the border and the gull are only drawn over it.
+            if looks { displays.repaintHeld() } else if edgeChanged || birdChanged { displays.redrawHeld() }
         }
         if stills != nil {
             if stillsWereOn, !preferences.matchingStill { restorePictures() }
-            if edgeChanged || preferences.matchingStill != stillsWereOn { refreshPainting(force: true) }
+            // A painting from before the drift changed can't be gone back to as the Mac locks (see World.canRewind).
+            if edgeChanged || preferences.matchingStill != stillsWereOn || birdChanged && world.isHeld
+                || driftChanged && preferencesApplied {
+                refreshPainting(force: true)
+            } else if birdChanged {
+                // Once the gull has faded in or out, or the painting would show it as it was for minutes.
+                refreshPaintingAfterFade()
+            }
         }
         stillsWereOn = preferences.matchingStill
+        preferencesApplied = true
+    }
+
+    /// Makes a new painting once the gull has finished fading, which runs on the flight's time, so it can take a little
+    /// longer than the fade just after the flight sets off. A hold finishes a fade at once.
+    private func refreshPaintingAfterFade(tries: Int = 20) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if self.world.birdIsFading, tries > 0 { return self.refreshPaintingAfterFade(tries: tries - 1) }
+                self.refreshPainting(force: true)
+            }
+        }
     }
 
     // MARK: - Menu
@@ -483,34 +537,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
     }
 
+    // The menu, most used first: where it is and where to go, then how the painting looks and moves, then what lies
+    // over it, then the app. Settings that are set once, for battery and covered desktops, are in Settings.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         guard license.unlocks else {
-            let unlock = NSMenuItem(title: String(localized: "Unlock Outbound…"), action: #selector(openActivation), keyEquivalent: "")
-            unlock.target = self
-            menu.addItem(unlock)
+            menu.addItem(item(String(localized: "Unlock Outbound…"), #selector(openActivation), symbol: "key"))
             menu.addItem(feedbackItem())
             menu.addItem(.separator())
             if let dev = devBuildItem() { menu.addItem(dev) }
-            menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+            menu.addItem(quitItem())
             return
         }
+        // Where it is, and why it holds still when the Mac, not anyone's choice, makes it.
         let leg = world.journey.leg(at: world.camera.y)
-        let here = NSMenuItem(title: leg.place.name, action: nil, keyEquivalent: "")
-        here.attributedTitle = NSAttributedString(string: leg.place.name,
-                                                  attributes: [.font: NSFont.menuFont(ofSize: 0).bold])
-        here.isEnabled = false
-        menu.addItem(here)
-        let season = NSMenuItem(title: leg.season.line, action: nil, keyEquivalent: "")
-        season.isEnabled = false
-        menu.addItem(season)
+        menu.addItem(heading(leg.place.name))
         if let line = holdLine {
             let held = NSMenuItem(title: line, action: nil, keyEquivalent: "")
             held.isEnabled = false
+            mark(held, gpu.revoked ? "exclamationmark.triangle" : "pause.circle")
             menu.addItem(held)
         }
-        menu.addItem(.separator())
 
+        // The places A to Z, to be found by name.
         let places = NSMenu()
         func destination(_ place: Place) -> NSMenuItem {
             let item = NSMenuItem(title: place.name, action: #selector(fly(_:)), keyEquivalent: "")
@@ -519,70 +568,77 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = place.id == leg.place.id ? .on : .off
             return item
         }
-        Place.all.forEach { places.addItem(destination($0)) }
+        let byName = { (a: Place, b: Place) in a.name.localizedStandardCompare(b.name) == .orderedAscending }
+        Place.all.sorted(by: byName).forEach { places.addItem(destination($0)) }
         if !Place.extended.isEmpty {
             places.addItem(.separator())
-            let heading = NSMenuItem(title: String(localized: "Extended Places"), action: nil, keyEquivalent: "")
-            heading.isEnabled = false
-            places.addItem(heading)
-            Place.extended.forEach { places.addItem(destination($0)) }
+            places.addItem(heading(String(localized: "Extended Places")))
+            Place.extended.sorted(by: byName).forEach { places.addItem(destination($0)) }
         }
-        menu.addItem(submenu(String(localized: "Fly To"), places))
-        let pause = NSMenuItem(title: displays.isPaused ? String(localized: "Resume") : String(localized: "Pause"), action: #selector(togglePause),
-                               keyEquivalent: "")
-        pause.target = self
-        menu.addItem(pause)
+        menu.addItem(submenu(String(localized: "Fly To"), places, symbol: "airplane"))
+        menu.addItem(item(displays.isPaused ? String(localized: "Resume") : String(localized: "Pause"), #selector(togglePause),
+                          symbol: displays.isPaused ? "play" : "pause"))
         menu.addItem(.separator())
 
-        // How the painting looks.
+        // How the painting looks and moves, each with the choice a new install starts on first.
         let preferences = preferences
-        menu.addItem(choices(String(localized: "Light"), World.Light.allCases.map { ($0.title, $0) }, current: preferences.light) {
-            preferences.light = $0
-        })
-        menu.addItem(choices(String(localized: "Seasons"), [(String(localized: "What is growing there today"), true),
-                                                        (String(localized: "Each place at its best"), false)],
-                             current: preferences.followsCalendar) { preferences.followsCalendar = $0 })
-        let border = NSMenuItem(title: String(localized: "Painted Border"), action: #selector(toggleBorder), keyEquivalent: "")
-        border.target = self
-        border.state = preferences.paperEdge ? .on : .off
-        menu.addItem(border)
-        let name = NSMenuItem(title: String(localized: "Show Place Name"), action: #selector(toggleShowsPlaceName), keyEquivalent: "")
-        name.target = self
+        menu.addItem(choices(String(localized: "Light"), World.Light.allCases.map { ($0.title, $0) },
+                             current: preferences.light, symbol: "sun.max") { preferences.light = $0 })
+        menu.addItem(choices(String(localized: "Season"), [(String(localized: "At Its Best"), false),
+                                                       (String(localized: "As It Is Today"), true)],
+                             current: preferences.followsCalendar, symbol: "leaf") { preferences.followsCalendar = $0 })
+        menu.addItem(choices(String(localized: "Speed"), Preferences.Pace.allCases.map { ($0.title, $0) },
+                             current: preferences.pace, symbol: "speedometer") { preferences.pace = $0 })
+        menu.addItem(choices(String(localized: "Next Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
+                             current: preferences.stay, symbol: "clock") { preferences.stay = $0 })
+        menu.addItem(.separator())
+
+        // What lies over the painting.
+        let name = item(String(localized: "Place Name"), #selector(toggleShowsPlaceName), symbol: "mappin.and.ellipse")
         name.state = preferences.showsPlaceName ? .on : .off
         menu.addItem(name)
+        let border = item(String(localized: "Painted Border"), #selector(toggleBorder), symbol: "paintbrush")
+        border.state = preferences.paperEdge ? .on : .off
+        menu.addItem(border)
         menu.addItem(.separator())
 
-        // How it flies.
-        menu.addItem(choices(String(localized: "Pace"), Preferences.Pace.allCases.map { ($0.title, $0) }, current: preferences.pace) {
-            preferences.pace = $0
-        })
-        menu.addItem(choices(String(localized: "Time at Each Place"), Preferences.Stay.allCases.map { ($0.title, $0) },
-                             current: preferences.stay) { preferences.stay = $0 })
-        menu.addItem(.separator())
-
-        // How it saves energy.
-        menu.addItem(choices(String(localized: "On Battery"), PowerState.BatteryMode.allCases.map { ($0.title, $0) },
-                             current: preferences.batteryMode) { preferences.batteryMode = $0 })
-        let hidden = NSMenuItem(title: String(localized: "Pause When Hidden"), action: #selector(togglePausesWhenHidden),
-                                keyEquivalent: "")
-        hidden.target = self
-        hidden.state = preferences.pausesWhenHidden ? .on : .off
-        menu.addItem(hidden)
-        menu.addItem(.separator())
-
-        let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
-        menu.addItem(.separator())
-        // Seldom wanted, so apart from Settings, as an app menu has About and updates apart from it.
-        let check = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
-        check.target = self
+        menu.addItem(item(String(localized: "Settings…"), #selector(openSettings), key: ",", symbol: "gearshape"))
+        let check = item(String(localized: "Check for Updates…"), #selector(checkForUpdates), symbol: "arrow.triangle.2.circlepath")
         check.isEnabled = updates.canCheck
         menu.addItem(check)
         menu.addItem(feedbackItem())
         menu.addItem(.separator())
         if let dev = devBuildItem() { menu.addItem(dev) }
-        menu.addItem(NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(quitItem())
+    }
+
+    /// An item that does something here.
+    private func item(_ title: String, _ action: Selector, key: String = "", symbol: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = self
+        mark(item, symbol)
+        return item
+    }
+
+    /// A symbol before an item's title, from macOS 26, where AppKit puts one of its own on some items (a gear on
+    /// Settings…) and the titles only line up when every item has one. Earlier menus have none, and line up as they are.
+    private func mark(_ item: NSMenuItem, _ symbol: String) {
+        if #available(macOS 26, *) { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+    }
+
+    /// The place's name over the menu, as macOS heads a section, and in bold where it has no headings (macOS 13).
+    private func heading(_ title: String) -> NSMenuItem {
+        if #available(macOS 14, *) { return NSMenuItem.sectionHeader(title: title) }
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.attributedTitle = NSAttributedString(string: title, attributes: [.font: NSFont.menuFont(ofSize: 0).bold])
+        item.isEnabled = false
+        return item
+    }
+
+    private func quitItem() -> NSMenuItem {
+        let item = NSMenuItem(title: String(localized: "Quit Outbound"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        mark(item, "power")
+        return item
     }
 
     /// Why the painting holds still, when the Mac makes it rather than anyone choosing to: the GPU stopped taking its
@@ -597,14 +653,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Just above Quit, whether or not Outbound is unlocked. It opens a web page, so in place of an ellipsis it shows
-    /// an outward arrow, set as a key equivalent with no modifiers so it sits on the right with ⌘, and ⌘Q. Nobody can
-    /// type it.
+    /// Just above Quit, whether or not Outbound is unlocked. It opens the feedback page in the browser.
     private func feedbackItem() -> NSMenuItem {
-        let item = NSMenuItem(title: String(localized: "Feedback"), action: #selector(openFeedback), keyEquivalent: "↗")
-        item.keyEquivalentModifierMask = []
-        item.target = self
-        return item
+        item(String(localized: "Send Feedback…"), #selector(openFeedback), symbol: "envelope")
     }
 
     /// Which build this is, in one made with `scripts/build-app.sh dev`: its version, build number and commit, so test
@@ -613,6 +664,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let line = Self.devBuildLine(Bundle.main.infoDictionary) else { return nil }
         let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
         item.isEnabled = false
+        mark(item, "hammer")
         return item
     }
 
@@ -622,14 +674,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return line
     }
 
-    private func submenu(_ title: String, _ submenu: NSMenu) -> NSMenuItem {
+    private func submenu(_ title: String, _ submenu: NSMenu, symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = submenu
+        if let symbol { mark(item, symbol) }
         return item
     }
 
     /// A submenu of choices, with a check on the current one.
-    private func choices<Value: Equatable>(_ title: String, _ options: [(String, Value)], current: Value,
+    private func choices<Value: Equatable>(_ title: String, _ options: [(String, Value)], current: Value, symbol: String,
                                            choose: @escaping @MainActor (Value) -> Void) -> NSMenuItem {
         let menu = NSMenu()
         for (name, value) in options {
@@ -639,7 +692,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.representedObject = Choice { choose(value) }
             menu.addItem(item)
         }
-        return submenu(title, menu)
+        return submenu(title, menu, symbol: symbol)
     }
 
     @objc private func pick(_ sender: NSMenuItem) {
@@ -669,10 +722,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleShowsPlaceName() {
         preferences.showsPlaceName.toggle()
-    }
-
-    @objc private func togglePausesWhenHidden() {
-        preferences.pausesWhenHidden.toggle()
     }
 
     @objc private func checkForUpdates() {
@@ -729,21 +778,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openSettings() {
-        if settingsWindow == nil {
-            let view = SettingsView(preferences: preferences, license: license, canCheckForUpdates: updates.canCheck,
-                                    checkForUpdates: { [weak self] in self?.checkForUpdates() },
-                                    sendFeedback: { [weak self] in self?.openFeedback() })
-            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-            window.title = String(localized: "Outbound Settings")
-            window.styleMask = [.titled, .closable]
-            window.showsOnlyCloseButton()
-            window.opensWhereTheUserIs()
-            window.isReleasedWhenClosed = false
-            window.center()
-            settingsWindow = window
+        if settings == nil {
+            settings = SettingsWindowController(preferences: preferences, license: license,
+                                                canCheckForUpdates: updates.canCheck,
+                                                checkForUpdates: { [weak self] in self?.checkForUpdates() },
+                                                sendFeedback: { [weak self] in self?.openFeedback() })
+            settings?.window?.opensWhereTheUserIs()
+            settings?.window?.center()
         }
         // Once the menu it was chosen from has closed.
-        DispatchQueue.main.async { [weak self] in self?.settingsWindow?.bringForward() }
+        DispatchQueue.main.async { [weak self] in self?.settings?.window?.bringForward() }
     }
 }
 

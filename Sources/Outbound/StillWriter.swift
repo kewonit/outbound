@@ -30,10 +30,12 @@ final class StillWriter {
     /// The picture a display had when the system wouldn't take a painting over it, say one chosen by whoever manages
     /// the Mac. It isn't asked again until that picture changes.
     private var refused: [CGDirectDisplayID: URL?] = [:]
-    /// The Mac is shutting down, restarting or logging out: a painting replaced now stays on disk, with its record, as
-    /// the system may not keep the new picture before it powers off, and the login window and the next launch must
-    /// still find whichever one it kept. Paintings no longer shown go in time, as any old one does.
-    var keepsReplaced = false
+    /// The Mac is shutting down, restarting or logging out: the desktop picture stays as it is, so a painting still on
+    /// its way is dropped. A new picture then has macOS write it out again for the login window, and the Mac waits on
+    /// that before it powers off.
+    private var sessionEnding = false
+    /// A painting was dropped on its way while the session was ending, so the desktop still shows an older one.
+    private var droppedWhileEnding = false
     /// The last painting's stamp, so two in one millisecond never share a name.
     private var lastStamp = 0
     /// Counts moves between desktops, so a painting made for one never lands on another.
@@ -146,8 +148,10 @@ final class StillWriter {
     private func show(_ url: URL, of moment: World.Moment, on id: CGDirectDisplayID, covering covered: URL, turn: Int) {
         if turn == self.turn { waiting -= 1 }
         // A newer painting is on its way, or the user's own picture is back, or the user has moved to another desktop,
-        // whose picture this painting would cover without knowing it.
-        guard turn == self.turn, let screen = screen(id), NSWorkspace.shared.desktopImageURL(for: screen) == covered else {
+        // whose picture this painting would cover without knowing it, or the Mac is shutting down.
+        guard turn == self.turn, !sessionEnding, let screen = screen(id),
+              NSWorkspace.shared.desktopImageURL(for: screen) == covered else {
+            if turn == self.turn, sessionEnding { droppedWhileEnding = true }
             try? FileManager.default.removeItem(at: url)
             return
         }
@@ -193,7 +197,7 @@ final class StillWriter {
         refused[id] = nil
         seen.insert(id)
         lastGiven[id] = (desktopsSeen, .now)
-        if isStill(covered), !keepsReplaced {
+        if isStill(covered) {
             try? FileManager.default.removeItem(at: covered)
             retire(covered.lastPathComponent)
         }
@@ -209,6 +213,15 @@ final class StillWriter {
             originals[name] = nil
             savedOriginals = originals
         }
+    }
+
+    /// The session starts to end, or carries on after all. Returns whether a painting was dropped on its way while it
+    /// was ending, so it can be made again.
+    @discardableResult
+    func setSessionEnding(_ ending: Bool) -> Bool {
+        sessionEnding = ending
+        defer { droppedWhileEnding = false }
+        return !ending && droppedWhileEnding
     }
 
     /// The user has moved to other desktops: a painting on its way for the ones they left never lands. Returns

@@ -128,7 +128,7 @@ struct PreferencesTests {
             #expect(preferences.stay == .long)
             #expect(preferences.batteryMode == .still)
             #expect(!preferences.matchingStill)
-            #expect(!preferences.restsWhenAway)
+            #expect(preferences.away == .never)
             #expect(preferences.paperEdge)
             #expect(preferences.lastPlace == "niigata")
             #expect(preferences.pausesWhenHidden)
