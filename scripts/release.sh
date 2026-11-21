@@ -6,15 +6,18 @@ cd "$(dirname "$0")/.."
 #
 #     scripts/release.sh 1.1 "What's new, in a sentence or two."
 #
-# It bumps the version, builds, signs and notarizes the app, publishes it as a GitHub release, and adds it to
-# the appcast and the changelog on the website. Every copy checks that appcast once a day, downloads the update, checks its
-# signature, and installs it the next time the Mac is left alone.
+# It bumps the version, builds, signs and notarizes the app, publishes it as a GitHub release and in the site's own
+# storage on Cloudflare, where downloads and updates come from, and adds it to the appcast and the changelog on the
+# website. Every copy checks that appcast once a day, downloads the update, checks its signature, and installs it the
+# next time the Mac is left alone.
 #
 # Needs the Developer ID identity, the outbound-notary profile, and Sparkle's signing key in the login
-# keychain (made once with generate_keys --account app.outbound.Outbound; keep a backup of it).
+# keychain (made once with generate_keys --account app.outbound.Outbound; keep a backup of it), and Wrangler
+# logged in to Cloudflare (npx wrangler login).
 usage='Usage: scripts/release.sh <version> "<what is new>"'
 version="${1:?$usage}"
 notes="${2:?$usage}"
+[[ "$version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]] || { echo "A version looks like 1.9 or 1.9.1." >&2; exit 1; }
 identity="Developer ID Application: Kartik Kulloli (55W3P96VL4)"
 plist=Configuration/Info.plist
 appcast=Website/public/appcast.xml
@@ -25,6 +28,13 @@ git pull --ff-only --quiet
 ! gh release view "v$version" >/dev/null 2>&1 || { echo "v$version is already out." >&2; exit 1; }
 swift package resolve >/dev/null
 sign_update=.build/artifacts/sparkle/Sparkle/bin/sign_update
+[[ -d node_modules ]] || npm ci --silent
+bucket=outbound-downloads
+npx wrangler r2 bucket info "$bucket" >/dev/null 2>&1 ||
+    { echo "Can't reach the $bucket bucket on Cloudflare: log in with npx wrangler login." >&2; exit 1; }
+# Caches near downloaders keep a file for a day, so once the appcast offers a version, its files are never replaced.
+# A release that stopped before that can be run again: nothing was offered yet.
+! grep -qF "/Outbound-v$version.dmg\"" "$appcast" || { echo "The appcast already offers v$version." >&2; exit 1; }
 
 # The new version, and a build number one past the last, which is what Sparkle compares.
 build=$(( $(plutil -extract CFBundleVersion raw "$plist") + 1 ))
@@ -39,7 +49,11 @@ zip="build/Outbound-v$version.zip"
 cp build/Outbound.dmg "$dmg"
 cp build/Outbound.zip "$zip"
 
-# Publish the disk image first, so the appcast never points at a file that isn't there yet.
+# Publish the disk image first, so the appcast never points at a file that isn't there yet: in the bucket, which the
+# site serves downloads and updates from at /download/, and on GitHub, as the record of the release.
+for file in "$dmg" "$zip"; do
+    npx wrangler r2 object put "$bucket/$(basename "$file")" --file "$file" --remote >/dev/null
+done
 gh release create "v$version" "$dmg" "$zip" --target "$(git rev-parse HEAD)" \
     --title "Outbound v$version" --notes "$notes"
 
@@ -52,7 +66,7 @@ item="    <item>
       <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>$(plutil -extract LSMinimumSystemVersion raw Configuration/Info.plist)</sparkle:minimumSystemVersion>
-      <enclosure url=\"https://github.com/kewonit/outbound/releases/download/v$version/Outbound-v$version.dmg\" type=\"application/octet-stream\" $signature/>
+      <enclosure url=\"https://outbound.edbn.me/download/Outbound-v$version.dmg\" type=\"application/octet-stream\" $signature/>
     </item>"
 ITEM="$item" awk '{ print } /<language>/ && !done { print ENVIRON["ITEM"]; done = 1 }' "$appcast" > "$appcast.new"
 mv "$appcast.new" "$appcast"
@@ -69,7 +83,6 @@ fi
 git add "$entry"
 
 # The site serves the appcast, so it has to build before the update can go out.
-[[ -d node_modules ]] || npm ci --silent
 npm run build >/dev/null ||
     { echo "The site doesn't build, so v$version isn't offered yet: fix it, then commit and push." >&2; exit 1; }
 git commit --quiet -am "Offer Outbound v$version as an update"

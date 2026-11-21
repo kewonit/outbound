@@ -7,7 +7,8 @@
 //                                      With ?from=appstore, as the Mac App Store copy opens them, without any way
 //                                      to buy or download it here (forAppStore).
 //   GET  /buy[?currency=usd]           On to a new Polar checkout for Outbound, in that money, or in dollars.
-//   GET  /download                     The newest disk image, Outbound-v1.0.dmg and so on, from GitHub.
+//   GET  /download                     On to the newest disk image, /download/Outbound-v1.0.dmg and so on.
+//   GET  /download/Outbound-v1.0.dmg   That version's disk image, or its .zip, from the site's own storage.
 //   POST /api/checkout                 A new Polar checkout for Outbound, in the buyer's money: { id, url, expires_at }.
 //   POST /api/license { checkout }     That checkout's license key once it is paid:
 //                                      { status: "ready", key, email, paid } or { status: "pending" | "open" | ... }.
@@ -42,6 +43,9 @@ const MESSAGE_LIMIT = 2000;
 const VERSION = /^\d{1,3}(\.\d{1,3}){0,2}$/;
 // The app's line about how the painting runs on that Mac: chip, macOS, holds, GPU errors and cost.
 const DIAG = /^[A-Za-z0-9 =:,._-]{1,160}$/;
+// What a release puts up for download: its disk image and its zip, by version. scripts/release.sh makes versions like
+// 1.9 and 1.9.1; a name of any other version still finds its GitHub release.
+const RELEASE_FILE = /^Outbound-v(\d[\w.-]{0,30})\.(dmg|zip)$/;
 // Outbound's price in the visitor's own money, in the countries most buyers come from, as Cloudflare places them:
 // the currency its checkout charges, and how the pages write the price. The Outbound product in Polar needs a price
 // of that amount in each currency. Everywhere else, and for anyone who asks for dollars, it's $4.99. Turkish pages
@@ -77,9 +81,10 @@ const PRICES = {
 const PRICE_OR_DOLLARS = /(<a\b[^>]*\sdata-dollars\b[^>]*>)([\s\S]*?<\/a>)|\$4\.99(?![\d.,])/g;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === "/download") return download(request, env);
+    if (url.pathname === "/download") return newest(request, env);
+    if (url.pathname.startsWith("/download/")) return download(request, env, ctx, url);
     if (url.pathname === "/buy") return buy(request, env, url);
     if (TRANSLATED.has(url.pathname)) return forAppStore(url, await page(request, env, url));
     if (!url.pathname.startsWith("/api/")) return forAppStore(url, await priced(request, env));
@@ -98,15 +103,87 @@ export default {
   },
 };
 
-// The newest disk image, read from the site's own update feed, which scripts/release.sh writes once the release
+// The newest disk image is the first in the site's own update feed, which scripts/release.sh writes once the release
 // is up. No call to GitHub's API, whose limits shared addresses run into. Before any release, the releases page.
-async function download(request, env) {
+async function newest(request, env) {
   const feed = await env.ASSETS.fetch(new Request(new URL("/appcast.xml", request.url)));
-  const match = (await feed.text()).match(/<enclosure url="(https:\/\/github\.com\/kewonit\/outbound\/[^"]+\.dmg)"/);
-  return new Response(null, {
-    status: 302,
-    headers: { Location: match ? match[1] : "https://github.com/kewonit/outbound/releases/latest", "Cache-Control": "no-store" },
+  const match = (await feed.text()).match(/<enclosure url="[^"]*\/(Outbound-v[\w.-]+\.dmg)"/);
+  return redirect(match ? `/download/${match[1]}` : "https://github.com/kewonit/outbound/releases/latest");
+}
+
+// A release's disk image or zip, from the site's own storage on Cloudflare (DOWNLOADS, in R2), which
+// scripts/release.sh fills. GitHub sent them slowly, at times about 20 KB a second, to the app's updates as well.
+// Once sent whole, a file is kept for a day in the cache where it was asked for. A download resumed part way gets the
+// rest, from the cache or from storage. A file that isn't in storage, or storage that fails, sends the download on to
+// the file's GitHub release.
+async function download(request, env, ctx, url) {
+  const name = url.pathname.slice("/download/".length);
+  const release = name.match(RELEASE_FILE);
+  if (!release) return env.ASSETS.fetch(request);
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response(null, { status: 405, headers: { Allow: "GET, HEAD" } });
+  }
+  const github = `https://github.com/kewonit/outbound/releases/download/v${release[1]}/${name}`;
+  const key = new Request(`${url.origin}${url.pathname}`, request);
+  const part = request.method === "GET" && request.headers.has("Range");
+  if (request.method === "GET") {
+    // The cache failing is no reason to skip storage.
+    const kept = await caches.default.match(key).catch(() => null);
+    if (kept) return kept;
+  }
+  let file;
+  try {
+    if (request.method === "HEAD") {
+      file = await env.DOWNLOADS.head(name);
+    } else if (part) {
+      // A range storage can't serve, past the end or in several pieces, gets the whole file instead. So does a
+      // download resumed on a file that has changed since it began.
+      file = await env.DOWNLOADS.get(name, { range: request.headers }).catch(() => undefined);
+      const since = request.headers.get("If-Range");
+      if (file?.range && since && since !== file.httpEtag) {
+        file.body?.cancel();
+        file = undefined;
+      }
+      if (file === undefined) file = await env.DOWNLOADS.get(name);
+    } else {
+      file = await env.DOWNLOADS.get(name);
+    }
+  } catch (error) {
+    console.error(`/download/${name}: ${error.message}`);
+    return redirect(github);
+  }
+  if (!file) return redirect(github);
+  const headers = new Headers({
+    "Content-Type": release[2] === "dmg" ? "application/x-apple-diskimage" : "application/zip",
+    "Content-Disposition": `attachment; filename="${name}"`,
+    "Content-Length": String(file.size),
+    "Accept-Ranges": "bytes",
+    // Only a day, in case a file ever has to be replaced, though scripts/release.sh never replaces one already offered.
+    "Cache-Control": "public, max-age=86400",
+    ETag: file.httpEtag,
+    // As every page has (Website/public/_headers, which reaches only the files the site serves itself).
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
   });
+  if (!file.body) return new Response(null, { headers });
+  const [first, last] = file.range ? span(file.range, file.size) : [0, file.size - 1];
+  if (first > 0 || last < file.size - 1) {
+    headers.set("Content-Range", `bytes ${first}-${last}/${file.size}`);
+    headers.set("Content-Length", String(last - first + 1));
+    return new Response(file.body, { status: 206, headers });
+  }
+  const response = new Response(file.body, { headers });
+  // A plain download fills the cache; one that asked for a part and got the whole file is left out of it.
+  if (!part) ctx.waitUntil(caches.default.put(key, response.clone()).catch(() => {}));
+  return response;
+}
+
+// The first and last byte an R2 range covers, in a file of that size.
+function span(range, size) {
+  if (range.suffix !== undefined) return [Math.max(size - range.suffix, 0), size - 1];
+  const first = range.offset ?? 0;
+  const last = range.length === undefined ? size - 1 : first + range.length - 1;
+  return [first, Math.min(last, size - 1)];
 }
 
 // An English page, or a redirect to the same page in the visitor's language. Search engines, which send no
