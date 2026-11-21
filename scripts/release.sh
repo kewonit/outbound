@@ -32,9 +32,9 @@ sign_update=.build/artifacts/sparkle/Sparkle/bin/sign_update
 bucket=outbound-downloads
 npx wrangler r2 bucket info "$bucket" >/dev/null 2>&1 ||
     { echo "Can't reach the $bucket bucket on Cloudflare: log in with npx wrangler login." >&2; exit 1; }
-# Caches near downloaders keep a file for a day, so a version's files go up once and are never replaced.
-! npx wrangler r2 object get "$bucket/Outbound-v$version.dmg" --remote --pipe >/dev/null 2>&1 ||
-    { echo "The $bucket bucket already has v$version." >&2; exit 1; }
+# Caches near downloaders keep a file for a day, so once the appcast offers a version, its files are never replaced.
+# A release that stopped before that can be run again: nothing was offered yet.
+! grep -qF "/Outbound-v$version.dmg\"" "$appcast" || { echo "The appcast already offers v$version." >&2; exit 1; }
 
 # The new version, and a build number one past the last, which is what Sparkle compares.
 build=$(( $(plutil -extract CFBundleVersion raw "$plist") + 1 ))

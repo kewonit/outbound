@@ -126,15 +126,28 @@ async function download(request, env, ctx, url) {
   const github = `https://github.com/kewonit/outbound/releases/download/v${release[1]}/${name}`;
   const key = new Request(`${url.origin}${url.pathname}`, request);
   const part = request.method === "GET" && request.headers.has("Range");
+  if (request.method === "GET") {
+    // The cache failing is no reason to skip storage.
+    const kept = await caches.default.match(key).catch(() => null);
+    if (kept) return kept;
+  }
   let file;
   try {
-    if (request.method === "GET") {
-      const kept = await caches.default.match(key);
-      if (kept) return kept;
+    if (request.method === "HEAD") {
+      file = await env.DOWNLOADS.head(name);
+    } else if (part) {
+      // A range storage can't serve, past the end or in several pieces, gets the whole file instead. So does a
+      // download resumed on a file that has changed since it began.
+      file = await env.DOWNLOADS.get(name, { range: request.headers }).catch(() => undefined);
+      const since = request.headers.get("If-Range");
+      if (file?.range && since && since !== file.httpEtag) {
+        file.body?.cancel();
+        file = undefined;
+      }
+      if (file === undefined) file = await env.DOWNLOADS.get(name);
+    } else {
+      file = await env.DOWNLOADS.get(name);
     }
-    file = request.method === "HEAD"
-      ? await env.DOWNLOADS.head(name)
-      : await env.DOWNLOADS.get(name, part ? { range: request.headers } : {});
   } catch (error) {
     console.error(`/download/${name}: ${error.message}`);
     return redirect(github);
@@ -145,7 +158,7 @@ async function download(request, env, ctx, url) {
     "Content-Disposition": `attachment; filename="${name}"`,
     "Content-Length": String(file.size),
     "Accept-Ranges": "bytes",
-    // Only a day, in case a file ever has to be replaced, though scripts/release.sh never puts a version up twice.
+    // Only a day, in case a file ever has to be replaced, though scripts/release.sh never replaces one already offered.
     "Cache-Control": "public, max-age=86400",
     ETag: file.httpEtag,
     // As every page has (Website/public/_headers, which reaches only the files the site serves itself).
@@ -153,7 +166,6 @@ async function download(request, env, ctx, url) {
     "X-Content-Type-Options": "nosniff",
   });
   if (!file.body) return new Response(null, { headers });
-  // Storage sends the whole file for a range it can't make sense of, or one past the end.
   const [first, last] = file.range ? span(file.range, file.size) : [0, file.size - 1];
   if (first > 0 || last < file.size - 1) {
     headers.set("Content-Range", `bytes ${first}-${last}/${file.size}`);
@@ -161,7 +173,8 @@ async function download(request, env, ctx, url) {
     return new Response(file.body, { status: 206, headers });
   }
   const response = new Response(file.body, { headers });
-  ctx.waitUntil(caches.default.put(key, response.clone()).catch(() => {}));
+  // A plain download fills the cache; one that asked for a part and got the whole file is left out of it.
+  if (!part) ctx.waitUntil(caches.default.put(key, response.clone()).catch(() => {}));
   return response;
 }
 
