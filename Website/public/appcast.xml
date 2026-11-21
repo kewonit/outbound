@@ -13,7 +13,7 @@
       <sparkle:version>12</sparkle:version>
       <sparkle:shortVersionString>1.9</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-      <enclosure url="https://github.com/kewonit/outbound/releases/download/v1.9/Outbound-v1.9.dmg" type="application/octet-stream" sparkle:edSignature="pDskzjSmlr8Ku/fjhmQpShHXktWeUF2tLeyBa5U7/fD9isuFcDgDR0r7T1XELxImLdA/WqrIpMwHJ+mf4F37CQ==" length="5916654"/>
+      <enclosure url="https://outbound.edbn.me/download/Outbound-v1.9.dmg" type="application/octet-stream" sparkle:edSignature="pDskzjSmlr8Ku/fjhmQpShHXktWeUF2tLeyBa5U7/fD9isuFcDgDR0r7T1XELxImLdA/WqrIpMwHJ+mf4F37CQ==" length="5916654"/>
     </item>
     <item>
       <title>Outbound v1.8.1</title>
