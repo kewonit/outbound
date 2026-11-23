@@ -10,7 +10,7 @@ import Topbar from "../components/Topbar.astro";
   <div class="wrap-narrow prose legal">
     <h1>Privacy.</h1>
     <p class="lede">The app has no account and no analytics. The painting happens on your Mac. This policy says exactly what Outbound and this website do with personal data, who handles it, and what you can ask of us.</p>
-    <p class="updated">Last updated 21 November 2026</p>
+    <p class="updated">Last updated 24 November 2026</p>
 
     <nav class="contents" aria-label="On this page">
       <a href="#who">1. Who we are</a>
@@ -47,6 +47,7 @@ import Topbar from "../components/Topbar.astro";
       <li>The copy from the Mac App Store makes no network requests at all.</li>
       <li>The copy from this website goes online only to check its license and to look for updates.</li>
       <li>This website counts visits with Plausible, which sets no cookies and keeps nothing that identifies you.</li>
+      <li>It also uses PostHog to see how its pages are used and where they break, with recordings of visits that never hold what you type or your key.</li>
       <li>Payments are taken by Polar on this website, and by Apple on the App Store. We never see your card.</li>
       <li>We don't sell personal data or share it for advertising, and there are no ad pixels, advertising cookies or cross-site tracking on this website.</li>
     </ul>
@@ -92,8 +93,17 @@ import Topbar from "../components/Topbar.astro";
       <li>Visits are counted with Plausible: which pages are seen, where visitors came from, and their country, browser and kind of device. It sets no cookies and keeps nothing that identifies you. On the thank-you page it gets only the page, not the checkout in its address. See <a href="https://plausible.io/data-policy">Plausible's data policy</a>.</li>
       <li>It also counts clicks on Buy and Download, which questions in the FAQ are opened, and finished purchases with their price before tax, never who made them.</li>
     </ul>
+    <h3>How pages are used</h3>
+    <ul>
+      <li>This website also sends events to PostHog, through its own address at <code>outbound.edbn.me/ingest</code>: the pages you view and when you leave them, what you click, where on the page you click and how far you scroll, clicks that do nothing, how quickly pages load, and errors in the website's code, with what it writes to the browser console.</li>
+      <li>It sends the same moments Plausible counts, above, including a finished purchase's price before tax, never who made it.</li>
+      <li>Each event carries the page's address and where you came from, your browser, operating system, kind of device and screen size, and the rough location (country, region and city) PostHog works out from your IP address. PostHog then drops the IP address. Arriving from a Polar checkout, only polar.sh is kept, not the checkout's address.</li>
+      <li>PostHog also records how pages change while you use them (what is on screen, the pointer, scrolling and clicks), so we can replay a visit and see where the website is confusing or broken. Recordings never include what you type into the forms, and leave out your license key and email address entirely. Network requests show only their address and timing.</li>
+      <li>It is the same PostHog project as our other website, ui.edbn.me, but nothing joins a visit here to one there, and you are never named to it. See <a href="https://posthog.com/privacy">PostHog's privacy policy</a>.</li>
+    </ul>
     <h3>What this website keeps in your browser</h3>
     <ul>
+      <li>A random id from PostHog, in local storage, and the current visit's id, in session storage, so that events from the same browser group into visits. PostHog sets no cookies here.</li>
       <li>A <code>lang</code> cookie, for a year, only if you pick a language at the bottom of a page. It is sent back so the right language is shown, and does nothing else.</li>
       <li>After you buy, your key, for a year, so the homepage can show it if you lose it. It never leaves your browser. Click Forget to remove it.</li>
       <li>That you joined the waitlist and for which platform, and which order this browser has already counted, so neither is repeated. During a checkout, its id, in that tab only.</li>
@@ -124,7 +134,7 @@ import Topbar from "../components/Topbar.astro";
     <h2 id="why">10. Why we use it</h2>
     <ul>
       <li><strong>To deliver what you bought</strong>, and to support it: your order, key, Macs and messages. This is needed to perform our contract with you.</li>
-      <li><strong>To run and protect the website and count visits</strong>, in ways that don't identify you to us. These are our legitimate interests, and you can object to them.</li>
+      <li><strong>To run and protect the website, count visits, and see how it is used and where it breaks</strong>, without knowing who you are. These are our legitimate interests, and you can object to them.</li>
       <li><strong>To email you about Windows or iPhone, or reply to feedback</strong>, because you asked us to. You can withdraw that at any time.</li>
       <li><strong>To keep records the law requires</strong>, such as tax records, which Polar and Apple keep as the sellers of record.</li>
       <li>We make no automated decisions about you that have legal or similar effects, and build no profiles.</li>
@@ -136,6 +146,7 @@ import Topbar from "../components/Topbar.astro";
       <li><strong>Polar</strong>: our reseller for purchases on this website. It handles payments, tax, receipts and refunds as the seller, and keeps license keys for us. See <a href="https://polar.sh/legal/privacy-policy">Polar's privacy policy</a>.</li>
       <li><strong>Apple</strong>: purchases, updates and refunds for the App Store copy.</li>
       <li><strong>Plausible</strong>: counting visits, without cookies or personal data.</li>
+      <li><strong>PostHog</strong>: how the website is used, its errors, and recordings of visits, as in <a href="#site">section 6</a>.</li>
       <li><strong>Supabase</strong>: the database for the waitlist and feedback.</li>
       <li><strong>GitHub</strong>: hosting the source code, and the downloads when this website can't send them. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
       <li>We share personal data only with these services, only for these purposes, and otherwise only when the law requires it or to protect our rights. If Outbound is ever sold, it would pass to the new owner under this policy.</li>
@@ -153,6 +164,7 @@ import Topbar from "../components/Topbar.astro";
       <li>The waitlist: until the one email is sent, then deleted.</li>
       <li>Feedback and email: as long as they help to answer you or improve Outbound, and deleted sooner when you ask.</li>
       <li>Visit counts: Plausible keeps only totals, which identify no one.</li>
+      <li>PostHog events and recordings: as long as PostHog keeps them for our plan, and deleted sooner when you ask.</li>
     </ul>
 
     <h2 id="security">14. Security</h2>

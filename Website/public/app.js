@@ -19,10 +19,13 @@
     return WORDS[key] || english;
   }
 
-  // Counts a moment with Plausible. Blocked, missing or failing, it does nothing, and nothing waits for it.
+  // Counts a moment with Plausible and PostHog. Blocked, missing or failing, each does nothing, and nothing waits.
   function track(name, props) {
     try {
       if (typeof window.plausible === "function") window.plausible(name, { props: props });
+    } catch (error) {}
+    try {
+      if (window.posthog && typeof window.posthog.capture === "function") window.posthog.capture(name, props);
     } catch (error) {}
   }
 
@@ -115,7 +118,7 @@
         var small = buy.classList.contains("btn-sm");
         var button = document.createElement("button");
         button.type = "button";
-        button.className = "btn btn-light key-button" + (small ? " btn-sm" : "");
+        button.className = "btn btn-light key-button ph-no-capture" + (small ? " btn-sm" : "");
         button.title = word("js.copyKeyTitle", "Copy your key");
         if (!small) {
           var code = document.createElement("code");

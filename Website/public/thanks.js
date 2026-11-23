@@ -12,11 +12,18 @@
     return WORDS[key] || english;
   }
 
-  // Counts a moment with Plausible. Blocked, missing or failing, it does nothing, and nothing waits for it.
+  // Counts a moment with Plausible and PostHog. Blocked, missing or failing, each does nothing, and nothing waits.
   function track(name, props, revenue) {
     try {
       if (typeof window.plausible === "function") {
         window.plausible(name, revenue ? { props: props, revenue: revenue } : { props: props });
+      }
+    } catch (error) {}
+    try {
+      if (window.posthog && typeof window.posthog.capture === "function") {
+        var extra = revenue ? { revenue: revenue.amount, currency: revenue.currency } : {};
+        for (var prop in props) extra[prop] = props[prop];
+        window.posthog.capture(name, extra);
       }
     } catch (error) {}
   }

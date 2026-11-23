@@ -29,7 +29,7 @@ const href = (path: string) => localHref(lang, path);
         <strong data-i18n="thanks.step2" set:html={t("thanks.step2")}></strong> <span data-i18n="thanks.step2Detail" set:html={t("thanks.step2Detail")}></span>
         <div class="cta-row"><a class="btn btn-light" id="activate" href="#" aria-disabled="true" set:html={t("thanks.activate")}></a></div>
         {/* The key, under Activate and before the menu bar, once thanks.js has it. */}
-        <div class="license" id="license" hidden>
+        <div class="license ph-no-capture" id="license" hidden>
           <h2 set:html={t("thanks.key")}></h2>
           <div class="key-row">
             <code id="key"></code>
