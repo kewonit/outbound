@@ -38,16 +38,17 @@ export function loader(publicDir) {
   }
   if (missing) plausible("404");
   // PostHog, on the live site only: page views, clicks, heatmaps, web vitals, errors and recordings of visits, in
-  // the edbn project ui.edbn.me uses, through /ingest on this site (worker/index.js). Calls wait in its queue until
-  // its script arrives. It keeps its random id in this site's local storage, never a cookie, so nothing joins a
-  // visit here to ui.edbn.me. Recordings never hold what is typed, and leave out anything marked ph-no-capture: the
-  // key and the buyer's email. Privacy section 6 says exactly this, so change both together.
+  // Outbound's own PostHog project (organization Outbound, project 762991), through /ingest on this site
+  // (worker/index.js). Calls wait in its queue until its script arrives. It keeps its random id in this site's local
+  // storage, never a cookie, so nothing joins a visit here to another edbn.me site. Recordings never hold what is
+  // typed, and leave out anything marked ph-no-capture: the key and the buyer's email. Privacy section 6 says exactly
+  // this, so change both together.
   var reports = location.hostname === "outbound.edbn.me";
   if (reports) {
     var posthog = window.posthog = [];
     posthog.people = [];
     posthog.capture = function () { posthog.push(["capture"].concat([].slice.call(arguments))); };
-    posthog._i = [["phc_Ckkg6Qm4MnyqPUe27H93ZjigjBJxh3booYsszWpsN8Yi", {
+    posthog._i = [["phc_nRhSzaRDUZh5dF8mkrNDP4aWRdEyjhXS2gYQxZWFDt5B", {
       api_host: "/ingest",
       ui_host: "https://us.posthog.com",
       defaults: "2026-08-30",
