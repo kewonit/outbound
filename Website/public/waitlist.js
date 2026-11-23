@@ -15,6 +15,9 @@
     try {
       if (typeof window.plausible === "function") window.plausible(name, { props: props });
     } catch (error) {}
+    try {
+      if (window.posthog && typeof window.posthog.capture === "function") window.posthog.capture(name, props);
+    } catch (error) {}
   }
 
   var form = document.getElementById("waitlist");

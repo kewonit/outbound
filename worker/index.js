@@ -19,6 +19,7 @@
 //                                      iPhone: { ok: true }, the same whether or not it was already there.
 //   POST /api/feedback { message, email?, lang, app? }
 //                                      Keeps a message from the feedback page: { ok: true }.
+//   GET/POST /ingest/...               PostHog, through the site's own address (posthog below).
 //
 // POLAR_ACCESS_TOKEN is a secret: a Polar organization token with checkouts:read, checkouts:write,
 // orders:read, benefits:read and license_keys:read. The waitlist and feedback need three more: SUPABASE_URL,
@@ -86,6 +87,7 @@ export default {
     if (url.pathname === "/download") return newest(request, env);
     if (url.pathname.startsWith("/download/")) return download(request, env, ctx, url);
     if (url.pathname === "/buy") return buy(request, env, url);
+    if (url.pathname.startsWith("/ingest/")) return posthog(request, url);
     if (TRANSLATED.has(url.pathname)) return forAppStore(url, await page(request, env, url));
     if (!url.pathname.startsWith("/api/")) return forAppStore(url, await priced(request, env));
     if (request.method !== "POST") return reply({ error: "Use POST." }, 405);
@@ -102,6 +104,48 @@ export default {
     }
   },
 };
+
+// PostHog, which the loader (Website/lib/loader.mjs) starts on outbound.edbn.me, sends its events and fetches its
+// scripts through /ingest on the site's own address, so blockers that match PostHog's own hosts don't drop them.
+// Only the headers PostHog needs go on, with the visitor's IP for the rough location (the project drops the IP).
+const POSTHOG_API = "https://us.i.posthog.com";
+const POSTHOG_ASSETS = "https://us-assets.i.posthog.com";
+const POSTHOG_REQUEST_HEADERS = ["content-type", "user-agent", "accept"];
+// Encoding and length stay behind: fetch has already decoded the body.
+const POSTHOG_RESPONSE_HEADERS = ["content-type", "cache-control", "etag", "vary"];
+
+async function posthog(request, url) {
+  if (request.method !== "GET" && request.method !== "HEAD" && request.method !== "POST") {
+    return new Response(null, { status: 405 });
+  }
+  // The path keeps its trailing slash (/e/, /flags/), which PostHog expects.
+  const path = url.pathname.slice("/ingest".length);
+  const host = path.startsWith("/static/") || path.startsWith("/array/") ? POSTHOG_ASSETS : POSTHOG_API;
+  const headers = new Headers();
+  for (const name of POSTHOG_REQUEST_HEADERS) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  const ip = request.headers.get("cf-connecting-ip");
+  if (ip) headers.set("x-forwarded-for", ip);
+  let upstream;
+  try {
+    upstream = await fetch(new URL(`${path}${url.search}`, host), {
+      method: request.method,
+      headers,
+      body: request.method === "POST" ? await request.arrayBuffer() : undefined,
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    return new Response(null, { status: 502 });
+  }
+  const answer = new Headers({ "X-Content-Type-Options": "nosniff" });
+  for (const name of POSTHOG_RESPONSE_HEADERS) {
+    const value = upstream.headers.get(name);
+    if (value) answer.set(name, value);
+  }
+  return new Response(upstream.body, { status: upstream.status, headers: answer });
+}
 
 // The newest disk image is the first in the site's own update feed, which scripts/release.sh writes once the release
 // is up. No call to GitHub's API, whose limits shared addresses run into. Before any release, the releases page.
